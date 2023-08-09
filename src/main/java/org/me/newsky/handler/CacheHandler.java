@@ -96,10 +96,11 @@ public class CacheHandler {
         }
     }
 
-    public void createIsland(UUID islandUuid, UUID ownerUuid, int level) {
+    public void createIsland(UUID ownerUuid) {
+        UUID islandUuid = UUID.randomUUID();
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset("island_data:" + islandUuid, "owner_uuid", ownerUuid.toString());
-            jedis.hset("island_data:" + islandUuid, "level", String.valueOf(level));
+            jedis.hset("island_data:" + islandUuid, "level", String.valueOf(0));
             jedis.hset("island_data:" + islandUuid, "status", "modified");
         }
     }
@@ -138,7 +139,7 @@ public class CacheHandler {
         }
     }
 
-    public void deleteIslandMember(UUID islandUuid, UUID memberUuid) {
+    public void removeIslandMember(UUID islandUuid, UUID memberUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset("island_members:" + islandUuid + ":status", memberUuid.toString(), "deleted");
         }
