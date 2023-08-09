@@ -1,0 +1,14 @@
+DB:
+  host: "127.0.0.1"
+  port: 3306
+  database: ""
+  username: "test"
+  password: "test"
+
+redis:
+  host: "127.0.0.1"
+  port: 6379
+  password: "your_redis_password"
+
+server:
+  name: "Server1" # Unique name for your server
