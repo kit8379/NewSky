@@ -184,7 +184,7 @@ public class IslandCommand implements CommandExecutor {
         // You can adjust the implementation depending on what you need to display.
 
         Optional<UUID> islandUuid = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
-        if (!islandUuid.isPresent()) {
+        if (islandUuid.isEmpty()) {
             requester.sendMessage(Component.text("The player does not have an island.", NamedTextColor.RED));
             return;
         }
@@ -194,17 +194,20 @@ public class IslandCommand implements CommandExecutor {
 
         // Fetch the island owner's name
         OfflinePlayer owner = Bukkit.getOfflinePlayer(ownerUuid);
-        String ownerName = owner != null ? owner.getName() : "Unknown";
+        String ownerName = owner.getName();
 
         requester.sendMessage(Component.text("Player Island:\n\n", NamedTextColor.AQUA));
         requester.sendMessage(Component.text("Island Owner: " + ownerName, NamedTextColor.AQUA));
+        requester.sendMessage(Component.text("Island UUID: " + islandUuid.get(), NamedTextColor.AQUA));
+        requester.sendMessage(Component.text("Island Level: " + cacheHandler.getIslandLevel(islandUuid.get()), NamedTextColor.AQUA));
+        requester.sendMessage(Component.text("Island Members Count: " + membersUuid.size(), NamedTextColor.AQUA));
 
         // Display the list of island members
         requester.sendMessage(Component.text("Island Members:", NamedTextColor.AQUA));
         for (UUID memberUuid : membersUuid) {
             // Fetch the island member's name
             OfflinePlayer member = Bukkit.getOfflinePlayer(memberUuid);
-            String memberName = member != null ? member.getName() : "Unknown";
+            String memberName = member.getName();
             requester.sendMessage(Component.text("- " + memberName, NamedTextColor.GREEN));
         }
     }

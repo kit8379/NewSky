@@ -35,8 +35,6 @@ public class CacheHandler {
                     UUID islandUuid = (UUID) resultSet.getObject("island_uuid");
                     jedis.hset("island_data:" + islandUuid, "owner_uuid", resultSet.getString("owner_uuid"));
                     jedis.hset("island_data:" + islandUuid, "level", String.valueOf(resultSet.getInt("level")));
-                    // Set a marker for unchanged data
-                    jedis.hset("island_data:" + islandUuid, "status", "unchanged");
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
@@ -51,8 +49,6 @@ public class CacheHandler {
                     UUID islandUuid = (UUID) resultSet.getObject("island_uuid");
                     UUID memberUuid = (UUID) resultSet.getObject("member_uuid");
                     jedis.sadd("island_members:" + islandUuid, memberUuid.toString());
-                    // Set a marker for unchanged member data
-                    jedis.hset("island_members:" + islandUuid + ":status", memberUuid.toString(), "unchanged");
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
@@ -61,37 +57,21 @@ public class CacheHandler {
     }
 
     public void saveCacheToDatabase() {
+        // Directly save all cached data to the database
         try (Jedis jedis = redisHandler.getJedis()) {
-            // Update or delete island_data based on status
             jedis.keys("island_data:*").forEach(key -> {
-                String status = jedis.hget(key, "status");
                 UUID islandUuid = UUID.fromString(key.replace("island_data:", ""));
-                if ("modified".equals(status)) {
-                    // Update island_data in database
-                    String ownerUuid = jedis.hget(key, "owner_uuid");
-                    int level = Integer.parseInt(jedis.hget(key, "level"));
-                    databaseHandler.updateIslandData(islandUuid, UUID.fromString(ownerUuid), level);
-                } else if ("deleted".equals(status)) {
-                    // Delete island_data from database
-                    jedis.del(key);
-                    databaseHandler.deleteIslandData(islandUuid);
-                }
+                String ownerUuid = jedis.hget(key, "owner_uuid");
+                int level = Integer.parseInt(jedis.hget(key, "level"));
+                databaseHandler.updateIslandData(islandUuid, UUID.fromString(ownerUuid), level);
             });
 
-            // Update or delete island_members based on status
-            jedis.keys("island_members:*:status").forEach(key -> {
-                UUID islandUuid = UUID.fromString(key.replace("island_members:", "").replace(":status", ""));
-                jedis.hgetAll(key).forEach((memberUuid, status) -> {
-                    if ("modified".equals(status)) {
-                        // Update member in database
-                        databaseHandler.addIslandMember(islandUuid, UUID.fromString(memberUuid));
-                    } else if ("deleted".equals(status)) {
-                        // Delete member from database
-                        jedis.srem("island_members:" + islandUuid, memberUuid);
-                        jedis.hdel(key, memberUuid);
-                        databaseHandler.deleteIslandMember(islandUuid, UUID.fromString(memberUuid));
-                    }
-                });
+            jedis.keys("island_members:*").forEach(key -> {
+                UUID islandUuid = UUID.fromString(key.replace("island_members:", ""));
+                Set<String> members = jedis.smembers(key);
+                for (String memberUuid : members) {
+                    databaseHandler.addIslandMember(islandUuid, UUID.fromString(memberUuid));
+                }
             });
         }
     }
@@ -101,47 +81,36 @@ public class CacheHandler {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset("island_data:" + islandUuid, "owner_uuid", ownerUuid.toString());
             jedis.hset("island_data:" + islandUuid, "level", String.valueOf(0));
-            jedis.hset("island_data:" + islandUuid, "status", "modified");
-        }
-    }
-
-    public void updateIslandOwner(UUID islandUuid, UUID newOwnerUuid) {
-        try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.hset("island_data:" + islandUuid, "owner_uuid", newOwnerUuid.toString());
-            jedis.hset("island_data:" + islandUuid, "status", "modified");
-        }
-    }
-
-    public void updateIslandLevel(UUID islandUuid, int newLevel) {
-        try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.hset("island_data:" + islandUuid, "level", String.valueOf(newLevel));
-            jedis.hset("island_data:" + islandUuid, "status", "modified");
+            databaseHandler.updateIslandData(islandUuid, ownerUuid, 0);
         }
     }
 
     public void deleteIsland(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            // Mark the island data for deletion
-            jedis.hset("island_data:" + islandUuid, "status", "deleted");
-
-            // Mark all members of the island for deletion
+            // Delete all members
             Set<String> members = jedis.smembers("island_members:" + islandUuid);
             for (String member : members) {
-                jedis.hset("island_members:" + islandUuid + ":status", member, "deleted");
+                jedis.srem("island_members:" + islandUuid, member);
+                databaseHandler.deleteIslandMember(islandUuid, UUID.fromString(member));
             }
+
+            // Delete the island data
+            jedis.del("island_data:" + islandUuid);
+            databaseHandler.deleteIslandData(islandUuid);
         }
     }
 
     public void addIslandMember(UUID islandUuid, UUID memberUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.sadd("island_members:" + islandUuid, memberUuid.toString());
-            jedis.hset("island_members:" + islandUuid + ":status", memberUuid.toString(), "modified");
+            databaseHandler.addIslandMember(islandUuid, memberUuid);
         }
     }
 
     public void removeIslandMember(UUID islandUuid, UUID memberUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.hset("island_members:" + islandUuid + ":status", memberUuid.toString(), "deleted");
+            jedis.srem("island_members:" + islandUuid, memberUuid.toString());
+            databaseHandler.deleteIslandMember(islandUuid, memberUuid);
         }
     }
 
