@@ -3,6 +3,7 @@ package org.me.newsky.command;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -10,6 +11,8 @@ import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.handler.CacheHandler;
 
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public class IslandCommand implements CommandExecutor {
@@ -105,6 +108,22 @@ public class IslandCommand implements CommandExecutor {
                 removeIslandMember(player.getUniqueId(), targetRemove.getUniqueId());
                 player.sendMessage(Component.text(targetRemove.getName() + " removed from your island.", NamedTextColor.GREEN));
                 break;
+            case "info":
+                if (!player.hasPermission("newsky.island.info")) {
+                    player.sendMessage(Component.text("You don't have permission to use this command.", NamedTextColor.RED));
+                    return true;
+                }
+                if (args.length < 2) {
+                    player.sendMessage(Component.text("Usage: /island info <player>", NamedTextColor.RED));
+                    return true;
+                }
+                Player targetInfo = Bukkit.getPlayer(args[1]);
+                if (targetInfo == null) {
+                    player.sendMessage(Component.text("Player not found!", NamedTextColor.RED));
+                    return true;
+                }
+                displayIslandInfo(player, targetInfo.getUniqueId());
+                break;
             case "reload":
                 if (!player.hasPermission("newsky.island.reload")) {
                     player.sendMessage(Component.text("You don't have permission to use this command.", NamedTextColor.RED));
@@ -136,13 +155,13 @@ public class IslandCommand implements CommandExecutor {
         player.sendMessage(Component.text("/island delete <player> - Delete an island for a player"));
         player.sendMessage(Component.text("/island add <player> - Add a player to your island"));
         player.sendMessage(Component.text("/island remove <player> - Remove a player from your island"));
+        player.sendMessage(Component.text("/island info <player> - Check a player island information"));
         player.sendMessage(Component.text("/island reload - Reload config"));
         player.sendMessage(Component.text("/island save - Force save cache to database"));
     }
 
     private void createIsland(UUID uuid) {
         // Implementation for creating island
-        // You'll likely want to call methods from the CacheHandler or another appropriate class here.
         cacheHandler.createIsland(uuid);
     }
 
@@ -160,6 +179,36 @@ public class IslandCommand implements CommandExecutor {
         // Implementation for removing a member from an island
         cacheHandler.removeIslandMember(islandOwner, memberUuid);
     }
+
+    private void displayIslandInfo(Player requester, UUID targetUuid) {
+        // You can adjust the implementation depending on what you need to display.
+
+        Optional<UUID> islandUuid = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
+        if (!islandUuid.isPresent()) {
+            requester.sendMessage(Component.text("The player does not have an island.", NamedTextColor.RED));
+            return;
+        }
+        // Fetch the island owner's UUID and members UUID
+        UUID ownerUuid = cacheHandler.getIslandOwner(islandUuid.get());
+        Set<UUID> membersUuid = cacheHandler.getIslandMembers(islandUuid.get());
+
+        // Fetch the island owner's name
+        OfflinePlayer owner = Bukkit.getOfflinePlayer(ownerUuid);
+        String ownerName = owner != null ? owner.getName() : "Unknown";
+
+        requester.sendMessage(Component.text("Player Island:\n\n", NamedTextColor.AQUA));
+        requester.sendMessage(Component.text("Island Owner: " + ownerName, NamedTextColor.AQUA));
+
+        // Display the list of island members
+        requester.sendMessage(Component.text("Island Members:", NamedTextColor.AQUA));
+        for (UUID memberUuid : membersUuid) {
+            // Fetch the island member's name
+            OfflinePlayer member = Bukkit.getOfflinePlayer(memberUuid);
+            String memberName = member != null ? member.getName() : "Unknown";
+            requester.sendMessage(Component.text("- " + memberName, NamedTextColor.GREEN));
+        }
+    }
+
 
     private void saveCacheToDatabase() {
         // Implementation for saving cache to the database
