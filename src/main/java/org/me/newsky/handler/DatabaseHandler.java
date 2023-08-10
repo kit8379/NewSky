@@ -84,9 +84,9 @@ public class DatabaseHandler {
 
     public void createIslandDataTable() {
         String sqlCommand = "CREATE TABLE IF NOT EXISTS island_data (" +
-                "island_uuid UUID PRIMARY KEY," +
-                "owner_uuid UUID NOT NULL," +
-                "level INT NOT NULL" +
+                "island_uuid VARCHAR(56) PRIMARY KEY," +
+                "owner_uuid VARCHAR(56) NOT NULL," +
+                "level INT(11) NOT NULL" +
                 ");";
 
         asyncExecuteUpdate(PreparedStatement::execute, sqlCommand);
@@ -94,8 +94,8 @@ public class DatabaseHandler {
 
     public void createIslandMembersTable() {
         String sqlCommand = "CREATE TABLE IF NOT EXISTS island_members (" +
-                "island_uuid UUID NOT NULL," +
-                "member_uuid UUID PRIMARY KEY," +
+                "member_uuid VARCHAR(56) PRIMARY KEY," +
+                "island_uuid VARCHAR(56) NOT NULL," +
                 "FOREIGN KEY (island_uuid) REFERENCES island_data(island_uuid)" +
                 ");";
         asyncExecuteUpdate(PreparedStatement::execute, sqlCommand);
@@ -129,11 +129,11 @@ public class DatabaseHandler {
 
     // Add a member to an island
     public void addIslandMember(UUID islandUuid, UUID memberUuid) {
-        String query = "INSERT INTO island_members (island_uuid, member_uuid) VALUES (?, ?) " +
+        String query = "INSERT INTO island_members (member_uuid ,island_uuid) VALUES (?, ?) " +
                 "ON DUPLICATE KEY UPDATE island_uuid = ?";
         asyncExecuteUpdate(statement -> {
-            statement.setString(1, islandUuid.toString());
-            statement.setString(2, memberUuid.toString());
+            statement.setString(1, memberUuid.toString());
+            statement.setString(2, islandUuid.toString());
             statement.setString(3, islandUuid.toString());
             statement.execute();
         }, query);
@@ -141,10 +141,10 @@ public class DatabaseHandler {
 
     // Delete a member from an island
     public void deleteIslandMember(UUID islandUuid, UUID memberUuid) {
-        String query = "DELETE FROM island_members WHERE island_uuid = ? AND member_uuid = ?";
+        String query = "DELETE FROM island_members WHERE member_uuid = ? AND island_uuid = ?";
         asyncExecuteUpdate(statement -> {
-            statement.setString(1, islandUuid.toString());
-            statement.setString(2, memberUuid.toString());
+            statement.setString(1, memberUuid.toString());
+            statement.setString(2, islandUuid.toString());
             statement.execute();
         }, query);
     }

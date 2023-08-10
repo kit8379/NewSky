@@ -35,7 +35,6 @@ public class NewSky extends JavaPlugin {
         getLogger().info("Start connecting to Redis now...");
         try {
             redisHandler = new RedisHandler(config.getRedisHost(), config.getRedisPort(), config.getRedisPassword(), this);
-            redisHandler.connect();
             redisEventService = new RedisEventService(redisHandler);
             getLogger().info("Redis connection success!");
         } catch (Exception e) {
@@ -63,7 +62,7 @@ public class NewSky extends JavaPlugin {
             e.printStackTrace();
         }
 
-        Objects.requireNonNull(getCommand("island")).setExecutor(new IslandCommand(this));
+        Objects.requireNonNull(this.getCommand("island")).setExecutor(new IslandCommand(this));
 
         getLogger().info("Plugin enabled!");
     }

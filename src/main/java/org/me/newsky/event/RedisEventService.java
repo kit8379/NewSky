@@ -1,6 +1,7 @@
 package org.me.newsky.event;
 
 import org.me.newsky.handler.RedisHandler;
+import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPubSub;
 
 public class RedisEventService {
@@ -12,7 +13,7 @@ public class RedisEventService {
     }
 
     public void publishUpdateRequest() {
-        redisHandler.getJedis().publish("update_request_channel", "update");
+        redisHandler.getJedisPool().getResource().publish("update_request_channel", "update");
     }
 
     private void subscribeForWorldUpdates() {
@@ -24,6 +25,14 @@ public class RedisEventService {
                 }
             }
         };
-        new Thread(() -> redisHandler.getJedis().subscribe(jedisPubSub, "world_update_channel")).start();
+
+        new Thread(() -> {
+            try (Jedis jedis = redisHandler.getJedisPool().getResource()) { // Assuming getJedisPool() returns the pool
+                jedis.subscribe(jedisPubSub, "world_update_channel");
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
+
 }
