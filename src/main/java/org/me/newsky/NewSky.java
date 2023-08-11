@@ -1,6 +1,7 @@
 package org.me.newsky;
 
 import org.bukkit.plugin.java.JavaPlugin;
+import org.me.newsky.command.IslandAdminCommand;
 import org.me.newsky.command.IslandCommand;
 import org.me.newsky.handler.CacheHandler;
 import org.me.newsky.handler.ConfigHandler;
@@ -63,6 +64,7 @@ public class NewSky extends JavaPlugin {
         }
 
         Objects.requireNonNull(this.getCommand("island")).setExecutor(new IslandCommand(this));
+        Objects.requireNonNull(this.getCommand("islandadmin")).setExecutor(new IslandAdminCommand(this));
 
         getLogger().info("Plugin enabled!");
     }
@@ -83,7 +85,7 @@ public class NewSky extends JavaPlugin {
     public RedisHandler getRedisHandler() {
         return redisHandler;
     }
-    
+
     public RedisEventService getRedisEventService() {
         return redisEventService;
     }

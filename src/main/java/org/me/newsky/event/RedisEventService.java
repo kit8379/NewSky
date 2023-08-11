@@ -13,26 +13,30 @@ public class RedisEventService {
     }
 
     public void publishUpdateRequest() {
-        redisHandler.getJedisPool().getResource().publish("update_request_channel", "update");
+        try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
+            jedis.publish("update_request_channel", "update_request");
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     private void subscribeForWorldUpdates() {
         JedisPubSub jedisPubSub = new JedisPubSub() {
             @Override
             public void onMessage(String channel, String message) {
-                if ("update_request".equals(message)) {
+                if ("update".equals(message)) { // Note: Changed from "update_request" to "update"
                     redisHandler.updateWorldList();
                 }
             }
         };
 
         new Thread(() -> {
-            try (Jedis jedis = redisHandler.getJedisPool().getResource()) { // Assuming getJedisPool() returns the pool
-                jedis.subscribe(jedisPubSub, "world_update_channel");
+            try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
+                jedis.subscribe(jedisPubSub, "update_request_channel"); // Changed to match the publish channel
             } catch (Exception e) {
                 e.printStackTrace();
             }
         }).start();
     }
-
 }
+

@@ -45,7 +45,10 @@ public class RedisHandler {
         try (Jedis jedis = getJedisPool().getResource()) {
             String serverName = config.getServerName();
             Set<String> worldNames = new HashSet<>();
-            File serverDirectory = new File(".");
+
+            // Get the server directory using Bukkit's method
+            File serverDirectory = plugin.getServer().getWorldContainer();
+
             File[] files = serverDirectory.listFiles();
 
             if (files != null) {

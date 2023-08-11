@@ -20,8 +20,8 @@ public class AdminDeleteCommand implements IslandSubCommand {
     @Override
     public boolean execute(CommandSender sender, String[] args) {
         OfflinePlayer target = Bukkit.getOfflinePlayer(args[1]);
-        cacheHandler.createIsland(target.getUniqueId());
-        sender.sendMessage("Island created.");
+        cacheHandler.deleteIsland(target.getUniqueId());
+        sender.sendMessage("Island deleted.");
         return true;
     }
 }
