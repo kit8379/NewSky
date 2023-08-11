@@ -5,6 +5,7 @@ import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.command.IslandSubCommand;
 
+import java.util.Map;
 import java.util.Set;
 
 public class AdminListWorldCommand implements IslandSubCommand {
@@ -22,12 +23,19 @@ public class AdminListWorldCommand implements IslandSubCommand {
         }
 
         plugin.getRedisEventService().publishUpdateRequest();
-        Set<String> allWorlds = plugin.getRedisHandler().getAllWorlds();
-        if (allWorlds != null) {
+        Map<String, Set<String>> serverWorlds = plugin.getRedisHandler().getAllWorlds();
+
+        if (serverWorlds != null) {
             sender.sendMessage("Worlds updated.");
             sender.sendMessage("Worlds:");
-            for (String world : allWorlds) {
-                sender.sendMessage(world);
+
+            for (Map.Entry<String, Set<String>> entry : serverWorlds.entrySet()) {
+                String serverName = entry.getKey();
+                Set<String> worlds = entry.getValue();
+                sender.sendMessage("Server: " + serverName);
+                for (String world : worlds) {
+                    sender.sendMessage("  - " + world);
+                }
             }
         } else {
             sender.sendMessage("Error fetching worlds. Please try again later.");
@@ -35,4 +43,3 @@ public class AdminListWorldCommand implements IslandSubCommand {
         return true;
     }
 }
-

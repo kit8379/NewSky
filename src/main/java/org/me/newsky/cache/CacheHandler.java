@@ -82,8 +82,7 @@ public class CacheHandler {
         }
     }
 
-    public void createIsland(UUID ownerUuid) {
-        UUID islandUuid = UUID.randomUUID();
+    public void createIsland(UUID islandUuid, UUID ownerUuid) {
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
             jedis.hset("island_data:" + islandUuid, "owner_uuid", ownerUuid.toString());
             jedis.hset("island_data:" + islandUuid, "level", String.valueOf(0));

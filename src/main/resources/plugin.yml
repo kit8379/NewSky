@@ -3,6 +3,9 @@ main: org.me.newsky.NewSky
 version: '${project.version}'
 api-version: 1.20
 authors: [ TonyPak ]
+depend:
+  - VoidGen
+  - Multiverse-Core
 commands:
   island:
     description: Island command

@@ -9,7 +9,9 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 public class RedisHandler {
@@ -72,16 +74,19 @@ public class RedisHandler {
         }
     }
 
-    public Set<String> getAllWorlds() {
+    public Map<String, Set<String>> getAllWorlds() {
+        Map<String, Set<String>> serverWorlds = new HashMap<>();
+
         try (Jedis jedis = getJedisPool().getResource()) {
             Set<String> allKeys = jedis.keys("*_worlds");
-            Set<String> allWorlds = new HashSet<>();
 
             for (String key : allKeys) {
-                allWorlds.addAll(jedis.smembers(key));
+                String serverName = key.split("_worlds")[0]; // Extracting server name from the key
+                Set<String> worlds = jedis.smembers(key);
+                serverWorlds.put(serverName, worlds);
             }
 
-            return allWorlds;
+            return serverWorlds;
         } catch (Exception e) {
             e.printStackTrace();
             return null;
