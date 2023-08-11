@@ -1,7 +1,5 @@
 package org.me.newsky.command;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -44,12 +42,13 @@ public class IslandAdminCommand implements CommandExecutor {
     }
 
     public void displayHelp(CommandSender sender) {
-        Component help = Component.text("Island Admin Help", NamedTextColor.GOLD);
-        help = help.append(Component.text("\n/islandadmin create <player>", NamedTextColor.GOLD));
-        help = help.append(Component.text("\n/islandadmin delete <player>", NamedTextColor.GOLD));
-        help = help.append(Component.text("\n/islandadmin add <player> <island owner>", NamedTextColor.GOLD));
-        help = help.append(Component.text("\n/islandadmin remove <player> <island owner>", NamedTextColor.GOLD));
-        help = help.append(Component.text("\n/islandadmin listworld", NamedTextColor.GOLD));
-        sender.sendMessage(help);
+        sender.sendMessage("Island Admin Help");
+        sender.sendMessage("/islandadmin create <player>");
+        sender.sendMessage("/islandadmin delete <player>");
+        sender.sendMessage("/islandadmin add <player> <island owner>");
+        sender.sendMessage("/islandadmin remove <player> <island owner>");
+        sender.sendMessage("/islandadmin info <player>");
+        sender.sendMessage("/islandadmin listworld");
+        sender.sendMessage("/islandadmin reload");
     }
 }

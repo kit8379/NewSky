@@ -22,7 +22,7 @@ public class AdminReloadCommand implements IslandSubCommand {
     @Override
     public boolean execute(CommandSender sender, String[] args) {
         if(args.length != 1) {
-            sender.sendMessage("Usage: /island reload");
+            sender.sendMessage("Usage: /islandadmin reload");
             return true;
         }
 

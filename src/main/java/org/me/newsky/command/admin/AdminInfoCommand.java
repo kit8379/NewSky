@@ -22,8 +22,8 @@ public class AdminInfoCommand implements IslandSubCommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        if(args.length != 3) {
-            sender.sendMessage("Usage: /island info <player>");
+        if (args.length > 2) {
+            sender.sendMessage("Usage: /islandadmin info <player>");
             return true;
         }
 

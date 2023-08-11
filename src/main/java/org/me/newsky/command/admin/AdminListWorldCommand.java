@@ -16,8 +16,8 @@ public class AdminListWorldCommand implements IslandSubCommand {
 
     @Override
     public boolean execute(final CommandSender sender, String[] args) {
-        if(args.length != 1) {
-            sender.sendMessage("Usage: /island listworlds");
+        if (args.length != 1) {
+            sender.sendMessage("Usage: /islandadmin listworlds");
             return true;
         }
 

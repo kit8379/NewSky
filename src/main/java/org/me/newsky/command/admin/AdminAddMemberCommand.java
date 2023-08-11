@@ -23,7 +23,7 @@ public class AdminAddMemberCommand implements IslandSubCommand {
     @Override
     public boolean execute(CommandSender sender, String[] args) {
         if (args.length != 3) {
-            sender.sendMessage("Usage: /island admin addmember <player> <islandowner>");
+            sender.sendMessage("Usage: /islandadmin addmember <player> <islandowner>");
             return true;
         }
 

@@ -22,8 +22,8 @@ public class AdminDeleteCommand implements IslandSubCommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        if(args.length != 2) {
-            sender.sendMessage("Usage: /island admin delete <player>");
+        if (args.length != 2) {
+            sender.sendMessage("Usage: /islandadmin delete <player>");
             return true;
         }
 

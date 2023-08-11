@@ -33,7 +33,8 @@ public class CacheHandler {
         databaseHandler.selectAllIslandData(resultSet -> {
             try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
                 while (resultSet.next()) {
-                    UUID islandUuid = (UUID) resultSet.getObject("island_uuid");
+                    String islandUuidStr = resultSet.getString("island_uuid");
+                    UUID islandUuid = UUID.fromString(islandUuidStr);
                     jedis.hset("island_data:" + islandUuid, "owner_uuid", resultSet.getString("owner_uuid"));
                     jedis.hset("island_data:" + islandUuid, "level", String.valueOf(resultSet.getInt("level")));
                 }
@@ -47,8 +48,10 @@ public class CacheHandler {
         databaseHandler.selectAllIslandMembers(resultSet -> {
             try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
                 while (resultSet.next()) {
-                    UUID islandUuid = (UUID) resultSet.getObject("island_uuid");
-                    UUID memberUuid = (UUID) resultSet.getObject("member_uuid");
+                    String islandUuidStr = resultSet.getString("island_uuid");
+                    UUID islandUuid = UUID.fromString(islandUuidStr);
+                    String memberUuidStr = resultSet.getString("member_uuid");
+                    UUID memberUuid = UUID.fromString(memberUuidStr);
                     jedis.sadd("island_members:" + islandUuid, memberUuid.toString());
                 }
             } catch (Exception e) {

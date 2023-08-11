@@ -22,7 +22,7 @@ public class IslandInfoCommand implements IslandSubCommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        if(args.length > 2) {
+        if (args.length > 2) {
             sender.sendMessage("Usage: /island info [player]");
             return true;
         }

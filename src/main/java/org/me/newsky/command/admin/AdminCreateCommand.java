@@ -19,8 +19,8 @@ public class AdminCreateCommand implements IslandSubCommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        if(args.length != 2) {
-            sender.sendMessage("Usage: /island admin create <player>");
+        if (args.length != 2) {
+            sender.sendMessage("Usage: /islandadmin create <player>");
             return true;
         }
 

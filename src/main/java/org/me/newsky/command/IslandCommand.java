@@ -1,7 +1,5 @@
 package org.me.newsky.command;
 
-import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -49,12 +47,11 @@ public class IslandCommand implements CommandExecutor {
     }
 
     public void displayHelp(CommandSender sender) {
-        Component help = Component.text("Island Help", NamedTextColor.GOLD);
-        help = help.append(Component.text("\n/island create", NamedTextColor.GOLD));
-        help = help.append(Component.text("\n/island delete", NamedTextColor.GOLD));
-        help = help.append(Component.text("\n/island add <player>", NamedTextColor.GOLD));
-        help = help.append(Component.text("\n/island remove <player>", NamedTextColor.GOLD));
-        help = help.append(Component.text("\n/island info", NamedTextColor.GOLD));
-        sender.sendMessage(help);
+        sender.sendMessage("Island Help");
+        sender.sendMessage("/island create");
+        sender.sendMessage("/island delete");
+        sender.sendMessage("/island add <player>");
+        sender.sendMessage("/island remove <player>");
+        sender.sendMessage("/island info");
     }
 }

@@ -22,8 +22,8 @@ public class AdminRemoveMemberCommand implements IslandSubCommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        if(args.length != 3) {
-            sender.sendMessage("Usage: /island admin removemember <player> <islandowner>");
+        if (args.length != 3) {
+            sender.sendMessage("Usage: /islandadmin removemember <player> <islandowner>");
             return true;
         }
 
