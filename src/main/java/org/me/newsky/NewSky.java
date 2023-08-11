@@ -3,11 +3,11 @@ package org.me.newsky;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.me.newsky.command.IslandAdminCommand;
 import org.me.newsky.command.IslandCommand;
-import org.me.newsky.handler.CacheHandler;
-import org.me.newsky.handler.ConfigHandler;
-import org.me.newsky.handler.DatabaseHandler;
-import org.me.newsky.handler.RedisHandler;
-import org.me.newsky.event.RedisEventService;
+import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.database.DatabaseHandler;
+import org.me.newsky.redis.RedisHandler;
+import org.me.newsky.redis.RedisEventService;
 
 import java.util.Objects;
 

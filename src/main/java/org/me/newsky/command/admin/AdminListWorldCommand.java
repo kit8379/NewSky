@@ -16,6 +16,11 @@ public class AdminListWorldCommand implements IslandSubCommand {
 
     @Override
     public boolean execute(final CommandSender sender, String[] args) {
+        if(args.length != 1) {
+            sender.sendMessage("Usage: /island listworlds");
+            return true;
+        }
+
         plugin.getRedisEventService().publishUpdateRequest();
         Set<String> allWorlds = plugin.getRedisHandler().getAllWorlds();
         if (allWorlds != null) {

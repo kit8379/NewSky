@@ -6,7 +6,10 @@ import org.bukkit.command.CommandSender;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.command.IslandSubCommand;
-import org.me.newsky.handler.CacheHandler;
+import org.me.newsky.cache.CacheHandler;
+
+import java.util.Optional;
+import java.util.UUID;
 
 public class AdminAddMemberCommand implements IslandSubCommand {
     private final NewSky plugin;
@@ -19,10 +22,22 @@ public class AdminAddMemberCommand implements IslandSubCommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
+        if (args.length != 3) {
+            sender.sendMessage("Usage: /island admin addmember <player> <islandowner>");
+            return true;
+        }
+
         OfflinePlayer targetAdd = Bukkit.getOfflinePlayer(args[1]);
         OfflinePlayer targetIslandOwner = Bukkit.getOfflinePlayer(args[2]);
-        cacheHandler.addIslandMember(targetIslandOwner.getUniqueId(), targetAdd.getUniqueId());
-        sender.sendMessage("Added " + targetAdd.getName() + " to " + targetIslandOwner.getName() + " island.");
+        Optional<UUID> islandUuid = cacheHandler.getIslandUuidByPlayerUuid(targetIslandOwner.getUniqueId());
+
+        if (islandUuid.isPresent()) {
+            cacheHandler.addIslandMember(targetIslandOwner.getUniqueId(), targetAdd.getUniqueId());
+            sender.sendMessage("Added " + targetAdd.getName() + " to " + targetIslandOwner.getName() + " island.");
+        } else {
+            sender.sendMessage(targetIslandOwner.getName() + " don't have an island.");
+        }
+
         return true;
     }
 }

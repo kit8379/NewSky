@@ -1,9 +1,10 @@
-package org.me.newsky.handler;
+package org.me.newsky.database;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.bukkit.Bukkit;
 import org.me.newsky.NewSky;
+import org.me.newsky.config.ConfigHandler;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -43,6 +44,25 @@ public class DatabaseHandler {
         dataSource.close();
     }
 
+    private void syncExecuteQuery(String query, ResultProcessor processor) {
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(query);
+             ResultSet resultSet = statement.executeQuery()) {
+            processor.process(resultSet);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void syncExecuteUpdate(PreparedStatementConsumer consumer, String query) {
+        try (Connection connection = getConnection();
+             PreparedStatement statement = connection.prepareStatement(query)) {
+            consumer.use(statement);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void asyncExecuteQuery(String query, ResultProcessor processor) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try (Connection connection = getConnection();
@@ -76,29 +96,28 @@ public class DatabaseHandler {
         void use(PreparedStatement statement) throws SQLException;
     }
 
-    
+
     public void createTable() {
         createIslandDataTable();
         createIslandMembersTable();
     }
 
     public void createIslandDataTable() {
-        String sqlCommand = "CREATE TABLE IF NOT EXISTS island_data (" +
+        String query = "CREATE TABLE IF NOT EXISTS island_data (" +
                 "island_uuid VARCHAR(56) PRIMARY KEY," +
                 "owner_uuid VARCHAR(56) NOT NULL," +
                 "level INT(11) NOT NULL" +
                 ");";
-
-        asyncExecuteUpdate(PreparedStatement::execute, sqlCommand);
+        syncExecuteUpdate(statement -> {}, query);
     }
 
     public void createIslandMembersTable() {
-        String sqlCommand = "CREATE TABLE IF NOT EXISTS island_members (" +
+        String query = "CREATE TABLE IF NOT EXISTS island_members (" +
                 "member_uuid VARCHAR(56) PRIMARY KEY," +
                 "island_uuid VARCHAR(56) NOT NULL," +
                 "FOREIGN KEY (island_uuid) REFERENCES island_data(island_uuid)" +
                 ");";
-        asyncExecuteUpdate(PreparedStatement::execute, sqlCommand);
+        syncExecuteUpdate(statement -> {}, query);
     }
 
     // Fetch all island data for caching

@@ -6,7 +6,10 @@ import org.bukkit.command.CommandSender;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.command.IslandSubCommand;
-import org.me.newsky.handler.CacheHandler;
+import org.me.newsky.cache.CacheHandler;
+
+import java.util.Optional;
+import java.util.UUID;
 
 public class AdminDeleteCommand implements IslandSubCommand {
     private final NewSky plugin;
@@ -19,9 +22,21 @@ public class AdminDeleteCommand implements IslandSubCommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
+        if(args.length != 2) {
+            sender.sendMessage("Usage: /island admin delete <player>");
+            return true;
+        }
+
         OfflinePlayer target = Bukkit.getOfflinePlayer(args[1]);
-        cacheHandler.deleteIsland(target.getUniqueId());
-        sender.sendMessage("Island deleted.");
+        Optional<UUID> islandUuid = cacheHandler.getIslandUuidByPlayerUuid(target.getUniqueId());
+
+        if (islandUuid.isPresent()) {
+            cacheHandler.deleteIsland(islandUuid.get());
+            sender.sendMessage("Deleted " + target.getName() + " island.");
+        } else {
+            sender.sendMessage(target.getName() + " don't have an island.");
+        }
+
         return true;
     }
 }

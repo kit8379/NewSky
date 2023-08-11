@@ -1,7 +1,9 @@
-package org.me.newsky.handler;
+package org.me.newsky.redis;
 
 import org.me.newsky.NewSky;
 
+import org.me.newsky.database.DatabaseHandler;
+import org.me.newsky.config.ConfigHandler;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;

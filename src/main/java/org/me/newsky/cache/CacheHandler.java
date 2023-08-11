@@ -1,6 +1,8 @@
-package org.me.newsky.handler;
+package org.me.newsky.cache;
 
 import org.me.newsky.NewSky;
+import org.me.newsky.database.DatabaseHandler;
+import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.Jedis;
 
 import java.util.HashSet;
@@ -88,10 +90,9 @@ public class CacheHandler {
         }
     }
 
-    public void deleteIsland(UUID ownerUuid) {
+    public void deleteIsland(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
             // Delete all members
-            UUID islandUuid = getIslandUuidByPlayerUuid(ownerUuid).orElse(null);
             Set<String> members = jedis.smembers("island_members:" + islandUuid);
             for (String member : members) {
                 jedis.srem("island_members:" + islandUuid, member);

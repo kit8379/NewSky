@@ -1,4 +1,4 @@
-package org.me.newsky.handler;
+package org.me.newsky.config;
 
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.plugin.java.JavaPlugin;

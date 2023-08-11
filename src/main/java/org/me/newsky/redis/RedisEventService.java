@@ -1,6 +1,5 @@
-package org.me.newsky.event;
+package org.me.newsky.redis;
 
-import org.me.newsky.handler.RedisHandler;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPubSub;
 
@@ -14,7 +13,7 @@ public class RedisEventService {
 
     public void publishUpdateRequest() {
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
-            jedis.publish("update_request_channel", "update_request");
+            jedis.publish("update_request_channel", "update");
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -24,7 +23,7 @@ public class RedisEventService {
         JedisPubSub jedisPubSub = new JedisPubSub() {
             @Override
             public void onMessage(String channel, String message) {
-                if ("update".equals(message)) { // Note: Changed from "update_request" to "update"
+                if ("update".equals(message)) {
                     redisHandler.updateWorldList();
                 }
             }
@@ -32,7 +31,7 @@ public class RedisEventService {
 
         new Thread(() -> {
             try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
-                jedis.subscribe(jedisPubSub, "update_request_channel"); // Changed to match the publish channel
+                jedis.subscribe(jedisPubSub, "update_request_channel");
             } catch (Exception e) {
                 e.printStackTrace();
             }

@@ -6,7 +6,7 @@ import org.bukkit.command.CommandSender;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.command.IslandSubCommand;
-import org.me.newsky.handler.CacheHandler;
+import org.me.newsky.cache.CacheHandler;
 
 public class AdminCreateCommand implements IslandSubCommand {
     private final NewSky plugin;
@@ -19,6 +19,11 @@ public class AdminCreateCommand implements IslandSubCommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
+        if(args.length != 2) {
+            sender.sendMessage("Usage: /island admin create <player>");
+            return true;
+        }
+
         OfflinePlayer target = Bukkit.getOfflinePlayer(args[1]);
         cacheHandler.createIsland(target.getUniqueId());
         sender.sendMessage("Island created.");

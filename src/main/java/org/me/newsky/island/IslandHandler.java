@@ -1,4 +1,4 @@
-package org.me.newsky.handler;
+package org.me.newsky.island;
 
 public class IslandHandler {
 }
