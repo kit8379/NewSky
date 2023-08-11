@@ -1,9 +1,9 @@
 package org.me.newsky.island;
 
 import com.onarandombox.MultiverseCore.api.MVWorldManager;
+import com.onarandombox.MultiverseCore.api.MultiverseWorld;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.WorldType;
 import org.bukkit.entity.Player;
@@ -17,7 +17,6 @@ public class IslandHandler {
     public IslandHandler(NewSky plugin) {
         this.plugin = plugin;
         this.mvWorldManager = plugin.getMVWorldManager();
-
     }
 
     public void createWorld (String worldName) {
@@ -60,14 +59,14 @@ public class IslandHandler {
     }
 
     public void teleportToSpawn(Player player, String worldName) {
-        World world = Bukkit.getWorld(worldName);
+        MultiverseWorld mvWorld = mvWorldManager.getMVWorld(worldName);
 
-        if (world == null) {
-            Bukkit.getLogger().severe("World not found: " + worldName);
+        if (mvWorld == null) {
+            Bukkit.getLogger().severe("World not found in Multiverse: " + worldName);
             return;
         }
 
-        Location spawnLocation = world.getSpawnLocation();
+        Location spawnLocation = mvWorld.getSpawnLocation();
         player.teleport(spawnLocation);
         Bukkit.getLogger().info(player.getName() + " has been teleported to the spawn of " + worldName + "!");
     }
