@@ -83,6 +83,10 @@ public class NewSky extends JavaPlugin {
     public RedisHandler getRedisHandler() {
         return redisHandler;
     }
+    
+    public RedisEventService getRedisEventService() {
+        return redisEventService;
+    }
 
     public DatabaseHandler getDBHandler() {
         return databaseHandler;

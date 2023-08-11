@@ -7,8 +7,32 @@ commands:
   island:
     description: Island command
     usage: /<command>
-    permission: gitsync.gitsync
+    permission: island.command
+    aliases: [is]
+  islandadmin:
+    description: Island admin command
+    usage: /<command>
+    permission: island.admin
+    aliases: [isa]
 permissions:
-  island.island:
+  island.command:
     description: Allows the user to use the /island command
+    default: true
+  island.command.create:
+    description: Allows the user to use the /island create command
+    default: true
+  island.command.delete:
+    description: Allows the user to use the /island delete command
+    default: true
+  island.command.add:
+    description: Allows the user to use the /island add command
+    default: true
+  island.command.remove:
+    description: Allows the user to use the /island remove command
+    default: true
+  island.command.info:
+    description: Allows the user to use the /island info command
+    default: true
+  island.admin:
+    description: Allows the user to use the /islandadmin command
     default: op
