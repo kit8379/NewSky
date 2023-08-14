@@ -4,7 +4,6 @@ import com.onarandombox.MultiverseCore.api.MVWorldManager;
 import com.onarandombox.MultiverseCore.api.MultiverseWorld;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.World.Environment;
 import org.bukkit.WorldType;
 import org.bukkit.entity.Player;
@@ -20,20 +19,12 @@ public class IslandHandler {
         this.mvWorldManager = plugin.getMVWorldManager();
     }
 
-    private void setWorldSpawnInMemory(String worldName) {
-        World world = Bukkit.getWorld(worldName);
-        if (world != null) {
-            world.setKeepSpawnInMemory(false);
-        }
-    }
-
     public void createWorld (String worldName) {
         String generatorName = "VoidGen"; // Replace with your plugin's name
         Environment environment = Environment.NORMAL; // or NETHER, or THE_END
         WorldType worldType = WorldType.NORMAL; // or any other type you wish
 
         if (mvWorldManager.addWorld(worldName, environment, null, worldType, true, generatorName, false)) {
-            setWorldSpawnInMemory(worldName);
             Bukkit.getLogger().info("World created successfully!");
         } else {
             Bukkit.getLogger().severe("Failed to create world!");

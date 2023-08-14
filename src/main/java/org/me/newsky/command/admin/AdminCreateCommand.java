@@ -8,6 +8,7 @@ import org.me.newsky.NewSky;
 import org.me.newsky.command.IslandSubCommand;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.island.IslandHandler;
+import org.me.newsky.redis.RedisHandler;
 
 import java.util.UUID;
 
@@ -15,11 +16,13 @@ public class AdminCreateCommand implements IslandSubCommand {
     private final NewSky plugin;
     private final CacheHandler cacheHandler;
     private final IslandHandler islandHandler;
+    private final RedisHandler redisHandler;
 
     public AdminCreateCommand(NewSky plugin) {
         this.plugin = plugin;
         this.cacheHandler = plugin.getCacheHandler();
         this.islandHandler = plugin.getIslandHandler();
+        this.redisHandler = plugin.getRedisHandler();
     }
 
     @Override
@@ -37,6 +40,7 @@ public class AdminCreateCommand implements IslandSubCommand {
         if (target.isOnline()) {
             islandHandler.teleportToSpawn(target.getPlayer(), islandUuid.toString());
         }
+
         sender.sendMessage("Island created.");
         return true;
     }
