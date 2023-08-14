@@ -3,17 +3,17 @@ package org.me.newsky;
 import com.onarandombox.MultiverseCore.MultiverseCore;
 import com.onarandombox.MultiverseCore.api.MVWorldManager;
 import org.bukkit.Bukkit;
-import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.IslandAdminCommand;
 import org.me.newsky.command.IslandCommand;
-import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
+import org.me.newsky.event.WorldEventListener;
 import org.me.newsky.island.IslandHandler;
-import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.redis.RedisEventService;
+import org.me.newsky.redis.RedisHandler;
 
 import java.util.Objects;
 
@@ -88,6 +88,8 @@ public class NewSky extends JavaPlugin {
 
         // Initialize Island Handler
         islandHandler = new IslandHandler(this);
+
+        getServer().getPluginManager().registerEvents(new WorldEventListener(this), this);
 
         Objects.requireNonNull(this.getCommand("island")).setExecutor(new IslandCommand(this));
         Objects.requireNonNull(this.getCommand("islandadmin")).setExecutor(new IslandAdminCommand(this));
