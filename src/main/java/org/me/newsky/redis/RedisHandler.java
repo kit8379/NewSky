@@ -1,48 +1,150 @@
 package org.me.newsky.redis;
 
+import org.bukkit.Bukkit;
 import org.me.newsky.NewSky;
-
-import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.island.IslandHandler;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
+import redis.clients.jedis.JedisPubSub;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class RedisHandler {
-    private final JedisPool jedisPool;
+
     private final NewSky plugin;
     private final ConfigHandler config;
-    private final DatabaseHandler databaseHandler;
+    private final IslandHandler islandHandler;
+    private final JedisPool jedisPool;
 
-    public RedisHandler(String host, int port, String password, NewSky plugin) {
+    public RedisHandler(String host, int port, String password, int maxTotal,  NewSky plugin) {
         this.plugin = plugin;
         this.config = plugin.getConfigHandler();
-        this.databaseHandler = plugin.getDBHandler();
+        this.islandHandler = plugin.getIslandHandler();
 
+        // Create JedisPool
         JedisPoolConfig poolConfig = new JedisPoolConfig();
-        poolConfig.setMaxTotal(10); // Adjust as needed
-
+        poolConfig.setMaxTotal(maxTotal);
         this.jedisPool = new JedisPool(poolConfig, host, port);
-        // Authenticating all connections from the pool, if needed
         try (Jedis jedis = jedisPool.getResource()) {
             if (password != null && !password.isEmpty()) {
                 jedis.auth(password);
             }
         }
+
+        // Subscribe to Redis channel
+        subscribeMessage();
     }
 
-    public void disconnect() {
-        jedisPool.close();
+    public String findServerWithLeastWorlds() {
+        publishMessage(plugin.getName(), "all:updateList");
+
+        Map<String, Set<String>> allServersWorlds = getAllWorlds();
+
+        if (allServersWorlds == null || allServersWorlds.isEmpty()) {
+            return null;
+        }
+
+        return allServersWorlds.entrySet().stream()
+                .min(Comparator.comparingInt(entry -> entry.getValue().size()))
+                .map(Map.Entry::getKey)
+                .orElse(null);
     }
 
-    public JedisPool getJedisPool() {
-        return jedisPool;
+
+    public String findServerWithWorld(String worldName) {
+        publishMessage(plugin.getName(), "all:updateList");
+
+        Map<String, Set<String>> allServersWorlds = getAllWorlds();
+
+        if (allServersWorlds == null || allServersWorlds.isEmpty()) {
+            return null;
+        }
+
+        for (Map.Entry<String, Set<String>> entry : allServersWorlds.entrySet()) {
+            if (entry.getValue().contains(worldName)) {
+                return entry.getKey();
+            }
+        }
+
+        return null;
+    }
+
+    public void publishMessage(String channel, String message) {
+        try (Jedis jedis = jedisPool.getResource()) {
+            jedis.publish(channel, message);
+        }
+    }
+
+    private void subscribeMessage() {
+        JedisPubSub jedisPubSub = new JedisPubSub() {
+            @Override
+            public void onMessage(String channel, String message) {
+                String[] parts = message.split(":");
+                String serverName = parts[0];
+                String operation = parts[1];
+                String worldName = parts.length > 2 ? parts[2] : null;
+                String playerName = parts.length > 3 ? parts[3] : null;
+
+                switch (operation) {
+                    case "updateList":
+                        if(!(serverName.equals("all"))) {
+                            break;
+                        }
+                        updateWorldList();
+                        break;
+
+                    case "createWorld":
+                        if (!(serverName.equals(config.getServerName()))) {
+                            break;
+                        }
+                        islandHandler.createWorldOperation(worldName);
+                        break;
+
+                    case "loadWorld":
+                        if (!(serverName.equals(config.getServerName()))) {
+                            break;
+                        }
+                        islandHandler.loadWorldOperation(worldName);
+                        break;
+
+                    case "unloadWorld":
+                        if (!(serverName.equals(config.getServerName()))) {
+                            break;
+                        }
+                        islandHandler.unloadWorldOperation(worldName);
+                        break;
+
+                    case "deleteWorld":
+                        if (!(serverName.equals(config.getServerName()))) {
+                            break;
+                        }
+                        islandHandler.deleteWorldOperation(worldName);
+                        break;
+
+                    case "teleportToSpawn":
+                        if (!(serverName.equals(config.getServerName()))) {
+                            break;
+                        }
+                        islandHandler.teleportToSpawnOperation(worldName, playerName);
+                        break;
+
+                    default:
+                        Bukkit.getLogger().warning("Received unknown operation: " + operation);
+                        break;
+                }
+            }
+        };
+
+        new Thread(() -> {
+            try (Jedis jedis = getJedisPool().getResource()) {
+                jedis.subscribe(jedisPubSub, plugin.getName());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
     }
 
     public void updateWorldList() {
@@ -91,5 +193,17 @@ public class RedisHandler {
             e.printStackTrace();
             return null;
         }
+    }
+
+    // Remember to close your JedisPool when your application ends
+    public void disconnect() {
+        if (jedisPool != null) {
+            jedisPool.close();
+        }
+    }
+
+    // Getter for JedisPool
+    public JedisPool getJedisPool() {
+        return jedisPool;
     }
 }

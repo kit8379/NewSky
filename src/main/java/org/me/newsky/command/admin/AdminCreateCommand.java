@@ -8,35 +8,44 @@ import org.me.newsky.NewSky;
 import org.me.newsky.command.IslandSubCommand;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.island.IslandHandler;
-import org.me.newsky.redis.RedisHandler;
 
 import java.util.UUID;
 
 public class AdminCreateCommand implements IslandSubCommand {
+
     private final NewSky plugin;
     private final CacheHandler cacheHandler;
     private final IslandHandler islandHandler;
-    private final RedisHandler redisHandler;
 
     public AdminCreateCommand(NewSky plugin) {
         this.plugin = plugin;
         this.cacheHandler = plugin.getCacheHandler();
         this.islandHandler = plugin.getIslandHandler();
-        this.redisHandler = plugin.getRedisHandler();
     }
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        if (args.length != 2) {
+        if (args.length < 2) {
             sender.sendMessage("Usage: /islandadmin create <player>");
             return true;
         }
 
         OfflinePlayer target = Bukkit.getOfflinePlayer(args[1]);
 
+        // Check if player already have an island
+        if(cacheHandler.getIslandUuidByPlayerUuid(target.getUniqueId()).isPresent()) {
+            sender.sendMessage("Player " + target.getName() + " already have an island.");
+            return true;
+        }
+
+        // Generate island UUID
         UUID islandUuid = UUID.randomUUID();
-        cacheHandler.createIsland(islandUuid, target.getUniqueId());
+
+        // Create island
         islandHandler.createWorld(islandUuid.toString());
+        cacheHandler.createIsland(islandUuid, target.getUniqueId());
+
+        // Teleport player to island spawn if he/she is online
         if (target.isOnline()) {
             islandHandler.teleportToSpawn(target.getPlayer(), islandUuid.toString());
         }

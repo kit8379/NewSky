@@ -12,7 +12,6 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.event.WorldEventListener;
 import org.me.newsky.island.IslandHandler;
-import org.me.newsky.redis.RedisEventService;
 import org.me.newsky.redis.RedisHandler;
 
 import java.util.Objects;
@@ -20,7 +19,6 @@ import java.util.Objects;
 public class NewSky extends JavaPlugin {
     private ConfigHandler config;
     private RedisHandler redisHandler;
-    private RedisEventService redisEventService;
     private DatabaseHandler databaseHandler;
     private CacheHandler cacheHandler;
     private MVWorldManager mvWorldManager;
@@ -57,8 +55,7 @@ public class NewSky extends JavaPlugin {
         // Start Redis Connection
         getLogger().info("Start connecting to Redis now...");
         try {
-            redisHandler = new RedisHandler(config.getRedisHost(), config.getRedisPort(), config.getRedisPassword(), this);
-            redisEventService = new RedisEventService(redisHandler);
+            redisHandler = new RedisHandler(config.getRedisHost(), config.getRedisPort(), config.getRedisPassword(),10, this);
             getLogger().info("Redis connection success!");
         } catch (Exception e) {
             e.printStackTrace();
@@ -86,10 +83,11 @@ public class NewSky extends JavaPlugin {
             throw new IllegalStateException("Cache to Redis fail! Plugin will be disabled!");
         }
 
-        // Initialize Island Handler
+        // Initialize the rest handlers
         islandHandler = new IslandHandler(this);
 
         getServer().getPluginManager().registerEvents(new WorldEventListener(this), this);
+        this.getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
 
         Objects.requireNonNull(this.getCommand("island")).setExecutor(new IslandCommand(this));
         Objects.requireNonNull(this.getCommand("islandadmin")).setExecutor(new IslandAdminCommand(this));
@@ -112,10 +110,6 @@ public class NewSky extends JavaPlugin {
 
     public RedisHandler getRedisHandler() {
         return redisHandler;
-    }
-
-    public RedisEventService getRedisEventService() {
-        return redisEventService;
     }
 
     public DatabaseHandler getDBHandler() {

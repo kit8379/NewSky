@@ -22,11 +22,6 @@ public class IslandInfoCommand implements IslandSubCommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        if (args.length > 2) {
-            sender.sendMessage("Usage: /island info [player]");
-            return true;
-        }
-
         UUID target;
         Player player = (Player) sender;
 
@@ -38,29 +33,32 @@ public class IslandInfoCommand implements IslandSubCommand {
 
         Optional<UUID> islandUuid = cacheHandler.getIslandUuidByPlayerUuid(target);
 
-        if (islandUuid.isPresent()) {
-            Set<UUID> memberUuids = cacheHandler.getIslandMembers(islandUuid.get());
-            StringBuilder membersString = new StringBuilder();
-
-            for (UUID memberUuid : memberUuids) {
-                String memberName = Bukkit.getOfflinePlayer(memberUuid).getName();
-                membersString.append(memberName).append(", ");
-            }
-
-            // Remove the trailing comma and space if any members were found.
-            if (membersString.length() > 0) {
-                membersString = new StringBuilder(membersString.substring(0, membersString.length() - 2));
-            }
-
-            sender.sendMessage("Island Info");
-            sender.sendMessage("Island UUID: " + islandUuid.get());
-            sender.sendMessage("Island Owner: " + Bukkit.getOfflinePlayer(cacheHandler.getIslandOwner(islandUuid.get())).getName());
-            sender.sendMessage("Island Members: " + membersString);
-        } else {
+        // Check if player have an island
+        if (islandUuid.isEmpty()) {
             sender.sendMessage("Player does not have an island.");
+            return true;
         }
+
+        // Get island members
+        Set<UUID> memberUuids = cacheHandler.getIslandMembers(islandUuid.get());
+        StringBuilder membersString = new StringBuilder();
+
+        // Build a string of members
+        for (UUID memberUuid : memberUuids) {
+            String memberName = Bukkit.getOfflinePlayer(memberUuid).getName();
+            membersString.append(memberName).append(", ");
+        }
+
+        // Remove the trailing comma and space if any members were found.
+        if (membersString.length() > 0) {
+            membersString = new StringBuilder(membersString.substring(0, membersString.length() - 2));
+        }
+
+        sender.sendMessage("Island Info");
+        sender.sendMessage("Island UUID: " + islandUuid.get());
+        sender.sendMessage("Island Owner: " + Bukkit.getOfflinePlayer(cacheHandler.getIslandOwner(islandUuid.get())).getName());
+        sender.sendMessage("Island Members: " + membersString);
 
         return true;
     }
 }
-

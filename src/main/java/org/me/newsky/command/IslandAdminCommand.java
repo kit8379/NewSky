@@ -21,7 +21,6 @@ public class IslandAdminCommand implements CommandExecutor {
         subCommands.put("add", new AdminAddMemberCommand(plugin));
         subCommands.put("remove", new AdminRemoveMemberCommand(plugin));
         subCommands.put("info", new AdminInfoCommand(plugin));
-        subCommands.put("listworld", new AdminListWorldCommand(plugin));
         subCommands.put("reload", new AdminReloadCommand(plugin));
     }
 

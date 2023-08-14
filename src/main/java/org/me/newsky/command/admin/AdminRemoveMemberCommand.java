@@ -12,6 +12,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class AdminRemoveMemberCommand implements IslandSubCommand {
+
     private final NewSky plugin;
     private final CacheHandler cacheHandler;
 
@@ -22,21 +23,37 @@ public class AdminRemoveMemberCommand implements IslandSubCommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        if (args.length != 3) {
+        if (args.length < 3) {
             sender.sendMessage("Usage: /islandadmin removemember <player> <islandowner>");
             return true;
         }
 
-        OfflinePlayer targetAdd = Bukkit.getOfflinePlayer(args[1]);
+        OfflinePlayer targetRemove = Bukkit.getOfflinePlayer(args[1]);
         OfflinePlayer targetIslandOwner = Bukkit.getOfflinePlayer(args[2]);
+
         Optional<UUID> islandUuid = cacheHandler.getIslandUuidByPlayerUuid(targetIslandOwner.getUniqueId());
 
-        if (islandUuid.isPresent()) {
-            cacheHandler.removeIslandMember(targetIslandOwner.getUniqueId(), targetAdd.getUniqueId());
-            sender.sendMessage("Removed " + targetAdd.getName() + " from " + targetIslandOwner.getName() + " island.");
-        } else {
+        // Check if the target player have an island
+        if (islandUuid.isEmpty()) {
             sender.sendMessage(targetIslandOwner.getName() + " don't have an island.");
+            return true;
         }
+
+        // Check if the target player is a member of the island
+        if (!cacheHandler.getIslandMembers(islandUuid.get()).contains(targetRemove.getUniqueId())) {
+            sender.sendMessage(targetRemove.getName() + " is not a member of your island.");
+            return true;
+        }
+
+        // Check if the target player is the owner of the island
+        if (cacheHandler.getIslandOwner(islandUuid.get()).equals(targetRemove.getUniqueId())) {
+            sender.sendMessage("You can't remove the owner of your island.");
+            return true;
+        }
+
+        // Remove the target player from the island
+        cacheHandler.removeIslandMember(targetIslandOwner.getUniqueId(), targetRemove.getUniqueId());
+        sender.sendMessage("Removed " + targetRemove.getName() + " from " + targetIslandOwner.getName() + " island.");
 
         return true;
     }

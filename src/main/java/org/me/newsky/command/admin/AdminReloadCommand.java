@@ -8,6 +8,7 @@ import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
 
 public class AdminReloadCommand implements IslandSubCommand {
+
     private final NewSky plugin;
     private final ConfigHandler config;
     private final CacheHandler cacheHandler;
@@ -21,11 +22,6 @@ public class AdminReloadCommand implements IslandSubCommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        if(args.length != 1) {
-            sender.sendMessage("Usage: /islandadmin reload");
-            return true;
-        }
-
         config.reload();
         sender.sendMessage("Config reloaded.");
         return true;

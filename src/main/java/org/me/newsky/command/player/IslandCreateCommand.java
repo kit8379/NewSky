@@ -11,6 +11,7 @@ import org.me.newsky.island.IslandHandler;
 import java.util.UUID;
 
 public class IslandCreateCommand implements IslandSubCommand {
+
     private final NewSky plugin;
     private final CacheHandler cacheHandler;
     private final IslandHandler islandHandler;
@@ -23,17 +24,24 @@ public class IslandCreateCommand implements IslandSubCommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        if (args.length != 1) {
-            sender.sendMessage("Usage: /island create");
+        Player player = (Player) sender;
+
+        // Check if player already have an island
+        if(cacheHandler.getIslandUuidByPlayerUuid(player.getUniqueId()).isPresent()) {
+            sender.sendMessage("You already have an island.");
             return true;
         }
 
-        Player player = (Player) sender;
-
+        // Generate island UUID
         UUID islandUuid = UUID.randomUUID();
-        cacheHandler.createIsland(islandUuid, player.getUniqueId());
+
+        // Create island
         islandHandler.createWorld(islandUuid.toString());
+        cacheHandler.createIsland(islandUuid, player.getUniqueId());
+
+        // Teleport player to island spawn
         islandHandler.teleportToSpawn(player, islandUuid.toString());
+
         sender.sendMessage("Island created.");
         return true;
     }
