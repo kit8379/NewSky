@@ -40,7 +40,11 @@ public class RedisHandler {
 
     public String findServerWithLeastWorlds() {
         publishMessage(plugin.getName(), "all:updateList");
-
+        try {
+            Thread.sleep(1000);  // Sleep for 1 second (1000 milliseconds)
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         Map<String, Set<String>> allServersWorlds = getAllWorlds();
 
         if (allServersWorlds == null || allServersWorlds.isEmpty()) {
@@ -56,7 +60,11 @@ public class RedisHandler {
 
     public String findServerWithWorld(String worldName) {
         publishMessage(plugin.getName(), "all:updateList");
-
+        try {
+            Thread.sleep(1000);  // Sleep for 1 second (1000 milliseconds)
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         Map<String, Set<String>> allServersWorlds = getAllWorlds();
 
         if (allServersWorlds == null || allServersWorlds.isEmpty()) {

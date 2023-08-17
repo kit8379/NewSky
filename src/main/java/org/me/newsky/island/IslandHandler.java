@@ -76,52 +76,52 @@ public class IslandHandler {
 
     public void createWorld(String worldName) {
         String targetServer = redisHandler.findServerWithLeastWorlds();
-        targetServer = redisHandler.findServerWithLeastWorlds();
-        if (targetServer.equals(config.getServerName())) {
+
+        if (targetServer == null || targetServer.equals(config.getServerName())) {
             createWorldOperation(worldName);
             return;
         }
 
-        redisHandler.publishMessage(plugin.getName(), targetServer + "createWorld:" + worldName);
+        redisHandler.publishMessage(plugin.getName(), targetServer + ":createWorld:" + worldName);
     }
 
     public void loadWorld(String worldName) {
         String targetServer = redisHandler.findServerWithWorld(worldName);
-        targetServer = redisHandler.findServerWithWorld(worldName);
-        if (targetServer.equals(config.getServerName())) {
+
+        if (targetServer == null || targetServer.equals(config.getServerName())) {
             loadWorldOperation(worldName);
             return;
         }
 
-        redisHandler.publishMessage(plugin.getName(), targetServer + "loadWorld:" + worldName);
+        redisHandler.publishMessage(plugin.getName(), targetServer + ":loadWorld:" + worldName);
     }
 
     public void unloadWorld(String worldName) {
         String targetServer = redisHandler.findServerWithWorld(worldName);
-        targetServer = redisHandler.findServerWithWorld(worldName);
-        if (targetServer.equals(config.getServerName())) {
+
+        if (targetServer == null || targetServer.equals(config.getServerName())) {
             unloadWorldOperation(worldName);
             return;
         }
 
-        redisHandler.publishMessage(plugin.getName(), targetServer + "unloadWorld:" + worldName);
+        redisHandler.publishMessage(plugin.getName(), targetServer + ":unloadWorld:" + worldName);
     }
 
     public void deleteWorld(String worldName) {
         String targetServer = redisHandler.findServerWithWorld(worldName);
-        targetServer = redisHandler.findServerWithWorld(worldName);
-        if (targetServer.equals(config.getServerName())) {
+
+        if (targetServer == null || targetServer.equals(config.getServerName())) {
             deleteWorldOperation(worldName);
             return;
         }
 
-        redisHandler.publishMessage(plugin.getName(), targetServer + "deleteWorld:" + worldName);
+        redisHandler.publishMessage(plugin.getName(), targetServer + ":deleteWorld:" + worldName);
     }
 
     public void teleportToSpawn(Player player, String worldName) {
         String targetServer = redisHandler.findServerWithWorld(worldName);
-        targetServer = redisHandler.findServerWithWorld(worldName);
-        if (targetServer.equals(config.getServerName())) {
+
+        if (targetServer == null || targetServer.equals(config.getServerName())) {
             teleportToSpawnOperation(worldName, player.getName());
             return;
         }
@@ -140,6 +140,7 @@ public class IslandHandler {
         }
 
         player.sendPluginMessage(plugin, "bungeecord:main", b.toByteArray());
+
         redisHandler.publishMessage(plugin.getName(), targetServer + ":teleportToSpawn:" + worldName + ":" + player.getName());
     }
 }
