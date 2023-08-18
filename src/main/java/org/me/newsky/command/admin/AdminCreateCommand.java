@@ -17,10 +17,10 @@ public class AdminCreateCommand implements IslandSubCommand {
     private final CacheHandler cacheHandler;
     private final IslandHandler islandHandler;
 
-    public AdminCreateCommand(NewSky plugin) {
+    public AdminCreateCommand(NewSky plugin, CacheHandler cacheHandler, IslandHandler islandHandler) {
         this.plugin = plugin;
-        this.cacheHandler = plugin.getCacheHandler();
-        this.islandHandler = plugin.getIslandHandler();
+        this.cacheHandler = cacheHandler;
+        this.islandHandler = islandHandler;
     }
 
     @Override

@@ -18,7 +18,7 @@ public class IslandAddMemberCommand implements IslandSubCommand {
     private final CacheHandler cacheHandler;
     private final IslandHandler islandHandler;
 
-    public IslandAddMemberCommand(NewSky plugin) {
+    public IslandAddMemberCommand(NewSky plugin, ) {
         this.plugin = plugin;
         this.cacheHandler = plugin.getCacheHandler();
         this.islandHandler = plugin.getIslandHandler();

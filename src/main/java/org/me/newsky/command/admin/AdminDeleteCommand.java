@@ -18,10 +18,10 @@ public class AdminDeleteCommand implements IslandSubCommand {
     private final CacheHandler cacheHandler;
     private final IslandHandler islandHandler;
 
-    public AdminDeleteCommand(NewSky plugin) {
+    public AdminDeleteCommand(NewSky plugin, CacheHandler cacheHandler, IslandHandler islandHandler) {
         this.plugin = plugin;
-        this.cacheHandler = plugin.getCacheHandler();
-        this.islandHandler = plugin.getIslandHandler();
+        this.cacheHandler = cacheHandler;
+        this.islandHandler = islandHandler;
     }
 
     @Override

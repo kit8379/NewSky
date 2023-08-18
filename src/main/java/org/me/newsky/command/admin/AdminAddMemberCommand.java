@@ -19,10 +19,10 @@ public class AdminAddMemberCommand implements IslandSubCommand {
     private final CacheHandler cacheHandler;
     private final IslandHandler islandHandler;
 
-    public AdminAddMemberCommand(NewSky plugin) {
+    public AdminAddMemberCommand(NewSky plugin, CacheHandler cacheHandler, IslandHandler islandHandler) {
         this.plugin = plugin;
-        this.cacheHandler = plugin.getCacheHandler();
-        this.islandHandler = plugin.getIslandHandler();
+        this.cacheHandler = cacheHandler;
+        this.islandHandler = islandHandler;
     }
 
     @Override

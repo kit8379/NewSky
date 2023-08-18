@@ -103,28 +103,4 @@ public class NewSky extends JavaPlugin {
         databaseHandler.close();
         getLogger().info("Plugin disabled!");
     }
-
-    public ConfigHandler getConfigHandler() {
-        return config;
-    }
-
-    public RedisHandler getRedisHandler() {
-        return redisHandler;
-    }
-
-    public DatabaseHandler getDBHandler() {
-        return databaseHandler;
-    }
-
-    public CacheHandler getCacheHandler() {
-        return cacheHandler;
-    }
-
-    public MVWorldManager getMVWorldManager() {
-        return mvWorldManager;
-    }
-
-    public IslandHandler getIslandHandler() {
-        return islandHandler;
-    }
 }

@@ -16,9 +16,9 @@ public class AdminRemoveMemberCommand implements IslandSubCommand {
     private final NewSky plugin;
     private final CacheHandler cacheHandler;
 
-    public AdminRemoveMemberCommand(NewSky plugin) {
+    public AdminRemoveMemberCommand(NewSky plugin, CacheHandler cacheHandler) {
         this.plugin = plugin;
-        this.cacheHandler = plugin.getCacheHandler();
+        this.cacheHandler = cacheHandler;
     }
 
     @Override

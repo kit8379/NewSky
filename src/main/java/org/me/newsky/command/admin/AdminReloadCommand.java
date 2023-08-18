@@ -10,20 +10,15 @@ import org.me.newsky.config.ConfigHandler;
 public class AdminReloadCommand implements IslandSubCommand {
 
     private final NewSky plugin;
-    private final ConfigHandler config;
-    private final CacheHandler cacheHandler;
-
 
     public AdminReloadCommand(NewSky plugin) {
         this.plugin = plugin;
-        this.config = plugin.getConfigHandler();
-        this.cacheHandler = plugin.getCacheHandler();
     }
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        config.reload();
-        sender.sendMessage("Config reloaded.");
+        plugin.reload();
+        sender.sendMessage("Reloaded NewSky.");
         return true;
     }
 }

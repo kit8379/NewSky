@@ -16,9 +16,9 @@ public class AdminInfoCommand implements IslandSubCommand {
     private final NewSky plugin;
     private final CacheHandler cacheHandler;
 
-    public AdminInfoCommand(NewSky plugin) {
+    public AdminInfoCommand(NewSky plugin, CacheHandler cacheHandler) {
         this.plugin = plugin;
-        this.cacheHandler = plugin.getCacheHandler();
+        this.cacheHandler = cacheHandler;
     }
 
     @Override
