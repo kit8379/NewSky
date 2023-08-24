@@ -11,7 +11,6 @@ import org.me.newsky.command.player.IslandCommandExecutor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.event.WorldEventListener;
-import org.me.newsky.island.IslandHandler;
 import org.me.newsky.redis.RedisHandler;
 
 public class NewSky extends JavaPlugin {
@@ -20,14 +19,28 @@ public class NewSky extends JavaPlugin {
     private CacheHandler cacheHandler;
     private IslandHandler islandHandler;
     private MVWorldManager mvWorldManager;
+    private ConfigHandler config;
 
     @Override
     public void onEnable() {
         getLogger().info("Plugin enabling...");
 
-        // Initialize Config
+        initializeConfig();
+        checkDependencies("Multiverse-Core", "voidgen");
+        initializeRedis();
+        initializeDatabase();
+        initializeCache();
+        initializeMVWorldManager();
+        initializeIslandHandler();
+
+        registerListeners();
+        registerCommands();
+
+        getLogger().info("Plugin enabled!");
+    }
+
+    private void initializeConfig() {
         getLogger().info("Start loading configuration now...");
-        ConfigHandler config;
         try {
             config = new ConfigHandler(getConfig());
             getLogger().info("Config load success!");
@@ -35,30 +48,29 @@ public class NewSky extends JavaPlugin {
             e.printStackTrace();
             throw new IllegalStateException("Config load fail!");
         }
+    }
 
-        // Initialize Multiverse-Core API
-        Plugin mvCore = Bukkit.getServer().getPluginManager().getPlugin("Multiverse-Core");
-        if (!(mvCore != null && mvCore.isEnabled())) {
-            throw new IllegalStateException("Multiverse-Core not found! Plugin will be disabled!");
+    private void checkDependencies(String... pluginNames) {
+        for (String pluginName : pluginNames) {
+            Plugin plugin = Bukkit.getServer().getPluginManager().getPlugin(pluginName);
+            if (!(plugin != null && plugin.isEnabled())) {
+                throw new IllegalStateException(pluginName + " not found! Plugin will be disabled!");
+            }
         }
+    }
 
-        // Initialize VoidGen
-        Plugin voidGen = Bukkit.getServer().getPluginManager().getPlugin("voidgen");
-        if (!(voidGen != null && voidGen.isEnabled())) {
-            throw new IllegalStateException("Multiverse-Core not found! Plugin will be disabled!");
-        }
-
-        // Start Redis Connection
+    private void initializeRedis() {
         getLogger().info("Start connecting to Redis now...");
         try {
-            redisHandler = new RedisHandler(this, config, islandHandler);
+            redisHandler = new RedisHandler(config);
             getLogger().info("Redis connection success!");
         } catch (Exception e) {
             e.printStackTrace();
             throw new IllegalStateException("Redis Connection Fail! Plugin will be disabled!");
         }
+    }
 
-        // Start Database connection
+    private void initializeDatabase() {
         getLogger().info("Start connecting to Database now...");
         try {
             databaseHandler = new DatabaseHandler(config.getDBHost(), config.getDBPort(), config.getDBName(), config.getDBUsername(), config.getDBPassword(), this);
@@ -66,10 +78,10 @@ public class NewSky extends JavaPlugin {
         } catch (Exception e) {
             e.printStackTrace();
             throw new IllegalStateException("Database connection fail! Plugin will be disabled!");
-
         }
+    }
 
-        // Start Caching
+    private void initializeCache() {
         getLogger().info("Starting to cache into Redis");
         try {
             cacheHandler = new CacheHandler(redisHandler, databaseHandler);
@@ -78,18 +90,20 @@ public class NewSky extends JavaPlugin {
             e.printStackTrace();
             throw new IllegalStateException("Cache to Redis fail! Plugin will be disabled!");
         }
+    }
 
-        // Start MVmanager
+    private void initializeMVWorldManager() {
         getLogger().info("Starting MVmanager");
         try {
-            mvWorldManager = ((MultiverseCore) mvCore).getMVWorldManager();
+            mvWorldManager = ((MultiverseCore) Bukkit.getServer().getPluginManager().getPlugin("Multiverse-Core")).getMVWorldManager();
             getLogger().info("MVmanager loaded");
         } catch (Exception e) {
             e.printStackTrace();
             throw new IllegalStateException("MVmanager load fail! Plugin will be disabled!");
         }
+    }
 
-        // Start Island Handler
+    private void initializeIslandHandler() {
         getLogger().info("Starting island handler");
         try {
             islandHandler = new IslandHandler(config, mvWorldManager, redisHandler);
@@ -98,22 +112,29 @@ public class NewSky extends JavaPlugin {
             e.printStackTrace();
             throw new IllegalStateException("Islands load fail! Plugin will be disabled!");
         }
+    }
 
+    private void registerListeners() {
         getServer().getPluginManager().registerEvents(new WorldEventListener(this), this);
+    }
 
-        // Registering the commands
+    private void registerCommands() {
         this.getCommand("islandadmin").setExecutor(new AdminCommandExecutor(cacheHandler, islandHandler));
         this.getCommand("island").setExecutor(new IslandCommandExecutor(cacheHandler, islandHandler));
-
-        getLogger().info("Plugin enabled!");
     }
 
     @Override
     public void onDisable() {
         getLogger().info("Plugin disabling...");
+        getLogger().info("Saving cache to database...");
         cacheHandler.saveCacheToDatabase();
+        getLogger().info("Cache saved!");
+        getLogger().info("Disconnecting from Redis...");
         redisHandler.disconnect();
+        getLogger().info("Redis disconnected!");
+        getLogger().info("Disconnecting from Database...");
         databaseHandler.close();
+        getLogger().info("Database disconnected!");
         getLogger().info("Plugin disabled!");
     }
 }

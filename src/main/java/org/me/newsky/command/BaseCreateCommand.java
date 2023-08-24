@@ -2,7 +2,6 @@ package org.me.newsky.command;
 
 import org.bukkit.command.CommandSender;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.island.IslandHandler;
 
 import java.util.UUID;
 

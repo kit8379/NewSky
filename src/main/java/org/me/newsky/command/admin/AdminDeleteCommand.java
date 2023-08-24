@@ -4,7 +4,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.command.BaseDeleteCommand;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.island.IslandHandler;
 
 import java.util.UUID;
 
