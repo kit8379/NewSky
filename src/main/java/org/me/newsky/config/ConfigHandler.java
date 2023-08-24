@@ -3,10 +3,14 @@ package org.me.newsky.config;
 import org.bukkit.configuration.file.FileConfiguration;
 
 public class ConfigHandler {
-    private FileConfiguration config;
+    private final FileConfiguration config;
 
     public ConfigHandler(FileConfiguration config) {
         this.config = config;
+    }
+
+    public boolean getDebug() {
+        return config.getBoolean("debug");
     }
 
     public String getDBHost() {

@@ -6,17 +6,19 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldInitEvent;
 import org.me.newsky.NewSky;
 
+import java.util.logging.Logger;
+
 public class WorldEventListener implements Listener {
 
-    private final NewSky plugin;
+    private final Logger logger;
 
-    public WorldEventListener(NewSky plugin) {
-        this.plugin = plugin;
+    public WorldEventListener(Logger logger) {
+        this.logger = logger;
     }
 
     @EventHandler(priority=EventPriority.HIGHEST)
     public void worldInit(WorldInitEvent e) {
         String worldName = e.getWorld().getName();
-        plugin.getLogger().info("World " + worldName + " set to not keep spawn in memory.");
+        logger.info("World " + worldName + " set to not keep spawn in memory.");
     }
 }

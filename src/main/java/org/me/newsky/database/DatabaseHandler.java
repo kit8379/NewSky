@@ -4,20 +4,32 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.bukkit.Bukkit;
 import org.me.newsky.NewSky;
+import org.me.newsky.config.ConfigHandler;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 public class DatabaseHandler {
 
-    private final HikariDataSource dataSource;
     private final NewSky plugin;
+    private final Logger logger;
+    private final ConfigHandler config;
+    private final HikariDataSource dataSource;
 
-    public DatabaseHandler(String host, int port, String database, String username, String password, NewSky plugin) {
+    public DatabaseHandler(NewSky plugin, Logger logger, ConfigHandler config) {
         this.plugin = plugin;
+        this.logger = logger;
+        this.config = config;
+
+        String host = config.getDBHost();
+        int port = config.getDBPort();
+        String database = config.getDBName();
+        String username = config.getDBUsername();
+        String password = config.getDBPassword();
 
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + database + "?autoReconnect=true");
@@ -28,9 +40,7 @@ public class DatabaseHandler {
         hikariConfig.addDataSourceProperty("cachePrepStmts", "true");
         hikariConfig.addDataSourceProperty("prepStmtCacheSize", "250");
         hikariConfig.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
-
         this.dataSource = new HikariDataSource(hikariConfig);
-        createTables();
     }
 
     public void close() {
@@ -82,7 +92,7 @@ public class DatabaseHandler {
         void use(PreparedStatement statement) throws SQLException;
     }
 
-    private void createTables() {
+    public void createTables() {
         createIslandDataTable();
         createIslandMembersTable();
     }

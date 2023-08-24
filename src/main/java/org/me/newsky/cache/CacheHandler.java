@@ -8,20 +8,21 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.logging.Logger;
 
 public class CacheHandler {
 
+    private final Logger logger;
     private final RedisHandler redisHandler;
     private final DatabaseHandler databaseHandler;
 
-    public CacheHandler(RedisHandler redisHandler, DatabaseHandler databaseHandler) {
+    public CacheHandler(Logger logger, RedisHandler redisHandler, DatabaseHandler databaseHandler) {
+        this.logger = logger;
         this.redisHandler = redisHandler;
         this.databaseHandler = databaseHandler;
-
-        cacheDataToRedis();
     }
 
-    private void cacheDataToRedis() {
+    public void cacheDataToRedis() {
         cacheIslandDataToRedis();
         cacheIslandMembersToRedis();
     }
