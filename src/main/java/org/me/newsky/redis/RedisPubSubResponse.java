@@ -41,6 +41,7 @@ public class RedisPubSubResponse {
         JedisPubSub responseSubscriber = new JedisPubSub() {
             @Override
             public void onMessage(String channel, String message) {
+
                 String[] parts = message.split(":");
                 String responderID = parts[0];
                 String receivedRequestID = parts[1];
@@ -50,8 +51,7 @@ public class RedisPubSubResponse {
                     serversToWaitFor.remove(responderID);
 
                     if (serversToWaitFor.isEmpty()) {
-                        this.unsubscribe();
-                        proceedToNextOperation(respondedServers);
+                        proceedToNextOperation(requestMessage);
                     }
                 }
             }
@@ -60,23 +60,28 @@ public class RedisPubSubResponse {
         redisHandler.subscribe(responseSubscriber, "response-channel-" + serverID);
 
         // Use Bukkit's scheduler to handle servers that did not respond
-        // Assuming you have access to the main plugin instance; if not, you might need to pass it to this class
         plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> {
             // Here you can handle/log servers that did not respond if needed
             serversToWaitFor.forEach(serversToWaitFor::remove);
 
             if (!serversToWaitFor.isEmpty()) {
-                responseSubscriber.unsubscribe();
-                proceedToNextOperation(respondedServers);
+                proceedToNextOperation(requestMessage);
             }
         }, 100L); // 5 seconds (20 ticks/second * 5)
     }
 
 
-    private void proceedToNextOperation(Set<String> respondedServers) {
+    private void proceedToNextOperation(String message) {
         // Handle operation after receiving response in here
+        String[] parts = message.split(":");
+        String operation = parts[2];
 
-
+        switch(operation) {
+            case "createIsland":
+                String playerName = parts[3];
+                islandOperation.createIslandOperation(playerName);
+                break;
+        }
     }
 
     private void subscribeToRequests() {
@@ -86,10 +91,9 @@ public class RedisPubSubResponse {
                 String[] parts = message.split(":");
                 String senderID = parts[0];
                 String requestID = parts[1];
-                String operation = parts[2];
 
                 // Process the request
-                processRequest(operation);
+                processRequest(message);
 
                 // Send response back to the sender
                 redisHandler.publish("response-channel-" + senderID, serverID + ":" + requestID);
@@ -99,20 +103,13 @@ public class RedisPubSubResponse {
         redisHandler.subscribe(requestSubscriber, "request-channel");
     }
 
-    private void processRequest(String operation) {
+    private void processRequest(String message) {
+        String[] parts = message.split(":");
+        String operation = parts[2];
+
         switch (operation) {
-            case "findworld":
+            case "updateWorldList":
+                redisOperation.updateWorldList();
                 break;
-            case "createworld":
-                break;
-            case "loadworld":
-                break;
-            case "unloadworld":
-                break;
-            case "deleteworld":
-                break;
-            case "teleportworld":
-                break;
-        }
     }
 }
