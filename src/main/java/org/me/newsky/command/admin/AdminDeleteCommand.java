@@ -1,51 +1,40 @@
 package org.me.newsky.command.admin;
 
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
-
-import org.me.newsky.NewSky;
-import org.me.newsky.command.IslandSubCommand;
+import org.me.newsky.command.BaseDeleteCommand;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.island.IslandHandler;
 
-import java.util.Optional;
 import java.util.UUID;
 
-public class AdminDeleteCommand implements IslandSubCommand {
+public class AdminDeleteCommand extends BaseDeleteCommand {
 
-    private final NewSky plugin;
-    private final CacheHandler cacheHandler;
-    private final IslandHandler islandHandler;
-
-    public AdminDeleteCommand(NewSky plugin, CacheHandler cacheHandler, IslandHandler islandHandler) {
-        this.plugin = plugin;
-        this.cacheHandler = cacheHandler;
-        this.islandHandler = islandHandler;
+    public AdminDeleteCommand(CacheHandler cacheHandler, IslandHandler islandHandler) {
+        super(cacheHandler, islandHandler);
     }
 
     @Override
-    public boolean execute(CommandSender sender, String[] args) {
+    protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
             sender.sendMessage("Usage: /islandadmin delete <player>");
-            return true;
+            return false;
         }
-
-        OfflinePlayer target = Bukkit.getOfflinePlayer(args[1]);
-
-        Optional<UUID> islandUuid = cacheHandler.getIslandUuidByPlayerUuid(target.getUniqueId());
-
-        // Check if player have an island
-        if (islandUuid.isEmpty()) {
-            sender.sendMessage(target.getName() + " don't have an island.");
-            return true;
-        }
-
-        // Delete island
-        islandHandler.deleteWorld(islandUuid.get().toString());
-        cacheHandler.deleteIsland(islandUuid.get());
-        sender.sendMessage("Deleted " + target.getName() + " island.");
-
         return true;
+    }
+
+    @Override
+    protected UUID getTargetUuid(CommandSender sender, String[] args) {
+        return Bukkit.getOfflinePlayer(args[1]).getUniqueId();
+    }
+
+    @Override
+    protected String getNoIslandMessage(String[] args) {
+        return args[1] + " doesn't have an island.";
+    }
+
+    @Override
+    protected String getIslandDeletedMessage(String[] args) {
+        return "Deleted " + args[1] + "'s island.";
     }
 }

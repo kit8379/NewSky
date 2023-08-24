@@ -5,26 +5,19 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.WorldType;
 import org.bukkit.entity.Player;
-import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.redis.RedisHandler;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
-
 public class IslandHandler {
 
-    private final NewSky plugin;
     private final ConfigHandler config;
     private final MVWorldManager mvWorldManager;
     private final RedisHandler redisHandler;
 
-    public IslandHandler(NewSky plugin) {
-        this.plugin = plugin;
-        this.config = plugin.getConfigHandler();
-        this.mvWorldManager = plugin.getMVWorldManager();
-        this.redisHandler = plugin.getRedisHandler();
+    public IslandHandler(ConfigHandler config, MVWorldManager mvWorldManager, RedisHandler redisHandler) {
+        this.config = config;
+        this.mvWorldManager = mvWorldManager;
+        this.redisHandler = redisHandler;
     }
 
     public void createWorldOperation(String worldName) {
@@ -82,7 +75,7 @@ public class IslandHandler {
             return;
         }
 
-        redisHandler.publishMessage(plugin.getName(), targetServer + ":createWorld:" + worldName);
+        redisHandler.publishMessage("NewSky", targetServer + ":createWorld:" + worldName);
     }
 
     public void loadWorld(String worldName) {
@@ -93,7 +86,7 @@ public class IslandHandler {
             return;
         }
 
-        redisHandler.publishMessage(plugin.getName(), targetServer + ":loadWorld:" + worldName);
+        redisHandler.publishMessage("NewSky", targetServer + ":loadWorld:" + worldName);
     }
 
     public void unloadWorld(String worldName) {
@@ -104,7 +97,7 @@ public class IslandHandler {
             return;
         }
 
-        redisHandler.publishMessage(plugin.getName(), targetServer + ":unloadWorld:" + worldName);
+        redisHandler.publishMessage("NewSky", targetServer + ":unloadWorld:" + worldName);
     }
 
     public void deleteWorld(String worldName) {
@@ -115,7 +108,7 @@ public class IslandHandler {
             return;
         }
 
-        redisHandler.publishMessage(plugin.getName(), targetServer + ":deleteWorld:" + worldName);
+        redisHandler.publishMessage("NewSky", targetServer + ":deleteWorld:" + worldName);
     }
 
     public void teleportToSpawn(Player player, String worldName) {
@@ -126,21 +119,6 @@ public class IslandHandler {
             return;
         }
 
-        // Otherwise, use Bungee Plugin Messaging to send the player to the target server and queue them for teleportation to the world's spawn.
-        ByteArrayOutputStream b = new ByteArrayOutputStream();
-        DataOutputStream out = new DataOutputStream(b);
-
-        try {
-            out.writeUTF("ConnectOther");
-            out.writeUTF(player.getName());
-            out.writeUTF(targetServer);
-            out.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        player.sendPluginMessage(plugin, "bungeecord:main", b.toByteArray());
-
-        redisHandler.publishMessage(plugin.getName(), targetServer + ":teleportToSpawn:" + worldName + ":" + player.getName());
+        redisHandler.publishMessage("NewSky", targetServer + ":teleportToSpawn:" + worldName + ":" + player.getName());
     }
 }

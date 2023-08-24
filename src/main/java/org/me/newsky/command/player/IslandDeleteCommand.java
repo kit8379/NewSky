@@ -2,43 +2,35 @@ package org.me.newsky.command.player;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.me.newsky.NewSky;
-import org.me.newsky.command.IslandSubCommand;
+import org.me.newsky.command.BaseDeleteCommand;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.island.IslandHandler;
 
-import java.util.Optional;
 import java.util.UUID;
 
-public class IslandDeleteCommand implements IslandSubCommand {
+public class IslandDeleteCommand extends BaseDeleteCommand {
 
-    private final NewSky plugin;
-    private final CacheHandler cacheHandler;
-    private final IslandHandler islandHandler;
-
-    public IslandDeleteCommand(NewSky plugin) {
-        this.plugin = plugin;
-        this.cacheHandler = plugin.getCacheHandler();
-        this.islandHandler = plugin.getIslandHandler();
+    public IslandDeleteCommand(CacheHandler cacheHandler, IslandHandler islandHandler) {
+        super(cacheHandler, islandHandler);
     }
 
     @Override
-    public boolean execute(CommandSender sender, String[] args) {
-        Player player = (Player) sender;
-
-        Optional<UUID> islandUuid = cacheHandler.getIslandUuidByPlayerUuid(player.getUniqueId());
-
-        // Check if player have an island
-        if (islandUuid.isEmpty()) {
-            sender.sendMessage("You don't have an island.");
-            return true;
-        }
-
-        // Delete island
-        islandHandler.deleteWorld(islandUuid.get().toString());
-        cacheHandler.deleteIsland(islandUuid.get());
-        sender.sendMessage("Island deleted.");
-
+    protected boolean validateArgs(CommandSender sender, String[] args) {
         return true;
+    }
+
+    @Override
+    protected UUID getTargetUuid(CommandSender sender, String[] args) {
+        return ((Player) sender).getUniqueId();
+    }
+
+    @Override
+    protected String getNoIslandMessage(String[] args) {
+        return "You don't have an island.";
+    }
+
+    @Override
+    protected String getIslandDeletedMessage(String[] args) {
+        return "Island deleted.";
     }
 }

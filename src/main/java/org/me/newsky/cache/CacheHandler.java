@@ -1,6 +1,5 @@
 package org.me.newsky.cache;
 
-import org.me.newsky.NewSky;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.Jedis;
@@ -12,14 +11,12 @@ import java.util.UUID;
 
 public class CacheHandler {
 
-    private final NewSky plugin;
     private final RedisHandler redisHandler;
     private final DatabaseHandler databaseHandler;
 
-    public CacheHandler(NewSky plugin) {
-        this.plugin = plugin;
-        this.redisHandler = plugin.getRedisHandler();
-        this.databaseHandler = plugin.getDBHandler();
+    public CacheHandler(RedisHandler redisHandler, DatabaseHandler databaseHandler) {
+        this.redisHandler = redisHandler;
+        this.databaseHandler = databaseHandler;
 
         cacheDataToRedis();
     }
@@ -143,21 +140,6 @@ public class CacheHandler {
         }
     }
 
-    /**
-     * Get the level of a specific island.
-     *
-     * @param islandUuid The UUID of the island.
-     * @return Level of the island or -1 if not found.
-     */
-    public int getIslandLevel(UUID islandUuid) {
-        try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
-            String level = jedis.hget("island_data:" + islandUuid, "level");
-            return level == null ? -1 : Integer.parseInt(level);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return -1;
-        }
-    }
 
     /**
      * Get all members of a specific island.

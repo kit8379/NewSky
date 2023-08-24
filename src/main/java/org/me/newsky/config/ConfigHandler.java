@@ -1,16 +1,12 @@
 package org.me.newsky.config;
 
 import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.plugin.java.JavaPlugin;
 
 public class ConfigHandler {
-    private final JavaPlugin plugin;
     private FileConfiguration config;
 
-    public ConfigHandler(JavaPlugin plugin) {
-        this.plugin = plugin;
-        this.config = plugin.getConfig();
-        plugin.saveDefaultConfig();
+    public ConfigHandler(FileConfiguration config) {
+        this.config = config;
     }
 
     public String getDBHost() {
@@ -49,8 +45,4 @@ public class ConfigHandler {
         return config.getString("server.name");
     }
 
-    public void reload() {
-        plugin.reloadConfig();
-        this.config = plugin.getConfig();
-    }
 }

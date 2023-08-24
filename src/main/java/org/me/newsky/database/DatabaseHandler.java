@@ -4,7 +4,6 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.bukkit.Bukkit;
 import org.me.newsky.NewSky;
-import org.me.newsky.config.ConfigHandler;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -42,7 +41,7 @@ public class DatabaseHandler {
         return dataSource.getConnection();
     }
 
-    private void executeQuery(String query, ResultProcessor processor, boolean async) {
+    private void executeQuery(String query, ResultProcessor processor) {
         Runnable task = () -> {
             try (Connection connection = getConnection();
                  PreparedStatement statement = connection.prepareStatement(query);
@@ -52,12 +51,7 @@ public class DatabaseHandler {
                 e.printStackTrace();
             }
         };
-        if (async) {
-            Bukkit.getScheduler().runTaskAsynchronously(plugin, task);
-        }
-        else {
-            task.run();
-        }
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, task);
     }
 
     private void executeUpdate(PreparedStatementConsumer consumer, String query, boolean async) {
@@ -103,12 +97,12 @@ public class DatabaseHandler {
 
     // Fetch all island data for caching
     public void selectAllIslandData(ResultProcessor processor) {
-        executeQuery("SELECT * FROM island_data", processor, true);
+        executeQuery("SELECT * FROM island_data", processor);
     }
 
     // Fetch all island members for caching
     public void selectAllIslandMembers(ResultProcessor processor) {
-        executeQuery("SELECT * FROM island_members", processor, true);
+        executeQuery("SELECT * FROM island_members", processor);
     }
 
     // Update island data by UUID

@@ -3,54 +3,42 @@ package org.me.newsky.command.admin;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
-
-import org.me.newsky.NewSky;
-import org.me.newsky.command.IslandSubCommand;
+import org.me.newsky.command.BaseCreateCommand;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.island.IslandHandler;
 
 import java.util.UUID;
 
-public class AdminCreateCommand implements IslandSubCommand {
+public class AdminCreateCommand extends BaseCreateCommand {
 
-    private final NewSky plugin;
-    private final CacheHandler cacheHandler;
-    private final IslandHandler islandHandler;
-
-    public AdminCreateCommand(NewSky plugin, CacheHandler cacheHandler, IslandHandler islandHandler) {
-        this.plugin = plugin;
-        this.cacheHandler = cacheHandler;
-        this.islandHandler = islandHandler;
+    public AdminCreateCommand(CacheHandler cacheHandler, IslandHandler islandHandler) {
+        super(cacheHandler, islandHandler);
     }
 
     @Override
-    public boolean execute(CommandSender sender, String[] args) {
+    protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
             sender.sendMessage("Usage: /islandadmin create <player>");
-            return true;
+            return false;
         }
+        return true;
+    }
 
-        OfflinePlayer target = Bukkit.getOfflinePlayer(args[1]);
+    @Override
+    protected UUID getTargetUuid(CommandSender sender, String[] args) {
+        return Bukkit.getOfflinePlayer(args[1]).getUniqueId();
+    }
 
-        // Check if player already have an island
-        if(cacheHandler.getIslandUuidByPlayerUuid(target.getUniqueId()).isPresent()) {
-            sender.sendMessage("Player " + target.getName() + " already have an island.");
-            return true;
-        }
+    @Override
+    protected String getExistingIslandMessage(String[] args) {
+        return "Player " + args[1] + " already has an island.";
+    }
 
-        // Generate island UUID
-        UUID islandUuid = UUID.randomUUID();
-
-        // Create island
-        islandHandler.createWorld(islandUuid.toString());
-        cacheHandler.createIsland(islandUuid, target.getUniqueId());
-
-        // Teleport player to island spawn if he/she is online
+    @Override
+    protected void performPostCreationActions(CommandSender sender, UUID targetUuid, UUID islandUuid) {
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetUuid);
         if (target.isOnline()) {
             islandHandler.teleportToSpawn(target.getPlayer(), islandUuid.toString());
         }
-
-        sender.sendMessage("Island created.");
-        return true;
     }
 }

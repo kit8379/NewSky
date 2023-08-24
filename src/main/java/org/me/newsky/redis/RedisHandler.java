@@ -19,14 +19,18 @@ public class RedisHandler {
     private final IslandHandler islandHandler;
     private final JedisPool jedisPool;
 
-    public RedisHandler(String host, int port, String password, int maxTotal,  NewSky plugin) {
+    public RedisHandler(NewSky plugin, ConfigHandler config, IslandHandler islandHandler) {
         this.plugin = plugin;
-        this.config = plugin.getConfigHandler();
-        this.islandHandler = plugin.getIslandHandler();
+        this.config = config;
+        this.islandHandler = islandHandler;
+
+        // Get Redis config
+        String host = config.getRedisHost();
+        int port = config.getRedisPort();
+        String password = config.getRedisPassword();
 
         // Create JedisPool
         JedisPoolConfig poolConfig = new JedisPoolConfig();
-        poolConfig.setMaxTotal(maxTotal);
         this.jedisPool = new JedisPool(poolConfig, host, port);
         try (Jedis jedis = jedisPool.getResource()) {
             if (password != null && !password.isEmpty()) {

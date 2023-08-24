@@ -6,23 +6,20 @@ import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.command.IslandAdminCommand;
-import org.me.newsky.command.IslandCommand;
+import org.me.newsky.command.admin.AdminCommandExecutor;
+import org.me.newsky.command.player.IslandCommandExecutor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.event.WorldEventListener;
 import org.me.newsky.island.IslandHandler;
 import org.me.newsky.redis.RedisHandler;
 
-import java.util.Objects;
-
 public class NewSky extends JavaPlugin {
-    private ConfigHandler config;
     private RedisHandler redisHandler;
     private DatabaseHandler databaseHandler;
     private CacheHandler cacheHandler;
-    private MVWorldManager mvWorldManager;
     private IslandHandler islandHandler;
+    private MVWorldManager mvWorldManager;
 
     @Override
     public void onEnable() {
@@ -30,8 +27,9 @@ public class NewSky extends JavaPlugin {
 
         // Initialize Config
         getLogger().info("Start loading configuration now...");
+        ConfigHandler config;
         try {
-            config = new ConfigHandler(this);
+            config = new ConfigHandler(getConfig());
             getLogger().info("Config load success!");
         } catch (Exception e) {
             e.printStackTrace();
@@ -40,9 +38,7 @@ public class NewSky extends JavaPlugin {
 
         // Initialize Multiverse-Core API
         Plugin mvCore = Bukkit.getServer().getPluginManager().getPlugin("Multiverse-Core");
-        if (mvCore instanceof MultiverseCore) {
-            this.mvWorldManager = ((MultiverseCore) mvCore).getMVWorldManager();
-        } else {
+        if (!(mvCore != null && mvCore.isEnabled())) {
             throw new IllegalStateException("Multiverse-Core not found! Plugin will be disabled!");
         }
 
@@ -55,7 +51,7 @@ public class NewSky extends JavaPlugin {
         // Start Redis Connection
         getLogger().info("Start connecting to Redis now...");
         try {
-            redisHandler = new RedisHandler(config.getRedisHost(), config.getRedisPort(), config.getRedisPassword(),10, this);
+            redisHandler = new RedisHandler(this, config, islandHandler);
             getLogger().info("Redis connection success!");
         } catch (Exception e) {
             e.printStackTrace();
@@ -76,21 +72,38 @@ public class NewSky extends JavaPlugin {
         // Start Caching
         getLogger().info("Starting to cache into Redis");
         try {
-            cacheHandler = new CacheHandler(this);
+            cacheHandler = new CacheHandler(redisHandler, databaseHandler);
             getLogger().info("Cache to Redis success");
         } catch (Exception e) {
             e.printStackTrace();
             throw new IllegalStateException("Cache to Redis fail! Plugin will be disabled!");
         }
 
-        // Initialize the rest handlers
-        islandHandler = new IslandHandler(this);
+        // Start MVmanager
+        getLogger().info("Starting MVmanager");
+        try {
+            mvWorldManager = ((MultiverseCore) mvCore).getMVWorldManager();
+            getLogger().info("MVmanager loaded");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IllegalStateException("MVmanager load fail! Plugin will be disabled!");
+        }
+
+        // Start Island Handler
+        getLogger().info("Starting island handler");
+        try {
+            islandHandler = new IslandHandler(config, mvWorldManager, redisHandler);
+            getLogger().info("Islands loaded");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IllegalStateException("Islands load fail! Plugin will be disabled!");
+        }
 
         getServer().getPluginManager().registerEvents(new WorldEventListener(this), this);
-        this.getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
 
-        Objects.requireNonNull(this.getCommand("island")).setExecutor(new IslandCommand(this));
-        Objects.requireNonNull(this.getCommand("islandadmin")).setExecutor(new IslandAdminCommand(this));
+        // Registering the commands
+        this.getCommand("islandadmin").setExecutor(new AdminCommandExecutor(cacheHandler, islandHandler));
+        this.getCommand("island").setExecutor(new IslandCommandExecutor(cacheHandler, islandHandler));
 
         getLogger().info("Plugin enabled!");
     }

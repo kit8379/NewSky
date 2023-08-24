@@ -2,47 +2,35 @@ package org.me.newsky.command.player;
 
 import org.bukkit.entity.Player;
 import org.bukkit.command.CommandSender;
-
-import org.me.newsky.NewSky;
-import org.me.newsky.command.IslandSubCommand;
+import org.me.newsky.command.BaseCreateCommand;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.island.IslandHandler;
 
 import java.util.UUID;
 
-public class IslandCreateCommand implements IslandSubCommand {
+public class IslandCreateCommand extends BaseCreateCommand {
 
-    private final NewSky plugin;
-    private final CacheHandler cacheHandler;
-    private final IslandHandler islandHandler;
-
-    public IslandCreateCommand(NewSky plugin) {
-        this.plugin = plugin;
-        this.cacheHandler = plugin.getCacheHandler();
-        this.islandHandler = plugin.getIslandHandler();
+    public IslandCreateCommand(CacheHandler cacheHandler, IslandHandler islandHandler) {
+        super(cacheHandler, islandHandler);
     }
 
     @Override
-    public boolean execute(CommandSender sender, String[] args) {
-        Player player = (Player) sender;
-
-        // Check if player already have an island
-        if(cacheHandler.getIslandUuidByPlayerUuid(player.getUniqueId()).isPresent()) {
-            sender.sendMessage("You already have an island.");
-            return true;
-        }
-
-        // Generate island UUID
-        UUID islandUuid = UUID.randomUUID();
-
-        // Create island
-        islandHandler.createWorld(islandUuid.toString());
-        cacheHandler.createIsland(islandUuid, player.getUniqueId());
-
-        // Teleport player to island spawn
-        islandHandler.teleportToSpawn(player, islandUuid.toString());
-
-        sender.sendMessage("Island created.");
+    protected boolean validateArgs(CommandSender sender, String[] args) {
         return true;
+    }
+
+    @Override
+    protected UUID getTargetUuid(CommandSender sender, String[] args) {
+        return ((Player) sender).getUniqueId();
+    }
+
+    @Override
+    protected String getExistingIslandMessage(String[] args) {
+        return "You already have an island.";
+    }
+
+    @Override
+    protected void performPostCreationActions(CommandSender sender, UUID targetUuid, UUID islandUuid) {
+        islandHandler.teleportToSpawn((Player) sender, islandUuid.toString());
     }
 }
