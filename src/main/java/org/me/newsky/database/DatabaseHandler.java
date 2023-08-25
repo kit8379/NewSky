@@ -111,11 +111,11 @@ public class DatabaseHandler {
     }
 
     // Update island data by UUID
-    public void updateIslandData(UUID islandUuid) {
+    public void updateIslandData(UUID islandUuid, int level) {
         executeUpdate(statement -> {
             statement.setString(1, islandUuid.toString());
-            statement.setInt(2, 0);
-            statement.setInt(3, 0);
+            statement.setInt(2, level);
+            statement.setInt(3, level);
         }, "INSERT INTO islands (island_uuid, level) VALUES (?, ?) ON DUPLICATE KEY UPDATE level = ?", true);
     }
 
@@ -126,6 +126,8 @@ public class DatabaseHandler {
             statement.setString(2, islandUuid.toString());
             statement.setString(3, spawnLocation);
             statement.setString(4, role);
+            statement.setString(5, spawnLocation);
+            statement.setString(6, role);
         }, "INSERT INTO island_players (player_uuid, island_uuid, spawn, role) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE spawn = ?, role = ?", true);
     }
 

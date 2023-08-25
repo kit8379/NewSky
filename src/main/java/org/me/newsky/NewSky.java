@@ -45,11 +45,11 @@ public class NewSky extends JavaPlugin {
         checkDependencies("Multiverse-Core", "VoidGen");
         initializeMVWorldManager();
         initializeRedis();
+        initializeDatabase();
         initializeCache();
         initalizeRedisHeartBeat();
         initalizeRedisOperation();
         initalizeRedisSubscribeRequest();
-        initializeDatabase();
         initializeIslandHandler();
         registerListeners();
         registerCommands();
@@ -90,7 +90,7 @@ public class NewSky extends JavaPlugin {
         logger.info("Starting to cache into Redis");
         try {
             cacheHandler = new CacheHandler(logger, redisHandler, databaseHandler);
-            cacheHandler.cacheDataToRedis();
+            cacheHandler.cacheAllDataToRedis();
             logger.info("Cache to Redis success");
         } catch (Exception e) {
             e.printStackTrace();
@@ -149,7 +149,7 @@ public class NewSky extends JavaPlugin {
     private void initializeMVWorldManager() {
         logger.info("Starting MVmanager");
         try {
-            mvWorldManager = ((MultiverseCore) Bukkit.getServer().getPluginManager().getPlugin("Multiverse-Core")).getMVWorldManager();
+            mvWorldManager = ((MultiverseCore) Objects.requireNonNull(Bukkit.getServer().getPluginManager().getPlugin("Multiverse-Core"))).getMVWorldManager();
             logger.info("MVmanager loaded");
         } catch (Exception e) {
             e.printStackTrace();
@@ -185,7 +185,6 @@ public class NewSky extends JavaPlugin {
     }
 
     public void shutdown() {
-        cacheHandler.saveCacheToDatabase(); // TODO: Make IT in Sync
         redisSubscribeRequest.unsubscribeFromRequests();
         redisHeartBeat.stopHeartBeat();
         redisHandler.disconnect();

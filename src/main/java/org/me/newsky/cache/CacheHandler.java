@@ -17,10 +17,9 @@ public class CacheHandler {
         this.logger = logger;
         this.redisHandler = redisHandler;
         this.databaseHandler = databaseHandler;
-        cacheAllDataToRedis();
     }
 
-    private void cacheAllDataToRedis() {
+    public void cacheAllDataToRedis() {
         cacheIslandDataToRedis();
         cacheIslandPlayersToRedis();
     }
@@ -66,7 +65,7 @@ public class CacheHandler {
         }
 
         // 2. Update the database asynchronously.
-        databaseHandler.updateIslandData(islandUuid);
+        databaseHandler.updateIslandData(islandUuid, 0);
     }
 
     public void addIslandPlayer(UUID playerUuid, UUID islandUuid, String spawnLocation, String role) {
