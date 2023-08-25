@@ -7,12 +7,10 @@ import redis.clients.jedis.JedisPubSub;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Logger;
 
 public class RedisHeartBeat {
 
     private final NewSky plugin;
-    private final Logger logger;
     private final RedisHandler redisHandler;
     private final String serverID;
 
@@ -23,9 +21,8 @@ public class RedisHeartBeat {
     // Store the last heartbeat time for each server.
     private final ConcurrentHashMap<String, Long> serverLastHeartbeat = new ConcurrentHashMap<>();
 
-    public RedisHeartBeat(NewSky plugin, Logger logger, ConfigHandler config, RedisHandler redisHandler) {
+    public RedisHeartBeat(NewSky plugin, ConfigHandler config, RedisHandler redisHandler) {
         this.plugin = plugin;
-        this.logger = logger;
         this.redisHandler = redisHandler;
         this.serverID = config.getServerName();
     }

@@ -5,6 +5,7 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.command.BaseCreateCommand;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.island.IslandHandler;
 
 import java.util.UUID;
 
@@ -37,7 +38,7 @@ public class AdminCreateCommand extends BaseCreateCommand {
     protected void performPostCreationActions(CommandSender sender, UUID targetUuid, UUID islandUuid) {
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetUuid);
         if (target.isOnline()) {
-            islandHandler.teleportToSpawn(target.getPlayer(), islandUuid.toString());
+            islandHandler.teleportToIsland(target.getPlayer(), islandUuid.toString());
         }
     }
 }

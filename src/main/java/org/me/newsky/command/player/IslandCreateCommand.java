@@ -4,6 +4,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.command.BaseCreateCommand;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.island.IslandHandler;
 
 import java.util.UUID;
 
@@ -30,6 +31,6 @@ public class IslandCreateCommand extends BaseCreateCommand {
 
     @Override
     protected void performPostCreationActions(CommandSender sender, UUID targetUuid, UUID islandUuid) {
-        islandHandler.teleportToSpawn((Player) sender, islandUuid.toString());
+        islandHandler.teleportToIsland((Player) sender, islandUuid.toString());
     }
 }

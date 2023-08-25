@@ -4,6 +4,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.command.BaseAddMemberCommand;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.island.IslandHandler;
 
 import java.util.UUID;
 
@@ -16,7 +17,7 @@ public class IslandAddMemberCommand extends BaseAddMemberCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sendeAr.sendMessage("Usage: /island addmember <player>");
+            sender.sendMessage("Usage: /island addmember <player>");
             return false;
         }
         return true;

@@ -11,19 +11,14 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
-import java.util.logging.Logger;
 
 public class DatabaseHandler {
 
     private final NewSky plugin;
-    private final Logger logger;
-    private final ConfigHandler config;
     private final HikariDataSource dataSource;
 
-    public DatabaseHandler(NewSky plugin, Logger logger, ConfigHandler config) {
+    public DatabaseHandler(NewSky plugin, ConfigHandler config) {
         this.plugin = plugin;
-        this.logger = logger;
-        this.config = config;
 
         String host = config.getDBHost();
         int port = config.getDBPort();

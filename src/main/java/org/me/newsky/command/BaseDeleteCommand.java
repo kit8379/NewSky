@@ -2,6 +2,7 @@ package org.me.newsky.command;
 
 import org.bukkit.command.CommandSender;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.island.IslandHandler;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -30,7 +31,7 @@ public abstract class BaseDeleteCommand {
         }
 
         // Delete island
-        islandHandler.deleteWorld(islandUuid.get().toString());
+        islandHandler.deleteIsland(islandUuid.get().toString());
         cacheHandler.deleteIsland(islandUuid.get());
         sender.sendMessage(getIslandDeletedMessage(args));
 

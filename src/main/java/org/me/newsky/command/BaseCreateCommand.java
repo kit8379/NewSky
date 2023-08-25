@@ -2,6 +2,7 @@ package org.me.newsky.command;
 
 import org.bukkit.command.CommandSender;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.island.IslandHandler;
 
 import java.util.UUID;
 
@@ -32,7 +33,7 @@ public abstract class BaseCreateCommand {
         UUID islandUuid = UUID.randomUUID();
 
         // Create island
-        islandHandler.createWorld(islandUuid.toString());
+        islandHandler.createIsland(islandUuid.toString());
         cacheHandler.createIsland(islandUuid, targetUuid);
         performPostCreationActions(sender, targetUuid, islandUuid);
 

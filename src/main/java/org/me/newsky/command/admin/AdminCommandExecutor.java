@@ -3,12 +3,12 @@ package org.me.newsky.command.admin;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.jetbrains.annotations.NotNull;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.island.IslandHandler;
 
 public class AdminCommandExecutor implements CommandExecutor {
 
-    private final CacheHandler cacheHandler;
-    private final IslandHandler islandHandler;
     private final AdminAddMemberCommand addMemberCommand;
     private final AdminRemoveMemberCommand removeMemberCommand;
     private final AdminCreateCommand createCommand;
@@ -16,8 +16,6 @@ public class AdminCommandExecutor implements CommandExecutor {
     private final AdminInfoCommand infoCommand;
 
     public AdminCommandExecutor(CacheHandler cacheHandler, IslandHandler islandHandler) {
-        this.cacheHandler = cacheHandler;
-        this.islandHandler = islandHandler;
         this.addMemberCommand = new AdminAddMemberCommand(cacheHandler, islandHandler);
         this.removeMemberCommand = new AdminRemoveMemberCommand(cacheHandler);
         this.createCommand = new AdminCreateCommand(cacheHandler, islandHandler);
@@ -26,7 +24,7 @@ public class AdminCommandExecutor implements CommandExecutor {
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
         if (args.length == 0) {
             sender.sendMessage("§c§l--- Island Admin Help ---");
             sender.sendMessage("§6Usage: §e/islandadmin <subcommand> [arguments]");

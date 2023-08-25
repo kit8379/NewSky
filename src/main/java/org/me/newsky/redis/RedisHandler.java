@@ -7,19 +7,13 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 import redis.clients.jedis.JedisPubSub;
 
-import java.util.logging.Logger;
-
 public class RedisHandler {
 
     private final NewSky plugin;
-    private final Logger logger;
-    private final ConfigHandler config;
     private final JedisPool jedisPool;
 
-    public RedisHandler(NewSky plugin, Logger logger, ConfigHandler config) {
-        this.logger = logger;
+    public RedisHandler(NewSky plugin, ConfigHandler config) {
         this.plugin = plugin;
-        this.config = config;
 
         // Get Redis config
         String host = config.getRedisHost();
@@ -36,6 +30,7 @@ public class RedisHandler {
         }
     }
 
+    // Publish a message to a channel
     public void publish(String channel, String message) {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             try (Jedis jedis = jedisPool.getResource()) {
@@ -44,6 +39,7 @@ public class RedisHandler {
         });
     }
 
+    // Subscribe to a channel
     public void subscribe(JedisPubSub pubSub, String channel) {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             try (Jedis jedis = jedisPool.getResource()) {

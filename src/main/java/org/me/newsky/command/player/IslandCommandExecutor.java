@@ -4,13 +4,13 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 
+import org.jetbrains.annotations.NotNull;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.island.IslandHandler;
 
 
 public class IslandCommandExecutor implements CommandExecutor {
 
-    private final CacheHandler cacheHandler;
-    private final IslandHandler islandHandler;
     private final IslandAddMemberCommand addMemberCommand;
     private final IslandRemoveMemberCommand removeMemberCommand;
     private final IslandCreateCommand createCommand;
@@ -18,8 +18,6 @@ public class IslandCommandExecutor implements CommandExecutor {
     private final IslandInfoCommand infoCommand;
 
     public IslandCommandExecutor(CacheHandler cacheHandler, IslandHandler islandHandler) {
-        this.cacheHandler = cacheHandler;
-        this.islandHandler = islandHandler;
 
         this.addMemberCommand = new IslandAddMemberCommand(cacheHandler, islandHandler);
         this.removeMemberCommand = new IslandRemoveMemberCommand(cacheHandler);
@@ -29,7 +27,7 @@ public class IslandCommandExecutor implements CommandExecutor {
     }
 
     @Override
-    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String label, String[] args) {
         if (args.length == 0) {
             sender.sendMessage("§c§l--- Island Help ---");
             sender.sendMessage("§6Usage: §e/island <subcommand> [arguments]");

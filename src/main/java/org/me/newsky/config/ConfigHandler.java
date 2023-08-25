@@ -9,10 +9,6 @@ public class ConfigHandler {
         this.config = config;
     }
 
-    public boolean getDebug() {
-        return config.getBoolean("debug");
-    }
-
     public String getDBHost() {
         return config.getString("DB.host");
     }

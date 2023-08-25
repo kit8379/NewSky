@@ -11,8 +11,11 @@ import org.me.newsky.command.player.IslandCommandExecutor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.event.WorldEventListener;
+import org.me.newsky.island.IslandHandler;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.redis.RedisHeartBeat;
+import org.me.newsky.redis.RedisOperation;
+import org.me.newsky.redis.RedisSubscribeRequest;
 
 import java.util.Objects;
 import java.util.logging.Logger;
@@ -21,7 +24,8 @@ public class NewSky extends JavaPlugin {
     private Logger logger;
     private RedisHandler redisHandler;
     private RedisHeartBeat redisHeartBeat;
-    private RedisPubSubResponse redisPubSubResponse;
+    private RedisOperation redisOpeartion;
+    private RedisSubscribeRequest redisSubscribeRequest;
     private DatabaseHandler databaseHandler;
     private CacheHandler cacheHandler;
     private IslandHandler islandHandler;
@@ -39,10 +43,10 @@ public class NewSky extends JavaPlugin {
     private void initalize() {
         initializeConfig();
         checkDependencies("Multiverse-Core", "VoidGen");
+        initializeMVWorldManager();
         initializeRedis();
         initializeDatabase();
         initializeCache();
-        initializeMVWorldManager();
         initializeIslandHandler();
         registerListeners();
         registerCommands();
@@ -71,11 +75,13 @@ public class NewSky extends JavaPlugin {
     private void initializeRedis() {
         logger.info("Start connecting to Redis now...");
         try {
-            redisHandler = new RedisHandler(this, logger, config);
-            redisHeartBeat = new RedisHeartBeat(this, logger, config, redisHandler);
+            redisHandler = new RedisHandler(this, config);
+            redisHeartBeat = new RedisHeartBeat(this, config, redisHandler);
+            redisOpeartion = new RedisOperation(this, config, mvWorldManager, redisHandler);
             redisHeartBeat.startHeartBeat();
             redisHeartBeat.listenForHeartBeats();
-            redisPubSubResponse = new RedisPubSubResponse(this, logger, config, redisHandler, redisHeartBeat);
+            redisSubscribeRequest = new RedisSubscribeRequest(logger, config, redisHandler, redisOpeartion);
+            redisSubscribeRequest.subscribeToRequests();
             logger.info("Redis connection success!");
         } catch (Exception e) {
             e.printStackTrace();
@@ -86,7 +92,7 @@ public class NewSky extends JavaPlugin {
     private void initializeDatabase() {
         logger.info("Start connecting to Database now...");
         try {
-            databaseHandler = new DatabaseHandler(this, logger, config);
+            databaseHandler = new DatabaseHandler(this, config);
             databaseHandler.createTables();
             logger.info("Database connection success!");
         } catch (Exception e) {
@@ -121,7 +127,7 @@ public class NewSky extends JavaPlugin {
     private void initializeIslandHandler() {
         logger.info("Starting island handler");
         try {
-            islandHandler = new IslandHandler(logger, config, mvWorldManager, redisHandler);
+            islandHandler = new IslandHandler(this, logger, config, redisHandler, redisHeartBeat, redisOpeartion);
             logger.info("Islands loaded");
         } catch (Exception e) {
             e.printStackTrace();
@@ -146,16 +152,11 @@ public class NewSky extends JavaPlugin {
     }
 
     public void shutdown() {
-        logger.info("Start saving cache to database now...");
         cacheHandler.saveCacheToDatabase(); // TODO: Make IT in Sync
-        logger.info("Cache saved to database!");
-        logger.info("Start disconnecting from Redis now...");
-        redisHandler.disconnect();
+        redisSubscribeRequest.unsubscribeFromRequests();
         redisHeartBeat.stopHeartBeat();
-        logger.info("Redis disconnected!");
-        logger.info("Start disconnecting from Database now...");
+        redisHandler.disconnect();
         databaseHandler.close();
-        logger.info("Database disconnected!");
     }
 
     public void reload() {
