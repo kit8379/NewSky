@@ -26,7 +26,7 @@ public class IslandHandler {
         this.redisPublishRequest = new RedisPublishRequest(plugin, config, redisHandler, redisHeartBeat);
     }
 
-    public void createIsland(String islandName) {
+    public void createIsland(String islandName, Runnable callback) {
         // Send the request
         redisPublishRequest.sendRequest("updateWorldList");
 
@@ -45,6 +45,7 @@ public class IslandHandler {
                     redisOpeartion.createWorld(islandName, () -> {
                         // Do something with the output
                         logger.info("Island created.");
+                        callback.run();
                     });
                 } else {
                     // Send the request to the server with the least number of worlds
@@ -55,6 +56,7 @@ public class IslandHandler {
                     redisPublishRequest.setCallback(() -> {
                         // Do something with the output
                         logger.info("Island created.");
+                        callback.run();
                     });
                 }
             }, outputMap);

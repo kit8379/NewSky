@@ -134,9 +134,9 @@ public class RedisOperation {
                 WorldType worldType = WorldType.NORMAL; // or any other type you wish
 
                 mvWorldManager.addWorld(worldName, environment, null, worldType, true, generatorName, false);
+                // Run the callback after jedis operations complete
+                callback.run();
             });
-            // Run the callback after jedis operations complete
-            callback.run();
         });
     }
 
@@ -167,7 +167,7 @@ public class RedisOperation {
         });
     }
 
-    public void teleportToWorld(String worldName, String playerName, Runnable callback) {
+    public void teleportToWorld(String playerName, String worldName, Runnable callback) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             Bukkit.getScheduler().runTask(plugin, () -> {
                 World targetWorld = Bukkit.getWorld(worldName);
@@ -175,11 +175,7 @@ public class RedisOperation {
                 if (targetWorld != null && player != null) {
                     Optional<String> locationOptString = cacheHandler.getPlayerIslandSpawn(player.getUniqueId(), UUID.fromString(worldName));
                     String locationString;
-                    if(locationOptString.isEmpty()) {
-                        locationString = "0,100,0,0,0";
-                    } else {
-                        locationString = locationOptString.get();
-                    }
+                    locationString = locationOptString.orElse("0,100,0,0,0");
                     String locationX = locationString.split(",")[0];
                     String locationY = locationString.split(",")[1];
                     String locationZ = locationString.split(",")[2];

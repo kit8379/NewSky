@@ -32,13 +32,17 @@ public abstract class BaseCreateCommand {
         // Generate island UUID
         UUID islandUuid = UUID.randomUUID();
 
+
+
         // Create island
         String spawnLocation = "0,100,0,100,100";
         String role = "owner";
-        islandHandler.createIsland(islandUuid.toString());
+        islandHandler.createIsland(islandUuid.toString(), () -> {
+            performPostCreationActions(sender, targetUuid, islandUuid);
+        });
+
         cacheHandler.createIsland(islandUuid);
         cacheHandler.addIslandPlayer(targetUuid, islandUuid, spawnLocation, role);
-        performPostCreationActions(sender, targetUuid, islandUuid);
 
         sender.sendMessage("Island created.");
         return true;
