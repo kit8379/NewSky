@@ -13,7 +13,6 @@ import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.event.WorldEventListener;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.redis.RedisHeartBeat;
-import org.me.newsky.redis.RedisPubSubResponse;
 
 import java.util.Objects;
 import java.util.logging.Logger;

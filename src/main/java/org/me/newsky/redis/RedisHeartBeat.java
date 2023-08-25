@@ -1,5 +1,6 @@
 package org.me.newsky.redis;
 
+import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 import redis.clients.jedis.JedisPubSub;
@@ -16,6 +17,8 @@ public class RedisHeartBeat {
     private final String serverID;
 
     private JedisPubSub heartBeatSubscriber;
+    private BukkitTask sendHeartbeatTask;
+    private BukkitTask checkTimeoutsTask;
 
     // Store the last heartbeat time for each server.
     private final ConcurrentHashMap<String, Long> serverLastHeartbeat = new ConcurrentHashMap<>();
@@ -29,8 +32,8 @@ public class RedisHeartBeat {
 
     public void startHeartBeat() {
         listenForHeartBeats();
-        sendForHeartBeats();
-        checkServerTimeouts();
+        sendHeartbeatTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::sendForHeartBeats, 0L, 100L);
+        checkTimeoutsTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::checkServerTimeouts, 0L, 100L);
     }
 
     public void sendForHeartBeats() {
@@ -38,9 +41,6 @@ public class RedisHeartBeat {
         redisHandler.publish("newsky-heartbeat-channel", serverID);
         // Update our own last heartbeat timestamp
         serverLastHeartbeat.put(serverID, System.currentTimeMillis());
-
-        // Schedule next heartbeat
-        plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, this::startHeartBeat, 100L);
     }
 
     public void listenForHeartBeats() {
@@ -61,18 +61,21 @@ public class RedisHeartBeat {
                 serverLastHeartbeat.remove(server);
             }
         });
-
-        // Schedule to check server timeouts again in the future
-        plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, this::checkServerTimeouts, 100L);
-    }
-
-    public Set<String> getActiveServers() {
-        return serverLastHeartbeat.keySet();
     }
 
     public void stopHeartBeat() {
         if (heartBeatSubscriber != null) {
             heartBeatSubscriber.unsubscribe();
         }
+        if (sendHeartbeatTask != null) {
+            sendHeartbeatTask.cancel();
+        }
+        if (checkTimeoutsTask != null) {
+            checkTimeoutsTask.cancel();
+        }
+    }
+
+    public Set<String> getActiveServers() {
+        return serverLastHeartbeat.keySet();
     }
 }
