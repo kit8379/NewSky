@@ -23,12 +23,19 @@ public abstract class BaseInfoCommand {
             return true;
         }
 
+        Optional<UUID> ownerUuid = cacheHandler.getIslandOwner(islandUuid.get());
+
+        if(ownerUuid.isEmpty()) {
+            sender.sendMessage("Island does not have an owner.");
+            return true;
+        }
+
         Set<UUID> memberUuids = cacheHandler.getIslandMembers(islandUuid.get());
         StringBuilder membersString = buildMembersString(memberUuids);
 
         sender.sendMessage("Island Info");
         sender.sendMessage("Island UUID: " + islandUuid.get());
-        sender.sendMessage("Island Owner: " + Bukkit.getOfflinePlayer(cacheHandler.getIslandOwner(islandUuid.get())).getName());
+        sender.sendMessage("Island Owner: " + Bukkit.getOfflinePlayer(ownerUuid.get()).getName());
         sender.sendMessage("Island Members: " + membersString);
 
         return true;

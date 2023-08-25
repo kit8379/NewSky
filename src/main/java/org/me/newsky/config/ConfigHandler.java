@@ -44,5 +44,4 @@ public class ConfigHandler {
     public String getServerName() {
         return config.getString("server.name");
     }
-
 }

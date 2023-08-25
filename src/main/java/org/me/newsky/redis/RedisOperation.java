@@ -2,18 +2,17 @@ package org.me.newsky.redis;
 
 import com.onarandombox.MultiverseCore.api.MVWorldManager;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldType;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
+import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
 import redis.clients.jedis.Jedis;
 
 import java.io.File;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class RedisOperation {
 
@@ -21,12 +20,14 @@ public class RedisOperation {
     private final ConfigHandler config;
     private final MVWorldManager mvWorldManager;
     private final RedisHandler redisHandler;
+    private final CacheHandler cacheHandler;
 
-    public RedisOperation(NewSky plugin, ConfigHandler config, MVWorldManager mvWorldManager, RedisHandler redisHandler) {
+    public RedisOperation(NewSky plugin, ConfigHandler config, MVWorldManager mvWorldManager, RedisHandler redisHandler, CacheHandler cacheHandler) {
         this.plugin = plugin;
         this.config = config;
         this.mvWorldManager = mvWorldManager;
         this.redisHandler = redisHandler;
+        this.cacheHandler = cacheHandler;
     }
 
     public void updateWorldList(Runnable callback) {
@@ -57,27 +58,6 @@ public class RedisOperation {
                 // Run the callback after jedis operations complete
                 callback.run();
 
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        });
-    }
-
-    public void getAllWorlds(Runnable callback, Map<String, Set<String>> outputMap) {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            Map<String, Set<String>> serverWorlds = new HashMap<>();
-
-            try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
-                Set<String> allKeys = jedis.keys("*_worlds");
-
-                for (String key : allKeys) {
-                    String serverName = key.split("_worlds")[0];
-                    Set<String> worlds = jedis.smembers(key);
-                    serverWorlds.put(serverName, worlds);
-                }
-
-                outputMap.putAll(serverWorlds);
-                callback.run();
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -162,9 +142,7 @@ public class RedisOperation {
 
     public void loadWorld(String worldName, Runnable callback) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                mvWorldManager.loadWorld(worldName);
-            });
+            Bukkit.getScheduler().runTask(plugin, () -> mvWorldManager.loadWorld(worldName));
             // Run the callback after jedis operations complete
             callback.run();
         });
@@ -172,9 +150,7 @@ public class RedisOperation {
 
     public void unloadWorld(String worldName, Runnable callback) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                mvWorldManager.unloadWorld(worldName);
-            });
+            Bukkit.getScheduler().runTask(plugin, () -> mvWorldManager.unloadWorld(worldName));
             // Run the callback after jedis operations complete
             callback.run();
         });
@@ -197,7 +173,20 @@ public class RedisOperation {
                 World targetWorld = Bukkit.getWorld(worldName);
                 Player player = Bukkit.getPlayer(playerName);
                 if (targetWorld != null && player != null) {
-                    player.teleport(targetWorld.getSpawnLocation());
+                    Optional<String> locationOptString = cacheHandler.getPlayerIslandSpawn(player.getUniqueId(), UUID.fromString(worldName));
+                    String locationString;
+                    if(locationOptString.isEmpty()) {
+                        locationString = "0,100,0,0,0";
+                    } else {
+                        locationString = locationOptString.get();
+                    }
+                    String locationX = locationString.split(",")[0];
+                    String locationY = locationString.split(",")[1];
+                    String locationZ = locationString.split(",")[2];
+                    String locationYaw = locationString.split(",")[3];
+                    String locationPitch = locationString.split(",")[4];
+                    Location location = new Location(targetWorld, Double.parseDouble(locationX), Double.parseDouble(locationY), Double.parseDouble(locationZ), Float.parseFloat(locationYaw), Float.parseFloat(locationPitch));
+                    player.teleport(location);
                 }
             });
             // Run the callback after jedis operations complete

@@ -37,14 +37,20 @@ public abstract class BaseRemoveMemberCommand {
             return true;
         }
 
+        Optional<UUID> ownerUuid = cacheHandler.getIslandUuidByPlayerUuid(islandOwnerId);
+        if (ownerUuid.isEmpty()) {
+            sender.sendMessage("The island does not have a owner.");
+            return true;
+        }
+
         // Check if the target player is the owner of the island
-        if (cacheHandler.getIslandOwner(islandUuid.get()).equals(targetRemove.getUniqueId())) {
+        if (ownerUuid.get().equals(targetRemove.getUniqueId())) {
             sender.sendMessage("You can't remove the owner of the island.");
             return true;
         }
 
         // Remove the target player from the island
-        cacheHandler.removeIslandMember(islandUuid.get(), targetRemove.getUniqueId());
+        cacheHandler.deleteIslandPlayer(targetRemove.getUniqueId(), islandUuid.get());
         sender.sendMessage("Removed " + targetRemove.getName() + " from " + Bukkit.getOfflinePlayer(islandOwnerId).getName() + "'s island.");
 
         return true;

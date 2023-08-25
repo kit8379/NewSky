@@ -89,60 +89,59 @@ public class DatabaseHandler {
 
     public void createTables() {
         createIslandDataTable();
-        createIslandMembersTable();
+        createIslandPlayersTable();
     }
 
     private void createIslandDataTable() {
-        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_data (island_uuid VARCHAR(56) PRIMARY KEY, owner_uuid VARCHAR(56) NOT NULL, level INT(11) NOT NULL);", false);
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS islands (island_uuid VARCHAR(56) PRIMARY KEY, level INT(11) NOT NULL);", false);
     }
 
-    private void createIslandMembersTable() {
-        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_members (member_uuid VARCHAR(56) PRIMARY KEY, island_uuid VARCHAR(56) NOT NULL, FOREIGN KEY (island_uuid) REFERENCES island_data(island_uuid));", false);
+    private void createIslandPlayersTable() {
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_players (player_uuid VARCHAR(56), island_uuid VARCHAR(56) NOT NULL, spawn VARCHAR(256) NOT NULL, role VARCHAR(56) NOT NULL, FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid), PRIMARY KEY (player_uuid, island_uuid));", false);
     }
 
     // Fetch all island data for caching
     public void selectAllIslandData(ResultProcessor processor) {
-        executeQuery("SELECT * FROM island_data", processor);
+        executeQuery("SELECT * FROM islands", processor);
     }
 
-    // Fetch all island members for caching
-    public void selectAllIslandMembers(ResultProcessor processor) {
-        executeQuery("SELECT * FROM island_members", processor);
+    // Fetch all island players for caching
+    public void selectAllIslandPlayers(ResultProcessor processor) {
+        executeQuery("SELECT * FROM island_players", processor);
     }
 
     // Update island data by UUID
-    public void updateIslandData(UUID islandUuid, UUID ownerUuid, int level) {
+    public void updateIslandData(UUID islandUuid) {
         executeUpdate(statement -> {
             statement.setString(1, islandUuid.toString());
-            statement.setString(2, ownerUuid.toString());
-            statement.setInt(3, level);
-            statement.setString(4, ownerUuid.toString());
-            statement.setInt(5, level);
-        }, "INSERT INTO island_data (island_uuid, owner_uuid, level) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE owner_uuid = ?, level = ?", true);
+            statement.setInt(2, 0);
+            statement.setInt(3, 0);
+        }, "INSERT INTO islands (island_uuid, level) VALUES (?, ?) ON DUPLICATE KEY UPDATE level = ?", true);
     }
 
-    // Add a member to an island
-    public void addIslandMember(UUID islandUuid, UUID memberUuid) {
+    // Associate a player to an island (either as owner or member)
+    public void addIslandPlayer(UUID playerUuid, UUID islandUuid, String spawnLocation, String role) {
         executeUpdate(statement -> {
-            statement.setString(1, memberUuid.toString());
+            statement.setString(1, playerUuid.toString());
             statement.setString(2, islandUuid.toString());
-            statement.setString(3, islandUuid.toString());
-        }, "INSERT INTO island_members (member_uuid, island_uuid) VALUES (?, ?) ON DUPLICATE KEY UPDATE island_uuid = ?", true);
+            statement.setString(3, spawnLocation);
+            statement.setString(4, role);
+        }, "INSERT INTO island_players (player_uuid, island_uuid, spawn, role) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE spawn = ?, role = ?", true);
     }
 
-    // Delete a member from an island
-    public void deleteIslandMember(UUID islandUuid, UUID memberUuid) {
+    // Delete a player association from an island
+    public void deleteIslandPlayer(UUID playerUuid, UUID islandUuid) {
         executeUpdate(statement -> {
-            statement.setString(1, memberUuid.toString());
+            statement.setString(1, playerUuid.toString());
             statement.setString(2, islandUuid.toString());
-        }, "DELETE FROM island_members WHERE member_uuid = ? AND island_uuid = ?", true);
+        }, "DELETE FROM island_players WHERE player_uuid = ? AND island_uuid = ?", true);
     }
 
     // Delete island data by UUID
     public void deleteIslandData(UUID islandUuid) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM island_members WHERE island_uuid = ?", false);
-            executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM island_data WHERE island_uuid = ?", false);
+            executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM island_players WHERE island_uuid = ?", false);
+            executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM islands WHERE island_uuid = ?", false);
         });
     }
 }

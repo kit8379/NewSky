@@ -186,7 +186,7 @@ public class IslandHandler {
                 } else {
                     // Send the request to the server with the least number of worlds
                     logger.info("Sending request to teleport player to island on server: " + serverByWorldName);
-                    redisPublishRequest.sendRequest("teleportToIsland:" + serverByWorldName + ":" + islandName);
+                    redisPublishRequest.sendRequest("teleportToWorld:" + serverByWorldName + ":" + islandName);
                 }
             }, outputMap);
         });

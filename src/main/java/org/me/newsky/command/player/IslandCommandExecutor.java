@@ -16,6 +16,7 @@ public class IslandCommandExecutor implements CommandExecutor {
     private final IslandCreateCommand createCommand;
     private final IslandDeleteCommand deleteCommand;
     private final IslandInfoCommand infoCommand;
+    private final IslandHomeCommand homeCommand;
 
     public IslandCommandExecutor(CacheHandler cacheHandler, IslandHandler islandHandler) {
 
@@ -24,6 +25,7 @@ public class IslandCommandExecutor implements CommandExecutor {
         this.createCommand = new IslandCreateCommand(cacheHandler, islandHandler);
         this.deleteCommand = new IslandDeleteCommand(cacheHandler, islandHandler);
         this.infoCommand = new IslandInfoCommand(cacheHandler);
+        this.homeCommand = new IslandHomeCommand(cacheHandler, islandHandler);
     }
 
     @Override
@@ -54,6 +56,8 @@ public class IslandCommandExecutor implements CommandExecutor {
                 return deleteCommand.execute(sender, args);
             case "info":
                 return infoCommand.execute(sender, args);
+            case "home":
+                return homeCommand.execute(sender, args);
             default:
                 sender.sendMessage("Unknown command. Please refer to the documentation for a list of valid commands.");
                 return true;

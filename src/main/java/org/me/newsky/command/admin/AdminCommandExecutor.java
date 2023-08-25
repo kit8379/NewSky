@@ -14,6 +14,7 @@ public class AdminCommandExecutor implements CommandExecutor {
     private final AdminCreateCommand createCommand;
     private final AdminDeleteCommand deleteCommand;
     private final AdminInfoCommand infoCommand;
+    private final AdminHomeCommand homeCommand;
 
     public AdminCommandExecutor(CacheHandler cacheHandler, IslandHandler islandHandler) {
         this.addMemberCommand = new AdminAddMemberCommand(cacheHandler, islandHandler);
@@ -21,6 +22,7 @@ public class AdminCommandExecutor implements CommandExecutor {
         this.createCommand = new AdminCreateCommand(cacheHandler, islandHandler);
         this.deleteCommand = new AdminDeleteCommand(cacheHandler, islandHandler);
         this.infoCommand = new AdminInfoCommand(cacheHandler);
+        this.homeCommand = new AdminHomeCommand(cacheHandler, islandHandler);
     }
 
     @Override
@@ -52,6 +54,8 @@ public class AdminCommandExecutor implements CommandExecutor {
                 return deleteCommand.execute(sender, args);
             case "info":
                 return infoCommand.execute(sender, args);
+            case "home":
+                return homeCommand.execute(sender, args);
             default:
                 sender.sendMessage("Unknown admin command. Please refer to the documentation for a list of valid commands.");
                 return true;

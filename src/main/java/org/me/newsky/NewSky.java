@@ -45,8 +45,11 @@ public class NewSky extends JavaPlugin {
         checkDependencies("Multiverse-Core", "VoidGen");
         initializeMVWorldManager();
         initializeRedis();
-        initializeDatabase();
         initializeCache();
+        initalizeRedisHeartBeat();
+        initalizeRedisOperation();
+        initalizeRedisSubscribeRequest();
+        initializeDatabase();
         initializeIslandHandler();
         registerListeners();
         registerCommands();
@@ -76,28 +79,10 @@ public class NewSky extends JavaPlugin {
         logger.info("Start connecting to Redis now...");
         try {
             redisHandler = new RedisHandler(this, config);
-            redisHeartBeat = new RedisHeartBeat(this, config, redisHandler);
-            redisOpeartion = new RedisOperation(this, config, mvWorldManager, redisHandler);
-            redisHeartBeat.startHeartBeat();
-            redisHeartBeat.listenForHeartBeats();
-            redisSubscribeRequest = new RedisSubscribeRequest(logger, config, redisHandler, redisOpeartion);
-            redisSubscribeRequest.subscribeToRequests();
             logger.info("Redis connection success!");
         } catch (Exception e) {
             e.printStackTrace();
             throw new IllegalStateException("Redis Fail! Plugin will be disabled!");
-        }
-    }
-
-    private void initializeDatabase() {
-        logger.info("Start connecting to Database now...");
-        try {
-            databaseHandler = new DatabaseHandler(this, config);
-            databaseHandler.createTables();
-            logger.info("Database connection success!");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException("Database connection fail! Plugin will be disabled!");
         }
     }
 
@@ -110,6 +95,54 @@ public class NewSky extends JavaPlugin {
         } catch (Exception e) {
             e.printStackTrace();
             throw new IllegalStateException("Cache to Redis fail! Plugin will be disabled!");
+        }
+    }
+
+    private void initalizeRedisHeartBeat() {
+        logger.info("Start connecting to Redis Heart Beat now...");
+        try {
+            redisHeartBeat = new RedisHeartBeat(this, config, redisHandler);
+            redisHeartBeat.startHeartBeat();
+            redisHeartBeat.listenForHeartBeats();
+            logger.info("Redis Heart Beat success!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IllegalStateException("Redis Heart Beat Fail! Plugin will be disabled!");
+        }
+    }
+
+    private void initalizeRedisOperation() {
+        logger.info("Start connecting to Redis Operation now...");
+        try {
+            redisOpeartion = new RedisOperation(this, config, mvWorldManager, redisHandler, cacheHandler);
+            logger.info("Redis Operation success!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IllegalStateException("Redis Operation Fail! Plugin will be disabled!");
+        }
+    }
+
+    private void initalizeRedisSubscribeRequest() {
+        logger.info("Start connecting to Redis Subscribe Request now...");
+        try {
+            redisSubscribeRequest = new RedisSubscribeRequest(logger, config, redisHandler, redisOpeartion);
+            redisSubscribeRequest.subscribeToRequests();
+            logger.info("Redis Subscribe Request success!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IllegalStateException("Redis Subscribe Request Fail! Plugin will be disabled!");
+        }
+    }
+
+    private void initializeDatabase() {
+        logger.info("Start connecting to Database now...");
+        try {
+            databaseHandler = new DatabaseHandler(this, config);
+            databaseHandler.createTables();
+            logger.info("Database connection success!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IllegalStateException("Database connection fail! Plugin will be disabled!");
         }
     }
 

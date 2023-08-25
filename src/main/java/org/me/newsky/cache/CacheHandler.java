@@ -4,10 +4,7 @@ import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.Jedis;
 
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.logging.Logger;
 
 public class CacheHandler {
@@ -20,20 +17,19 @@ public class CacheHandler {
         this.logger = logger;
         this.redisHandler = redisHandler;
         this.databaseHandler = databaseHandler;
+        cacheAllDataToRedis();
     }
 
-    public void cacheDataToRedis() {
+    private void cacheAllDataToRedis() {
         cacheIslandDataToRedis();
-        cacheIslandMembersToRedis();
+        cacheIslandPlayersToRedis();
     }
 
     private void cacheIslandDataToRedis() {
         databaseHandler.selectAllIslandData(resultSet -> {
             try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
                 while (resultSet.next()) {
-                    String islandUuidStr = resultSet.getString("island_uuid");
-                    UUID islandUuid = UUID.fromString(islandUuidStr);
-                    jedis.hset("island_data:" + islandUuid, "owner_uuid", resultSet.getString("owner_uuid"));
+                    String islandUuid = resultSet.getString("island_uuid");
                     jedis.hset("island_data:" + islandUuid, "level", String.valueOf(resultSet.getInt("level")));
                 }
             } catch (Exception e) {
@@ -42,15 +38,20 @@ public class CacheHandler {
         });
     }
 
-    private void cacheIslandMembersToRedis() {
-        databaseHandler.selectAllIslandMembers(resultSet -> {
+    private void cacheIslandPlayersToRedis() {
+        databaseHandler.selectAllIslandPlayers(resultSet -> {
             try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
                 while (resultSet.next()) {
-                    String islandUuidStr = resultSet.getString("island_uuid");
-                    UUID islandUuid = UUID.fromString(islandUuidStr);
-                    String memberUuidStr = resultSet.getString("member_uuid");
-                    UUID memberUuid = UUID.fromString(memberUuidStr);
-                    jedis.sadd("island_members:" + islandUuid, memberUuid.toString());
+                    String playerUuid = resultSet.getString("player_uuid");
+                    String islandUuid = resultSet.getString("island_uuid");
+                    String spawn = resultSet.getString("spawn");
+                    String role = resultSet.getString("role");
+
+                    Map<String, String> playerData = new HashMap<>();
+                    playerData.put("spawn", spawn);
+                    playerData.put("role", role);
+
+                    jedis.hmset("island_players:" + islandUuid + ":" + playerUuid, playerData);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -58,139 +59,145 @@ public class CacheHandler {
         });
     }
 
-    public void saveCacheToDatabase() {
-        // Directly save all cached data to the database
+    public void createIsland(UUID islandUuid) {
+        // 1. Update the cache first.
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
-            jedis.keys("island_data:*").forEach(key -> {
-                UUID islandUuid = UUID.fromString(key.replace("island_data:", ""));
-                String ownerUuid = jedis.hget(key, "owner_uuid");
-                int level = Integer.parseInt(jedis.hget(key, "level"));
-                databaseHandler.updateIslandData(islandUuid, UUID.fromString(ownerUuid), level);
-            });
-
-            jedis.keys("island_members:*").forEach(key -> {
-                UUID islandUuid = UUID.fromString(key.replace("island_members:", ""));
-                Set<String> members = jedis.smembers(key);
-                for (String memberUuid : members) {
-                    databaseHandler.addIslandMember(islandUuid, UUID.fromString(memberUuid));
-                }
-            });
-        } catch (Exception e) {
-            e.printStackTrace();
+            jedis.hset("island_data:" + islandUuid.toString(), "level", "0");
         }
+
+        // 2. Update the database asynchronously.
+        databaseHandler.updateIslandData(islandUuid);
     }
 
-    public void createIsland(UUID islandUuid, UUID ownerUuid) {
+    public void addIslandPlayer(UUID playerUuid, UUID islandUuid, String spawnLocation, String role) {
+        // 1. Update the cache first.
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
-            jedis.hset("island_data:" + islandUuid, "owner_uuid", ownerUuid.toString());
-            jedis.hset("island_data:" + islandUuid, "level", String.valueOf(0));
-            databaseHandler.updateIslandData(islandUuid, ownerUuid, 0);
-        } catch (Exception e) {
-            e.printStackTrace();
+            Map<String, String> playerData = new HashMap<>();
+            playerData.put("spawn", spawnLocation);
+            playerData.put("role", role);
+
+            jedis.hmset("island_players:" + islandUuid + ":" + playerUuid, playerData);
         }
+
+        // 2. Update the database asynchronously.
+        databaseHandler.addIslandPlayer(playerUuid, islandUuid, spawnLocation, role);
     }
 
     public void deleteIsland(UUID islandUuid) {
+        // 1. Remove from the cache.
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
-            // Delete all members
-            Set<String> members = jedis.smembers("island_members:" + islandUuid);
-            for (String member : members) {
-                jedis.srem("island_members:" + islandUuid, member);
-                databaseHandler.deleteIslandMember(islandUuid, UUID.fromString(member));
+            // Deleting island data.
+            jedis.del("island_data:" + islandUuid.toString());
+
+            // Deleting all associated island players.
+            Set<String> keys = jedis.keys("island_players:" + islandUuid + ":*");
+            for (String key : keys) {
+                jedis.del(key);
             }
-
-            // Delete the island data
-            jedis.del("island_data:" + islandUuid);
-            databaseHandler.deleteIslandData(islandUuid);
-        } catch (Exception e) {
-            e.printStackTrace();
         }
+
+        // 2. Remove from the database asynchronously.
+        databaseHandler.deleteIslandData(islandUuid);
     }
 
-    public void addIslandMember(UUID islandUuid, UUID memberUuid) {
+    public void deleteIslandPlayer(UUID playerUuid, UUID islandUuid) {
+        // 1. Remove from the cache.
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
-            jedis.sadd("island_members:" + islandUuid, memberUuid.toString());
-            databaseHandler.addIslandMember(islandUuid, memberUuid);
-        } catch (Exception e) {
-            e.printStackTrace();
+            jedis.del("island_players:" + islandUuid.toString() + ":" + playerUuid.toString());
         }
-    }
 
-    public void removeIslandMember(UUID islandUuid, UUID memberUuid) {
-        try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
-            jedis.srem("island_members:" + islandUuid, memberUuid.toString());
-            databaseHandler.deleteIslandMember(islandUuid, memberUuid);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        // 2. Remove from the database asynchronously.
+        databaseHandler.deleteIslandPlayer(playerUuid, islandUuid);
     }
 
     /**
-     * Get the owner UUID of a specific island.
-     *
-     * @param islandUuid The UUID of the island.
-     * @return UUID of the owner or null if not found.
+     * This method returns the island level of an island.
+     * @param islandUuid UUID of the island.
+     * @return Island level of the island. 0 if the island does not exist.
      */
-    public UUID getIslandOwner(UUID islandUuid) {
+    public Optional<UUID> getIslandOwner(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
-            String owner = jedis.hget("island_data:" + islandUuid, "owner_uuid");
-            return owner == null ? null : UUID.fromString(owner);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+            Set<String> keys = jedis.keys("island_players:" + islandUuid.toString() + ":*");
+            for (String key : keys) {
+                Map<String, String> data = jedis.hgetAll(key);
+                if ("owner".equals(data.get("role"))) {
+                    String[] parts = key.split(":");
+                    return Optional.of(UUID.fromString(parts[2]));
+                }
+            }
         }
+        return Optional.empty();
     }
 
-
     /**
-     * Get all members of a specific island.
+     * This method returns all members of an island.
      *
-     * @param islandUuid The UUID of the island.
-     * @return Set of member UUIDs or empty set if not found.
+     * @param islandUuid UUID of the island.
+     * @return Set of UUIDs of all members of the island. Empty if the island has no members.
      */
     public Set<UUID> getIslandMembers(UUID islandUuid) {
+        Set<UUID> members = new HashSet<>();
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
-            Set<String> members = jedis.smembers("island_members:" + islandUuid);
-            Set<UUID> uuids = new HashSet<>();
-            for (String member : members) {
-                uuids.add(UUID.fromString(member));
+            Set<String> keys = jedis.keys("island_players:" + islandUuid.toString() + ":*");
+            for (String key : keys) {
+                Map<String, String> data = jedis.hgetAll(key);
+                if (!"owner".equals(data.get("role"))) {
+                    String[] parts = key.split(":");
+                    members.add(UUID.fromString(parts[2]));
+                }
             }
-            return uuids;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new HashSet<>();
         }
+        return members;
     }
 
     /**
-     * Get the island UUID for a given player UUID. This method checks if the player is an owner or a member of any island.
+     * This method returns the island UUID of a player.
      *
-     * @param playerUuid The UUID of the player.
-     * @return Optional containing the UUID of the island or empty if not found.
+     * @param playerUuid UUID of the player.
+     * @return Optional island UUID of the player. Empty if the player is not on an island.
      */
     public Optional<UUID> getIslandUuidByPlayerUuid(UUID playerUuid) {
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
-            // Check if player is an owner of any island
-            Set<String> ownerKeys = jedis.keys("island_data:*");
-            for (String key : ownerKeys) {
-                String owner = jedis.hget(key, "owner_uuid");
-                if (playerUuid.toString().equals(owner)) {
-                    return Optional.of(UUID.fromString(key.replace("island_data:", "")));
-                }
+            Set<String> keys = jedis.keys("island_players:*:" + playerUuid.toString());
+            if (keys.size() == 0) {
+                return Optional.empty();
             }
 
-            // Check if player is a member of any island
-            Set<String> memberKeys = jedis.keys("island_members:*");
-            for (String key : memberKeys) {
-                boolean isMember = jedis.sismember(key, playerUuid.toString());
-                if (isMember) {
-                    return Optional.of(UUID.fromString(key.replace("island_members:", "")));
-                }
+            // Extracting the island UUID from the key pattern "island_players:<islandUuid>:<playerUuid>"
+            String key = keys.iterator().next();
+            String[] segments = key.split(":");
+            if (segments.length != 3) {
+                return Optional.empty();
             }
-            return Optional.empty();
+            return Optional.of(UUID.fromString(segments[1]));
+        }
+    }
+
+    /**
+     * This method returns the spawn location of a player on a specific island.
+     *
+     * @param playerUuid - The UUID of the player.
+     * @param islandUuid - The UUID of the island.
+     * @return Optional containing the spawn location, or an empty Optional if the spawn location isn't found.
+     */
+    public Optional<String> getPlayerIslandSpawn(UUID playerUuid, UUID islandUuid) {
+        try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
+            String key = "island_players:" + islandUuid.toString() + ":" + playerUuid.toString();
+
+            // Check if the key exists in Redis
+            if (!jedis.exists(key)) {
+                return Optional.empty();
+            }
+
+            // Fetch the spawn location from the cache
+            String spawn = jedis.hget(key, "spawn");
+
+            if (spawn != null && !spawn.isEmpty()) {
+                return Optional.of(spawn);
+            }
         } catch (Exception e) {
             e.printStackTrace();
-            return Optional.empty();
         }
+        return Optional.empty();
     }
 }
