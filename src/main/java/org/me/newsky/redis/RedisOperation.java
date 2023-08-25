@@ -39,8 +39,9 @@ public class RedisOperation {
             if (files != null) {
                 for (File file : files) {
                     if (file.isDirectory()) {
-                        File levelDat = new File(file, "level.dat");
-                        if (levelDat.exists()) {
+                        File sessionLock = new File(file, "session.lock");
+                        File uidDat = new File(file, "uid.dat");
+                        if (sessionLock.exists() && uidDat.exists()) {
                             worldNames.add(file.getName());
                         }
                     }
@@ -152,11 +153,7 @@ public class RedisOperation {
                 World.Environment environment = World.Environment.NORMAL; // or NETHER, or THE_END
                 WorldType worldType = WorldType.NORMAL; // or any other type you wish
 
-                if (mvWorldManager.addWorld(worldName, environment, null, worldType, true, generatorName, false)) {
-                    Bukkit.getLogger().info("World created successfully!");
-                } else {
-                    Bukkit.getLogger().severe("Failed to create world!");
-                }
+                mvWorldManager.addWorld(worldName, environment, null, worldType, true, generatorName, false);
             });
             // Run the callback after jedis operations complete
             callback.run();
@@ -166,11 +163,7 @@ public class RedisOperation {
     public void loadWorld(String worldName, Runnable callback) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             Bukkit.getScheduler().runTask(plugin, () -> {
-                if (mvWorldManager.loadWorld(worldName)) {
-                    Bukkit.getLogger().info("World loaded successfully!");
-                } else {
-                    Bukkit.getLogger().severe("Failed to load world!");
-                }
+                mvWorldManager.loadWorld(worldName);
             });
             // Run the callback after jedis operations complete
             callback.run();
@@ -180,11 +173,7 @@ public class RedisOperation {
     public void unloadWorld(String worldName, Runnable callback) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             Bukkit.getScheduler().runTask(plugin, () -> {
-                if (mvWorldManager.unloadWorld(worldName)) {
-                    Bukkit.getLogger().info("World unloaded successfully!");
-                } else {
-                    Bukkit.getLogger().severe("Failed to unload world!");
-                }
+                mvWorldManager.unloadWorld(worldName);
             });
             // Run the callback after jedis operations complete
             callback.run();
@@ -194,13 +183,8 @@ public class RedisOperation {
     public void deleteWorld(String worldName, Runnable callback) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             Bukkit.getScheduler().runTask(plugin, () -> {
-                boolean successUnload = mvWorldManager.unloadWorld(worldName);
-                boolean successDelete = mvWorldManager.deleteWorld(worldName);
-                if (successUnload && successDelete) {
-                    Bukkit.getLogger().info("World deleted successfully!");
-                } else {
-                    Bukkit.getLogger().severe("Failed to delete world!");
-                }
+                mvWorldManager.unloadWorld(worldName);
+                mvWorldManager.deleteWorld(worldName);
             });
             // Run the callback after jedis operations complete
             callback.run();
