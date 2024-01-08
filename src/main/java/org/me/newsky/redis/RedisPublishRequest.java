@@ -64,6 +64,7 @@ public class RedisPublishRequest {
 
         redisHandler.subscribe(responseSubscriber, "response-channel-" + serverID);
 
+
         // Use Bukkit's scheduler to handle servers that did not respond
         plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> {
             // Here you can handle/log servers that did not respond if needed

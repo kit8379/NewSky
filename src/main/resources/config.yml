@@ -13,4 +13,4 @@ redis:
   password: "your_redis_password"
 
 server:
-  name: "Server1" # Unique name for your server
+  name: "server1" # Unique name for your server

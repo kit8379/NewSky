@@ -119,6 +119,14 @@ public class DatabaseHandler {
         }, "INSERT INTO islands (island_uuid, level) VALUES (?, ?) ON DUPLICATE KEY UPDATE level = ?", true);
     }
 
+    // Delete island data by UUID
+    public void deleteIslandData(UUID islandUuid) {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM island_players WHERE island_uuid = ?", false);
+            executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM islands WHERE island_uuid = ?", false);
+        });
+    }
+
     // Associate a player to an island (either as owner or member)
     public void addIslandPlayer(UUID playerUuid, UUID islandUuid, String spawnLocation, String role) {
         executeUpdate(statement -> {
@@ -137,13 +145,5 @@ public class DatabaseHandler {
             statement.setString(1, playerUuid.toString());
             statement.setString(2, islandUuid.toString());
         }, "DELETE FROM island_players WHERE player_uuid = ? AND island_uuid = ?", true);
-    }
-
-    // Delete island data by UUID
-    public void deleteIslandData(UUID islandUuid) {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM island_players WHERE island_uuid = ?", false);
-            executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM islands WHERE island_uuid = ?", false);
-        });
     }
 }

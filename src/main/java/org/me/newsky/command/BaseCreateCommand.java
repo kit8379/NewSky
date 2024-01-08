@@ -32,8 +32,6 @@ public abstract class BaseCreateCommand {
         // Generate island UUID
         UUID islandUuid = UUID.randomUUID();
 
-
-
         // Create island
         String spawnLocation = "0,100,0,100,100";
         String role = "owner";
