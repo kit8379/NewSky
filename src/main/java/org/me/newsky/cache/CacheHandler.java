@@ -175,4 +175,10 @@ public class CacheHandler {
         }
         return Optional.empty();
     }
+
+    public boolean isIslandWorld(String worldName) {
+        try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
+            return jedis.sismember("island_worlds", worldName);
+        }
+    }
 }

@@ -3,14 +3,19 @@ package org.me.newsky.command;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.config.ConfigHandler;
+
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 public abstract class BaseInfoCommand {
+
+    protected final ConfigHandler config;
     protected final CacheHandler cacheHandler;
 
-    public BaseInfoCommand(CacheHandler cacheHandler) {
+    public BaseInfoCommand(ConfigHandler config, CacheHandler cacheHandler) {
+        this.config = config;
         this.cacheHandler = cacheHandler;
     }
 
@@ -19,14 +24,14 @@ public abstract class BaseInfoCommand {
         Optional<UUID> islandUuid = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
 
         if (islandUuid.isEmpty()) {
-            sender.sendMessage("Player does not have an island.");
+            sender.sendMessage(config.getPlayerNoIslandMessage(args[1]));
             return true;
         }
 
         Optional<UUID> ownerUuid = cacheHandler.getIslandOwner(islandUuid.get());
 
-        if(ownerUuid.isEmpty()) {
-            sender.sendMessage("Island does not have an owner.");
+        if (ownerUuid.isEmpty()) {
+            sender.sendMessage(config.getNoIslandOwnerMessage());
             return true;
         }
 

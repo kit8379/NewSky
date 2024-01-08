@@ -4,15 +4,18 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.config.ConfigHandler;
 
 import java.util.Optional;
 import java.util.UUID;
 
 public abstract class BaseRemoveMemberCommand {
 
+    protected final ConfigHandler config;
     protected final CacheHandler cacheHandler;
 
-    public BaseRemoveMemberCommand(CacheHandler cacheHandler) {
+    public BaseRemoveMemberCommand(ConfigHandler config, CacheHandler cacheHandler) {
+        this.config = config;
         this.cacheHandler = cacheHandler;
     }
 
@@ -27,31 +30,29 @@ public abstract class BaseRemoveMemberCommand {
 
         // Check if the target island owner has an island
         if (islandUuid.isEmpty()) {
-            sender.sendMessage(Bukkit.getOfflinePlayer(islandOwnerId).getName() + " doesn't have an island.");
+            sender.sendMessage(config.getPlayerNoIslandMessage(args[1]));
             return true;
         }
 
         // Check if the target player is a member of the island
         if (!cacheHandler.getIslandMembers(islandUuid.get()).contains(targetRemove.getUniqueId())) {
-            sender.sendMessage(targetRemove.getName() + " is not a member of the island.");
+            sender.sendMessage(config.getPlayerNotMemeberMessage(args[getTargetRemoveArgIndex()]));
             return true;
         }
 
         Optional<UUID> ownerUuid = cacheHandler.getIslandUuidByPlayerUuid(islandOwnerId);
         if (ownerUuid.isEmpty()) {
-            sender.sendMessage("The island does not have a owner.");
+            sender.sendMessage(config.getNoIslandOwnerMessage());
             return true;
         }
 
         // Check if the target player is the owner of the island
         if (ownerUuid.get().equals(targetRemove.getUniqueId())) {
-            sender.sendMessage("You can't remove the owner of the island.");
+            sender.sendMessage(config.getCannotDeleteOwnerMessage());
             return true;
         }
 
         // Remove the target player from the island
-        cacheHandler.deleteIslandPlayer(targetRemove.getUniqueId(), islandUuid.get());
-        sender.sendMessage("Removed " + targetRemove.getName() + " from " + Bukkit.getOfflinePlayer(islandOwnerId).getName() + "'s island.");
 
         return true;
     }

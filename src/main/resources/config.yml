@@ -1,11 +1,16 @@
-debug: true
-
 DB:
   host: "127.0.0.1"
   port: 3306
   database: ""
   username: "test"
   password: "test"
+  properties: "?autoReconnect=true&useSSL=false"
+  # Don't touch below settings if you don't know what you're doing
+  max-pool-size: 10
+  connection-timeout: 30000
+  cache-prep-statements: "true"
+  prep-stmt-cache-size: "250"
+  prep-stmt-cache-sql-limit: "2048"
 
 redis:
   host: "127.0.0.1"
@@ -14,3 +19,35 @@ redis:
 
 server:
   name: "server1" # Unique name for your server
+
+messages:
+  unknown-command: "&cUnknown command. Type \"/help\" for help."
+  no-permission: "&cYou don't have permission to do this."
+  no-console: "&cYou can't do this in console."
+  no-island: "&cYou don't have an island."
+  no-island-owner: "&cThis island doesn't have an owner."
+  already-island-owner: "&cYou are already the owner of this island."
+  player-already-island-owner: "&c%player% is already the owner of this island."
+  has-island: "&cYou already have an island."
+  player-not-member: "&c%player% is not a member of this island."
+  player-already-member: "&c%player% is already a member of this island."
+  cannot-delete-owner: "&cYou can't delete the owner of this island."
+  island-deleted: "&aYour island has been deleted."
+  player-no-island: "&c%player% don't have an island."
+  player-has-island: "&c%player% already have an island."
+  player-island-deleted: "&a%player%'s island has been deleted."
+  player-createisland-command-usage: "&cUsage: /is create"
+  player-deleteisland-command-usage: "&cUsage: /is delete"
+  player-addmember-command-usage: "&cUsage: /is addmember <player>"
+  player-removemember-command-usage: "&cUsage: /is removemember <player>"
+  player-info-command-usage: "&cUsage: /is info <player>"
+  player-home-command-usage: "&cUsage: /is home"
+  player-sethome-command-usage: "&cUsage: /is sethome"
+  admin-createisland-command-usage: "&cUsage: /isadmin create <player>"
+  admin-deleteisland-command-usage: "&cUsage: /isadmin delete <player>"
+  admin-addmember-command-usage: "&cUsage: /isadmin addmember <player> <islandowner>"
+  admin-removemember-command-usage: "&cUsage: /isadmin removemember <player> <islandowner>"
+  admin-home-command-usage: "&cUsage: /isadmin home <player>"
+  admin-sethome-command-usage: "&cUsage: /isadmin sethome <player>"
+  admin-info-command-usage: "&cUsage: /isadmin info <player>"
+

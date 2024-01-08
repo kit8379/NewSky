@@ -4,12 +4,14 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.BaseInfoCommand;
+import org.me.newsky.config.ConfigHandler;
+
 import java.util.UUID;
 
 public class AdminInfoCommand extends BaseInfoCommand {
 
-    public AdminInfoCommand(CacheHandler cacheHandler) {
-        super(cacheHandler);
+    public AdminInfoCommand(ConfigHandler config, CacheHandler cacheHandler) {
+        super(config, cacheHandler);
     }
 
     @Override

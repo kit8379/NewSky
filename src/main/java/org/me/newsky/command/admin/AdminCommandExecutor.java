@@ -5,10 +5,12 @@ import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 
 public class AdminCommandExecutor implements CommandExecutor {
 
+    private final ConfigHandler config;
     private final AdminAddMemberCommand addMemberCommand;
     private final AdminRemoveMemberCommand removeMemberCommand;
     private final AdminCreateCommand createCommand;
@@ -16,13 +18,14 @@ public class AdminCommandExecutor implements CommandExecutor {
     private final AdminInfoCommand infoCommand;
     private final AdminHomeCommand homeCommand;
 
-    public AdminCommandExecutor(CacheHandler cacheHandler, IslandHandler islandHandler) {
-        this.addMemberCommand = new AdminAddMemberCommand(cacheHandler, islandHandler);
-        this.removeMemberCommand = new AdminRemoveMemberCommand(cacheHandler);
-        this.createCommand = new AdminCreateCommand(cacheHandler, islandHandler);
-        this.deleteCommand = new AdminDeleteCommand(cacheHandler, islandHandler);
-        this.infoCommand = new AdminInfoCommand(cacheHandler);
-        this.homeCommand = new AdminHomeCommand(cacheHandler, islandHandler);
+    public AdminCommandExecutor(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
+        this.config = config;
+        this.addMemberCommand = new AdminAddMemberCommand(config, cacheHandler, islandHandler);
+        this.removeMemberCommand = new AdminRemoveMemberCommand(config, cacheHandler);
+        this.createCommand = new AdminCreateCommand(config, cacheHandler, islandHandler);
+        this.deleteCommand = new AdminDeleteCommand(config, cacheHandler, islandHandler);
+        this.infoCommand = new AdminInfoCommand(config, cacheHandler);
+        this.homeCommand = new AdminHomeCommand(config, cacheHandler, islandHandler);
     }
 
     @Override
@@ -57,7 +60,7 @@ public class AdminCommandExecutor implements CommandExecutor {
             case "home":
                 return homeCommand.execute(sender, args);
             default:
-                sender.sendMessage("Unknown admin command. Please refer to the documentation for a list of valid commands.");
+                sender.sendMessage(config.getUnknownCommandMessage());
                 return true;
         }
     }
