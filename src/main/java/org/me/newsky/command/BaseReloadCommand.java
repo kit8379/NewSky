@@ -1,19 +1,20 @@
 package org.me.newsky.command;
 
 import org.bukkit.command.CommandSender;
+import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 
-import java.util.UUID;
+public abstract class BaseReloadCommand {
 
-public abstract class BaseCreateCommand {
-
+    protected final NewSky plugin;
     protected final ConfigHandler config;
     protected final CacheHandler cacheHandler;
     protected final IslandHandler islandHandler;
 
-    public BaseCreateCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
+    public BaseReloadCommand(NewSky plugin, ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
+        this.plugin = plugin;
         this.config = config;
         this.cacheHandler = cacheHandler;
         this.islandHandler = islandHandler;
@@ -24,20 +25,10 @@ public abstract class BaseCreateCommand {
             return true;
         }
 
-        UUID targetUuid = getTargetUuid(sender, args);
-
-        // Check if player already has an island
-        if (cacheHandler.getIslandUuidByPlayerUuid(targetUuid).isPresent()) {
-            sender.sendMessage(getExistingIslandMessage(args));
-            return true;
-        }
-
-        // Create the island
-        islandHandler.createIsland(targetUuid);
+        plugin.reload();
+        sender.sendMessage(config.getReloadMessage());
         return true;
     }
 
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
-    protected abstract UUID getTargetUuid(CommandSender sender, String[] args);
-    protected abstract String getExistingIslandMessage(String[] args);
 }

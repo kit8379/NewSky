@@ -19,8 +19,10 @@ redis:
 
 server:
   name: "server1" # Unique name for your server
+  mode: "skyblock" # "lobby" or "skyblock", if you want to use this plugin as a lobby plugin, set this to "lobby"
 
 messages:
+  reload: "&aPlugin reloaded."
   unknown-command: "&cUnknown command. Type \"/help\" for help."
   no-permission: "&cYou don't have permission to do this."
   no-console: "&cYou can't do this in console."
@@ -50,4 +52,5 @@ messages:
   admin-home-command-usage: "&cUsage: /isadmin home <player>"
   admin-sethome-command-usage: "&cUsage: /isadmin sethome <player>"
   admin-info-command-usage: "&cUsage: /isadmin info <player>"
+  admin-reload-command-usage: "&cUsage: /isadmin reload"
 

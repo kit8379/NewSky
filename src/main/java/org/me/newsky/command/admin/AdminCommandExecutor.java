@@ -4,6 +4,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
+import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
@@ -17,8 +18,9 @@ public class AdminCommandExecutor implements CommandExecutor {
     private final AdminDeleteCommand deleteCommand;
     private final AdminInfoCommand infoCommand;
     private final AdminHomeCommand homeCommand;
+    private final AdminReloadCommand reloadCommand;
 
-    public AdminCommandExecutor(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
+    public AdminCommandExecutor(NewSky plugin, ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
         this.config = config;
         this.addMemberCommand = new AdminAddMemberCommand(config, cacheHandler, islandHandler);
         this.removeMemberCommand = new AdminRemoveMemberCommand(config, cacheHandler);
@@ -26,6 +28,7 @@ public class AdminCommandExecutor implements CommandExecutor {
         this.deleteCommand = new AdminDeleteCommand(config, cacheHandler, islandHandler);
         this.infoCommand = new AdminInfoCommand(config, cacheHandler);
         this.homeCommand = new AdminHomeCommand(config, cacheHandler, islandHandler);
+        this.reloadCommand = new AdminReloadCommand(plugin, config, cacheHandler, islandHandler);
     }
 
     @Override
@@ -59,6 +62,8 @@ public class AdminCommandExecutor implements CommandExecutor {
                 return infoCommand.execute(sender, args);
             case "home":
                 return homeCommand.execute(sender, args);
+            case "reload":
+                return reloadCommand.execute(sender, args);
             default:
                 sender.sendMessage(config.getUnknownCommandMessage());
                 return true;

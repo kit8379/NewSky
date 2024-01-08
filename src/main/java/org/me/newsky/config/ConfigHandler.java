@@ -68,6 +68,9 @@ public class ConfigHandler {
     public String getServerName() {
         return config.getString("server.name");
     }
+    public String getServerMode() {
+        return config.getString("server.mode");
+    }
 
     public String getUnknownCommandMessage() {
         return config.getString("messages.unknown-command");
@@ -213,5 +216,13 @@ public class ConfigHandler {
 
     public String getAdminInfoCommandUsage() {
         return config.getString("messages.admin-info-command-usage");
+    }
+
+    public String getAdminReloadCommandUsage() {
+        return config.getString("messages.admin-reload-command-usage");
+    }
+
+    public String getReloadMessage() {
+        return config.getString("messages.reload");
     }
 }

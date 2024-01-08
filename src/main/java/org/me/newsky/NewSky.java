@@ -9,6 +9,7 @@ import org.me.newsky.command.player.IslandCommandExecutor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.event.WorldEventListener;
+import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.island.IslandHandler;
 import org.me.newsky.redis.RedisHandler;
 
@@ -21,6 +22,7 @@ public class NewSky extends JavaPlugin {
     private RedisHandler redisHandler;
     private DatabaseHandler databaseHandler;
     private CacheHandler cacheHandler;
+    private HeartBeatHandler heartBeatHandler;
     private IslandHandler islandHandler;
 
 
@@ -38,6 +40,7 @@ public class NewSky extends JavaPlugin {
         initializeRedis();
         initializeDatabase();
         initializeCache();
+        initializeHeartbeat();
         initializeIslandHandler();
         registerListeners();
         registerCommands();
@@ -98,10 +101,27 @@ public class NewSky extends JavaPlugin {
         }
     }
 
+    private void initializeHeartbeat() {
+        logger.info("Starting heartbeat");
+        try {
+            heartBeatHandler = new HeartBeatHandler(config, redisHandler);
+
+            // Only start heartbeat if server is not in lobby mode
+            if(!config.getServerMode().equals("lobby")) {
+                heartBeatHandler.start();
+            }
+
+            logger.info("Heartbeat started");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IllegalStateException("Heartbeat fail! Plugin will be disabled!");
+        }
+    }
+
     private void initializeIslandHandler() {
         logger.info("Starting island handler");
         try {
-            islandHandler = new IslandHandler(this, logger, config);
+            islandHandler = new IslandHandler(logger, config, redisHandler, cacheHandler, heartBeatHandler);
             logger.info("Islands loaded");
         } catch (Exception e) {
             e.printStackTrace();
@@ -114,7 +134,7 @@ public class NewSky extends JavaPlugin {
     }
 
     private void registerCommands() {
-        Objects.requireNonNull(this.getCommand("islandadmin")).setExecutor(new AdminCommandExecutor(config, cacheHandler, islandHandler));
+        Objects.requireNonNull(this.getCommand("islandadmin")).setExecutor(new AdminCommandExecutor(this, config, cacheHandler, islandHandler));
         Objects.requireNonNull(this.getCommand("island")).setExecutor(new IslandCommandExecutor(config, cacheHandler, islandHandler));
     }
 
@@ -126,8 +146,18 @@ public class NewSky extends JavaPlugin {
     }
 
     public void shutdown() {
-        redisHandler.disconnect();
-        databaseHandler.close();
+        if (heartBeatHandler != null) {
+            heartBeatHandler.stop();
+            logger.info("Heartbeat stopped");
+        }
+        if (redisHandler != null) {
+            redisHandler.disconnect();
+            logger.info("Redis disconnected");
+        }
+        if (databaseHandler != null) {
+            databaseHandler.close();
+            logger.info("Database disconnected");
+        }
     }
 
     public void reload() {
