@@ -68,6 +68,20 @@ public class CacheHandler {
         databaseHandler.updateIslandData(islandUuid, 0);
     }
 
+    public void addIslandPlayer(UUID playerUuid, UUID islandUuid, String spawnLocation, String role) {
+        // 1. Update the cache first.
+        try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
+            Map<String, String> playerData = new HashMap<>();
+            playerData.put("spawn", spawnLocation);
+            playerData.put("role", role);
+
+            jedis.hmset("island_players:" + islandUuid + ":" + playerUuid, playerData);
+        }
+
+        // 2. Update the database asynchronously.
+        databaseHandler.addIslandPlayer(playerUuid, islandUuid, spawnLocation, role);
+    }
+
     public void deleteIsland(UUID islandUuid) {
         // 1. Remove from the cache.
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
@@ -85,20 +99,6 @@ public class CacheHandler {
         databaseHandler.deleteIslandData(islandUuid);
     }
 
-    public void addIslandPlayer(UUID playerUuid, UUID islandUuid, String spawnLocation, String role) {
-        // 1. Update the cache first.
-        try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
-            Map<String, String> playerData = new HashMap<>();
-            playerData.put("spawn", spawnLocation);
-            playerData.put("role", role);
-
-            jedis.hmset("island_players:" + islandUuid + ":" + playerUuid, playerData);
-        }
-
-        // 2. Update the database asynchronously.
-        databaseHandler.addIslandPlayer(playerUuid, islandUuid, spawnLocation, role);
-    }
-
     public void deleteIslandPlayer(UUID playerUuid, UUID islandUuid) {
         // 1. Remove from the cache.
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
@@ -109,6 +109,11 @@ public class CacheHandler {
         databaseHandler.deleteIslandPlayer(playerUuid, islandUuid);
     }
 
+    /**
+     * This method returns the island level of an island.
+     * @param islandUuid UUID of the island.
+     * @return Island level of the island. 0 if the island does not exist.
+     */
     public Optional<UUID> getIslandOwner(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
             Set<String> keys = jedis.keys("island_players:" + islandUuid.toString() + ":*");
@@ -123,6 +128,12 @@ public class CacheHandler {
         return Optional.empty();
     }
 
+    /**
+     * This method returns all members of an island.
+     *
+     * @param islandUuid UUID of the island.
+     * @return Set of UUIDs of all members of the island. Empty if the island has no members.
+     */
     public Set<UUID> getIslandMembers(UUID islandUuid) {
         Set<UUID> members = new HashSet<>();
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
@@ -138,6 +149,12 @@ public class CacheHandler {
         return members;
     }
 
+    /**
+     * This method returns the island UUID of a player.
+     *
+     * @param playerUuid UUID of the player.
+     * @return Optional island UUID of the player. Empty if the player is not on an island.
+     */
     public Optional<UUID> getIslandUuidByPlayerUuid(UUID playerUuid) {
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
             Set<String> keys = jedis.keys("island_players:*:" + playerUuid.toString());
@@ -155,6 +172,13 @@ public class CacheHandler {
         }
     }
 
+    /**
+     * This method returns the spawn location of a player on a specific island.
+     *
+     * @param playerUuid - The UUID of the player.
+     * @param islandUuid - The UUID of the island.
+     * @return Optional containing the spawn location, or an empty Optional if the spawn location isn't found.
+     */
     public Optional<String> getPlayerIslandSpawn(UUID playerUuid, UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
             String key = "island_players:" + islandUuid.toString() + ":" + playerUuid.toString();
@@ -174,11 +198,5 @@ public class CacheHandler {
             e.printStackTrace();
         }
         return Optional.empty();
-    }
-
-    public boolean isIslandWorld(String worldName) {
-        try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
-            return jedis.sismember("island_worlds", worldName);
-        }
     }
 }

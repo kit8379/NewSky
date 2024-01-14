@@ -1,18 +1,17 @@
 package org.me.newsky.command.player;
 
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.me.newsky.cache.CacheHandler;
+import org.bukkit.command.CommandSender;
 import org.me.newsky.command.BaseCreateCommand;
-import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.island.IslandHandler;
 
 import java.util.UUID;
 
 public class IslandCreateCommand extends BaseCreateCommand {
 
-    public IslandCreateCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
-        super(config, cacheHandler, islandHandler);
+    public IslandCreateCommand(CacheHandler cacheHandler, IslandHandler islandHandler) {
+        super(cacheHandler, islandHandler);
     }
 
     @Override
@@ -27,6 +26,11 @@ public class IslandCreateCommand extends BaseCreateCommand {
 
     @Override
     protected String getExistingIslandMessage(String[] args) {
-        return config.getHasIslandMessage();
+        return "You already have an island.";
+    }
+
+    @Override
+    protected void performPostCreationActions(CommandSender sender, UUID targetUuid, UUID islandUuid) {
+        islandHandler.teleportToIsland((Player) sender, islandUuid.toString());
     }
 }

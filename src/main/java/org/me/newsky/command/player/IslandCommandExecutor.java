@@ -6,13 +6,11 @@ import org.bukkit.command.CommandSender;
 
 import org.jetbrains.annotations.NotNull;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 
 
 public class IslandCommandExecutor implements CommandExecutor {
 
-    private final ConfigHandler config;
     private final IslandAddMemberCommand addMemberCommand;
     private final IslandRemoveMemberCommand removeMemberCommand;
     private final IslandCreateCommand createCommand;
@@ -20,15 +18,14 @@ public class IslandCommandExecutor implements CommandExecutor {
     private final IslandInfoCommand infoCommand;
     private final IslandHomeCommand homeCommand;
 
-    public IslandCommandExecutor(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
+    public IslandCommandExecutor(CacheHandler cacheHandler, IslandHandler islandHandler) {
 
-        this.config = config;
-        this.addMemberCommand = new IslandAddMemberCommand(config, cacheHandler, islandHandler);
-        this.removeMemberCommand = new IslandRemoveMemberCommand(config, cacheHandler);
-        this.createCommand = new IslandCreateCommand(config, cacheHandler, islandHandler);
-        this.deleteCommand = new IslandDeleteCommand(config, cacheHandler, islandHandler);
-        this.infoCommand = new IslandInfoCommand(config, cacheHandler);
-        this.homeCommand = new IslandHomeCommand(config, cacheHandler, islandHandler);
+        this.addMemberCommand = new IslandAddMemberCommand(cacheHandler, islandHandler);
+        this.removeMemberCommand = new IslandRemoveMemberCommand(cacheHandler);
+        this.createCommand = new IslandCreateCommand(cacheHandler, islandHandler);
+        this.deleteCommand = new IslandDeleteCommand(cacheHandler, islandHandler);
+        this.infoCommand = new IslandInfoCommand(cacheHandler);
+        this.homeCommand = new IslandHomeCommand(cacheHandler, islandHandler);
     }
 
     @Override
@@ -62,7 +59,7 @@ public class IslandCommandExecutor implements CommandExecutor {
             case "home":
                 return homeCommand.execute(sender, args);
             default:
-                sender.sendMessage(config.getUnknownCommandMessage());
+                sender.sendMessage("Unknown command. Please refer to the documentation for a list of valid commands.");
                 return true;
         }
     }

@@ -4,20 +4,19 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.command.BaseRemoveMemberCommand;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.config.ConfigHandler;
 
 import java.util.UUID;
 
 public class AdminRemoveMemberCommand extends BaseRemoveMemberCommand {
 
-    public AdminRemoveMemberCommand(ConfigHandler config, CacheHandler cacheHandler) {
-        super(config, cacheHandler);
+    public AdminRemoveMemberCommand(CacheHandler cacheHandler) {
+        super(cacheHandler);
     }
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage(config.getAdminRemoveMemberCommandUsage());
+            sender.sendMessage("Usage: /islandadmin removemember <player> <islandowner>");
             return false;
         }
         return true;

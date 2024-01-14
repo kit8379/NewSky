@@ -2,19 +2,16 @@ package org.me.newsky.command;
 
 import org.bukkit.command.CommandSender;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 
 import java.util.UUID;
 
 public abstract class BaseCreateCommand {
 
-    protected final ConfigHandler config;
     protected final CacheHandler cacheHandler;
     protected final IslandHandler islandHandler;
 
-    public BaseCreateCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
-        this.config = config;
+    public BaseCreateCommand(CacheHandler cacheHandler, IslandHandler islandHandler) {
         this.cacheHandler = cacheHandler;
         this.islandHandler = islandHandler;
     }
@@ -32,12 +29,27 @@ public abstract class BaseCreateCommand {
             return true;
         }
 
-        // Create the island
-        islandHandler.createIsland(targetUuid);
+        // Generate island UUID
+        UUID islandUuid = UUID.randomUUID();
+
+
+
+        // Create island
+        String spawnLocation = "0,100,0,100,100";
+        String role = "owner";
+        islandHandler.createIsland(islandUuid.toString(), () -> {
+            performPostCreationActions(sender, targetUuid, islandUuid);
+        });
+
+        cacheHandler.createIsland(islandUuid);
+        cacheHandler.addIslandPlayer(targetUuid, islandUuid, spawnLocation, role);
+
+        sender.sendMessage("Island created.");
         return true;
     }
 
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
     protected abstract UUID getTargetUuid(CommandSender sender, String[] args);
     protected abstract String getExistingIslandMessage(String[] args);
+    protected abstract void performPostCreationActions(CommandSender sender, UUID targetUuid, UUID islandUuid);
 }

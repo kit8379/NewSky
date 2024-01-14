@@ -2,23 +2,22 @@ package org.me.newsky.command.player;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.BaseAddMemberCommand;
-import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.island.IslandHandler;
 
 import java.util.UUID;
 
 public class IslandAddMemberCommand extends BaseAddMemberCommand {
 
-    public IslandAddMemberCommand(ConfigHandler configHandler, CacheHandler cacheHandler, IslandHandler islandHandler) {
-        super(configHandler, cacheHandler, islandHandler);
+    public IslandAddMemberCommand(CacheHandler cacheHandler, IslandHandler islandHandler) {
+        super(cacheHandler, islandHandler);
     }
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(config.getPlayerAddMemberCommandUsage());
+            sender.sendMessage("Usage: /island addmember <player>");
             return false;
         }
         return true;

@@ -2,7 +2,6 @@ package org.me.newsky.command;
 
 import org.bukkit.command.CommandSender;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 
 import java.util.Optional;
@@ -10,12 +9,10 @@ import java.util.UUID;
 
 public abstract class BaseDeleteCommand {
 
-    protected final ConfigHandler config;
     protected final CacheHandler cacheHandler;
     protected final IslandHandler islandHandler;
 
-    public BaseDeleteCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
-        this.config = config;
+    public BaseDeleteCommand(CacheHandler cacheHandler, IslandHandler islandHandler) {
         this.cacheHandler = cacheHandler;
         this.islandHandler = islandHandler;
     }
@@ -34,6 +31,9 @@ public abstract class BaseDeleteCommand {
         }
 
         // Delete island
+        islandHandler.deleteIsland(islandUuid.get().toString());
+        cacheHandler.deleteIsland(islandUuid.get());
+        sender.sendMessage(getIslandDeletedMessage(args));
 
         return true;
     }

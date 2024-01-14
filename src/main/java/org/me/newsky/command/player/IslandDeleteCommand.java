@@ -4,15 +4,14 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.command.BaseDeleteCommand;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 
 import java.util.UUID;
 
 public class IslandDeleteCommand extends BaseDeleteCommand {
 
-    public IslandDeleteCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
-        super(config, cacheHandler, islandHandler);
+    public IslandDeleteCommand(CacheHandler cacheHandler, IslandHandler islandHandler) {
+        super(cacheHandler, islandHandler);
     }
 
     @Override
@@ -27,11 +26,11 @@ public class IslandDeleteCommand extends BaseDeleteCommand {
 
     @Override
     protected String getNoIslandMessage(String[] args) {
-        return config.getNoIslandMessage();
+        return "You don't have an island.";
     }
 
     @Override
     protected String getIslandDeletedMessage(String[] args) {
-        return config.getIslandDeletedMessage();
+        return "Island deleted.";
     }
 }
