@@ -68,6 +68,7 @@ public class ConfigHandler {
     public String getServerName() {
         return config.getString("server.name");
     }
+
     public String getServerMode() {
         return config.getString("server.mode");
     }

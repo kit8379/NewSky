@@ -82,7 +82,7 @@ public class NewSky extends JavaPlugin {
         try {
             serverID = config.getServerName();
             logger.info("Server ID load success!");
-            logger.info("This Server ID: " + serverID;
+            logger.info("This Server ID: " + serverID);
         } catch (Exception e) {
             e.printStackTrace();
             throw new IllegalStateException("Server ID load fail!");
@@ -117,7 +117,11 @@ public class NewSky extends JavaPlugin {
         logger.info("Start connecting to Redis Heart Beat now...");
         try {
             redisHeartBeat = new RedisHeartBeat(this, redisHandler, serverID);
-            redisHeartBeat.startHeartBeat();
+            // Only start the heartbeat if the server is in island mode
+            if (config.getServerMode().equalsIgnoreCase("island")) {
+                redisHeartBeat.startHeartBeat();
+            }
+            // Listen for heart beats from other servers
             redisHeartBeat.listenForHeartBeats();
             logger.info("Redis Heart Beat success!");
         } catch (Exception e) {
