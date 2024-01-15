@@ -1,7 +1,6 @@
 package org.me.newsky.island;
 
 import org.bukkit.entity.Player;
-import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.redis.RedisHeartBeat;
@@ -20,7 +19,7 @@ public class IslandHandler {
     private final RedisOperation redisOperation;
     private final RedisPublishRequest redisPublishRequest;
 
-    public IslandHandler(NewSky plugin, Logger logger, ConfigHandler config, RedisHandler redisHandler, RedisHeartBeat redisHeartBeat, RedisOperation redisOperation) {
+    public IslandHandler(Logger logger, ConfigHandler config, RedisHandler redisHandler, RedisHeartBeat redisHeartBeat, RedisOperation redisOperation) {
         this.logger = logger;
         this.serverID = config.getServerName();
         this.redisOperation = redisOperation;
@@ -172,7 +171,7 @@ public class IslandHandler {
         return deleteIslandFuture;
     }
 
-    public CompletableFuture<Void> teleportToIsland(Player player, String islandName) {
+    public void teleportToIsland(Player player, String islandName) {
         CompletableFuture<Void> teleportFuture = new CompletableFuture<>();
 
         // Send the request to update world list
@@ -193,7 +192,7 @@ public class IslandHandler {
                     } else {
                         // Send the request to teleport the player to the island on the server where it's located
                         connectToServer(player, serverByWorldName);
-                        redisPublishRequest.sendRequest("teleportToWorld:" + serverByWorldName + ":" + islandName + ":" + player.getName())
+                        redisPublishRequest.sendRequest("teleportToIsland:" + serverByWorldName + ":" + islandName + ":" + player.getName())
                                 .thenRun(() -> {
                                     logger.info("Teleport request sent to server: " + serverByWorldName);
                                     teleportFuture.complete(null);
@@ -206,7 +205,6 @@ public class IslandHandler {
                     return null;
                 });
 
-        return teleportFuture;
     }
 
     public void connectToServer(Player player, String serverName) {

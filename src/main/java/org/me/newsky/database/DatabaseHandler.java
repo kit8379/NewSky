@@ -106,7 +106,11 @@ public class DatabaseHandler {
     }
 
     public void deleteIslandData(UUID islandUuid) {
-        executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM islands WHERE island_uuid = ?");
+        // Delete all associated island players asynchronously
+        CompletableFuture<Void> deletePlayersFuture = executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM island_players WHERE island_uuid = ?");
+
+        // After deleting players, delete the island data
+        deletePlayersFuture.thenRun(() -> executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM islands WHERE island_uuid = ?"));
     }
 
     public void addIslandPlayer(UUID playerUuid, UUID islandUuid, String spawnLocation, String role) {

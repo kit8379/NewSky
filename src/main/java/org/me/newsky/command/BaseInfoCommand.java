@@ -38,10 +38,7 @@ public abstract class BaseInfoCommand {
         Set<UUID> memberUuids = cacheHandler.getIslandMembers(islandUuid.get());
         StringBuilder membersString = buildMembersString(memberUuids);
 
-        sender.sendMessage(config.getIslandInfo());
-        sender.sendMessage(config.getIslandInfoUUID(islandUuid.get().toString()));
-        sender.sendMessage(config.getIslandInfoOwner(Bukkit.getOfflinePlayer(ownerUuid.get()).getName()));
-        sender.sendMessage(config.getIslandInfoMembers(membersString.toString()));
+        sender.sendMessage(config.getIslandInfo(islandUuid.get().toString(), Bukkit.getOfflinePlayer(ownerUuid.get()).getName(), membersString.toString()));
 
         return true;
     }

@@ -22,43 +22,32 @@ server:
   mode: "skyblock" # "lobby" or "skyblock", if you want to use this plugin as a lobby plugin, set this to "lobby"
 
 messages:
-  reload: "&aPlugin reloaded."
-  unknown-command: "&cUnknown command. Type \"/help\" for help."
-  no-permission: "&cYou don't have permission to do this."
-  no-console: "&cYou can't do this in console."
-  no-island: "&cYou don't have an island."
-  no-island-owner: "&cThis island doesn't have an owner."
-  already-island-owner: "&cYou are already the owner of this island."
-  player-already-island-owner: "&c%player% is already the owner of this island."
-  has-island: "&cYou already have an island."
-  player-not-member: "&c%player% is not a member of this island."
-  player-already-member: "&c%player% is already a member of this island."
-  cannot-delete-owner: "&cYou can't delete the owner of this island."
-  island-created: "&aYour island has been created."
-  island-deleted: "&aYour island has been deleted."
-  player-no-island: "&c%player% don't have an island."
-  player-has-island: "&c%player% already have an island."
-  player-island-created: "&a%player%'s island has been created."
-  player-island-deleted: "&a%player%'s island has been deleted."
-  player-island-added: "&a%player% has been added to %islandowner%'s island."
-  player-island-removed: "&a%player% has been removed from %islandowner%'s island."
-  player-createisland-command-usage: "&cUsage: /is create"
-  player-deleteisland-command-usage: "&cUsage: /is delete"
-  player-addmember-command-usage: "&cUsage: /is addmember <player>"
-  player-removemember-command-usage: "&cUsage: /is removemember <player>"
-  player-info-command-usage: "&cUsage: /is info <player>"
-  player-home-command-usage: "&cUsage: /is home"
-  player-sethome-command-usage: "&cUsage: /is sethome"
-  admin-createisland-command-usage: "&cUsage: /isadmin create <player>"
-  admin-deleteisland-command-usage: "&cUsage: /isadmin delete <player>"
-  admin-addmember-command-usage: "&cUsage: /isadmin addmember <player> <islandowner>"
-  admin-removemember-command-usage: "&cUsage: /isadmin removemember <player> <islandowner>"
-  admin-home-command-usage: "&cUsage: /isadmin home <player>"
-  admin-sethome-command-usage: "&cUsage: /isadmin sethome <player>"
-  admin-info-command-usage: "&cUsage: /isadmin info <player>"
-  admin-reload-command-usage: "&cUsage: /isadmin reload"
-  island-info: "&aIsland info:"
-  island-info-uuid: "&aUUID: %uuid%"
-  island-info-owner: "&aOwner: %owner%"
-  island-info-members: "&aMembers: %members%"
+  reload: '&aConfiguration reloaded successfully!'
+  unknown-command: '&cUnknown command. Please try again!'
+  no-console: '&cThis command cannot be used from the console.'
+  no-island: '&cYou do not have an island.'
+  no-island-owner: '&cYou are not the owner of this island.'
+  player-already-island-owner: '&c%player% is already an owner of an island.'
+  has-island: '&aYou already have an island.'
+  player-not-member: '&c%player% is not a member of your island.'
+  player-already-member: '&c%player% is already a member of this island.'
+  cannot-delete-owner: '&cYou cannot delete the owner of the island.'
+  island-created: '&aIsland created successfully.'
+  island-deleted: '&aIsland deleted successfully.'
+  player-no-island: '&c%player% does not have an island.'
+  player-has-island: '&a%player% already owns an island.'
+  player-island-created: '&aIsland created for %player%.'
+  player-island-deleted: '&aIsland of %player% deleted successfully.'
+  player-island-added: '&a%player% added to %islandowner% island.'
+  player-island-removed: '&a%player% removed from %islandowner% island.'
+  player-addmember-command-usage: '&eUsage: /addmember <player>'
+  player-removemember-command-usage: '&eUsage: /removemember <player>'
+  player-home-command-usage: '&eUsage: /home'
+  admin-createisland-command-usage: '&eUsage: /admin createisland <player>'
+  admin-deleteisland-command-usage: '&eUsage: /admin deleteisland <player>'
+  admin-addmember-command-usage: '&eUsage: /admin addmember <island> <player>'
+  admin-removemember-command-usage: '&eUsage: /admin removemember <island> <player>'
+  admin-home-command-usage: '&eUsage: /admin home <player>'
+  island-info: '&aIsland Info: \nLevel: %level%\nOwner: %owner%\nMembers: %members%'
+
 

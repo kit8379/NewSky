@@ -69,6 +69,7 @@ public class NewSky extends JavaPlugin {
     private void initializeConfig() {
         logger.info("Start loading configuration now...");
         try {
+            saveDefaultConfig();
             config = new ConfigHandler(getConfig());
             logger.info("Config load success!");
         } catch (Exception e) {
@@ -179,7 +180,7 @@ public class NewSky extends JavaPlugin {
     private void initializeIslandHandler() {
         logger.info("Starting island handler");
         try {
-            islandHandler = new IslandHandler(this, logger, config, redisHandler, redisHeartBeat, redisOpeartion);
+            islandHandler = new IslandHandler(logger, config, redisHandler, redisHeartBeat, redisOpeartion);
             logger.info("Islands loaded");
         } catch (Exception e) {
             e.printStackTrace();
@@ -188,7 +189,7 @@ public class NewSky extends JavaPlugin {
     }
 
     private void registerListeners() {
-        getServer().getPluginManager().registerEvents(new WorldEventListener(logger, cacheHandler), this);
+        getServer().getPluginManager().registerEvents(new WorldEventListener(logger), this);
     }
 
     private void registerCommands() {

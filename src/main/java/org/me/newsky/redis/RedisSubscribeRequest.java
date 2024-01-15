@@ -61,34 +61,34 @@ public class RedisSubscribeRequest {
             case "updateWorldList":
                 return redisOperation.updateWorldList()
                         .thenRun(() -> logger.info("updateWorldList operation completed."));
-            case "createWorld":
+            case "createIsland":
                 if (serverName != null && serverName.equals(serverID) && worldName != null) {
                     return redisOperation.createWorld(worldName)
-                            .thenRun(() -> logger.info("createWorld operation completed for world: " + worldName));
+                            .thenRun(() -> logger.info("createIsland operation completed for world: " + worldName));
                 }
                 break;
-            case "loadWorld":
+            case "loadIsland":
                 if (serverName != null && serverName.equals(serverID) && worldName != null) {
                     return redisOperation.loadWorld(worldName)
-                            .thenRun(() -> logger.info("loadWorld operation completed for world: " + worldName));
+                            .thenRun(() -> logger.info("loadIsland operation completed for world: " + worldName));
                 }
                 break;
-            case "unloadWorld":
+            case "unloadIsland":
                 if (serverName != null && serverName.equals(serverID) && worldName != null) {
                     return redisOperation.unloadWorld(worldName)
-                            .thenRun(() -> logger.info("unloadWorld operation completed for world: " + worldName));
+                            .thenRun(() -> logger.info("unloadIsland operation completed for world: " + worldName));
                 }
                 break;
-            case "deleteWorld":
+            case "deleteIsland":
                 if (serverName != null && serverName.equals(serverID) && worldName != null) {
                     return redisOperation.deleteWorld(worldName)
-                            .thenRun(() -> logger.info("deleteWorld operation completed for world: " + worldName));
+                            .thenRun(() -> logger.info("deleteIsland operation completed for world: " + worldName));
                 }
                 break;
-            case "teleportToWorld":
+            case "teleportToIsland":
                 if (serverName != null && serverName.equals(serverID) && playerName != null && worldName != null) {
                     return redisOperation.teleportToWorld(playerName, worldName)
-                            .thenRun(() -> logger.info("teleportToWorld operation completed for world: " + worldName));
+                            .thenRun(() -> logger.info("teleportToIsland operation completed for world: " + worldName));
                 }
                 break;
             default:

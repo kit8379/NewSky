@@ -83,21 +83,23 @@ public class CacheHandler {
     }
 
     public void deleteIsland(UUID islandUuid) {
-        // 1. Remove from the cache.
+        // 1. Remove associated island players from the cache.
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
-            // Deleting island data.
-            jedis.del("island_data:" + islandUuid.toString());
-
-            // Deleting all associated island players.
-            Set<String> keys = jedis.keys("island_players:" + islandUuid + ":*");
-            for (String key : keys) {
+            Set<String> playerKeys = jedis.keys("island_players:" + islandUuid + ":*");
+            for (String key : playerKeys) {
                 jedis.del(key);
             }
         }
 
-        // 2. Remove from the database asynchronously.
+        // 2. Remove island data from the cache.
+        try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
+            jedis.del("island_data:" + islandUuid.toString());
+        }
+
+        // 3. Remove island data from the database asynchronously.
         databaseHandler.deleteIslandData(islandUuid);
     }
+
 
     public void deleteIslandPlayer(UUID playerUuid, UUID islandUuid) {
         // 1. Remove from the cache.
