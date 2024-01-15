@@ -10,187 +10,206 @@ import org.me.newsky.redis.RedisPublishRequest;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 public class IslandHandler {
 
     private final Logger logger;
     private final String serverID;
-    private final RedisOperation redisOpeartion;
+    private final RedisOperation redisOperation;
     private final RedisPublishRequest redisPublishRequest;
 
     public IslandHandler(NewSky plugin, Logger logger, ConfigHandler config, RedisHandler redisHandler, RedisHeartBeat redisHeartBeat, RedisOperation redisOperation) {
         this.logger = logger;
         this.serverID = config.getServerName();
-        this.redisOpeartion = redisOperation;
-        this.redisPublishRequest = new RedisPublishRequest(plugin, config, redisHandler, redisHeartBeat);
+        this.redisOperation = redisOperation;
+        this.redisPublishRequest = new RedisPublishRequest(redisHandler, redisHeartBeat, serverID);
     }
 
-    public void createIsland(String islandName, Runnable callback) {
-        // Send the request
-        redisPublishRequest.sendRequest("updateWorldList");
+    public CompletableFuture<Void> createIsland(String islandName) {
+        CompletableFuture<Void> createIslandFuture = new CompletableFuture<>();
 
-        // Set the callback
-        redisPublishRequest.setCallback(() -> {
-            // This code block will execute after the server responds
-            Map<String, String> outputMap = new HashMap<>();
-            // Fetch the server with the least number of worlds directly
-            redisOpeartion.getServerWithLeastWorlds(() -> {
-                String serverWithLeastWorlds = outputMap.get("serverWithLeastWorlds");
+        // Send the request to update world list
+        redisPublishRequest.sendRequest("updateWorldList")
+                .thenCompose(v -> {
+                    Map<String, String> outputMap = new HashMap<>();
+                    // Fetch the server with the least number of worlds
+                    return redisOperation.getServerWithLeastWorlds(outputMap);
+                })
+                .thenAccept(serverWithLeastWorlds -> {
+                    if (serverWithLeastWorlds.equals(serverID)) {
+                        // Create the island on the current server
+                        redisOperation.createWorld(islandName)
+                                .thenRun(() -> {
+                                    logger.info("Island created on current server.");
+                                    createIslandFuture.complete(null);
+                                });
+                    } else {
+                        // Send the request to create island on the server with the least number of worlds
+                        redisPublishRequest.sendRequest("createIsland:" + serverWithLeastWorlds + ":" + islandName)
+                                .thenRun(() -> {
+                                    logger.info("Island creation request sent to server: " + serverWithLeastWorlds);
+                                    createIslandFuture.complete(null);
+                                });
+                    }
+                })
+                .exceptionally(ex -> {
+                    logger.severe("Failed to create island: " + ex.getMessage());
+                    createIslandFuture.completeExceptionally(ex);
+                    return null;
+                });
 
-                logger.info("Server with the least number of worlds: " + serverWithLeastWorlds);
-
-                if (serverWithLeastWorlds.equals(serverID)) {
-                    // Create the island
-                    redisOpeartion.createWorld(islandName, () -> {
-                        // Do something with the output
-                        logger.info("Island created.");
-                        callback.run();
-                    });
-                } else {
-                    // Send the request to the server with the least number of worlds
-                    logger.info("Sending request to create island on server: " + serverWithLeastWorlds);
-                    redisPublishRequest.sendRequest("createIsland:" + serverWithLeastWorlds + ":" + islandName);
-
-                    // Set the callback
-                    redisPublishRequest.setCallback(() -> {
-                        // Do something with the output
-                        logger.info("Island created.");
-                        callback.run();
-                    });
-                }
-            }, outputMap);
-        });
+        return createIslandFuture;
     }
 
 
-    public void loadIsland(String islandName) {
-        redisPublishRequest.sendRequest("updateWorldList");
+    public CompletableFuture<Void> loadIsland(String islandName) {
+        CompletableFuture<Void> loadIslandFuture = new CompletableFuture<>();
 
-        // Set the callback
-        redisPublishRequest.setCallback(() -> {
-            // This code block will execute after the server responds
-            Map<String, String> outputMap = new HashMap<>();
-            // Fetch the server with the least number of worlds directly
-            redisOpeartion.getServerByWorldName(islandName, () -> {
-                String serverByWorldName = outputMap.get("serverByWorldName");
+        // Send the request to update world list
+        redisPublishRequest.sendRequest("updateWorldList")
+                .thenCompose(v -> {
+                    Map<String, String> outputMap = new HashMap<>();
+                    // Fetch the server where the island is located
+                    return redisOperation.getServerByWorldName(islandName, outputMap);
+                })
+                .thenAccept(serverByWorldName -> {
+                    if (serverByWorldName.equals(serverID)) {
+                        // Load the island on the current server
+                        redisOperation.loadWorld(islandName)
+                                .thenRun(() -> {
+                                    logger.info("Island loaded on current server.");
+                                    loadIslandFuture.complete(null);
+                                });
+                    } else {
+                        // Send the request to load the island on the server where it's located
+                        redisPublishRequest.sendRequest("loadIsland:" + serverByWorldName + ":" + islandName)
+                                .thenRun(() -> {
+                                    logger.info("Island load request sent to server: " + serverByWorldName);
+                                    loadIslandFuture.complete(null);
+                                });
+                    }
+                })
+                .exceptionally(ex -> {
+                    logger.severe("Failed to load island: " + ex.getMessage());
+                    loadIslandFuture.completeExceptionally(ex);
+                    return null;
+                });
 
-                logger.info("Server with the island: " + serverByWorldName);
-
-                if (serverByWorldName.equals(serverID)) {
-                    // Create the island
-                    redisOpeartion.loadWorld(islandName, () -> {
-                        // Do something with the output
-                        logger.info("Island loaded.");
-                    });
-                } else {
-                    // Send the request to the server with the least number of worlds
-                    logger.info("Sending request to load island on server: " + serverByWorldName);
-                    redisPublishRequest.sendRequest("loadIsland:" + serverByWorldName + ":" + islandName);
-
-                    // Set the callback
-                    redisPublishRequest.setCallback(() -> {
-                        // Do something with the output
-                        logger.info("Island loaded.");
-                    });
-                }
-            }, outputMap);
-        });
+        return loadIslandFuture;
     }
 
-    public void unloadIsland(String islandName) {
-        redisPublishRequest.sendRequest("updateWorldList");
+    public CompletableFuture<Void> unloadIsland(String islandName) {
+        CompletableFuture<Void> unloadIslandFuture = new CompletableFuture<>();
 
-        // Set the callback
-        redisPublishRequest.setCallback(() -> {
-            // This code block will execute after the server responds
-            Map<String, String> outputMap = new HashMap<>();
-            // Fetch the server with the least number of worlds directly
-            redisOpeartion.getServerByWorldName(islandName, () -> {
-                String serverByWorldName = outputMap.get("serverByWorldName");
+        // Send the request to update world list
+        redisPublishRequest.sendRequest("updateWorldList")
+                .thenCompose(v -> {
+                    Map<String, String> outputMap = new HashMap<>();
+                    // Fetch the server where the island is located
+                    return redisOperation.getServerByWorldName(islandName, outputMap);
+                })
+                .thenAccept(serverByWorldName -> {
+                    if (serverByWorldName.equals(serverID)) {
+                        // Unload the island on the current server
+                        redisOperation.unloadWorld(islandName)
+                                .thenRun(() -> {
+                                    logger.info("Island unloaded on current server.");
+                                    unloadIslandFuture.complete(null);
+                                });
+                    } else {
+                        // Send the request to unload the island on the server where it's located
+                        redisPublishRequest.sendRequest("unloadIsland:" + serverByWorldName + ":" + islandName)
+                                .thenRun(() -> {
+                                    logger.info("Island unload request sent to server: " + serverByWorldName);
+                                    unloadIslandFuture.complete(null);
+                                });
+                    }
+                })
+                .exceptionally(ex -> {
+                    logger.severe("Failed to unload island: " + ex.getMessage());
+                    unloadIslandFuture.completeExceptionally(ex);
+                    return null;
+                });
 
-                logger.info("Server with the island: " + serverByWorldName);
-
-                if (serverByWorldName.equals(serverID)) {
-                    // Create the island
-                    redisOpeartion.unloadWorld(islandName, () -> {
-                        // Do something with the output
-                        logger.info("Island unloaded.");
-                    });
-                } else {
-                    // Send the request to the server with the least number of worlds
-                    logger.info("Sending request to unload island on server: " + serverByWorldName);
-                    redisPublishRequest.sendRequest("unloadIsland:" + serverByWorldName + ":" + islandName);
-
-                    // Set the callback
-                    redisPublishRequest.setCallback(() -> {
-                        // Do something with the output
-                        logger.info("Island unloaded.");
-                    });
-                }
-            }, outputMap);
-        });
+        return unloadIslandFuture;
     }
 
-    public void deleteIsland(String islandName) {
-        redisPublishRequest.sendRequest("updateWorldList");
+    public CompletableFuture<Void> deleteIsland(String islandName) {
+        CompletableFuture<Void> deleteIslandFuture = new CompletableFuture<>();
 
-        // Set the callback
-        redisPublishRequest.setCallback(() -> {
-            // This code block will execute after the server responds
-            Map<String, String> outputMap = new HashMap<>();
-            // Fetch the server with the least number of worlds directly
-            redisOpeartion.getServerByWorldName(islandName, () -> {
-                String serverByWorldName = outputMap.get("serverByWorldName");
+        // Send the request to update world list
+        redisPublishRequest.sendRequest("updateWorldList")
+                .thenCompose(v -> {
+                    Map<String, String> outputMap = new HashMap<>();
+                    // Fetch the server where the island is located
+                    return redisOperation.getServerByWorldName(islandName, outputMap);
+                })
+                .thenAccept(serverByWorldName -> {
+                    if (serverByWorldName.equals(serverID)) {
+                        // Delete the island on the current server
+                        redisOperation.deleteWorld(islandName)
+                                .thenRun(() -> {
+                                    logger.info("Island deleted on current server.");
+                                    deleteIslandFuture.complete(null);
+                                });
+                    } else {
+                        // Send the request to delete the island on the server where it's located
+                        redisPublishRequest.sendRequest("deleteIsland:" + serverByWorldName + ":" + islandName)
+                                .thenRun(() -> {
+                                    logger.info("Island delete request sent to server: " + serverByWorldName);
+                                    deleteIslandFuture.complete(null);
+                                });
+                    }
+                })
+                .exceptionally(ex -> {
+                    logger.severe("Failed to delete island: " + ex.getMessage());
+                    deleteIslandFuture.completeExceptionally(ex);
+                    return null;
+                });
 
-                logger.info("Server with the island: " + serverByWorldName);
-
-                if (serverByWorldName.equals(serverID)) {
-                    // Create the island
-                    redisOpeartion.deleteWorld(islandName, () -> {
-                        // Do something with the output
-                        logger.info("Island deleted.");
-                    });
-                } else {
-                    // Send the request to the server with the least number of worlds
-                    logger.info("Sending request to delete island on server: " + serverByWorldName);
-                    redisPublishRequest.sendRequest("deleteIsland:" + serverByWorldName + ":" + islandName);
-
-                    // Set the callback
-                    redisPublishRequest.setCallback(() -> {
-                        // Do something with the output
-                        logger.info("Island deleted.");
-                    });
-                }
-            }, outputMap);
-        });
+        return deleteIslandFuture;
     }
 
-    public void teleportToIsland(Player player, String islandName) {
-        redisPublishRequest.sendRequest("updateWorldList");
+    public CompletableFuture<Void> teleportToIsland(Player player, String islandName) {
+        CompletableFuture<Void> teleportFuture = new CompletableFuture<>();
 
-        // Set the callback
-        redisPublishRequest.setCallback(() -> {
-            // This code block will execute after the server responds
-            Map<String, String> outputMap = new HashMap<>();
-            // Fetch the server with the least number of worlds directly
-            redisOpeartion.getServerByWorldName(islandName, () -> {
-                String serverByWorldName = outputMap.get("serverByWorldName");
+        // Send the request to update world list
+        redisPublishRequest.sendRequest("updateWorldList")
+                .thenCompose(v -> {
+                    Map<String, String> outputMap = new HashMap<>();
+                    // Fetch the server where the island is located
+                    return redisOperation.getServerByWorldName(islandName, outputMap);
+                })
+                .thenAccept(serverByWorldName -> {
+                    if (serverByWorldName.equals(serverID)) {
+                        // Teleport the player to the island on the current server
+                        redisOperation.teleportToWorld(islandName, player.getName())
+                                .thenRun(() -> {
+                                    logger.info("Player teleported to island on current server.");
+                                    teleportFuture.complete(null);
+                                });
+                    } else {
+                        // Send the request to teleport the player to the island on the server where it's located
+                        connectToServer(player, serverByWorldName);
+                        redisPublishRequest.sendRequest("teleportToWorld:" + serverByWorldName + ":" + islandName + ":" + player.getName())
+                                .thenRun(() -> {
+                                    logger.info("Teleport request sent to server: " + serverByWorldName);
+                                    teleportFuture.complete(null);
+                                });
+                    }
+                })
+                .exceptionally(ex -> {
+                    logger.severe("Failed to teleport to island: " + ex.getMessage());
+                    teleportFuture.completeExceptionally(ex);
+                    return null;
+                });
 
-                logger.info("Server with the island: " + serverByWorldName);
+        return teleportFuture;
+    }
 
-                if (serverByWorldName.equals(serverID)) {
-                    // Teleport to the island
-                    redisOpeartion.teleportToWorld(player.getName(), islandName, () -> {
-                        // Do something with the output
-                        logger.info("Teleporting player to island.");
-                    });
-                } else {
-                    // Send the request to the server with the least number of worlds
-                    logger.info("Sending request to teleport player to island on server: " + serverByWorldName);
-                    redisPublishRequest.sendRequest("teleportToWorld:" + serverByWorldName + ":" + islandName);
-                }
-            }, outputMap);
-        });
+    public void connectToServer(Player player, String serverName) {
+
     }
 }

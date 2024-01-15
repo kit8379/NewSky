@@ -3,14 +3,19 @@ package org.me.newsky.command;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.config.ConfigHandler;
+
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
 public abstract class BaseInfoCommand {
+
+    protected final ConfigHandler config;
     protected final CacheHandler cacheHandler;
 
-    public BaseInfoCommand(CacheHandler cacheHandler) {
+    public BaseInfoCommand(ConfigHandler config, CacheHandler cacheHandler) {
+        this.config = config;
         this.cacheHandler = cacheHandler;
     }
 
@@ -19,24 +24,24 @@ public abstract class BaseInfoCommand {
         Optional<UUID> islandUuid = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
 
         if (islandUuid.isEmpty()) {
-            sender.sendMessage("Player does not have an island.");
+            sender.sendMessage(config.getPlayerNoIslandMessage(Bukkit.getOfflinePlayer(targetUuid).getName()));
             return true;
         }
 
         Optional<UUID> ownerUuid = cacheHandler.getIslandOwner(islandUuid.get());
 
         if(ownerUuid.isEmpty()) {
-            sender.sendMessage("Island does not have an owner.");
+            sender.sendMessage(config.getNoIslandOwnerMessage());
             return true;
         }
 
         Set<UUID> memberUuids = cacheHandler.getIslandMembers(islandUuid.get());
         StringBuilder membersString = buildMembersString(memberUuids);
 
-        sender.sendMessage("Island Info");
-        sender.sendMessage("Island UUID: " + islandUuid.get());
-        sender.sendMessage("Island Owner: " + Bukkit.getOfflinePlayer(ownerUuid.get()).getName());
-        sender.sendMessage("Island Members: " + membersString);
+        sender.sendMessage(config.getIslandInfo());
+        sender.sendMessage(config.getIslandInfoUUID(islandUuid.get().toString()));
+        sender.sendMessage(config.getIslandInfoOwner(Bukkit.getOfflinePlayer(ownerUuid.get()).getName()));
+        sender.sendMessage(config.getIslandInfoMembers(membersString.toString()));
 
         return true;
     }

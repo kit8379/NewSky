@@ -93,7 +93,7 @@ public class NewSky extends JavaPlugin {
     private void initializeRedis() {
         logger.info("Start connecting to Redis now...");
         try {
-            redisHandler = new RedisHandler(this, config);
+            redisHandler = new RedisHandler(config);
             logger.info("Redis connection success!");
         } catch (Exception e) {
             e.printStackTrace();
@@ -156,7 +156,7 @@ public class NewSky extends JavaPlugin {
     private void initializeDatabase() {
         logger.info("Start connecting to Database now...");
         try {
-            databaseHandler = new DatabaseHandler(this, config);
+            databaseHandler = new DatabaseHandler(config);
             databaseHandler.createTables();
             logger.info("Database connection success!");
         } catch (Exception e) {
@@ -188,12 +188,12 @@ public class NewSky extends JavaPlugin {
     }
 
     private void registerListeners() {
-        getServer().getPluginManager().registerEvents(new WorldEventListener(logger), this);
+        getServer().getPluginManager().registerEvents(new WorldEventListener(logger, cacheHandler), this);
     }
 
     private void registerCommands() {
-        Objects.requireNonNull(this.getCommand("islandadmin")).setExecutor(new AdminCommandExecutor(cacheHandler, islandHandler));
-        Objects.requireNonNull(this.getCommand("island")).setExecutor(new IslandCommandExecutor(cacheHandler, islandHandler));
+        Objects.requireNonNull(this.getCommand("islandadmin")).setExecutor(new AdminCommandExecutor(this, config, cacheHandler, islandHandler));
+        Objects.requireNonNull(this.getCommand("island")).setExecutor(new IslandCommandExecutor(config, cacheHandler, islandHandler));
     }
 
     @Override

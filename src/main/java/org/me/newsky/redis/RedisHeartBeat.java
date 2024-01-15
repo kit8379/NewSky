@@ -31,6 +31,18 @@ public class RedisHeartBeat {
         checkTimeoutsTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::checkServerTimeouts, 0L, 100L);
     }
 
+    public void stopHeartBeat() {
+        if (heartBeatSubscriber != null) {
+            heartBeatSubscriber.unsubscribe();
+        }
+        if (sendHeartbeatTask != null) {
+            sendHeartbeatTask.cancel();
+        }
+        if (checkTimeoutsTask != null) {
+            checkTimeoutsTask.cancel();
+        }
+    }
+
     public void sendForHeartBeats() {
         // Send a heartbeat every 5 seconds.
         redisHandler.publish("newsky-heartbeat-channel", serverID);
@@ -46,7 +58,7 @@ public class RedisHeartBeat {
             }
         };
 
-        redisHandler.subscribe(heartBeatSubscriber, "heartbeat-channel");
+        redisHandler.subscribe(heartBeatSubscriber, "newsky-heartbeat-channel");
     }
 
     public void checkServerTimeouts() {
@@ -56,18 +68,6 @@ public class RedisHeartBeat {
                 serverLastHeartbeat.remove(server);
             }
         });
-    }
-
-    public void stopHeartBeat() {
-        if (heartBeatSubscriber != null) {
-            heartBeatSubscriber.unsubscribe();
-        }
-        if (sendHeartbeatTask != null) {
-            sendHeartbeatTask.cancel();
-        }
-        if (checkTimeoutsTask != null) {
-            checkTimeoutsTask.cancel();
-        }
     }
 
     public Set<String> getActiveServers() {

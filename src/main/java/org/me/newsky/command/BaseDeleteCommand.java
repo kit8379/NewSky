@@ -2,17 +2,21 @@ package org.me.newsky.command;
 
 import org.bukkit.command.CommandSender;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public abstract class BaseDeleteCommand {
 
+    protected final ConfigHandler config;
     protected final CacheHandler cacheHandler;
     protected final IslandHandler islandHandler;
 
-    public BaseDeleteCommand(CacheHandler cacheHandler, IslandHandler islandHandler) {
+    public BaseDeleteCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
+        this.config = config;
         this.cacheHandler = cacheHandler;
         this.islandHandler = islandHandler;
     }
@@ -23,17 +27,25 @@ public abstract class BaseDeleteCommand {
         }
 
         UUID targetUuid = getTargetUuid(sender, args);
-        Optional<UUID> islandUuid = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
+        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
 
-        if (islandUuid.isEmpty()) {
+        if (islandUuidOpt.isEmpty()) {
             sender.sendMessage(getNoIslandMessage(args));
             return true;
         }
 
+        UUID islandUuid = islandUuidOpt.get();
+
         // Delete island
-        islandHandler.deleteIsland(islandUuid.get().toString());
-        cacheHandler.deleteIsland(islandUuid.get());
-        sender.sendMessage(getIslandDeletedMessage(args));
+        CompletableFuture<Void> deleteIslandFuture = islandHandler.deleteIsland(islandUuid.toString());
+
+        deleteIslandFuture.thenRun(() -> {
+            cacheHandler.deleteIsland(islandUuid);
+            sender.sendMessage(getIslandDeletedMessage(args));
+        }).exceptionally(ex -> {
+            sender.sendMessage("There was an error deleting the island: " + ex.getMessage());
+            return null;
+        });
 
         return true;
     }

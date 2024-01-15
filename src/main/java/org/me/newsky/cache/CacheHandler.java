@@ -199,4 +199,15 @@ public class CacheHandler {
         }
         return Optional.empty();
     }
+
+    /**
+     * This method returns a boolean indicating whether a world is an island world.
+     * @param worldName Name of the world.
+     * @return True if the world is an island world, false otherwise.
+     */
+    public boolean isIslandWorld(String worldName) {
+        try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
+            return jedis.sismember("island_worlds", worldName);
+        }
+    }
 }

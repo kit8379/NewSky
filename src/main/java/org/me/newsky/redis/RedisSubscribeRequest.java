@@ -3,6 +3,7 @@ package org.me.newsky.redis;
 import org.me.newsky.config.ConfigHandler;
 import redis.clients.jedis.JedisPubSub;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Logger;
 
 public class RedisSubscribeRequest {
@@ -13,7 +14,6 @@ public class RedisSubscribeRequest {
     private final String serverID;
 
     private JedisPubSub requestSubscriber;
-
 
     public RedisSubscribeRequest(Logger logger, ConfigHandler config, RedisHandler redisHandler, RedisOperation redisOperation) {
         this.logger = logger;
@@ -31,100 +31,72 @@ public class RedisSubscribeRequest {
                 String requestID = parts[1];
 
                 // Process the request
-                processRequest(message);
-
-                // Send response back to the sender
-                redisHandler.publish("response-channel-" + senderID, serverID + ":" + requestID);
+                processRequest(message).thenRun(() ->
+                        // Send response back to the sender
+                        redisHandler.publish("newsky-response-channel-" + senderID, serverID + ":" + requestID)
+                );
             }
         };
 
-        redisHandler.subscribe(requestSubscriber, "request-channel");
+        redisHandler.subscribe(requestSubscriber, "newsky-request-channel");
     }
 
     public void unsubscribeFromRequests() {
         if (requestSubscriber != null) {
-            requestSubscriber.unsubscribe("request-channel");
+            requestSubscriber.unsubscribe();
         }
     }
 
-    private void processRequest(String message) {
+    private CompletableFuture<Void> processRequest(String message) {
         String[] parts = message.split(":");
         String operation = parts[2];
 
-        // Assuming that the world name is provided after the operation in the message
-        // For example: senderID:requestID:createWorld:worldName
+        // Extract additional data from the message
         String serverName = parts.length > 3 ? parts[3] : null;
         String worldName = parts.length > 4 ? parts[4] : null;
         String playerName = parts.length > 5 ? parts[5] : null;
 
+        // Perform the operation based on the type
         switch (operation) {
             case "updateWorldList":
-                redisOperation.updateWorldList(() -> {
-                    // Logic after updateWorldList completes
-                    logger.info("updateWorldList operation completed.");
-                });
-                break;
+                return redisOperation.updateWorldList()
+                        .thenRun(() -> logger.info("updateWorldList operation completed."));
             case "createWorld":
-                if (serverName == null || !(serverName.equals(serverID))) {
-                    break;
-                }
-
-                if (worldName != null) {
-                    redisOperation.createWorld(worldName, () -> logger.info("createWorld operation completed for world: " + worldName));
-                } else {
-                    logger.warning("World name not provided for createWorld operation.");
+                if (serverName != null && serverName.equals(serverID) && worldName != null) {
+                    return redisOperation.createWorld(worldName)
+                            .thenRun(() -> logger.info("createWorld operation completed for world: " + worldName));
                 }
                 break;
             case "loadWorld":
-                if (serverName == null || !(serverName.equals(serverID))) {
-                    break;
-                }
-
-                if (worldName != null) {
-                    redisOperation.loadWorld(worldName, () -> logger.info("loadWorld operation completed for world: " + worldName));
-                } else {
-                    logger.warning("World name not provided for loadWorld operation.");
+                if (serverName != null && serverName.equals(serverID) && worldName != null) {
+                    return redisOperation.loadWorld(worldName)
+                            .thenRun(() -> logger.info("loadWorld operation completed for world: " + worldName));
                 }
                 break;
             case "unloadWorld":
-                if (serverName == null || !(serverName.equals(serverID))) {
-                    break;
-                }
-
-                if (worldName != null) {
-                    redisOperation.unloadWorld(worldName, () -> logger.info("unloadWorld operation completed for world: " + worldName));
-                } else {
-                    logger.warning("World name not provided for unloadWorld operation.");
+                if (serverName != null && serverName.equals(serverID) && worldName != null) {
+                    return redisOperation.unloadWorld(worldName)
+                            .thenRun(() -> logger.info("unloadWorld operation completed for world: " + worldName));
                 }
                 break;
             case "deleteWorld":
-                if (serverName == null || !(serverName.equals(serverID))) {
-                    break;
-                }
-
-                if (worldName != null) {
-                    redisOperation.deleteWorld(worldName, () -> logger.info("deleteWorld operation completed for world: " + worldName));
-                } else {
-                    logger.warning("World name not provided for deleteWorld operation.");
+                if (serverName != null && serverName.equals(serverID) && worldName != null) {
+                    return redisOperation.deleteWorld(worldName)
+                            .thenRun(() -> logger.info("deleteWorld operation completed for world: " + worldName));
                 }
                 break;
             case "teleportToWorld":
-                if (serverName == null || !(serverName.equals(serverID))) {
-                    break;
+                if (serverName != null && serverName.equals(serverID) && playerName != null && worldName != null) {
+                    return redisOperation.teleportToWorld(playerName, worldName)
+                            .thenRun(() -> logger.info("teleportToWorld operation completed for world: " + worldName));
                 }
-
-                if (playerName == null) {
-                    logger.warning("Player name not provided for teleportToWorld operation.");
-                    break;
-                }
-
-                if (worldName != null) {
-                    redisOperation.teleportToWorld(worldName, playerName, () -> logger.info("teleportToWorld operation completed for world: " + worldName));
-                } else {
-                    logger.warning("World name not provided for teleportToWorld operation.");
-                }
+                break;
             default:
                 logger.warning("Unknown operation: " + operation);
+                return CompletableFuture.failedFuture(new IllegalArgumentException("Unknown operation: " + operation));
         }
+
+        return CompletableFuture.failedFuture(new IllegalArgumentException("Invalid parameters for operation: " + operation));
     }
 }
+

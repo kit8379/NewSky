@@ -73,6 +73,11 @@ public class ConfigHandler {
         return config.getString("server.mode");
     }
 
+    // Messages
+    public String getReloadMessage() {
+        return config.getString("messages.reload");
+    }
+
     public String getUnknownCommandMessage() {
         return config.getString("messages.unknown-command");
     }
@@ -93,16 +98,47 @@ public class ConfigHandler {
         return config.getString("messages.no-island-owner");
     }
 
-    public String getHasIslandMessage() {
-        return config.getString("messages.has-island");
-    }
-
     public String getAlreadyIslandOwnerMessage() {
         return config.getString("messages.already-island-owner");
     }
 
+    public String getPlayerAlreadyIslandOwnerMessage() {
+        return config.getString("messages.player-already-island-owner");
+    }
+
+    public String getPlayerAlreadyIslandOwnerMessage(String playerName) {
+        String messageTemplate = getPlayerAlreadyIslandOwnerMessage();
+        return messageTemplate.replace("%player%", playerName);
+    }
+
+    public String getHasIslandMessage() {
+        return config.getString("messages.has-island");
+    }
+
+    public String getPlayerNotMemberMessage() {
+        return config.getString("messages.player-not-member");
+    }
+
+    public String getPlayerNotMemberMessage(String playerName) {
+        String messageTemplate = getPlayerNotMemberMessage();
+        return messageTemplate.replace("%player%", playerName);
+    }
+
+    public String getPlayerAlreadyMemberMessage() {
+        return config.getString("messages.player-already-member");
+    }
+
+    public String getPlayerAlreadyMemberMessage(String playerName) {
+        String messageTemplate = getPlayerAlreadyMemberMessage();
+        return messageTemplate.replace("%player%", playerName);
+    }
+
     public String getCannotDeleteOwnerMessage() {
         return config.getString("messages.cannot-delete-owner");
+    }
+
+    public String getIslandCreatedMessage() {
+        return config.getString("messages.island-created");
     }
 
     public String getIslandDeletedMessage() {
@@ -118,39 +154,21 @@ public class ConfigHandler {
         return messageTemplate.replace("%player%", playerName);
     }
 
-    public String getPlayerNotMemeberMessage() {
-        return config.getString("messages.player-not-member");
-    }
-
-    public String getPlayerNotMemeberMessage(String playerName) {
-        String messageTemplate = getPlayerNotMemeberMessage();
-        return messageTemplate.replace("%player%", playerName);
-    }
-
-    public String getPlayerAlreadyMemeberMessage() {
-        return config.getString("messages.player-already-member");
-    }
-
-    public String getPlayerAlreadyMemeberMessage(String playerName) {
-        String messageTemplate = getPlayerAlreadyMemeberMessage();
-        return messageTemplate.replace("%player%", playerName);
-    }
-
-    public String getPlayerAlreadyIslandOwnerMessage() {
-        return config.getString("messages.player-already-island-owner");
-    }
-
-    public String getPlayerAlreadyIslandOwnerMessage(String playerName) {
-        String messageTemplate = getPlayerAlreadyIslandOwnerMessage();
-        return messageTemplate.replace("%player%", playerName);
-    }
-
     public String getPlayerHasIslandMessage() {
         return config.getString("messages.player-has-island");
     }
 
     public String getPlayerHasIslandMessage(String playerName) {
         String messageTemplate = getPlayerHasIslandMessage();
+        return messageTemplate.replace("%player%", playerName);
+    }
+
+    public String getPlayerIslandCreatedMessage() {
+        return config.getString("messages.player-island-created");
+    }
+
+    public String getPlayerIslandCreatedMessage(String playerName) {
+        String messageTemplate = getPlayerIslandCreatedMessage();
         return messageTemplate.replace("%player%", playerName);
     }
 
@@ -161,6 +179,24 @@ public class ConfigHandler {
     public String getPlayerIslandDeletedMessage(String playerName) {
         String messageTemplate = getPlayerIslandDeletedMessage();
         return messageTemplate.replace("%player%", playerName);
+    }
+
+    public String getPlayerIslandAddedMessage() {
+        return config.getString("messages.player-island-added");
+    }
+
+    public String getPlayerIslandAddedMessage(String playerName, String islandOwner) {
+        String messageTemplate = getPlayerIslandAddedMessage();
+        return messageTemplate.replace("%player%", playerName).replace("%islandowner%", islandOwner);
+    }
+
+    public String getPlayerIslandRemovedMessage() {
+        return config.getString("messages.player-island-removed");
+    }
+
+    public String getPlayerIslandRemovedMessage(String playerName, String islandOwner) {
+        String messageTemplate = getPlayerIslandRemovedMessage();
+        return messageTemplate.replace("%player%", playerName).replace("%islandowner%", islandOwner);
     }
 
     public String getPlayerCreateIslandCommandUsage() {
@@ -223,7 +259,22 @@ public class ConfigHandler {
         return config.getString("messages.admin-reload-command-usage");
     }
 
-    public String getReloadMessage() {
-        return config.getString("messages.reload");
+    public String getIslandInfo() {
+        return config.getString("messages.island-info");
+    }
+
+    public String getIslandInfoUUID(String islandUuid) {
+        String messageTemplate = config.getString("messages.island-info-uuid");
+        return messageTemplate.replace("%island%", islandUuid);
+    }
+
+    public String getIslandInfoOwner(String ownerName) {
+        String messageTemplate = config.getString("messages.island-info-owner");
+        return messageTemplate.replace("%owner%", ownerName);
+    }
+
+    public String getIslandInfoMembers(String membersList) {
+        String messageTemplate = config.getString("messages.island-info-members");
+        return messageTemplate.replace("%members%", membersList);
     }
 }

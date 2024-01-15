@@ -1,44 +1,38 @@
 package org.me.newsky.redis;
 
-import org.me.newsky.NewSky;
-import org.me.newsky.config.ConfigHandler;
 import redis.clients.jedis.JedisPubSub;
 
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 public class RedisPublishRequest {
 
-    public interface RequestCallback {
-        void onRequestComplete();
-    }
-
-    private final NewSky plugin;
     private final RedisHandler redisHandler;
     private final RedisHeartBeat redisHeartBeat;
     private final String serverID;
-
     private final Set<String> respondedServers = ConcurrentHashMap.newKeySet();
     private final Set<String> serversToWaitFor = ConcurrentHashMap.newKeySet();
 
-    private RequestCallback callback;
-
-    public RedisPublishRequest(NewSky plugin, ConfigHandler config, RedisHandler redisHandler, RedisHeartBeat redisHeartBeat) {
-        this.plugin = plugin;
+    public RedisPublishRequest(RedisHandler redisHandler, RedisHeartBeat redisHeartBeat, String serverID) {
         this.redisHandler = redisHandler;
         this.redisHeartBeat = redisHeartBeat;
-        this.serverID = config.getServerName();
+        this.serverID = serverID;
     }
 
-    public void sendRequest(String operation) {
+    public CompletableFuture<Void> sendRequest(String operation) {
         String requestID = "Req-" + UUID.randomUUID();
 
         // Add all active servers to the list of servers to wait for
         serversToWaitFor.addAll(redisHeartBeat.getActiveServers());
 
         // Send the request
-        redisHandler.publish("request-channel", serverID + ":" + requestID + ":" + operation);
+        redisHandler.publish("newsky-request-channel", serverID + ":" + requestID + ":" + operation);
+
+        CompletableFuture<Void> future = new CompletableFuture<>();
 
         // Wait for response
         JedisPubSub responseSubscriber = new JedisPubSub() {
@@ -54,31 +48,27 @@ public class RedisPublishRequest {
 
                     if (serversToWaitFor.isEmpty()) {
                         this.unsubscribe();
-                        if (callback != null) {
-                            callback.onRequestComplete();
-                        }
+                        future.complete(null);
                     }
                 }
             }
         };
 
-        redisHandler.subscribe(responseSubscriber, "response-channel-" + serverID);
+        redisHandler.subscribe(responseSubscriber, "newsky-response-channel-" + serverID);
 
-        // Use Bukkit's scheduler to handle servers that did not respond
-        plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> {
-            // Here you can handle/log servers that did not respond if needed
-            serversToWaitFor.forEach(serversToWaitFor::remove);
-
-            if (!serversToWaitFor.isEmpty()) {
+        // Timeout handling
+        CompletableFuture.runAsync(() -> {
+            try {
+                // Wait for a certain time for responses
+                future.get(10000, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException | ExecutionException | java.util.concurrent.TimeoutException e) {
+                // Here you can handle/log servers that did not respond if needed
+                serversToWaitFor.forEach(serversToWaitFor::remove);
                 responseSubscriber.unsubscribe();
-                if (callback != null) {
-                    callback.onRequestComplete();
-                }
+                future.complete(null);
             }
-        }, 100L);
-    }
+        });
 
-    public void setCallback(RequestCallback callback) {
-        this.callback = callback;
+        return future;
     }
 }

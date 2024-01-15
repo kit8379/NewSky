@@ -4,19 +4,19 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.island.IslandHandler;
+import org.me.newsky.config.ConfigHandler;
 
 import java.util.Optional;
 import java.util.UUID;
 
 public abstract class BaseAddMemberCommand {
 
+    protected final ConfigHandler config;
     protected final CacheHandler cacheHandler;
-    protected final IslandHandler islandHandler;
 
-    public BaseAddMemberCommand(CacheHandler cacheHandler, IslandHandler islandHandler) {
+    public BaseAddMemberCommand(ConfigHandler config, CacheHandler cacheHandler) {
+        this.config = config;
         this.cacheHandler = cacheHandler;
-        this.islandHandler = islandHandler;
     }
 
     public boolean execute(CommandSender sender, String[] args) {
@@ -30,19 +30,19 @@ public abstract class BaseAddMemberCommand {
 
         // Check if the target island owner has an island
         if (islandUuid.isEmpty()) {
-            sender.sendMessage(Bukkit.getOfflinePlayer(islandOwnerId).getName() + " doesn't have an island.");
+            sender.sendMessage(config.getPlayerNoIslandMessage(Bukkit.getOfflinePlayer(islandOwnerId).getName()));
             return true;
         }
 
         // Check if the target player is the island owner
         if (targetAdd.getUniqueId().equals(islandOwnerId)) {
-            sender.sendMessage(targetAdd.getName() + " is already the island owner.");
+            sender.sendMessage(config.getPlayerAlreadyIslandOwnerMessage(targetAdd.getName()));
             return true;
         }
 
         // Check if the target player is already a member of the island
         if (cacheHandler.getIslandMembers(islandUuid.get()).contains(targetAdd.getUniqueId())) {
-            sender.sendMessage(targetAdd.getName() + " is already a member of the island.");
+            sender.sendMessage(config.getPlayerAlreadyMemberMessage(targetAdd.getName()));
             return true;
         }
 
@@ -50,8 +50,7 @@ public abstract class BaseAddMemberCommand {
         String spawnLocation = "0,100,0,100,100";
         String role = "member";
         cacheHandler.addIslandPlayer(targetAdd.getUniqueId(), islandUuid.get(), spawnLocation, role);
-        sender.sendMessage("Added " + targetAdd.getName() + " to " + Bukkit.getOfflinePlayer(islandOwnerId).getName() + "'s island.");
-
+        sender.sendMessage(config.getPlayerIslandAddedMessage(targetAdd.getName(), Bukkit.getOfflinePlayer(islandOwnerId).getName()));
         return true;
     }
 

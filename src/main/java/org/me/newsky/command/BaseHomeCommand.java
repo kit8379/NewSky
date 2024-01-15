@@ -2,7 +2,9 @@ package org.me.newsky.command;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 
 import java.util.Optional;
@@ -10,10 +12,12 @@ import java.util.UUID;
 
 public abstract class BaseHomeCommand {
 
+    protected final ConfigHandler config;
     protected final CacheHandler cacheHandler;
     protected final IslandHandler islandHandler;
 
-    public BaseHomeCommand(CacheHandler cacheHandler, IslandHandler islandHandler) {
+    public BaseHomeCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
+        this.config = config;
         this.cacheHandler = cacheHandler;
         this.islandHandler = islandHandler;
     }
@@ -23,16 +27,22 @@ public abstract class BaseHomeCommand {
             return true;
         }
 
-        UUID targetUUID = getTargetUUID(sender, args);
-        Optional<UUID> islandUuid = cacheHandler.getIslandUuidByPlayerUuid(targetUUID);
-
-        // Check if the target island owner has an island
-        if (islandUuid.isEmpty()) {
-            sender.sendMessage(Bukkit.getOfflinePlayer(targetUUID).getName() + " doesn't have an island.");
+        // Check if the sender is a player
+        if (!(sender instanceof Player)) {
+            sender.sendMessage(config.getNoConsoleMessage());
             return true;
         }
 
-        performPostCreationActions(sender, targetUUID, islandUuid.get());
+        UUID targetUuid = getTargetUUID(sender, args);
+        Optional<UUID> islandUuid = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
+
+        // Check if the target island owner has an island
+        if (islandUuid.isEmpty()) {
+            sender.sendMessage(config.getPlayerNoIslandMessage(Bukkit.getOfflinePlayer(targetUuid).getName()));
+            return true;
+        }
+
+        performPostCreationActions(sender, targetUuid, islandUuid.get());
         return true;
     }
 

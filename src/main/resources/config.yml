@@ -1,7 +1,7 @@
 DB:
   host: "127.0.0.1"
   port: 3306
-  database: ""
+  database: "newsky"
   username: "test"
   password: "test"
   properties: "?autoReconnect=true&useSSL=false"
@@ -34,10 +34,14 @@ messages:
   player-not-member: "&c%player% is not a member of this island."
   player-already-member: "&c%player% is already a member of this island."
   cannot-delete-owner: "&cYou can't delete the owner of this island."
+  island-created: "&aYour island has been created."
   island-deleted: "&aYour island has been deleted."
   player-no-island: "&c%player% don't have an island."
   player-has-island: "&c%player% already have an island."
+  player-island-created: "&a%player%'s island has been created."
   player-island-deleted: "&a%player%'s island has been deleted."
+  player-island-added: "&a%player% has been added to %islandowner%'s island."
+  player-island-removed: "&a%player% has been removed from %islandowner%'s island."
   player-createisland-command-usage: "&cUsage: /is create"
   player-deleteisland-command-usage: "&cUsage: /is delete"
   player-addmember-command-usage: "&cUsage: /is addmember <player>"
@@ -53,4 +57,8 @@ messages:
   admin-sethome-command-usage: "&cUsage: /isadmin sethome <player>"
   admin-info-command-usage: "&cUsage: /isadmin info <player>"
   admin-reload-command-usage: "&cUsage: /isadmin reload"
+  island-info: "&aIsland info:"
+  island-info-uuid: "&aUUID: %uuid%"
+  island-info-owner: "&aOwner: %owner%"
+  island-info-members: "&aMembers: %members%"
 
