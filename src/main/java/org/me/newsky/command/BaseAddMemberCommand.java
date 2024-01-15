@@ -51,6 +51,7 @@ public abstract class BaseAddMemberCommand {
         String role = "member";
         cacheHandler.addIslandPlayer(targetAdd.getUniqueId(), islandUuid.get(), spawnLocation, role);
         sender.sendMessage(config.getPlayerIslandAddedMessage(targetAdd.getName(), Bukkit.getOfflinePlayer(islandOwnerId).getName()));
+
         return true;
     }
 

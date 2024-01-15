@@ -16,7 +16,7 @@ commands:
     description: Island admin command
     usage: /<command>
     permission: island.admin
-    aliases: [isa]
+    aliases: [isadmin]
 permissions:
   island.command:
     description: Allows the user to use the /island command
