@@ -8,6 +8,7 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class IslandCreateCommand extends BaseCreateCommand {
 
@@ -37,6 +38,15 @@ public class IslandCreateCommand extends BaseCreateCommand {
 
     @Override
     protected void performPostCreationActions(CommandSender sender, UUID targetUuid, UUID islandUuid) {
-        islandHandler.teleportToIsland((Player) sender, islandUuid.toString());
+        // Teleport player to island
+        CompletableFuture<Void> homeIslandFuture = islandHandler.teleportToIsland((Player) sender, islandUuid.toString());
+        homeIslandFuture.thenRun(() -> {
+            sender.sendMessage("Teleported to island");
+        }).exceptionally(ex -> {
+            sender.sendMessage("There was an error teleporting to the island: " + ex.getMessage());
+            return null;
+        });
+
+        sender.sendMessage("Teleporting to Island...");
     }
 }

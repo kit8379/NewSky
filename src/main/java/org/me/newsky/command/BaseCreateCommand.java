@@ -39,8 +39,8 @@ public abstract class BaseCreateCommand {
         // Create island
         String spawnLocation = "0,100,0,100,100";
         String role = "owner";
-        CompletableFuture<Void> createIslandFuture = islandHandler.createIsland(islandUuid.toString());
 
+        CompletableFuture<Void> createIslandFuture = islandHandler.createIsland(islandUuid.toString());
         createIslandFuture.thenRun(() -> {
             cacheHandler.createIsland(islandUuid);
             cacheHandler.addIslandPlayer(targetUuid, islandUuid, spawnLocation, role);

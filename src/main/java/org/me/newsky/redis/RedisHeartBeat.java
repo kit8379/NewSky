@@ -6,10 +6,12 @@ import redis.clients.jedis.JedisPubSub;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
 
 public class RedisHeartBeat {
 
     private final NewSky plugin;
+    private final Logger logger;
     private final RedisHandler redisHandler;
     private final String serverID;
     private JedisPubSub heartBeatSubscriber;
@@ -19,8 +21,9 @@ public class RedisHeartBeat {
     // Store the last heartbeat time for each server.
     private final ConcurrentHashMap<String, Long> serverLastHeartbeat = new ConcurrentHashMap<>();
 
-    public RedisHeartBeat(NewSky plugin, RedisHandler redisHandler, String serverID) {
+    public RedisHeartBeat(NewSky plugin, Logger logger, RedisHandler redisHandler, String serverID) {
         this.plugin = plugin;
+        this.logger = logger;
         this.redisHandler = redisHandler;
         this.serverID = serverID;
     }
@@ -46,8 +49,8 @@ public class RedisHeartBeat {
     public void sendForHeartBeats() {
         // Send a heartbeat every 5 seconds.
         redisHandler.publish("newsky-heartbeat-channel", serverID);
-        // Update our own last heartbeat timestamp
         serverLastHeartbeat.put(serverID, System.currentTimeMillis());
+        logger.info("Sent heartbeat");
     }
 
     public void listenForHeartBeats() {
@@ -55,6 +58,7 @@ public class RedisHeartBeat {
             @Override
             public void onMessage(String channel, String message) {
                 serverLastHeartbeat.put(message, System.currentTimeMillis());
+                logger.info("Received heartbeat from " + message);
             }
         };
 
@@ -66,6 +70,7 @@ public class RedisHeartBeat {
         serverLastHeartbeat.forEach((server, lastHeartbeat) -> {
             if (now - lastHeartbeat > 5000) {  // 5 seconds without heartbeat
                 serverLastHeartbeat.remove(server);
+                logger.info("Server " + server + " timed out. Removing from active servers.");
             }
         });
     }

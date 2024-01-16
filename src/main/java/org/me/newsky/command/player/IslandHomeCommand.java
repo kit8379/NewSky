@@ -28,9 +28,4 @@ public class IslandHomeCommand extends BaseHomeCommand {
     protected UUID getTargetUUID(CommandSender sender, String[] args) {
         return ((Player) sender).getUniqueId();
     }
-
-    @Override
-    protected void performPostCreationActions(CommandSender sender, UUID targetUuid, UUID islandUuid) {
-        islandHandler.teleportToIsland((Player) sender, islandUuid.toString());
-    }
 }

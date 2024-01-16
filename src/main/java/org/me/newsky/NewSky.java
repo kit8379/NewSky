@@ -10,12 +10,14 @@ import org.me.newsky.command.admin.AdminCommandExecutor;
 import org.me.newsky.command.player.IslandCommandExecutor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
+import org.me.newsky.event.PlayerJoinListener;
 import org.me.newsky.event.WorldEventListener;
 import org.me.newsky.island.IslandHandler;
+import org.me.newsky.island.IslandOperation;
+import org.me.newsky.island.IslandSubscribeRequest;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.redis.RedisHeartBeat;
-import org.me.newsky.redis.RedisOperation;
-import org.me.newsky.redis.RedisSubscribeRequest;
+import org.me.newsky.teleport.TeleportManager;
 
 import java.util.Objects;
 import java.util.logging.Logger;
@@ -24,10 +26,11 @@ public class NewSky extends JavaPlugin {
     private Logger logger;
     private RedisHandler redisHandler;
     private RedisHeartBeat redisHeartBeat;
-    private RedisOperation redisOpeartion;
-    private RedisSubscribeRequest redisSubscribeRequest;
+    private IslandOperation islandOperation;
+    private IslandSubscribeRequest islandSubscribeRequest;
     private DatabaseHandler databaseHandler;
     private CacheHandler cacheHandler;
+    private TeleportManager teleportManager;
     private IslandHandler islandHandler;
     private MVWorldManager mvWorldManager;
     private ConfigHandler config;
@@ -49,9 +52,11 @@ public class NewSky extends JavaPlugin {
         initializeRedis();
         initializeDatabase();
         initializeCache();
+        initializeTeleportManager();
         initalizeRedisHeartBeat();
-        initalizeRedisOperation();
+        initalizeIslandOperation();
         initalizeRedisSubscribeRequest();
+        initalizePluginMessaging();
         initializeIslandHandler();
         registerListeners();
         registerCommands();
@@ -105,7 +110,7 @@ public class NewSky extends JavaPlugin {
     private void initializeCache() {
         logger.info("Starting to cache into Redis");
         try {
-            cacheHandler = new CacheHandler(logger, redisHandler, databaseHandler);
+            cacheHandler = new CacheHandler(redisHandler, databaseHandler);
             cacheHandler.cacheAllDataToRedis();
             logger.info("Cache to Redis success");
         } catch (Exception e) {
@@ -114,10 +119,21 @@ public class NewSky extends JavaPlugin {
         }
     }
 
+    private void initializeTeleportManager() {
+        logger.info("Starting teleport manager");
+        try {
+            teleportManager = new TeleportManager(logger);
+            logger.info("Teleport manager loaded");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IllegalStateException("Teleport manager load fail! Plugin will be disabled!");
+        }
+    }
+
     private void initalizeRedisHeartBeat() {
         logger.info("Start connecting to Redis Heart Beat now...");
         try {
-            redisHeartBeat = new RedisHeartBeat(this, redisHandler, serverID);
+            redisHeartBeat = new RedisHeartBeat(this, logger, redisHandler, serverID);
             // Only start the heartbeat if the server is in island mode
             if (config.getServerMode().equalsIgnoreCase("island")) {
                 redisHeartBeat.startHeartBeat();
@@ -131,10 +147,10 @@ public class NewSky extends JavaPlugin {
         }
     }
 
-    private void initalizeRedisOperation() {
-        logger.info("Start connecting to Redis Operation now...");
+    private void initalizeIslandOperation() {
+        logger.info("Start connecting to Island Operation now...");
         try {
-            redisOpeartion = new RedisOperation(this, config, mvWorldManager, redisHandler, cacheHandler);
+            islandOperation = new IslandOperation(this, logger, config, mvWorldManager, cacheHandler, redisHandler, teleportManager);
             logger.info("Redis Operation success!");
         } catch (Exception e) {
             e.printStackTrace();
@@ -145,8 +161,8 @@ public class NewSky extends JavaPlugin {
     private void initalizeRedisSubscribeRequest() {
         logger.info("Start connecting to Redis Subscribe Request now...");
         try {
-            redisSubscribeRequest = new RedisSubscribeRequest(logger, config, redisHandler, redisOpeartion);
-            redisSubscribeRequest.subscribeToRequests();
+            islandSubscribeRequest = new IslandSubscribeRequest(logger, redisHandler, islandOperation, serverID);
+            islandSubscribeRequest.subscribeToRequests();
             logger.info("Redis Subscribe Request success!");
         } catch (Exception e) {
             e.printStackTrace();
@@ -177,10 +193,21 @@ public class NewSky extends JavaPlugin {
         }
     }
 
+    private void initalizePluginMessaging() {
+        logger.info("Starting plugin messaging");
+        try {
+            getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
+            logger.info("Plugin messaging loaded");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IllegalStateException("Plugin messaging load fail! Plugin will be disabled!");
+        }
+    }
+
     private void initializeIslandHandler() {
         logger.info("Starting island handler");
         try {
-            islandHandler = new IslandHandler(logger, config, redisHandler, redisHeartBeat, redisOpeartion);
+            islandHandler = new IslandHandler(this, redisHandler, cacheHandler, redisHeartBeat, islandOperation, serverID);
             logger.info("Islands loaded");
         } catch (Exception e) {
             e.printStackTrace();
@@ -190,6 +217,7 @@ public class NewSky extends JavaPlugin {
 
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(new WorldEventListener(logger), this);
+        getServer().getPluginManager().registerEvents(new PlayerJoinListener(logger, teleportManager), this);
     }
 
     private void registerCommands() {
@@ -205,7 +233,7 @@ public class NewSky extends JavaPlugin {
     }
 
     public void shutdown() {
-        redisSubscribeRequest.unsubscribeFromRequests();
+        islandSubscribeRequest.unsubscribeFromRequests();
         redisHeartBeat.stopHeartBeat();
         redisHandler.disconnect();
         databaseHandler.close();

@@ -9,6 +9,7 @@ import org.me.newsky.island.IslandHandler;
 
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public abstract class BaseHomeCommand {
 
@@ -42,12 +43,21 @@ public abstract class BaseHomeCommand {
             return true;
         }
 
-        performPostCreationActions(sender, targetUuid, islandUuid.get());
+        Player player = (Player) sender;
+
+        // Teleport player to island
+        CompletableFuture<Void> homeIslandFuture = islandHandler.teleportToIsland(player, islandUuid.toString());
+        homeIslandFuture.thenRun(() -> {
+            sender.sendMessage("Teleported to island");
+        }).exceptionally(ex -> {
+            sender.sendMessage("There was an error teleporting to the island: " + ex.getMessage());
+            return null;
+        });
+
         return true;
     }
 
 
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
     protected abstract UUID getTargetUUID(CommandSender sender, String[] args);
-    protected abstract void performPostCreationActions(CommandSender sender, UUID targetUuid, UUID islandUuid);
 }

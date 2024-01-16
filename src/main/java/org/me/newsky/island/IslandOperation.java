@@ -1,34 +1,40 @@
-package org.me.newsky.redis;
+package org.me.newsky.island;
 
 import com.onarandombox.MultiverseCore.api.MVWorldManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldType;
-import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.redis.RedisHandler;
+import org.me.newsky.teleport.TeleportManager;
 import redis.clients.jedis.Jedis;
 
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Logger;
 
-public class RedisOperation {
+public class IslandOperation {
 
     private final NewSky plugin;
+    private final Logger logger;
     private final ConfigHandler config;
     private final MVWorldManager mvWorldManager;
-    private final RedisHandler redisHandler;
     private final CacheHandler cacheHandler;
+    private final RedisHandler redisHandler;
+    private final TeleportManager teleportManager;
 
-    public RedisOperation(NewSky plugin, ConfigHandler config, MVWorldManager mvWorldManager, RedisHandler redisHandler, CacheHandler cacheHandler) {
+    public IslandOperation(NewSky plugin, Logger logger, ConfigHandler config, MVWorldManager mvWorldManager, CacheHandler cacheHandler, RedisHandler redisHandler, TeleportManager teleportManager) {
         this.plugin = plugin;
+        this.logger = logger;
         this.config = config;
         this.mvWorldManager = mvWorldManager;
-        this.redisHandler = redisHandler;
         this.cacheHandler = cacheHandler;
+        this.redisHandler = redisHandler;
+        this.teleportManager = teleportManager;
     }
 
     public CompletableFuture<Void> updateWorldList() {
@@ -118,11 +124,12 @@ public class RedisOperation {
 
     public CompletableFuture<Void> createWorld(String worldName) {
         return CompletableFuture.runAsync(() -> Bukkit.getScheduler().runTask(plugin, () -> {
-            String generatorName = "VoidGen"; // Replace with your plugin's name
-            World.Environment environment = World.Environment.NORMAL; // or NETHER, or THE_END
-            WorldType worldType = WorldType.NORMAL; // or any other type you wish
-
+            logger.info("Creating world " + worldName);
+            String generatorName = "VoidGen";
+            World.Environment environment = World.Environment.NORMAL;
+            WorldType worldType = WorldType.NORMAL;
             mvWorldManager.addWorld(worldName, environment, null, worldType, true, generatorName, false);
+            logger.info("Created world " + worldName);
         }));
     }
 
@@ -141,18 +148,40 @@ public class RedisOperation {
         }));
     }
 
-    public CompletableFuture<Void> teleportToWorld(String playerName, String worldName) {
-        return CompletableFuture.runAsync(() -> Bukkit.getScheduler().runTask(plugin, () -> {
-            World targetWorld = Bukkit.getWorld(worldName);
-            Player player = Bukkit.getPlayer(playerName);
-            if (targetWorld != null && player != null) {
-                Optional<String> locationOptString = cacheHandler.getPlayerIslandSpawn(player.getUniqueId(), UUID.fromString(worldName));
-                String locationString = locationOptString.orElse("0,100,0,0,0");
-                String[] locParts = locationString.split(",");
-                Location location = new Location(targetWorld, Double.parseDouble(locParts[0]), Double.parseDouble(locParts[1]), Double.parseDouble(locParts[2]), Float.parseFloat(locParts[3]), Float.parseFloat(locParts[4]));
-                player.teleport(location);
+    public CompletableFuture<Void> teleportToWorld(String worldUuidString, String playerUuidString) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
+        // Asynchronous task to fetch island spawn
+        CompletableFuture.runAsync(() -> {
+            UUID playerUuid = UUID.fromString(playerUuidString);
+            UUID worldUuid = UUID.fromString(worldUuidString);
+
+            Optional<String> islandSpawn = cacheHandler.getPlayerIslandSpawn(playerUuid, worldUuid);
+
+            if (islandSpawn.isEmpty()) {
+                islandSpawn = Optional.of("0,100,0,0,0");
             }
-        }));
+
+            String[] parts = islandSpawn.get().split(",");
+            double x = Double.parseDouble(parts[0]);
+            double y = Double.parseDouble(parts[1]);
+            double z = Double.parseDouble(parts[2]);
+            float yaw = Float.parseFloat(parts[3]);
+            float pitch = Float.parseFloat(parts[4]);
+
+            // Switching back to the main thread to interact with the Minecraft world
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                Location location = new Location(Bukkit.getWorld(worldUuid), x, y, z, yaw, pitch);
+                teleportManager.addPendingTeleport(playerUuid, location);
+                future.complete(null);
+
+            });
+        }).exceptionally(e -> {
+            future.completeExceptionally(e);
+            return null;
+        });
+
+        return future;
     }
 }
 

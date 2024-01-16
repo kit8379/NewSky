@@ -5,16 +5,13 @@ import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.Jedis;
 
 import java.util.*;
-import java.util.logging.Logger;
 
 public class CacheHandler {
 
-    private final Logger logger;
     private final RedisHandler redisHandler;
     private final DatabaseHandler databaseHandler;
 
-    public CacheHandler(Logger logger, RedisHandler redisHandler, DatabaseHandler databaseHandler) {
-        this.logger = logger;
+    public CacheHandler(RedisHandler redisHandler, DatabaseHandler databaseHandler) {
         this.redisHandler = redisHandler;
         this.databaseHandler = databaseHandler;
     }
@@ -23,6 +20,8 @@ public class CacheHandler {
         cacheIslandDataToRedis();
         cacheIslandPlayersToRedis();
     }
+
+
 
     private void cacheIslandDataToRedis() {
         databaseHandler.selectAllIslandData(resultSet -> {
@@ -200,16 +199,5 @@ public class CacheHandler {
             e.printStackTrace();
         }
         return Optional.empty();
-    }
-
-    /**
-     * This method returns a boolean indicating whether a world is an island world.
-     * @param worldName Name of the world.
-     * @return True if the world is an island world, false otherwise.
-     */
-    public boolean isIslandWorld(String worldName) {
-        try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
-            return jedis.sismember("island_worlds", worldName);
-        }
     }
 }
