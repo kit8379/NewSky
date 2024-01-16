@@ -37,8 +37,7 @@ public class IslandPublishRequest {
         JedisPubSub responseSubscriber = new JedisPubSub() {
             @Override
             public void onMessage(String channel, String message) {
-                String[] parts = message.split(":");
-                String responderID = parts[0];
+                String responderID = message;
 
                 serversToWaitFor.remove(responderID);
 

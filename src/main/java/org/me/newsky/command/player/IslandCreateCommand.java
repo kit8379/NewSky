@@ -46,7 +46,5 @@ public class IslandCreateCommand extends BaseCreateCommand {
             sender.sendMessage("There was an error teleporting to the island: " + ex.getMessage());
             return null;
         });
-
-        sender.sendMessage("Teleporting to Island...");
     }
 }

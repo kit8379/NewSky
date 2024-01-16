@@ -207,7 +207,7 @@ public class NewSky extends JavaPlugin {
     private void initializeIslandHandler() {
         logger.info("Starting island handler");
         try {
-            islandHandler = new IslandHandler(this, redisHandler, cacheHandler, redisHeartBeat, islandOperation, serverID);
+            islandHandler = new IslandHandler(this, logger, redisHandler, cacheHandler, redisHeartBeat, islandOperation, serverID);
             logger.info("Islands loaded");
         } catch (Exception e) {
             e.printStackTrace();
