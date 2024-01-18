@@ -21,4 +21,5 @@ server:
   name: "server1" # Unique name for your server
   mode: "island" # lobby or island
 
+debug: true # Enable debug mode
 
