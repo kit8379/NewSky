@@ -19,35 +19,6 @@ redis:
 
 server:
   name: "server1" # Unique name for your server
-  mode: "skyblock" # "lobby" or "skyblock", if you want to use this plugin as a lobby plugin, set this to "lobby"
-
-messages:
-  reload: '&aConfiguration reloaded successfully!'
-  unknown-command: '&cUnknown command. Please try again!'
-  no-console: '&cThis command cannot be used from the console.'
-  no-island: '&cYou do not have an island.'
-  no-island-owner: '&cYou are not the owner of this island.'
-  player-already-island-owner: '&c%player% is already an owner of an island.'
-  has-island: '&aYou already have an island.'
-  player-not-member: '&c%player% is not a member of your island.'
-  player-already-member: '&c%player% is already a member of this island.'
-  cannot-delete-owner: '&cYou cannot delete the owner of the island.'
-  island-created: '&aIsland created successfully.'
-  island-deleted: '&aIsland deleted successfully.'
-  player-no-island: '&c%player% does not have an island.'
-  player-has-island: '&a%player% already owns an island.'
-  player-island-created: '&aIsland created for %player%.'
-  player-island-deleted: '&aIsland of %player% deleted successfully.'
-  player-island-added: '&a%player% added to %islandowner% island.'
-  player-island-removed: '&a%player% removed from %islandowner% island.'
-  player-addmember-command-usage: '&eUsage: /addmember <player>'
-  player-removemember-command-usage: '&eUsage: /removemember <player>'
-  player-home-command-usage: '&eUsage: /home'
-  admin-createisland-command-usage: '&eUsage: /admin createisland <player>'
-  admin-deleteisland-command-usage: '&eUsage: /admin deleteisland <player>'
-  admin-addmember-command-usage: '&eUsage: /admin addmember <island> <player>'
-  admin-removemember-command-usage: '&eUsage: /admin removemember <island> <player>'
-  admin-home-command-usage: '&eUsage: /admin home <player>'
-  island-info: '&aIsland Info: \nLevel: %level%\nOwner: %owner%\nMembers: %members%'
+  mode: "island" # lobby or island
 
 

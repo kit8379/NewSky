@@ -1,12 +1,15 @@
 package org.me.newsky.island;
 
+import com.onarandombox.MultiverseCore.api.MVWorldManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.redis.RedisHandler;
-import org.me.newsky.redis.RedisHeartBeat;
+import org.me.newsky.heartbeat.HeartBeatHandler;
+import org.me.newsky.teleport.TeleportManager;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -16,24 +19,26 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.Logger;
 
 public class IslandHandler {
 
     private final NewSky plugin;
-    private final Logger logger;
+    private final ConfigHandler config;
     private final CacheHandler cacheHandler;
-    private final IslandOperation islandOperation;
     private final String serverID;
+    private final IslandOperation islandOperation;
     private final IslandPublishRequest islandPublishRequest;
+    private final IslandSubscribeRequest islandSubscribeRequest;
 
-    public IslandHandler(NewSky plugin, Logger logger, RedisHandler redisHandler, CacheHandler cacheHandler, RedisHeartBeat redisHeartBeat, IslandOperation islandOperation, String serverID) {
+    public IslandHandler(NewSky plugin, ConfigHandler config, MVWorldManager mvWorldManager, RedisHandler redisHandler, CacheHandler cacheHandler, HeartBeatHandler heartBeatHandler, TeleportManager teleportManager, String serverID) {
         this.plugin = plugin;
-        this.logger = logger;
+        this.config = config;
         this.cacheHandler = cacheHandler;
-        this.islandOperation = islandOperation;
         this.serverID = serverID;
-        this.islandPublishRequest = new IslandPublishRequest(logger, redisHandler, redisHeartBeat, serverID);
+
+        this.islandOperation = new IslandOperation(plugin, config, mvWorldManager, redisHandler, cacheHandler, teleportManager);
+        this.islandPublishRequest = new IslandPublishRequest(plugin, redisHandler, heartBeatHandler, serverID);
+        this.islandSubscribeRequest = new IslandSubscribeRequest(plugin, redisHandler, islandOperation, serverID);
     }
 
     public CompletableFuture<Void> createIsland(String islandName) {
@@ -49,22 +54,22 @@ public class IslandHandler {
                 .thenAccept(serverWithLeastWorlds -> {
                     if (serverWithLeastWorlds.equals(serverID)) {
                         // Create the island on the current server
+                        plugin.debug("Island created on current server.");
                         islandOperation.createWorld(islandName)
                                 .thenRun(() -> {
-                                    logger.info("Island created on current server.");
                                     createIslandFuture.complete(null);
                                 });
                     } else {
                         // Send the request to create island on the server with the least number of worlds
+                        plugin.debug("Island creation request sent to server: " + serverWithLeastWorlds);
                         islandPublishRequest.sendRequest("createIsland:" + serverWithLeastWorlds + ":" + islandName)
                                 .thenRun(() -> {
-                                    logger.info("Island creation request sent to server: " + serverWithLeastWorlds);
                                     createIslandFuture.complete(null);
                                 });
                     }
                 })
                 .exceptionally(ex -> {
-                    logger.severe("Failed to create island: " + ex.getMessage());
+                    plugin.info("Failed to create island: " + ex.getMessage());
                     createIslandFuture.completeExceptionally(ex);
                     return null;
                 });
@@ -86,22 +91,22 @@ public class IslandHandler {
                 .thenAccept(serverByWorldName -> {
                     if (serverByWorldName.equals(serverID)) {
                         // Load the island on the current server
+                        plugin.debug("Island loaded on current server.");
                         islandOperation.loadWorld(islandName)
                                 .thenRun(() -> {
-                                    logger.info("Island loaded on current server.");
                                     loadIslandFuture.complete(null);
                                 });
                     } else {
                         // Send the request to load the island on the server where it's located
+                        plugin.debug("Island load request sent to server: " + serverByWorldName);
                         islandPublishRequest.sendRequest("loadIsland:" + serverByWorldName + ":" + islandName)
                                 .thenRun(() -> {
-                                    logger.info("Island load request sent to server: " + serverByWorldName);
                                     loadIslandFuture.complete(null);
                                 });
                     }
                 })
                 .exceptionally(ex -> {
-                    logger.severe("Failed to load island: " + ex.getMessage());
+                    plugin.info("Failed to load island: " + ex.getMessage());
                     loadIslandFuture.completeExceptionally(ex);
                     return null;
                 });
@@ -122,22 +127,22 @@ public class IslandHandler {
                 .thenAccept(serverByWorldName -> {
                     if (serverByWorldName.equals(serverID)) {
                         // Unload the island on the current server
+                        plugin.debug("Island unloaded on current server.");
                         islandOperation.unloadWorld(islandName)
                                 .thenRun(() -> {
-                                    logger.info("Island unloaded on current server.");
                                     unloadIslandFuture.complete(null);
                                 });
                     } else {
                         // Send the request to unload the island on the server where it's located
+                        plugin.debug("Island unload request sent to server: " + serverByWorldName);
                         islandPublishRequest.sendRequest("unloadIsland:" + serverByWorldName + ":" + islandName)
                                 .thenRun(() -> {
-                                    logger.info("Island unload request sent to server: " + serverByWorldName);
                                     unloadIslandFuture.complete(null);
                                 });
                     }
                 })
                 .exceptionally(ex -> {
-                    logger.severe("Failed to unload island: " + ex.getMessage());
+                    plugin.info("Failed to unload island: " + ex.getMessage());
                     unloadIslandFuture.completeExceptionally(ex);
                     return null;
                 });
@@ -158,22 +163,22 @@ public class IslandHandler {
                 .thenAccept(serverByWorldName -> {
                     if (serverByWorldName.equals(serverID)) {
                         // Delete the island on the current server
+                        plugin.debug("Island deleted on current server.");
                         islandOperation.deleteWorld(islandName)
                                 .thenRun(() -> {
-                                    logger.info("Island deleted on current server.");
                                     deleteIslandFuture.complete(null);
                                 });
                     } else {
                         // Send the request to delete the island on the server where it's located
+                        plugin.debug("Island delete request sent to server: " + serverByWorldName);
                         islandPublishRequest.sendRequest("deleteIsland:" + serverByWorldName + ":" + islandName)
                                 .thenRun(() -> {
-                                    logger.info("Island delete request sent to server: " + serverByWorldName);
                                     deleteIslandFuture.complete(null);
                                 });
                     }
                 })
                 .exceptionally(ex -> {
-                    logger.severe("Failed to delete island: " + ex.getMessage());
+                    plugin.info("Failed to delete island: " + ex.getMessage());
                     deleteIslandFuture.completeExceptionally(ex);
                     return null;
                 });
@@ -194,6 +199,7 @@ public class IslandHandler {
                 .thenAccept(serverByWorldName -> {
                     if (serverByWorldName.equals(serverID)) {
                         // Teleport to the island on the current server
+                        plugin.debug("Teleporting to island on current server.");
                         Optional<String> islandSpawn = cacheHandler.getPlayerIslandSpawn(player.getUniqueId(), UUID.fromString(islandName));
 
                         if (islandSpawn.isEmpty()) {
@@ -214,16 +220,16 @@ public class IslandHandler {
                         });
                     } else {
                         // Send the request to teleport to the island on the server where it's located
+                        plugin.debug("Island teleport request sent to server: " + serverByWorldName);
                         islandPublishRequest.sendRequest("teleportToIsland:" + serverByWorldName + ":" + islandName + ":" + player.getUniqueId())
                                 .thenRun(() -> {
                                     connectToServer(player, serverByWorldName);
-                                    logger.info("Island teleport request sent to server: " + serverByWorldName);
                                     teleportIslandFuture.complete(null);
                                 });
                     }
                 })
                 .exceptionally(ex -> {
-                    logger.severe("Failed to teleport to the island: " + ex.getMessage());
+                    plugin.info("Failed to teleport to the island: " + ex.getMessage());
                     teleportIslandFuture.completeExceptionally(ex);
                     return null;
                 });
@@ -238,10 +244,19 @@ public class IslandHandler {
         try {
             out.writeUTF("Connect");
             out.writeUTF(serverName);
+            plugin.debug("Sending connect request to server: " + serverName);
         } catch (IOException e) {
-            e.printStackTrace();
+            plugin.info("Failed to send connect request to server: " + e.getMessage());
         }
 
         player.sendPluginMessage(plugin, "BungeeCord", byteArray.toByteArray());
+    }
+
+    public void subscribeToRequests() {
+        islandSubscribeRequest.subscribeToRequests();
+    }
+    
+    public void unsubscribeFromRequests() {
+        islandSubscribeRequest.unsubscribeFromRequests();
     }
 }

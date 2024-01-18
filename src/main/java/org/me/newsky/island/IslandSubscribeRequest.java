@@ -1,22 +1,22 @@
 package org.me.newsky.island;
 
+import org.me.newsky.NewSky;
 import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.JedisPubSub;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.Logger;
 
 public class IslandSubscribeRequest {
 
-    private final Logger logger;
+    private final NewSky plugin;
     private final RedisHandler redisHandler;
     private final IslandOperation islandOperation;
     private final String serverID;
 
     private JedisPubSub requestSubscriber;
 
-    public IslandSubscribeRequest(Logger logger, RedisHandler redisHandler, IslandOperation islandOperation, String serverID) {
-        this.logger = logger;
+    public IslandSubscribeRequest(NewSky plugin, RedisHandler redisHandler, IslandOperation islandOperation, String serverID) {
+        this.plugin = plugin;
         this.redisHandler = redisHandler;
         this.islandOperation = islandOperation;
         this.serverID = serverID;
@@ -31,8 +31,12 @@ public class IslandSubscribeRequest {
 
                 // Process the request
                 processRequest(message).thenRun(() ->
-                        // Send response back to the sender
-                        redisHandler.publish("newsky-response-channel-" + requestID, serverID)
+                        // Send response
+                        {
+                            redisHandler.publish("newsky-response-channel-" + requestID, serverID);
+                            plugin.debug("Sent response back to request " + requestID + " to response channel.");
+                        }
+
                 );
             }
         };
@@ -59,39 +63,37 @@ public class IslandSubscribeRequest {
         switch (operation) {
             case "updateWorldList":
                 return islandOperation.updateWorldList()
-                        .thenRun(() -> logger.info("updateWorldList operation completed."));
+                        .thenRun(() -> plugin.debug("updateWorldList operation completed."));
             case "createIsland":
                 if (serverName != null && serverName.equals(serverID) && worldName != null) {
                     return islandOperation.createWorld(worldName)
-                            .thenRun(() -> logger.info("createIsland operation completed for world: " + worldName));
+                            .thenRun(() -> plugin.debug("createIsland operation completed for world: " + worldName));
                 }
                 break;
             case "loadIsland":
                 if (serverName != null && serverName.equals(serverID) && worldName != null) {
                     return islandOperation.loadWorld(worldName)
-                            .thenRun(() -> logger.info("loadIsland operation completed for world: " + worldName));
+                            .thenRun(() -> plugin.debug("loadIsland operation completed for world: " + worldName));
                 }
                 break;
             case "unloadIsland":
                 if (serverName != null && serverName.equals(serverID) && worldName != null) {
                     return islandOperation.unloadWorld(worldName)
-                            .thenRun(() -> logger.info("unloadIsland operation completed for world: " + worldName));
+                            .thenRun(() -> plugin.debug("unloadIsland operation completed for world: " + worldName));
                 }
                 break;
             case "deleteIsland":
                 if (serverName != null && serverName.equals(serverID) && worldName != null) {
                     return islandOperation.deleteWorld(worldName)
-                            .thenRun(() -> logger.info("deleteIsland operation completed for world: " + worldName));
+                            .thenRun(() -> plugin.debug("deleteIsland operation completed for world: " + worldName));
                 }
                 break;
             case "teleportToIsland":
                 if (serverName != null && serverName.equals(serverID) && playerName != null && worldName != null) {
                     return islandOperation.teleportToWorld(worldName, playerName)
-                            .thenRun(() -> logger.info("teleportToIsland operation completed for world: " + worldName));
+                            .thenRun(() -> plugin.debug("teleportToIsland operation completed for world: " + worldName));
                 }
                 break;
-            default:
-                return CompletableFuture.completedFuture(null);
         }
 
         return CompletableFuture.completedFuture(null);

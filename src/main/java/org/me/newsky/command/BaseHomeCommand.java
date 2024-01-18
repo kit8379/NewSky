@@ -30,32 +30,39 @@ public abstract class BaseHomeCommand {
 
         // Check if the sender is a player
         if (!(sender instanceof Player)) {
-            sender.sendMessage(config.getNoConsoleMessage());
+            sender.sendMessage("Only players can use this command.");
             return true;
         }
 
+        Player playerSender = (Player) sender;
         UUID targetUuid = getTargetUUID(sender, args);
-        Optional<UUID> islandUuid = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
+        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
 
-        // Check if the target island owner has an island
-        if (islandUuid.isEmpty()) {
-            sender.sendMessage(config.getPlayerNoIslandMessage(Bukkit.getOfflinePlayer(targetUuid).getName()));
+        // Check if the target island has an island
+        if (islandUuidOpt.isEmpty()) {
+            String playerName = Bukkit.getOfflinePlayer(targetUuid).getName();
+            sender.sendMessage(playerName + " has no island.");
             return true;
         }
 
-        // Teleport player to island
-        CompletableFuture<Void> homeIslandFuture = islandHandler.teleportToIsland((Player) sender, islandUuid.get().toString());
-        homeIslandFuture.thenRun(() -> {
-            sender.sendMessage("Teleported to island:" + islandUuid.get());
-        }).exceptionally(ex -> {
-            sender.sendMessage("There was an error teleporting to the island: " + ex.getMessage());
-            return null;
-        });
+        UUID islandUuid = islandUuidOpt.get();
+
+        CompletableFuture<Void> homeIslandFuture = islandHandler.teleportToIsland(playerSender, islandUuid.toString());
+        handleIslandTeleportFuture(homeIslandFuture, sender, islandUuid);
 
         return true;
     }
 
+    protected void handleIslandTeleportFuture(CompletableFuture<Void> future, CommandSender sender, UUID islandUuid) {
+        future.thenRun(() -> {
+            sender.sendMessage("Teleported to island:" + islandUuid);
+        }).exceptionally(ex -> {
+            sender.sendMessage("There was an error teleporting to the island.");
+            return null;
+        });
+    }
 
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
+
     protected abstract UUID getTargetUUID(CommandSender sender, String[] args);
 }

@@ -1,54 +1,54 @@
 package org.me.newsky.island;
 
+import org.bukkit.scheduler.BukkitTask;
+import org.me.newsky.NewSky;
+import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.redis.RedisHandler;
-import org.me.newsky.redis.RedisHeartBeat;
 import redis.clients.jedis.JedisPubSub;
 
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.logging.Logger;
+import java.util.concurrent.TimeoutException;
 
 public class IslandPublishRequest {
 
-    private final Logger logger;
+    private static final long TIMEOUT_SECONDS = 30L;
+
+    private final NewSky plugin;
     private final RedisHandler redisHandler;
-    private final RedisHeartBeat redisHeartBeat;
+    private final HeartBeatHandler heartBeatHandler;
     private final String serverID;
     private final Set<String> serversToWaitFor = ConcurrentHashMap.newKeySet();
 
-    public IslandPublishRequest(Logger logger, RedisHandler redisHandler, RedisHeartBeat redisHeartBeat, String serverID) {
-        this.logger = logger;
+    public IslandPublishRequest(NewSky plugin, RedisHandler redisHandler, HeartBeatHandler heartBeatHandler, String serverID) {
+        this.plugin = plugin;
         this.redisHandler = redisHandler;
-        this.redisHeartBeat = redisHeartBeat;
+        this.heartBeatHandler = heartBeatHandler;
         this.serverID = serverID;
     }
 
-
     public CompletableFuture<Void> sendRequest(String operation) {
         String requestID = "Req-" + UUID.randomUUID();
-
-        // Add all active servers to the list of servers to wait for
-        serversToWaitFor.addAll(redisHeartBeat.getActiveServers());
-
-        // Send the request
+        serversToWaitFor.addAll(heartBeatHandler.getActiveServers());
+        plugin.debug("Fetched Active Servers: " + serversToWaitFor);
         redisHandler.publish("newsky-request-channel", requestID + ":" + serverID + ":" + operation);
-        logger.info("Sent request " + requestID + " (" + serversToWaitFor.size() + " remaining)");
+        plugin.debug("Sent request " + requestID + "to request channel.");
 
         CompletableFuture<Void> future = new CompletableFuture<>();
+        BukkitTask timeoutTask = scheduleTimeoutTask(future, requestID);
 
-        // Wait for response
         JedisPubSub responseSubscriber = new JedisPubSub() {
             @Override
             public void onMessage(String channel, String message) {
                 String responderID = message;
-
                 serversToWaitFor.remove(responderID);
-                logger.info("Received response from " + responderID + " for request " + requestID + " (" + serversToWaitFor.size() + " remaining)");
+                plugin.debug("Received response from " + responderID + " for request " + requestID + " (" + serversToWaitFor.size() + " remaining)");
 
                 if (serversToWaitFor.isEmpty()) {
-                    logger.info("Received all responses for request " + requestID);
+                    plugin.debug("Received all responses for request " + requestID);
+                    timeoutTask.cancel();
                     this.unsubscribe();
                     future.complete(null);
                 }
@@ -56,7 +56,17 @@ public class IslandPublishRequest {
         };
 
         redisHandler.subscribe(responseSubscriber, "newsky-response-channel-" + requestID);
+        plugin.debug("Subscribed to response channel for request " + requestID + ", waiting for responses...");
 
         return future;
+    }
+
+    private BukkitTask scheduleTimeoutTask(CompletableFuture<Void> future, String requestID) {
+        return plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (!future.isDone()) {
+                future.completeExceptionally(new TimeoutException("Timeout waiting for responses to request:" + requestID));
+                plugin.info("Request " + requestID + " timed out.");
+            }
+        }, TIMEOUT_SECONDS * 20); // Convert seconds to server ticks (20 ticks per second)
     }
 }

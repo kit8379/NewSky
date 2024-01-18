@@ -17,7 +17,7 @@ public class IslandAddMemberCommand extends BaseAddMemberCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(config.getPlayerAddMemberCommandUsage());
+            sender.sendMessage("§eUsage: §b/island addmember <player>");
             return false;
         }
         return true;

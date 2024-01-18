@@ -65,7 +65,7 @@ public class AdminCommandExecutor implements CommandExecutor {
             case "reload":
                 return reloadCommand.execute(sender, args);
             default:
-                sender.sendMessage(config.getUnknownCommandMessage());
+                sender.sendMessage("§cUnknown subcommand.");
                 return true;
         }
     }

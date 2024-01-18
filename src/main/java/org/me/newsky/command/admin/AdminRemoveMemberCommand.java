@@ -17,7 +17,7 @@ public class AdminRemoveMemberCommand extends BaseRemoveMemberCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage(config.getAdminRemoveMemberCommandUsage());
+            sender.sendMessage("§eUsage: §b/island admin removemember <player> <island owner>");
             return false;
         }
         return true;

@@ -13,21 +13,15 @@ import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.event.PlayerJoinListener;
 import org.me.newsky.event.WorldEventListener;
 import org.me.newsky.island.IslandHandler;
-import org.me.newsky.island.IslandOperation;
-import org.me.newsky.island.IslandSubscribeRequest;
+import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.redis.RedisHandler;
-import org.me.newsky.redis.RedisHeartBeat;
 import org.me.newsky.teleport.TeleportManager;
 
 import java.util.Objects;
-import java.util.logging.Logger;
 
 public class NewSky extends JavaPlugin {
-    private Logger logger;
     private RedisHandler redisHandler;
-    private RedisHeartBeat redisHeartBeat;
-    private IslandOperation islandOperation;
-    private IslandSubscribeRequest islandSubscribeRequest;
+    private HeartBeatHandler heartBeatHandler;
     private DatabaseHandler databaseHandler;
     private CacheHandler cacheHandler;
     private TeleportManager teleportManager;
@@ -38,10 +32,9 @@ public class NewSky extends JavaPlugin {
 
     @Override
     public void onEnable() {
-        logger = getLogger();
-        logger.info("Plugin enabling...");
+        info("Plugin enabling...");
         initalize();
-        logger.info("Plugin enabled!");
+        info("Plugin enabled!");
     }
 
     private void initalize() {
@@ -53,9 +46,7 @@ public class NewSky extends JavaPlugin {
         initializeDatabase();
         initializeCache();
         initializeTeleportManager();
-        initalizeRedisHeartBeat();
-        initalizeIslandOperation();
-        initalizeRedisSubscribeRequest();
+        initalizeheartBeatHandler();
         initalizePluginMessaging();
         initializeIslandHandler();
         registerListeners();
@@ -72,11 +63,11 @@ public class NewSky extends JavaPlugin {
     }
 
     private void initializeConfig() {
-        logger.info("Start loading configuration now...");
+        info("Start loading configuration now...");
         try {
             saveDefaultConfig();
             config = new ConfigHandler(getConfig());
-            logger.info("Config load success!");
+            info("Config load success!");
         } catch (Exception e) {
             e.printStackTrace();
             throw new IllegalStateException("Config load fail!");
@@ -84,35 +75,57 @@ public class NewSky extends JavaPlugin {
     }
 
     private void initalizeServerID() {
-        logger.info("Start loading server ID now...");
+        info("Start loading server ID now...");
         try {
             serverID = config.getServerName();
-            logger.info("Server ID load success!");
-            logger.info("This Server ID: " + serverID);
+            info("Server ID load success!");
+            info("This Server ID: " + serverID);
         } catch (Exception e) {
             e.printStackTrace();
             throw new IllegalStateException("Server ID load fail!");
         }
     }
 
+    private void initializeMVWorldManager() {
+        info("Starting MVmanager");
+        try {
+            mvWorldManager = ((MultiverseCore) Objects.requireNonNull(Bukkit.getServer().getPluginManager().getPlugin("Multiverse-Core"))).getMVWorldManager();
+            info("MVmanager loaded");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IllegalStateException("MVmanager load fail! Plugin will be disabled!");
+        }
+    }
 
     private void initializeRedis() {
-        logger.info("Start connecting to Redis now...");
+        info("Start connecting to Redis now...");
         try {
             redisHandler = new RedisHandler(config);
-            logger.info("Redis connection success!");
+            info("Redis connection success!");
         } catch (Exception e) {
             e.printStackTrace();
             throw new IllegalStateException("Redis Fail! Plugin will be disabled!");
         }
     }
 
+    private void initializeDatabase() {
+        info("Start connecting to Database now...");
+        try {
+            databaseHandler = new DatabaseHandler(config);
+            databaseHandler.createTables();
+            info("Database connection success!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IllegalStateException("Database connection fail! Plugin will be disabled!");
+        }
+    }
+
     private void initializeCache() {
-        logger.info("Starting to cache into Redis");
+        info("Starting to cache into Redis");
         try {
             cacheHandler = new CacheHandler(redisHandler, databaseHandler);
             cacheHandler.cacheAllDataToRedis();
-            logger.info("Cache to Redis success");
+            info("Cache to Redis success");
         } catch (Exception e) {
             e.printStackTrace();
             throw new IllegalStateException("Cache to Redis fail! Plugin will be disabled!");
@@ -120,79 +133,35 @@ public class NewSky extends JavaPlugin {
     }
 
     private void initializeTeleportManager() {
-        logger.info("Starting teleport manager");
+        info("Starting teleport manager");
         try {
-            teleportManager = new TeleportManager(logger);
-            logger.info("Teleport manager loaded");
+            teleportManager = new TeleportManager(this);
+            info("Teleport manager loaded");
         } catch (Exception e) {
             e.printStackTrace();
             throw new IllegalStateException("Teleport manager load fail! Plugin will be disabled!");
         }
     }
 
-    private void initalizeRedisHeartBeat() {
-        logger.info("Start connecting to Redis Heart Beat now...");
+    private void initalizeheartBeatHandler() {
+        info("Start connecting to Heart Beat system now...");
         try {
-            redisHeartBeat = new RedisHeartBeat(this, logger, redisHandler, serverID);
-            redisHeartBeat.startHeartBeat();
-            logger.info("Redis Heart Beat success!");
+            heartBeatHandler = new HeartBeatHandler(this, redisHandler, serverID);
+            heartBeatHandler.startHeartBeat();
+            info("Heart Beat started!");
         } catch (Exception e) {
             e.printStackTrace();
             throw new IllegalStateException("Redis Heart Beat Fail! Plugin will be disabled!");
         }
     }
 
-    private void initalizeIslandOperation() {
-        logger.info("Start connecting to Island Operation now...");
-        try {
-            islandOperation = new IslandOperation(this, logger, config, mvWorldManager, cacheHandler, redisHandler, teleportManager);
-            logger.info("Redis Operation success!");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException("Redis Operation Fail! Plugin will be disabled!");
-        }
-    }
 
-    private void initalizeRedisSubscribeRequest() {
-        logger.info("Start connecting to Redis Subscribe Request now...");
-        try {
-            islandSubscribeRequest = new IslandSubscribeRequest(logger, redisHandler, islandOperation, serverID);
-            islandSubscribeRequest.subscribeToRequests();
-            logger.info("Redis Subscribe Request success!");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException("Redis Subscribe Request Fail! Plugin will be disabled!");
-        }
-    }
-
-    private void initializeDatabase() {
-        logger.info("Start connecting to Database now...");
-        try {
-            databaseHandler = new DatabaseHandler(config);
-            databaseHandler.createTables();
-            logger.info("Database connection success!");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException("Database connection fail! Plugin will be disabled!");
-        }
-    }
-
-    private void initializeMVWorldManager() {
-        logger.info("Starting MVmanager");
-        try {
-            mvWorldManager = ((MultiverseCore) Objects.requireNonNull(Bukkit.getServer().getPluginManager().getPlugin("Multiverse-Core"))).getMVWorldManager();
-            logger.info("MVmanager loaded");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException("MVmanager load fail! Plugin will be disabled!");
-        }
-    }
 
     private void initalizePluginMessaging() {
-        logger.info("Starting plugin messaging");
+        info("Starting plugin messaging");
         try {
             getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
-            logger.info("Plugin messaging loaded");
+            info("Plugin messaging loaded");
         } catch (Exception e) {
             e.printStackTrace();
             throw new IllegalStateException("Plugin messaging load fail! Plugin will be disabled!");
@@ -200,10 +169,11 @@ public class NewSky extends JavaPlugin {
     }
 
     private void initializeIslandHandler() {
-        logger.info("Starting island handler");
+        info("Starting island handler");
         try {
-            islandHandler = new IslandHandler(this, logger, redisHandler, cacheHandler, redisHeartBeat, islandOperation, serverID);
-            logger.info("Islands loaded");
+            islandHandler = new IslandHandler(this, config, mvWorldManager, redisHandler, cacheHandler, heartBeatHandler, teleportManager, serverID);
+            islandHandler.subscribeToRequests();
+            info("Islands loaded");
         } catch (Exception e) {
             e.printStackTrace();
             throw new IllegalStateException("Islands load fail! Plugin will be disabled!");
@@ -211,8 +181,8 @@ public class NewSky extends JavaPlugin {
     }
 
     private void registerListeners() {
-        getServer().getPluginManager().registerEvents(new WorldEventListener(logger), this);
-        getServer().getPluginManager().registerEvents(new PlayerJoinListener(logger, teleportManager), this);
+        getServer().getPluginManager().registerEvents(new WorldEventListener(this), this);
+        getServer().getPluginManager().registerEvents(new PlayerJoinListener(this ,teleportManager), this);
     }
 
     private void registerCommands() {
@@ -222,22 +192,32 @@ public class NewSky extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        logger.info("Plugin disabling...");
+        info("Plugin disabling...");
         shutdown();
-        logger.info("Plugin disabled!");
+        info("Plugin disabled!");
     }
 
     public void shutdown() {
-        islandSubscribeRequest.unsubscribeFromRequests();
-        redisHeartBeat.stopHeartBeat();
+        islandHandler.unsubscribeFromRequests();
+        heartBeatHandler.stopHeartBeat();
         redisHandler.disconnect();
         databaseHandler.close();
     }
 
     public void reload() {
-        logger.info("Plugin reloading...");
+        info("Plugin reloading...");
         shutdown();
         initalize();
-        logger.info("Plugin reloaded!");
+        info("Plugin reloaded!");
+    }
+
+    public void info(String message) {
+        getLogger().info(message);
+    }
+
+    public void debug(String message) {
+        if (config.isDebug()) {
+            getLogger().info("DEBUG: " + message);
+        }
     }
 }

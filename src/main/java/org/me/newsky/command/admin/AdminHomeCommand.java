@@ -18,7 +18,7 @@ public class AdminHomeCommand extends BaseHomeCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length != 2) {
-            sender.sendMessage(config.getAdminHomeCommandUsage());
+            sender.sendMessage("§eUsage: §b/island admin home <player>");
             return false;
         }
         return true;

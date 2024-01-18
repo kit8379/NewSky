@@ -27,11 +27,11 @@ public class IslandDeleteCommand extends BaseDeleteCommand {
 
     @Override
     protected String getNoIslandMessage(String[] args) {
-        return config.getNoIslandMessage();
+        return "§cYou do not have an island";
     }
 
     @Override
     protected String getIslandDeletedMessage(String[] args) {
-        return config.getIslandDeletedMessage();
+        return "§aIsland deleted";
     }
 }

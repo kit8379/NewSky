@@ -5,6 +5,7 @@ import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -26,9 +27,10 @@ public abstract class BaseCreateCommand {
         }
 
         UUID targetUuid = getTargetUuid(sender, args);
+        Optional<UUID> existingIslandUuid = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
 
         // Check if player already has an island
-        if (cacheHandler.getIslandUuidByPlayerUuid(targetUuid).isPresent()) {
+        if (existingIslandUuid.isPresent()) {
             sender.sendMessage(getExistingIslandMessage(args));
             return true;
         }
@@ -41,22 +43,30 @@ public abstract class BaseCreateCommand {
         String role = "owner";
 
         CompletableFuture<Void> createIslandFuture = islandHandler.createIsland(islandUuid.toString());
-        createIslandFuture.thenRun(() -> {
+        handleIslandCreationFuture(createIslandFuture, sender, targetUuid, islandUuid, spawnLocation, role, args);
+
+        return true;
+    }
+
+    protected void handleIslandCreationFuture(CompletableFuture<Void> future, CommandSender sender, UUID targetUuid, UUID islandUuid, String spawnLocation, String role, String[] args) {
+        future.thenRun(() -> {
             cacheHandler.createIsland(islandUuid);
             cacheHandler.addIslandPlayer(targetUuid, islandUuid, spawnLocation, role);
             sender.sendMessage(getIslandCreatedMessage(args));
             performPostCreationActions(sender, targetUuid, islandUuid);
         }).exceptionally(ex -> {
-            sender.sendMessage("There was an error creating the island: " + ex.getMessage());
+            sender.sendMessage("There was an error creating the island.");
             return null;
         });
-
-        return true;
     }
 
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
+
     protected abstract UUID getTargetUuid(CommandSender sender, String[] args);
+
     protected abstract String getExistingIslandMessage(String[] args);
+
     protected abstract String getIslandCreatedMessage(String[] args);
+
     protected abstract void performPostCreationActions(CommandSender sender, UUID targetUuid, UUID islandUuid);
 }

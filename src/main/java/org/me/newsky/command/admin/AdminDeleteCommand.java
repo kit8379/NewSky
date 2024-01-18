@@ -18,7 +18,7 @@ public class AdminDeleteCommand extends BaseDeleteCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(config.getAdminDeleteIslandCommandUsage());
+            sender.sendMessage("§eUsage: §b/island admin delete <player>");
             return false;
         }
         return true;
@@ -31,11 +31,11 @@ public class AdminDeleteCommand extends BaseDeleteCommand {
 
     @Override
     protected String getNoIslandMessage(String[] args) {
-        return config.getPlayerNoIslandMessage(args[1]);
+        return "§cPlayer " + args[1] + " does not have an island";
     }
 
     @Override
     protected String getIslandDeletedMessage(String[] args) {
-        return config.getPlayerIslandDeletedMessage(args[1]);
+        return "§aIsland deleted for player " + args[1];
     }
 }

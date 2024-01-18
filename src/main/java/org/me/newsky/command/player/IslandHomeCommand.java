@@ -18,7 +18,7 @@ public class IslandHomeCommand extends BaseHomeCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length != 1) {
-            sender.sendMessage(config.getPlayerHomeCommandUsage());
+            sender.sendMessage("§eUsage: §b/island home");
             return false;
         }
         return true;

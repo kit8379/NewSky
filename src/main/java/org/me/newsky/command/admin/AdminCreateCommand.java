@@ -18,7 +18,7 @@ public class AdminCreateCommand extends BaseCreateCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(config.getAdminCreateIslandCommandUsage());
+            sender.sendMessage("§eUsage: §b/island admin create <player>");
             return false;
         }
         return true;
@@ -31,12 +31,12 @@ public class AdminCreateCommand extends BaseCreateCommand {
 
     @Override
     protected String getExistingIslandMessage(String[] args) {
-        return config.getPlayerHasIslandMessage(args[1]);
+        return "§cPlayer" + args[1] + "already has an island";
     }
 
     @Override
     protected String getIslandCreatedMessage(String[] args) {
-        return config.getPlayerIslandCreatedMessage(args[1]);
+        return "§aIsland created for player " + args[1];
     }
 
     @Override

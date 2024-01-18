@@ -15,25 +15,22 @@ import redis.clients.jedis.Jedis;
 import java.io.File;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.Logger;
 
 public class IslandOperation {
 
     private final NewSky plugin;
-    private final Logger logger;
     private final ConfigHandler config;
     private final MVWorldManager mvWorldManager;
     private final CacheHandler cacheHandler;
     private final RedisHandler redisHandler;
     private final TeleportManager teleportManager;
 
-    public IslandOperation(NewSky plugin, Logger logger, ConfigHandler config, MVWorldManager mvWorldManager, CacheHandler cacheHandler, RedisHandler redisHandler, TeleportManager teleportManager) {
+    public IslandOperation(NewSky plugin, ConfigHandler config, MVWorldManager mvWorldManager, RedisHandler redisHandler, CacheHandler cacheHandler, TeleportManager teleportManager) {
         this.plugin = plugin;
-        this.logger = logger;
         this.config = config;
         this.mvWorldManager = mvWorldManager;
-        this.cacheHandler = cacheHandler;
         this.redisHandler = redisHandler;
+        this.cacheHandler = cacheHandler;
         this.teleportManager = teleportManager;
     }
 
@@ -127,12 +124,10 @@ public class IslandOperation {
         CompletableFuture<Void> createFuture = new CompletableFuture<>();
 
         Bukkit.getScheduler().runTask(plugin, () -> {
-            logger.info("Creating world " + worldName);
             String generatorName = "VoidGen";
             World.Environment environment = World.Environment.NORMAL;
             WorldType worldType = WorldType.NORMAL;
             mvWorldManager.addWorld(worldName, environment, null, worldType, true, generatorName, false);
-            logger.info("Created world " + worldName);
             createFuture.complete(null);  // Completes the future after the task
         });
 

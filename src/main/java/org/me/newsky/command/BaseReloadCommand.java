@@ -20,7 +20,7 @@ public abstract class BaseReloadCommand {
         }
 
         plugin.reload();
-        sender.sendMessage(config.getReloadMessage());
+        sender.sendMessage("§aPlugin reloaded");
         return true;
     }
 

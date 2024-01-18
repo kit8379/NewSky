@@ -62,7 +62,7 @@ public class IslandCommandExecutor implements CommandExecutor {
             case "home":
                 return homeCommand.execute(sender, args);
             default:
-                sender.sendMessage(config.getUnknownCommandMessage());
+                sender.sendMessage("§cUnknown subcommand: " + subCommand);
                 return true;
         }
     }

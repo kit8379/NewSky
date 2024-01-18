@@ -26,36 +26,44 @@ public abstract class BaseAddMemberCommand {
 
         OfflinePlayer targetAdd = Bukkit.getOfflinePlayer(args[getTargetAddArgIndex()]);
         UUID islandOwnerId = getIslandOwnerUuid(sender, args);
-        Optional<UUID> islandUuid = cacheHandler.getIslandUuidByPlayerUuid(islandOwnerId);
+
+        // Extracted the island owner's name into a variable for better readability
+        String islandOwnerName = Bukkit.getOfflinePlayer(islandOwnerId).getName();
+
+        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(islandOwnerId);
 
         // Check if the target island owner has an island
-        if (islandUuid.isEmpty()) {
-            sender.sendMessage(config.getPlayerNoIslandMessage(Bukkit.getOfflinePlayer(islandOwnerId).getName()));
+        if (islandUuidOpt.isEmpty()) {
+            sender.sendMessage(islandOwnerName + " has no island.");
             return true;
         }
 
+        UUID islandUuid = islandUuidOpt.get(); // Unwrap the Optional for further use
+
         // Check if the target player is the island owner
         if (targetAdd.getUniqueId().equals(islandOwnerId)) {
-            sender.sendMessage(config.getPlayerAlreadyIslandOwnerMessage(targetAdd.getName()));
+            sender.sendMessage(targetAdd.getName() + " is the island owner.");
             return true;
         }
 
         // Check if the target player is already a member of the island
-        if (cacheHandler.getIslandMembers(islandUuid.get()).contains(targetAdd.getUniqueId())) {
-            sender.sendMessage(config.getPlayerAlreadyMemberMessage(targetAdd.getName()));
+        if (cacheHandler.getIslandMembers(islandUuid).contains(targetAdd.getUniqueId())) {
+            sender.sendMessage(targetAdd.getName() + " is already a member of " + islandOwnerName + "'s island.");
             return true;
         }
 
         // Add the target player to the island
         String spawnLocation = "0,100,0,100,100";
         String role = "member";
-        cacheHandler.addIslandPlayer(targetAdd.getUniqueId(), islandUuid.get(), spawnLocation, role);
-        sender.sendMessage(config.getPlayerIslandAddedMessage(targetAdd.getName(), Bukkit.getOfflinePlayer(islandOwnerId).getName()));
+        cacheHandler.addIslandPlayer(targetAdd.getUniqueId(), islandUuid, spawnLocation, role);
+        sender.sendMessage(targetAdd.getName() + " has been added to " + islandOwnerName + "'s island.");
 
         return true;
     }
 
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
+
     protected abstract int getTargetAddArgIndex();
+
     protected abstract UUID getIslandOwnerUuid(CommandSender sender, String[] args);
 }

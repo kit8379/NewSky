@@ -28,12 +28,12 @@ public class IslandCreateCommand extends BaseCreateCommand {
 
     @Override
     protected String getExistingIslandMessage(String[] args) {
-        return config.getHasIslandMessage();
+        return "§cYou already have an island";
     }
 
     @Override
     protected String getIslandCreatedMessage(String[] args) {
-        return config.getIslandCreatedMessage();
+        return "§aIsland created";
     }
 
     @Override
@@ -43,7 +43,7 @@ public class IslandCreateCommand extends BaseCreateCommand {
         homeIslandFuture.thenRun(() -> {
             sender.sendMessage("Teleported to island");
         }).exceptionally(ex -> {
-            sender.sendMessage("There was an error teleporting to the island: " + ex.getMessage());
+            sender.sendMessage("There was an error teleporting to the island.");
             return null;
         });
     }

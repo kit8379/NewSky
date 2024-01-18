@@ -36,22 +36,27 @@ public abstract class BaseDeleteCommand {
 
         UUID islandUuid = islandUuidOpt.get();
 
-        // Delete island
         CompletableFuture<Void> deleteIslandFuture = islandHandler.deleteIsland(islandUuid.toString());
-
-        deleteIslandFuture.thenRun(() -> {
-            cacheHandler.deleteIsland(islandUuid);
-            sender.sendMessage(getIslandDeletedMessage(args));
-        }).exceptionally(ex -> {
-            sender.sendMessage("There was an error deleting the island: " + ex.getMessage());
-            return null;
-        });
+        handleIslandDeletionFuture(deleteIslandFuture, sender, islandUuid, args);
 
         return true;
     }
 
+    protected void handleIslandDeletionFuture(CompletableFuture<Void> future, CommandSender sender, UUID islandUuid, String[] args) {
+        future.thenRun(() -> {
+            cacheHandler.deleteIsland(islandUuid);
+            sender.sendMessage(getIslandDeletedMessage(args));
+        }).exceptionally(ex -> {
+            sender.sendMessage("There was an error deleting the island.");
+            return null;
+        });
+    }
+
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
+
     protected abstract UUID getTargetUuid(CommandSender sender, String[] args);
+
     protected abstract String getNoIslandMessage(String[] args);
+
     protected abstract String getIslandDeletedMessage(String[] args);
 }

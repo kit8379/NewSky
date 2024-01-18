@@ -8,6 +8,7 @@ import org.me.newsky.config.ConfigHandler;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public abstract class BaseInfoCommand {
 
@@ -21,38 +22,35 @@ public abstract class BaseInfoCommand {
 
     public boolean execute(CommandSender sender, String[] args) {
         UUID targetUuid = getTargetUuid(sender, args);
-        Optional<UUID> islandUuid = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
+        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
 
-        if (islandUuid.isEmpty()) {
-            sender.sendMessage(config.getPlayerNoIslandMessage(Bukkit.getOfflinePlayer(targetUuid).getName()));
+        if (islandUuidOpt.isEmpty()) {
+            sender.sendMessage("You have no island.");
             return true;
         }
 
-        Optional<UUID> ownerUuid = cacheHandler.getIslandOwner(islandUuid.get());
+        UUID islandUuid = islandUuidOpt.get();
+        Optional<UUID> ownerUuidOpt = cacheHandler.getIslandOwner(islandUuid);
 
-        if(ownerUuid.isEmpty()) {
-            sender.sendMessage(config.getNoIslandOwnerMessage());
+        if (ownerUuidOpt.isEmpty()) {
+            sender.sendMessage("Your island has no owner.");
             return true;
         }
 
-        Set<UUID> memberUuids = cacheHandler.getIslandMembers(islandUuid.get());
-        StringBuilder membersString = buildMembersString(memberUuids);
+        UUID ownerUuid = ownerUuidOpt.get();
+        Set<UUID> memberUuids = cacheHandler.getIslandMembers(islandUuid);
+        String membersString = buildMembersString(memberUuids);
 
-        sender.sendMessage(config.getIslandInfo(islandUuid.get().toString(), Bukkit.getOfflinePlayer(ownerUuid.get()).getName(), membersString.toString()));
+        sender.sendMessage("Island Owner: " + Bukkit.getOfflinePlayer(ownerUuid).getName());
+        sender.sendMessage("Island Members: " + membersString);
 
         return true;
     }
 
-    private StringBuilder buildMembersString(Set<UUID> memberUuids) {
-        StringBuilder membersString = new StringBuilder();
-        for (UUID memberUuid : memberUuids) {
-            String memberName = Bukkit.getOfflinePlayer(memberUuid).getName();
-            membersString.append(memberName).append(", ");
-        }
-        if (membersString.length() > 0) {
-            membersString = new StringBuilder(membersString.substring(0, membersString.length() - 2));
-        }
-        return membersString;
+    private String buildMembersString(Set<UUID> memberUuids) {
+        return memberUuids.stream()
+                .map(uuid -> Bukkit.getOfflinePlayer(uuid).getName())
+                .collect(Collectors.joining(", "));
     }
 
     protected abstract UUID getTargetUuid(CommandSender sender, String[] args);
