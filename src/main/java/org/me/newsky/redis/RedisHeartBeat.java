@@ -50,7 +50,6 @@ public class RedisHeartBeat {
         // Send a heartbeat every 5 seconds.
         redisHandler.publish("newsky-heartbeat-channel", serverID);
         serverLastHeartbeat.put(serverID, System.currentTimeMillis());
-        logger.info("Sent heartbeat");
     }
 
     public void listenForHeartBeats() {
@@ -58,7 +57,6 @@ public class RedisHeartBeat {
             @Override
             public void onMessage(String channel, String message) {
                 serverLastHeartbeat.put(message, System.currentTimeMillis());
-                logger.info("Received heartbeat from " + message);
             }
         };
 
@@ -70,7 +68,6 @@ public class RedisHeartBeat {
         serverLastHeartbeat.forEach((server, lastHeartbeat) -> {
             if (now - lastHeartbeat > 5000) {  // 5 seconds without heartbeat
                 serverLastHeartbeat.remove(server);
-                logger.info("Server " + server + " timed out. Removing from active servers.");
             }
         });
     }

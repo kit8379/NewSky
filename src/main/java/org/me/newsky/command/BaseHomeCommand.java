@@ -43,12 +43,10 @@ public abstract class BaseHomeCommand {
             return true;
         }
 
-        Player player = (Player) sender;
-
         // Teleport player to island
-        CompletableFuture<Void> homeIslandFuture = islandHandler.teleportToIsland(player, islandUuid.toString());
+        CompletableFuture<Void> homeIslandFuture = islandHandler.teleportToIsland((Player) sender, islandUuid.get().toString());
         homeIslandFuture.thenRun(() -> {
-            sender.sendMessage("Teleported to island");
+            sender.sendMessage("Teleported to island:" + islandUuid.get());
         }).exceptionally(ex -> {
             sender.sendMessage("There was an error teleporting to the island: " + ex.getMessage());
             return null;

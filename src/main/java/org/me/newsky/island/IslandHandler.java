@@ -33,7 +33,7 @@ public class IslandHandler {
         this.cacheHandler = cacheHandler;
         this.islandOperation = islandOperation;
         this.serverID = serverID;
-        this.islandPublishRequest = new IslandPublishRequest(redisHandler, redisHeartBeat, serverID);
+        this.islandPublishRequest = new IslandPublishRequest(logger, redisHandler, redisHeartBeat, serverID);
     }
 
     public CompletableFuture<Void> createIsland(String islandName) {

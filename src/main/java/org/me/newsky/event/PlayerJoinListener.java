@@ -22,8 +22,13 @@ public class PlayerJoinListener implements Listener {
 
     @EventHandler(priority= EventPriority.HIGHEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
+        logger.info("PlayerJoinEvent triggered for " + event.getPlayer().getName());
+
         UUID playerId = event.getPlayer().getUniqueId();
+
         Location pendingLocation = teleportManager.getPendingTeleport(playerId);
+
+        logger.info("Pending location for " + playerId + " is " + pendingLocation);
         if (pendingLocation != null) {
             event.getPlayer().teleport(pendingLocation);
             logger.info("Teleporting " + playerId + " to pending location.");

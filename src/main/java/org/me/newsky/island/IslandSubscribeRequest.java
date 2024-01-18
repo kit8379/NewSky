@@ -86,16 +86,15 @@ public class IslandSubscribeRequest {
                 break;
             case "teleportToIsland":
                 if (serverName != null && serverName.equals(serverID) && playerName != null && worldName != null) {
-                    return islandOperation.teleportToWorld(playerName, worldName)
+                    return islandOperation.teleportToWorld(worldName, playerName)
                             .thenRun(() -> logger.info("teleportToIsland operation completed for world: " + worldName));
                 }
                 break;
             default:
-                logger.warning("Unknown operation: " + operation);
-                break;
+                return CompletableFuture.completedFuture(null);
         }
 
-        return CompletableFuture.failedFuture(new IllegalArgumentException("Invalid parameters for operation: " + operation));
+        return CompletableFuture.completedFuture(null);
     }
 }
 

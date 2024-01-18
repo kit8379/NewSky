@@ -6,16 +6,20 @@ import redis.clients.jedis.JedisPubSub;
 
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
 
 public class IslandPublishRequest {
 
+    private final Logger logger;
     private final RedisHandler redisHandler;
     private final RedisHeartBeat redisHeartBeat;
     private final String serverID;
     private final Set<String> serversToWaitFor = ConcurrentHashMap.newKeySet();
 
-    public IslandPublishRequest(RedisHandler redisHandler, RedisHeartBeat redisHeartBeat, String serverID) {
+    public IslandPublishRequest(Logger logger, RedisHandler redisHandler, RedisHeartBeat redisHeartBeat, String serverID) {
+        this.logger = logger;
         this.redisHandler = redisHandler;
         this.redisHeartBeat = redisHeartBeat;
         this.serverID = serverID;
@@ -30,6 +34,7 @@ public class IslandPublishRequest {
 
         // Send the request
         redisHandler.publish("newsky-request-channel", requestID + ":" + serverID + ":" + operation);
+        logger.info("Sent request " + requestID + " (" + serversToWaitFor.size() + " remaining)");
 
         CompletableFuture<Void> future = new CompletableFuture<>();
 
@@ -40,8 +45,10 @@ public class IslandPublishRequest {
                 String responderID = message;
 
                 serversToWaitFor.remove(responderID);
+                logger.info("Received response from " + responderID + " for request " + requestID + " (" + serversToWaitFor.size() + " remaining)");
 
                 if (serversToWaitFor.isEmpty()) {
+                    logger.info("Received all responses for request " + requestID);
                     this.unsubscribe();
                     future.complete(null);
                 }
@@ -50,19 +57,6 @@ public class IslandPublishRequest {
 
         redisHandler.subscribe(responseSubscriber, "newsky-response-channel-" + requestID);
 
-        // Schedule a task to complete the future exceptionally after a timeout
-        ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
-        executor.schedule(() -> {
-            if (!future.isDone()) {
-                future.completeExceptionally(new TimeoutException("Timeout waiting for servers to respond"));
-            }
-            executor.shutdown();
-        }, 30, TimeUnit.SECONDS); // 30 seconds timeout
-
-        return future.exceptionally(throwable -> {
-            // Clean up in case of any exception
-            responseSubscriber.unsubscribe();
-            return null;
-        });
+        return future;
     }
 }

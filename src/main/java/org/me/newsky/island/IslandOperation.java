@@ -124,30 +124,58 @@ public class IslandOperation {
     }
 
     public CompletableFuture<Void> createWorld(String worldName) {
-        return CompletableFuture.runAsync(() -> Bukkit.getScheduler().runTask(plugin, () -> {
+        CompletableFuture<Void> createFuture = new CompletableFuture<>();
+
+        Bukkit.getScheduler().runTask(plugin, () -> {
             logger.info("Creating world " + worldName);
             String generatorName = "VoidGen";
             World.Environment environment = World.Environment.NORMAL;
             WorldType worldType = WorldType.NORMAL;
             mvWorldManager.addWorld(worldName, environment, null, worldType, true, generatorName, false);
             logger.info("Created world " + worldName);
-        }));
+            createFuture.complete(null);  // Completes the future after the task
+        });
+
+        return createFuture;
     }
+
 
     public CompletableFuture<Void> loadWorld(String worldName) {
-        return CompletableFuture.runAsync(() -> Bukkit.getScheduler().runTask(plugin, () -> mvWorldManager.loadWorld(worldName)));
+        CompletableFuture<Void> loadFuture = new CompletableFuture<>();
+
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            mvWorldManager.loadWorld(worldName);
+            loadFuture.complete(null); // Complete the future after the task
+        });
+
+        return loadFuture;
     }
+
 
     public CompletableFuture<Void> unloadWorld(String worldName) {
-        return CompletableFuture.runAsync(() -> Bukkit.getScheduler().runTask(plugin, () -> mvWorldManager.unloadWorld(worldName)));
+        CompletableFuture<Void> unloadFuture = new CompletableFuture<>();
+
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            mvWorldManager.unloadWorld(worldName);
+            unloadFuture.complete(null); // Complete the future after the task
+        });
+
+        return unloadFuture;
     }
 
+
     public CompletableFuture<Void> deleteWorld(String worldName) {
-        return CompletableFuture.runAsync(() -> Bukkit.getScheduler().runTask(plugin, () -> {
+        CompletableFuture<Void> deleteFuture = new CompletableFuture<>();
+
+        Bukkit.getScheduler().runTask(plugin, () -> {
             mvWorldManager.unloadWorld(worldName);
             mvWorldManager.deleteWorld(worldName);
-        }));
+            deleteFuture.complete(null);
+        });
+
+        return deleteFuture;
     }
+
 
     public CompletableFuture<Void> teleportToWorld(String worldUuidString, String playerUuidString) {
         CompletableFuture<Void> future = new CompletableFuture<>();
@@ -172,7 +200,7 @@ public class IslandOperation {
 
             // Switching back to the main thread to interact with the Minecraft world
             Bukkit.getScheduler().runTask(plugin, () -> {
-                Location location = new Location(Bukkit.getWorld(worldUuid), x, y, z, yaw, pitch);
+                Location location = new Location(Bukkit.getWorld(worldUuidString), x, y, z, yaw, pitch);
                 teleportManager.addPendingTeleport(playerUuid, location);
                 future.complete(null);
 
