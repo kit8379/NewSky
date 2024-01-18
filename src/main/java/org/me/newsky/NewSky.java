@@ -135,7 +135,7 @@ public class NewSky extends JavaPlugin {
         try {
             redisHeartBeat = new RedisHeartBeat(this, logger, redisHandler, serverID);
             // Only start the heartbeat if the server is in island mode
-            if (config.getServerMode().equalsIgnoreCase("island")) {
+            if (config.getServerMode().equalsIgnoreCase("skyblock")) {
                 redisHeartBeat.startHeartBeat();
             }
             // Listen for heart beats from other servers
