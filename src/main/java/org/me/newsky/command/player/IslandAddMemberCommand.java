@@ -32,4 +32,14 @@ public class IslandAddMemberCommand extends BaseAddMemberCommand {
     protected UUID getIslandOwnerUuid(CommandSender sender, String[] args) {
         return ((Player) sender).getUniqueId();
     }
+
+    @Override
+    protected String getNoIslandMessage(String[] args) {
+        return "§cYou do not have an island";
+    }
+
+    @Override
+    protected String getIslandAddMemberSuccessMessage(String[] args) {
+        return "§aAdded " + args[1] + " to your island";
+    }
 }

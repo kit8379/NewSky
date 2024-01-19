@@ -28,4 +28,14 @@ public class IslandHomeCommand extends BaseHomeCommand {
     protected UUID getTargetUUID(CommandSender sender, String[] args) {
         return ((Player) sender).getUniqueId();
     }
+
+    @Override
+    protected String getNoIslandMessage(String[] args) {
+        return "§cYou do not have an island";
+    }
+
+    @Override
+    protected String getIslandHomeSuccessMessage(String[] args) {
+        return "§cTeleported to your island";
+    }
 }

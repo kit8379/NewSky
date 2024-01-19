@@ -52,7 +52,7 @@ public abstract class BaseCreateCommand {
         future.thenRun(() -> {
             cacheHandler.createIsland(islandUuid);
             cacheHandler.addIslandPlayer(targetUuid, islandUuid, spawnLocation, role);
-            sender.sendMessage(getIslandCreatedMessage(args));
+            sender.sendMessage(getIslandCreateSuccessMessage(args));
             performPostCreationActions(sender, targetUuid, islandUuid);
         }).exceptionally(ex -> {
             sender.sendMessage("There was an error creating the island.");
@@ -66,7 +66,7 @@ public abstract class BaseCreateCommand {
 
     protected abstract String getExistingIslandMessage(String[] args);
 
-    protected abstract String getIslandCreatedMessage(String[] args);
+    protected abstract String getIslandCreateSuccessMessage(String[] args);
 
     protected abstract void performPostCreationActions(CommandSender sender, UUID targetUuid, UUID islandUuid);
 }

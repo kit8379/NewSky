@@ -172,13 +172,13 @@ public class IslandOperation {
     }
 
 
-    public CompletableFuture<Void> teleportToWorld(String worldUuidString, String playerUuidString) {
+    public CompletableFuture<Void> teleportToWorld(String worldName, String playerName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
         // Asynchronous task to fetch island spawn
         CompletableFuture.runAsync(() -> {
-            UUID playerUuid = UUID.fromString(playerUuidString);
-            UUID worldUuid = UUID.fromString(worldUuidString);
+            UUID worldUuid = UUID.fromString(worldName);
+            UUID playerUuid = UUID.fromString(playerName);
 
             Optional<String> islandSpawn = cacheHandler.getPlayerIslandSpawn(playerUuid, worldUuid);
 
@@ -195,7 +195,7 @@ public class IslandOperation {
 
             // Switching back to the main thread to interact with the Minecraft world
             Bukkit.getScheduler().runTask(plugin, () -> {
-                Location location = new Location(Bukkit.getWorld(worldUuidString), x, y, z, yaw, pitch);
+                Location location = new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch);
                 teleportManager.addPendingTeleport(playerUuid, location);
                 future.complete(null);
 

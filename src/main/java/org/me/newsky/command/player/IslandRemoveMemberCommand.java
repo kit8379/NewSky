@@ -32,4 +32,14 @@ public class IslandRemoveMemberCommand extends BaseRemoveMemberCommand {
     protected UUID getIslandOwnerUuid(CommandSender sender, String[] args) {
         return ((Player) sender).getUniqueId();
     }
+
+    @Override
+    protected String getNoIslandMessage(String[] args) {
+        return "§cYou do not have an island";
+    }
+
+    @Override
+    protected String getIslandRemoveMemberSuccessMessage(String[] args) {
+        return "§aRemoved " + args[1] + " from your island";
+    }
 }

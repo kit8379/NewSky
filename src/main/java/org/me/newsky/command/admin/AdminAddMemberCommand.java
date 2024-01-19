@@ -32,4 +32,14 @@ public class AdminAddMemberCommand extends BaseAddMemberCommand {
     protected UUID getIslandOwnerUuid(CommandSender sender, String[] args) {
         return Bukkit.getOfflinePlayer(args[2]).getUniqueId();
     }
+
+    @Override
+    protected String getNoIslandMessage(String[] args) {
+        return "§cPlayer " + args[2] + " does not have an island";
+    }
+
+    @Override
+    protected String getIslandAddMemberSuccessMessage(String[] args) {
+        return "§aAdded " + args[1] + " to " + args[2] + "'s island";
+    }
 }

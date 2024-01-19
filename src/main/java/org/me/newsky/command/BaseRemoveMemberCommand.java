@@ -28,18 +28,18 @@ public abstract class BaseRemoveMemberCommand {
         UUID islandOwnerId = getIslandOwnerUuid(sender, args);
         Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(islandOwnerId);
 
+        // Check if the target island owner has an island
         if (islandUuidOpt.isEmpty()) {
-            String islandOwnerName = Bukkit.getOfflinePlayer(islandOwnerId).getName();
-            sender.sendMessage(islandOwnerName + " has no island.");
+            sender.sendMessage(getNoIslandMessage(args));
             return true;
         }
 
+        // Unwrap the Optional for further use
         UUID islandUuid = islandUuidOpt.get();
 
         // Check if the target player is not a member of the island
         if (!cacheHandler.getIslandMembers(islandUuid).contains(targetRemove.getUniqueId())) {
-            String islandOwnerName = Bukkit.getOfflinePlayer(islandOwnerId).getName();
-            sender.sendMessage(targetRemove.getName() + " is not a member of " + islandOwnerName + "'s island.");
+            sender.sendMessage(targetRemove.getName() + " is not a member of the island.");
             return true;
         }
 
@@ -51,8 +51,8 @@ public abstract class BaseRemoveMemberCommand {
 
         // Remove the target player from the island
         cacheHandler.deleteIslandPlayer(targetRemove.getUniqueId(), islandUuid);
-        String islandOwnerName = Bukkit.getOfflinePlayer(islandOwnerId).getName();
-        sender.sendMessage("Removed " + targetRemove.getName() + " from " + islandOwnerName + "'s island.");
+
+        sender.sendMessage(getIslandRemoveMemberSuccessMessage(args));
 
         return true;
     }
@@ -60,4 +60,6 @@ public abstract class BaseRemoveMemberCommand {
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
     protected abstract int getTargetRemoveArgIndex();
     protected abstract UUID getIslandOwnerUuid(CommandSender sender, String[] args);
+    protected abstract String getNoIslandMessage(String[] args);
+    protected abstract String getIslandRemoveMemberSuccessMessage(String[] args);
 }

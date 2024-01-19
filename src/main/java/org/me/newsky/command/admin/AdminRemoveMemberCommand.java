@@ -32,4 +32,14 @@ public class AdminRemoveMemberCommand extends BaseRemoveMemberCommand {
     protected UUID getIslandOwnerUuid(CommandSender sender, String[] args) {
         return Bukkit.getOfflinePlayer(args[2]).getUniqueId();
     }
+
+    @Override
+    protected String getNoIslandMessage(String[] args) {
+        return "§cPlayer " + args[2] + " does not have an island";
+    }
+
+    @Override
+    protected String getIslandRemoveMemberSuccessMessage(String[] args) {
+        return "§aRemoved " + args[1] + " from " + args[2] + "'s island";
+    }
 }

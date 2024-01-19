@@ -35,7 +35,7 @@ public class AdminCreateCommand extends BaseCreateCommand {
     }
 
     @Override
-    protected String getIslandCreatedMessage(String[] args) {
+    protected String getIslandCreateSuccessMessage(String[] args) {
         return "§aIsland created for player " + args[1];
     }
 

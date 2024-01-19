@@ -45,7 +45,7 @@ public abstract class BaseDeleteCommand {
     protected void handleIslandDeletionFuture(CompletableFuture<Void> future, CommandSender sender, UUID islandUuid, String[] args) {
         future.thenRun(() -> {
             cacheHandler.deleteIsland(islandUuid);
-            sender.sendMessage(getIslandDeletedMessage(args));
+            sender.sendMessage(getIslandDeleteSuccessMessage(args));
         }).exceptionally(ex -> {
             sender.sendMessage("There was an error deleting the island.");
             return null;
@@ -58,5 +58,5 @@ public abstract class BaseDeleteCommand {
 
     protected abstract String getNoIslandMessage(String[] args);
 
-    protected abstract String getIslandDeletedMessage(String[] args);
+    protected abstract String getIslandDeleteSuccessMessage(String[] args);
 }

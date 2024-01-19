@@ -35,7 +35,7 @@ public class AdminDeleteCommand extends BaseDeleteCommand {
     }
 
     @Override
-    protected String getIslandDeletedMessage(String[] args) {
+    protected String getIslandDeleteSuccessMessage(String[] args) {
         return "§aIsland deleted for player " + args[1];
     }
 }

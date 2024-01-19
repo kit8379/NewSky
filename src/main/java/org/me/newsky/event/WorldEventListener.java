@@ -6,13 +6,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldInitEvent;
 import org.me.newsky.NewSky;
 
-import java.util.regex.Pattern;
-
 public class WorldEventListener implements Listener {
 
     private final NewSky plugin;
-    private static final Pattern UUID_PATTERN =
-            Pattern.compile("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$");
 
     public WorldEventListener(NewSky plugin) {
         this.plugin = plugin;
@@ -20,8 +16,10 @@ public class WorldEventListener implements Listener {
 
     @EventHandler(priority=EventPriority.HIGHEST)
     public void worldInit(WorldInitEvent e) {
+        plugin.debug("WorldInitEvent triggered for " + e.getWorld().getName());
+
         String worldName = e.getWorld().getName();
-        if(UUID_PATTERN.matcher(worldName).matches()) {
+        if (worldName.startsWith("island-")) {
             e.getWorld().setKeepSpawnInMemory(false);
             plugin.debug("World " + worldName + " set to not keep spawn in memory.");
         }

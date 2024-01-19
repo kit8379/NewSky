@@ -32,7 +32,7 @@ public class IslandCreateCommand extends BaseCreateCommand {
     }
 
     @Override
-    protected String getIslandCreatedMessage(String[] args) {
+    protected String getIslandCreateSuccessMessage(String[] args) {
         return "§aIsland created";
     }
 

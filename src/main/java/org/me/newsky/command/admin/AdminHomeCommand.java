@@ -28,4 +28,14 @@ public class AdminHomeCommand extends BaseHomeCommand {
     protected UUID getTargetUUID(CommandSender sender, String[] args) {
         return Bukkit.getOfflinePlayer(args[1]).getUniqueId();
     }
+
+    @Override
+    protected String getNoIslandMessage(String[] args) {
+        return "§cPlayer " + args[1] + " does not have an island";
+    }
+
+    @Override
+    protected String getIslandHomeSuccessMessage(String[] args) {
+        return "§cTeleported to " + args[1] + "'s island";
+    }
 }

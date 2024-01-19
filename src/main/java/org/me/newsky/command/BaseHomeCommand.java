@@ -1,6 +1,5 @@
 package org.me.newsky.command;
 
-import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.cache.CacheHandler;
@@ -40,22 +39,21 @@ public abstract class BaseHomeCommand {
 
         // Check if the target island has an island
         if (islandUuidOpt.isEmpty()) {
-            String playerName = Bukkit.getOfflinePlayer(targetUuid).getName();
-            sender.sendMessage(playerName + " has no island.");
+            sender.sendMessage(getNoIslandMessage(args));
             return true;
         }
 
         UUID islandUuid = islandUuidOpt.get();
 
         CompletableFuture<Void> homeIslandFuture = islandHandler.teleportToIsland(playerSender, islandUuid.toString());
-        handleIslandTeleportFuture(homeIslandFuture, sender, islandUuid);
+        handleIslandTeleportFuture(homeIslandFuture, sender, args);
 
         return true;
     }
 
-    protected void handleIslandTeleportFuture(CompletableFuture<Void> future, CommandSender sender, UUID islandUuid) {
+    protected void handleIslandTeleportFuture(CompletableFuture<Void> future, CommandSender sender, String[] args) {
         future.thenRun(() -> {
-            sender.sendMessage("Teleported to island:" + islandUuid);
+            sender.sendMessage(getIslandHomeSuccessMessage(args));
         }).exceptionally(ex -> {
             sender.sendMessage("There was an error teleporting to the island.");
             return null;
@@ -65,4 +63,8 @@ public abstract class BaseHomeCommand {
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
 
     protected abstract UUID getTargetUUID(CommandSender sender, String[] args);
+
+    protected abstract String getNoIslandMessage(String[] args);
+
+    protected abstract String getIslandHomeSuccessMessage(String[] args);
 }
