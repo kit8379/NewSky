@@ -10,7 +10,6 @@ public class CacheHandler {
 
     private final RedisHandler redisHandler;
     private final DatabaseHandler databaseHandler;
-
     public CacheHandler(RedisHandler redisHandler, DatabaseHandler databaseHandler) {
         this.redisHandler = redisHandler;
         this.databaseHandler = databaseHandler;

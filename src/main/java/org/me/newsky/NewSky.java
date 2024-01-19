@@ -217,7 +217,7 @@ public class NewSky extends JavaPlugin {
 
     public void debug(String message) {
         if (config.isDebug()) {
-            getLogger().info("DEBUG: " + message);
+            getLogger().info("§bDEBUG: " + message);
         }
     }
 }

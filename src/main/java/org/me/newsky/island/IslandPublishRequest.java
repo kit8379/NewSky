@@ -1,6 +1,5 @@
 package org.me.newsky.island;
 
-import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
 import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.redis.RedisHandler;
@@ -15,7 +14,6 @@ import java.util.concurrent.TimeoutException;
 public class IslandPublishRequest {
 
     private static final long TIMEOUT_SECONDS = 30L;
-
     private final NewSky plugin;
     private final RedisHandler redisHandler;
     private final HeartBeatHandler heartBeatHandler;
@@ -31,13 +29,16 @@ public class IslandPublishRequest {
 
     public CompletableFuture<Void> sendRequest(String operation) {
         String requestID = "Req-" + UUID.randomUUID();
+
+        // Get active servers
         serversToWaitFor.addAll(heartBeatHandler.getActiveServers());
         plugin.debug("Fetched Active Servers: " + serversToWaitFor);
+
+        // Send request
         redisHandler.publish("newsky-request-channel", requestID + ":" + serverID + ":" + operation);
         plugin.debug("Sent request " + requestID + "to request channel.");
 
         CompletableFuture<Void> future = new CompletableFuture<>();
-        BukkitTask timeoutTask = scheduleTimeoutTask(future, requestID);
 
         JedisPubSub responseSubscriber = new JedisPubSub() {
             @Override
@@ -47,26 +48,39 @@ public class IslandPublishRequest {
                 plugin.debug("Received response from " + responderID + " for request " + requestID + " (" + serversToWaitFor.size() + " remaining)");
 
                 if (serversToWaitFor.isEmpty()) {
+                    // Received all responses
                     plugin.debug("Received all responses for request " + requestID);
-                    timeoutTask.cancel();
+
+                    // Unsubscribe from the response channel
                     this.unsubscribe();
+                    plugin.debug("Unsubscribed from response channel for request: " + requestID);
+
                     future.complete(null);
+
                 }
             }
         };
 
         redisHandler.subscribe(responseSubscriber, "newsky-response-channel-" + requestID);
-        plugin.debug("Subscribed to response channel for request " + requestID + ", waiting for responses...");
+        plugin.debug("Subscribed to response channel for request: " + requestID + ", waiting for responses...");
+
+        scheduleTimeoutTask(future, requestID, responseSubscriber);
 
         return future;
     }
 
-    private BukkitTask scheduleTimeoutTask(CompletableFuture<Void> future, String requestID) {
-        return plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+    private void scheduleTimeoutTask(CompletableFuture<Void> future, String requestID, JedisPubSub responseSubscriber) {
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (!future.isDone()) {
-                future.completeExceptionally(new TimeoutException("Timeout waiting for responses to request:" + requestID));
                 plugin.info("Request " + requestID + " timed out.");
+
+                // Unsubscribe from the response channel
+                responseSubscriber.unsubscribe();
+                plugin.debug("Unsubscribed from response channel due to timeout for request: " + requestID);
+
+                future.completeExceptionally(new TimeoutException("Timeout waiting for responses to request:" + requestID));
+
             }
-        }, TIMEOUT_SECONDS * 20); // Convert seconds to server ticks (20 ticks per second)
+        }, TIMEOUT_SECONDS * 20);
     }
 }
