@@ -42,7 +42,7 @@ public abstract class BaseCreateCommand {
         String spawnLocation = "0,100,0,100,100";
         String role = "owner";
 
-        CompletableFuture<Void> createIslandFuture = islandHandler.createIsland(islandUuid.toString());
+        CompletableFuture<Void> createIslandFuture = islandHandler.createIsland(islandUuid);
         handleIslandCreationFuture(createIslandFuture, sender, targetUuid, islandUuid, spawnLocation, role, args);
 
         return true;
