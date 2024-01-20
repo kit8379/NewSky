@@ -36,7 +36,7 @@ public abstract class BaseDeleteCommand {
 
         UUID islandUuid = islandUuidOpt.get();
 
-        CompletableFuture<Void> deleteIslandFuture = islandHandler.deleteIsland(islandUuid.toString());
+        CompletableFuture<Void> deleteIslandFuture = islandHandler.deleteIsland(islandUuid);
         handleIslandDeletionFuture(deleteIslandFuture, sender, islandUuid, args);
 
         return true;

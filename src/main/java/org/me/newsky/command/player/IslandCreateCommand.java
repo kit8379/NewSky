@@ -39,7 +39,7 @@ public class IslandCreateCommand extends BaseCreateCommand {
     @Override
     protected void performPostCreationActions(CommandSender sender, UUID targetUuid, UUID islandUuid) {
         // Teleport player to island
-        CompletableFuture<Void> homeIslandFuture = islandHandler.teleportToIsland((Player) sender, islandUuid.toString());
+        CompletableFuture<Void> homeIslandFuture = islandHandler.teleportToIsland((Player) sender, islandUuid);
         homeIslandFuture.thenRun(() -> {
             sender.sendMessage("Teleported to island");
         }).exceptionally(ex -> {

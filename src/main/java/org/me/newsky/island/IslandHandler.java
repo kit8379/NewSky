@@ -41,7 +41,9 @@ public class IslandHandler {
         this.islandSubscribeRequest = new IslandSubscribeRequest(plugin, redisHandler, islandOperation, serverID);
     }
 
-    public CompletableFuture<Void> createIsland(String islandName) {
+    public CompletableFuture<Void> createIsland(UUID islandUuid) {
+        String islandName = "island-" + islandUuid.toString();
+
         CompletableFuture<Void> createIslandFuture = new CompletableFuture<>();
 
         // Send the request to update world list
@@ -78,7 +80,9 @@ public class IslandHandler {
     }
 
 
-    public CompletableFuture<Void> loadIsland(String islandName) {
+    public CompletableFuture<Void> loadIsland(UUID islandUuid) {
+        String islandName = "island-" + islandUuid.toString();
+
         CompletableFuture<Void> loadIslandFuture = new CompletableFuture<>();
 
         // Send the request to update world list
@@ -114,7 +118,9 @@ public class IslandHandler {
         return loadIslandFuture;
     }
 
-    public CompletableFuture<Void> unloadIsland(String islandName) {
+    public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
+        String islandName = "island-" + islandUuid.toString();
+
         CompletableFuture<Void> unloadIslandFuture = new CompletableFuture<>();
 
         // Send the request to update world list
@@ -150,7 +156,9 @@ public class IslandHandler {
         return unloadIslandFuture;
     }
 
-    public CompletableFuture<Void> deleteIsland(String islandName) {
+    public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
+        String islandName = "island-" + islandUuid.toString();
+
         CompletableFuture<Void> deleteIslandFuture = new CompletableFuture<>();
 
         // Send the request to update world list
@@ -186,7 +194,9 @@ public class IslandHandler {
         return deleteIslandFuture;
     }
 
-    public CompletableFuture<Void> teleportToIsland(Player player, String islandName) {
+    public CompletableFuture<Void> teleportToIsland(Player player, UUID islandUuid) {
+        String islandName = "island-" + islandUuid.toString();
+
         CompletableFuture<Void> teleportIslandFuture = new CompletableFuture<>();
 
         // Send the request to update world list
