@@ -287,6 +287,8 @@ public class IslandHandler {
     }
 
     private String findServerByWorldName(String worldName, Set<String> worldListResponses) {
+        plugin.debug("Searching for server by world name: " + worldName);
+        plugin.debug("Processing world list responses: " + worldListResponses);
         for (String response : worldListResponses) {
             String[] serverAndWorlds = response.split(":", 2);
             if (serverAndWorlds.length < 2) continue; // Skip if no worlds are listed
