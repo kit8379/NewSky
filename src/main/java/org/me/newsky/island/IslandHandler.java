@@ -288,7 +288,8 @@ public class IslandHandler {
 
     private String findServerByWorldName(String worldName, Set<String> worldListResponses) {
         for (String response : worldListResponses) {
-            String[] serverAndWorlds = response.split(":");
+            String[] serverAndWorlds = response.split(":", 2);
+            if (serverAndWorlds.length < 2) continue; // Skip if no worlds are listed
             String serverId = serverAndWorlds[0];
             String[] worlds = serverAndWorlds[1].split(",");
             for (String world : worlds) {
@@ -299,4 +300,5 @@ public class IslandHandler {
         }
         return null;
     }
+
 }

@@ -34,10 +34,6 @@ public class IslandPublishRequest {
         serversToWaitFor.addAll(heartBeatHandler.getActiveServers());
         plugin.debug("Fetched Active Servers: " + serversToWaitFor);
 
-        // Send request
-        redisHandler.publish("newsky-request-channel", requestID + ":" + serverID + ":" + operation);
-        plugin.debug("Sent request " + requestID + "to request channel.");
-
         CompletableFuture<Void> future = new CompletableFuture<>();
 
         JedisPubSub responseSubscriber = new JedisPubSub() {
@@ -61,8 +57,13 @@ public class IslandPublishRequest {
             }
         };
 
+        // Subscribe to the response channel
         redisHandler.subscribe(responseSubscriber, "newsky-response-channel-" + requestID);
         plugin.debug("Subscribed to response channel for request: " + requestID + ", waiting for responses...");
+
+        // Send request
+        redisHandler.publish("newsky-request-channel", requestID + ":" + serverID + ":" + operation);
+        plugin.debug("Sent request " + requestID + "to request channel.");
 
         scheduleTimeoutTask(future, requestID, responseSubscriber);
 

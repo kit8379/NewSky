@@ -29,11 +29,9 @@ public class UpdatePublishRequest {
 
     public CompletableFuture<Set<String>> sendUpdateRequest() {
         String requestID = "UpdateReq-" + UUID.randomUUID();
+
         serversToWaitFor.addAll(heartBeatHandler.getActiveServers());
         plugin.debug("Fetched Active Servers: " + serversToWaitFor);
-
-        redisHandler.publish("newsky-update-request-channel", requestID + ":" + serverID + ":updateWorldList");
-        plugin.debug("Sent update request " + requestID + " to update request channel.");
 
         CompletableFuture<Set<String>> future = new CompletableFuture<>();
         Set<String> responses = ConcurrentHashMap.newKeySet();
@@ -41,6 +39,8 @@ public class UpdatePublishRequest {
         JedisPubSub responseSubscriber = new JedisPubSub() {
             @Override
             public void onMessage(String channel, String message) {
+                plugin.debug("Raw response message: " + message);
+
                 String[] parts = message.split(":");
                 String responderID = parts[0];
                 String responseData = parts.length > 1 ? parts[1] : null;
@@ -59,8 +59,13 @@ public class UpdatePublishRequest {
             }
         };
 
+        // Subscribe to the response channel
         redisHandler.subscribe(responseSubscriber, "newsky-update-response-channel-" + requestID);
         plugin.debug("Subscribed to update response channel for request: " + requestID + ", waiting for update responses...");
+
+        // Publish the request
+        redisHandler.publish("newsky-update-request-channel", requestID + ":" + serverID + ":updateWorldList");
+        plugin.debug("Sent update request " + requestID + " to update request channel.");
 
         scheduleTimeoutTask(future, requestID, responseSubscriber);
 
