@@ -61,9 +61,6 @@ public class IslandSubscribeRequest {
 
         // Perform the operation based on the type
         switch (operation) {
-            case "updateWorldList":
-                return islandOperation.updateWorldList()
-                        .thenRun(() -> plugin.debug("updateWorldList operation completed."));
             case "createIsland":
                 if (serverName != null && serverName.equals(serverID) && worldName != null) {
                     return islandOperation.createWorld(worldName)
