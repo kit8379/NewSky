@@ -221,12 +221,17 @@ public class IslandHandler {
                 .thenAccept(serverByWorldName -> {
                     if (serverByWorldName.equals(serverID)) {
                         // Teleport to the island on the current server
+                        plugin.debug("Island teleported to on current server.");
                         teleportToIslandOnCurrentServer(player, islandUuid, islandName, teleportIslandFuture);
                     } else {
                         // Send the request to teleport to the island on the server where it's located
                         plugin.debug("Island teleport request sent to server: " + serverByWorldName);
-                        connectToServer(player, serverByWorldName); // Assuming this method handles the server connection
-                        teleportIslandFuture.complete(null);
+                        islandPublishRequest.sendRequest("teleportToIsland:" + serverByWorldName + ":" + islandName + ":" + player.getUniqueId())
+                                .thenRun(() -> {
+                                    // Connect to the server where the island is located
+                                    connectToServer(player, serverByWorldName); // Assuming this method handles the server connection
+                                    teleportIslandFuture.complete(null);
+                                });
                     }
                 })
                 .exceptionally(ex -> {
@@ -272,7 +277,6 @@ public class IslandHandler {
         } catch (IOException e) {
             plugin.info("Failed to send connect request to server: " + e.getMessage());
         }
-
         player.sendPluginMessage(plugin, "BungeeCord", byteArray.toByteArray());
     }
 
@@ -289,6 +293,7 @@ public class IslandHandler {
     private String findServerByWorldName(String worldName, Set<String> worldListResponses) {
         plugin.debug("Searching for server by world name: " + worldName);
         plugin.debug("Processing world list responses: " + worldListResponses);
+
         for (String response : worldListResponses) {
             String[] serverAndWorlds = response.split(":", 2);
             if (serverAndWorlds.length < 2) continue; // Skip if no worlds are listed

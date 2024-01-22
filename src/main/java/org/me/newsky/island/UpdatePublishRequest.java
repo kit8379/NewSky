@@ -47,7 +47,7 @@ public class UpdatePublishRequest {
 
                 serversToWaitFor.remove(responderID);
                 if (responseData != null) {
-                    responses.add(responseData);
+                    responses.add(responderID + ":" + responseData);
                 }
                 plugin.debug("Received update response from " + responderID + " for request " + requestID + " (" + serversToWaitFor.size() + " remaining)");
 
