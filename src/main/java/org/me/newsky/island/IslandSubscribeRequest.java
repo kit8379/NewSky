@@ -28,6 +28,11 @@ public class IslandSubscribeRequest {
             public void onMessage(String channel, String message) {
                 String[] parts = message.split(":");
                 String requestID = parts[0];
+                String receiverID = parts[2];
+
+                if(!receiverID.equals(serverID)) {
+                    return;
+                }
 
                 // Process the request
                 processRequest(message).thenRun(() ->
@@ -52,47 +57,31 @@ public class IslandSubscribeRequest {
 
     private CompletableFuture<Void> processRequest(String message) {
         String[] parts = message.split(":");
-        String operation = parts[2];
+        String operation = parts[3];
 
         // Extract additional data from the message
-        String serverName = parts.length > 3 ? parts[3] : null;
         String worldName = parts.length > 4 ? parts[4] : null;
         String playerName = parts.length > 5 ? parts[5] : null;
 
         // Perform the operation based on the type
-        switch (operation) {
-            case "createIsland":
-                if (serverName != null && serverName.equals(serverID) && worldName != null) {
-                    return islandOperation.createWorld(worldName)
-                            .thenRun(() -> plugin.debug("createIsland operation completed for world: " + worldName));
-                }
-                break;
-            case "loadIsland":
-                if (serverName != null && serverName.equals(serverID) && worldName != null) {
-                    return islandOperation.loadWorld(worldName)
-                            .thenRun(() -> plugin.debug("loadIsland operation completed for world: " + worldName));
-                }
-                break;
-            case "unloadIsland":
-                if (serverName != null && serverName.equals(serverID) && worldName != null) {
-                    return islandOperation.unloadWorld(worldName)
-                            .thenRun(() -> plugin.debug("unloadIsland operation completed for world: " + worldName));
-                }
-                break;
-            case "deleteIsland":
-                if (serverName != null && serverName.equals(serverID) && worldName != null) {
-                    return islandOperation.deleteWorld(worldName)
-                            .thenRun(() -> plugin.debug("deleteIsland operation completed for world: " + worldName));
-                }
-                break;
-            case "teleportToIsland":
-                if (serverName != null && serverName.equals(serverID) && playerName != null && worldName != null) {
-                    return islandOperation.teleportToWorld(worldName, playerName)
-                            .thenRun(() -> plugin.debug("teleportToIsland operation completed for world: " + worldName));
-                }
-                break;
+        if ("createIsland".equals(operation)) {
+            return islandOperation.createWorld(worldName)
+                    .thenRun(() -> {
+                        plugin.debug("createIsland operation completed for world: " + worldName);
+                    });
         }
-
+        if ("deleteIsland".equals(operation)) {
+            return islandOperation.deleteWorld(worldName)
+                    .thenRun(() -> {
+                        plugin.debug("deleteIsland operation completed for world: " + worldName);
+                    });
+        }
+        if ("teleportToIsland".equals(operation)) {
+            return islandOperation.teleportToWorld(worldName, playerName)
+                    .thenRun(() -> {
+                        plugin.debug("teleportToIsland operation completed for world: " + worldName);
+                    });
+        }
         return CompletableFuture.completedFuture(null);
     }
 }

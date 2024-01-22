@@ -45,8 +45,6 @@ public abstract class BaseHomeCommand {
 
         UUID islandUuid = islandUuidOpt.get();
 
-        CompletableFuture<Void> loadIslandFuture = islandHandler.loadIsland(islandUuid);
-        handleIslandTeleportFuture(loadIslandFuture, sender, args);
         CompletableFuture<Void> homeIslandFuture = islandHandler.teleportToIsland(playerSender, islandUuid);
         handleIslandTeleportFuture(homeIslandFuture, sender, args);
 

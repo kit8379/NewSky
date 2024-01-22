@@ -55,7 +55,6 @@ public class UpdateSubscribeRequest {
         return islandOperation.updateWorldList()
                 .thenApply(responseData -> {
                     plugin.debug("updateWorldList operation completed.");
-                    // Splitting the string and converting it into a set
                     return new HashSet<>(Arrays.asList(responseData.split(",")));
                 });
     }

@@ -32,7 +32,7 @@ public class IslandHandler {
         this.serverID = serverID;
 
         this.islandOperation = new IslandOperation(plugin, mvWorldManager, cacheHandler, teleportManager);
-        this.islandPublishRequest = new IslandPublishRequest(plugin, redisHandler, heartBeatHandler, serverID);
+        this.islandPublishRequest = new IslandPublishRequest(plugin, redisHandler, serverID);
         this.islandSubscribeRequest = new IslandSubscribeRequest(plugin, redisHandler, islandOperation, serverID);
         this.updatePublishRequest = new UpdatePublishRequest(plugin, redisHandler, heartBeatHandler, serverID);
         this.updateSubscribeRequest = new UpdateSubscribeRequest(plugin, redisHandler, islandOperation, serverID);
@@ -70,7 +70,7 @@ public class IslandHandler {
         } else {
             // Send the request to create island on the selected server
             plugin.debug("Island creation request sent to server: " + selectedServer);
-            islandPublishRequest.sendRequest("createIsland:" + selectedServer + ":" + islandName)
+            islandPublishRequest.sendRequest(selectedServer, "createIsland:" + islandName)
                     .thenRun(() -> {
                         createIslandFuture.complete(null);
                     });
@@ -82,81 +82,6 @@ public class IslandHandler {
         });
 
         return createIslandFuture;
-    }
-
-
-    public CompletableFuture<Void> loadIsland(UUID islandUuid) {
-        String islandName = "island-" + islandUuid.toString();
-
-        CompletableFuture<Void> loadIslandFuture = new CompletableFuture<>();
-
-        // Request the world list from all active servers
-        updatePublishRequest.sendUpdateRequest()
-                .thenCompose(worldListResponses -> {
-                    // Process the responses to find the server where the island is located
-                    String serverByWorldName = findServerByWorldName(islandName, worldListResponses);
-                    if (serverByWorldName == null) {
-                        throw new IllegalStateException("Island not found on any server");
-                    }
-                    return CompletableFuture.completedFuture(serverByWorldName);
-                })
-                .thenAccept(serverByWorldName -> {
-                    if (serverByWorldName.equals(serverID)) {
-                        // Load the island on the current server
-                        plugin.debug("Island loaded on current server.");
-                        islandOperation.loadWorld(islandName)
-                                .thenRun(() -> loadIslandFuture.complete(null));
-                    } else {
-                        // Send the request to load the island on the server where it's located
-                        plugin.debug("Island load request sent to server: " + serverByWorldName);
-                        islandPublishRequest.sendRequest("loadIsland:" + serverByWorldName + ":" + islandName)
-                                .thenRun(() -> loadIslandFuture.complete(null));
-                    }
-                })
-                .exceptionally(ex -> {
-                    plugin.info("Failed to load island: " + ex.getMessage());
-                    loadIslandFuture.completeExceptionally(ex);
-                    return null;
-                });
-
-        return loadIslandFuture;
-    }
-
-    public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
-        String islandName = "island-" + islandUuid.toString();
-
-        CompletableFuture<Void> unloadIslandFuture = new CompletableFuture<>();
-
-        // Request the world list from all active servers
-        updatePublishRequest.sendUpdateRequest()
-                .thenCompose(worldListResponses -> {
-                    // Process the responses to find the server where the island is located
-                    String serverByWorldName = findServerByWorldName(islandName, worldListResponses);
-                    if (serverByWorldName == null) {
-                        throw new IllegalStateException("Island not found on any server");
-                    }
-                    return CompletableFuture.completedFuture(serverByWorldName);
-                })
-                .thenAccept(serverByWorldName -> {
-                    if (serverByWorldName.equals(serverID)) {
-                        // Unload the island on the current server
-                        plugin.debug("Island unloaded on current server.");
-                        islandOperation.unloadWorld(islandName)
-                                .thenRun(() -> unloadIslandFuture.complete(null));
-                    } else {
-                        // Send the request to unload the island on the server where it's located
-                        plugin.debug("Island unload request sent to server: " + serverByWorldName);
-                        islandPublishRequest.sendRequest("unloadIsland:" + serverByWorldName + ":" + islandName)
-                                .thenRun(() -> unloadIslandFuture.complete(null));
-                    }
-                })
-                .exceptionally(ex -> {
-                    plugin.info("Failed to unload island: " + ex.getMessage());
-                    unloadIslandFuture.completeExceptionally(ex);
-                    return null;
-                });
-
-        return unloadIslandFuture;
     }
 
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
@@ -183,7 +108,7 @@ public class IslandHandler {
                     } else {
                         // Send the request to delete the island on the server where it's located
                         plugin.debug("Island delete request sent to server: " + serverByWorldName);
-                        islandPublishRequest.sendRequest("deleteIsland:" + serverByWorldName + ":" + islandName)
+                        islandPublishRequest.sendRequest(serverByWorldName, "deleteIsland:" + islandName)
                                 .thenRun(() -> deleteIslandFuture.complete(null));
                     }
                 })
@@ -220,7 +145,7 @@ public class IslandHandler {
                     } else {
                         // Send the request to teleport to the island on the server where it's located
                         plugin.debug("Island teleport request sent to server: " + serverByWorldName);
-                        islandPublishRequest.sendRequest("teleportToIsland:" + serverByWorldName + ":" + islandName + ":" + player.getUniqueId())
+                        islandPublishRequest.sendRequest(serverByWorldName, "teleportToIsland:" + islandName + ":" + player.getUniqueId())
                                 .thenRun(() -> {
                                     // Connect to the server where the island is located
                                     connectToServer(player, serverByWorldName); // Assuming this method handles the server connection

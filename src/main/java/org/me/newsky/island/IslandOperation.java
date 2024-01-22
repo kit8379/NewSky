@@ -32,20 +32,28 @@ public class IslandOperation {
     }
 
     public CompletableFuture<String> updateWorldList() {
-        return CompletableFuture.supplyAsync(() -> {
-            File worldContainer = plugin.getServer().getWorldContainer();
-            File[] files = worldContainer.listFiles();
-            if (files != null) {
-                return Arrays.stream(files)
-                        .filter(File::isDirectory)
-                        .map(File::getName)
-                        .filter(name -> name.startsWith("island-"))
-                        .collect(Collectors.joining(","));
-            } else {
-                throw new IllegalStateException("Failed to list files in world container");
+        CompletableFuture<String> updateFuture = new CompletableFuture<>();
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                File worldContainer = plugin.getServer().getWorldContainer();
+                File[] files = worldContainer.listFiles();
+                if (files != null) {
+                    String result = Arrays.stream(files)
+                            .filter(File::isDirectory)
+                            .map(File::getName)
+                            .filter(name -> name.startsWith("island-"))
+                            .collect(Collectors.joining(","));
+                    updateFuture.complete(result); // Manually completing the future with the result
+                }
+            } catch (Exception e) {
+                updateFuture.completeExceptionally(e); // Completing the future exceptionally in case of an error
             }
         });
+
+        return updateFuture;
     }
+
 
     public CompletableFuture<Void> createWorld(String worldName) {
         CompletableFuture<Void> createFuture = new CompletableFuture<>();
@@ -59,30 +67,6 @@ public class IslandOperation {
         });
 
         return createFuture;
-    }
-
-
-    public CompletableFuture<Void> loadWorld(String worldName) {
-        CompletableFuture<Void> loadFuture = new CompletableFuture<>();
-
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            mvWorldManager.loadWorld(worldName);
-            loadFuture.complete(null);
-        });
-
-        return loadFuture;
-    }
-
-
-    public CompletableFuture<Void> unloadWorld(String worldName) {
-        CompletableFuture<Void> unloadFuture = new CompletableFuture<>();
-
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            mvWorldManager.unloadWorld(worldName);
-            unloadFuture.complete(null); // Complete the future after the task
-        });
-
-        return unloadFuture;
     }
 
 
@@ -125,7 +109,7 @@ public class IslandOperation {
                 mvWorldManager.loadWorld(worldName);
                 Location location = new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch);
                 Player player = Bukkit.getPlayer(playerUuid);
-                if(player != null) {
+                if (player != null) {
                     player.teleport(location);
                 } else {
                     teleportManager.addPendingTeleport(playerUuid, location);
@@ -136,6 +120,7 @@ public class IslandOperation {
             future.completeExceptionally(e);
             return null;
         });
+
         return future;
     }
 }
