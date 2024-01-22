@@ -4,7 +4,6 @@ import com.onarandombox.MultiverseCore.api.MVWorldManager;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.teleport.TeleportManager;
@@ -27,12 +26,12 @@ public class IslandHandler {
     private final UpdateSubscribeRequest updateSubscribeRequest;
 
 
-    public IslandHandler(NewSky plugin, ConfigHandler config, MVWorldManager mvWorldManager, RedisHandler redisHandler, CacheHandler cacheHandler, HeartBeatHandler heartBeatHandler, TeleportManager teleportManager, String serverID) {
+    public IslandHandler(NewSky plugin, MVWorldManager mvWorldManager, RedisHandler redisHandler, CacheHandler cacheHandler, HeartBeatHandler heartBeatHandler, TeleportManager teleportManager, String serverID) {
         this.plugin = plugin;
         this.heartBeatHandler = heartBeatHandler;
         this.serverID = serverID;
 
-        this.islandOperation = new IslandOperation(plugin, config, mvWorldManager, cacheHandler, teleportManager);
+        this.islandOperation = new IslandOperation(plugin, mvWorldManager, cacheHandler, teleportManager);
         this.islandPublishRequest = new IslandPublishRequest(plugin, redisHandler, heartBeatHandler, serverID);
         this.islandSubscribeRequest = new IslandSubscribeRequest(plugin, redisHandler, islandOperation, serverID);
         this.updatePublishRequest = new UpdatePublishRequest(plugin, redisHandler, heartBeatHandler, serverID);

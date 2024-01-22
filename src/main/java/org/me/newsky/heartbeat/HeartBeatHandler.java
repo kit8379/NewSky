@@ -16,14 +16,16 @@ public class HeartBeatHandler {
     private final NewSky plugin;
     private final RedisHandler redisHandler;
     private final String serverID;
+    private final String serverMode;
     private JedisPubSub heartBeatSubscriber;
     private BukkitTask combinedTask;
     private final ConcurrentHashMap<String, Long> serverLastHeartbeat = new ConcurrentHashMap<>();
 
-    public HeartBeatHandler(NewSky plugin, RedisHandler redisHandler, String serverID) {
+    public HeartBeatHandler(NewSky plugin, RedisHandler redisHandler, String serverID, String serverMode) {
         this.plugin = plugin;
         this.redisHandler = redisHandler;
         this.serverID = serverID;
+        this.serverMode = serverMode;
     }
 
     public void startHeartBeat() {
@@ -41,7 +43,9 @@ public class HeartBeatHandler {
     }
 
     private void combinedHeartBeatTask() {
-        sendHeartBeats();
+        if(serverMode.equals("island")) {
+            sendHeartBeats();
+        }
         checkServerTimeouts();
     }
 

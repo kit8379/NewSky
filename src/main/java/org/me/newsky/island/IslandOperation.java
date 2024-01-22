@@ -8,7 +8,6 @@ import org.bukkit.WorldType;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.teleport.TeleportManager;
 
 import java.io.File;
@@ -21,14 +20,12 @@ import java.util.stream.Collectors;
 public class IslandOperation {
 
     private final NewSky plugin;
-    private final ConfigHandler config;
     private final MVWorldManager mvWorldManager;
     private final CacheHandler cacheHandler;
     private final TeleportManager teleportManager;
 
-    public IslandOperation(NewSky plugin, ConfigHandler config, MVWorldManager mvWorldManager, CacheHandler cacheHandler, TeleportManager teleportManager) {
+    public IslandOperation(NewSky plugin, MVWorldManager mvWorldManager, CacheHandler cacheHandler, TeleportManager teleportManager) {
         this.plugin = plugin;
-        this.config = config;
         this.mvWorldManager = mvWorldManager;
         this.cacheHandler = cacheHandler;
         this.teleportManager = teleportManager;
