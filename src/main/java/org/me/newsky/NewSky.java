@@ -15,16 +15,18 @@ import org.me.newsky.event.WorldEventListener;
 import org.me.newsky.island.IslandHandler;
 import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.redis.RedisHandler;
+import org.me.newsky.scheduler.WorldUnloadHandler;
 import org.me.newsky.teleport.TeleportManager;
 
 import java.util.Objects;
 
 public class NewSky extends JavaPlugin {
     private RedisHandler redisHandler;
-    private HeartBeatHandler heartBeatHandler;
     private DatabaseHandler databaseHandler;
     private CacheHandler cacheHandler;
     private TeleportManager teleportManager;
+    private HeartBeatHandler heartBeatHandler;
+    private WorldUnloadHandler worldUnloadHandler;
     private IslandHandler islandHandler;
     private MVWorldManager mvWorldManager;
     private ConfigHandler config;
@@ -47,6 +49,7 @@ public class NewSky extends JavaPlugin {
         initializeCache();
         initializeTeleportManager();
         initalizeheartBeatHandler();
+        initalizeWorldUnloadHandler();
         initalizePluginMessaging();
         initializeIslandHandler();
         registerListeners();
@@ -155,7 +158,17 @@ public class NewSky extends JavaPlugin {
         }
     }
 
-
+    private void initalizeWorldUnloadHandler() {
+        info("Starting world unload handler");
+        try {
+            worldUnloadHandler = new WorldUnloadHandler(this, mvWorldManager);
+            worldUnloadHandler.startWorldUnloadTask();
+            info("World unload handler loaded");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IllegalStateException("World unload handler load fail! Plugin will be disabled!");
+        }
+    }
 
     private void initalizePluginMessaging() {
         info("Starting plugin messaging");
@@ -200,6 +213,7 @@ public class NewSky extends JavaPlugin {
     public void shutdown() {
         islandHandler.unsubscribeFromRequests();
         heartBeatHandler.stopHeartBeat();
+        worldUnloadHandler.stopWorldUnloadTask();
         redisHandler.disconnect();
         databaseHandler.close();
     }

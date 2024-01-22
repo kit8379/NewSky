@@ -1,8 +1,6 @@
 package org.me.newsky.island;
 
 import com.onarandombox.MultiverseCore.api.MVWorldManager;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
@@ -20,8 +18,6 @@ import java.util.concurrent.CompletableFuture;
 public class IslandHandler {
 
     private final NewSky plugin;
-    private final ConfigHandler config;
-    private final CacheHandler cacheHandler;
     private final HeartBeatHandler heartBeatHandler;
     private final String serverID;
     private final IslandOperation islandOperation;
@@ -33,8 +29,6 @@ public class IslandHandler {
 
     public IslandHandler(NewSky plugin, ConfigHandler config, MVWorldManager mvWorldManager, RedisHandler redisHandler, CacheHandler cacheHandler, HeartBeatHandler heartBeatHandler, TeleportManager teleportManager, String serverID) {
         this.plugin = plugin;
-        this.config = config;
-        this.cacheHandler = cacheHandler;
         this.heartBeatHandler = heartBeatHandler;
         this.serverID = serverID;
 
@@ -262,7 +256,7 @@ public class IslandHandler {
         islandSubscribeRequest.subscribeToRequests();
         updateSubscribeRequest.subscribeToUpdateRequests();
     }
-    
+
     public void unsubscribeFromRequests() {
         islandSubscribeRequest.unsubscribeFromRequests();
         updateSubscribeRequest.unsubscribeFromUpdateRequests();
