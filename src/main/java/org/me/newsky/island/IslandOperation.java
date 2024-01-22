@@ -5,6 +5,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldType;
+import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
@@ -69,7 +70,7 @@ public class IslandOperation {
 
         Bukkit.getScheduler().runTask(plugin, () -> {
             mvWorldManager.loadWorld(worldName);
-            loadFuture.complete(null); // Complete the future after the task
+            loadFuture.complete(null);
         });
 
         return loadFuture;
@@ -124,18 +125,21 @@ public class IslandOperation {
 
             // Switching back to the main thread to interact with the Minecraft world
             Bukkit.getScheduler().runTask(plugin, () -> {
+                mvWorldManager.loadWorld(worldName);
                 Location location = new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch);
-                teleportManager.addPendingTeleport(playerUuid, location);
+                Player player = Bukkit.getPlayer(playerUuid);
+                if(player != null) {
+                    player.teleport(location);
+                } else {
+                    teleportManager.addPendingTeleport(playerUuid, location);
+                }
                 future.complete(null);
-
             });
         }).exceptionally(e -> {
             future.completeExceptionally(e);
             return null;
         });
-
         return future;
     }
-
 }
 

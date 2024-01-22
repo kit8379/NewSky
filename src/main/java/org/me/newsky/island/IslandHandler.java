@@ -222,7 +222,8 @@ public class IslandHandler {
                     if (serverByWorldName.equals(serverID)) {
                         // Teleport to the island on the current server
                         plugin.debug("Island teleported to on current server.");
-                        teleportToIslandOnCurrentServer(player, islandUuid, islandName, teleportIslandFuture);
+                        islandOperation.teleportToWorld(islandName, player.getUniqueId().toString())
+                                .thenRun(() -> teleportIslandFuture.complete(null));
                     } else {
                         // Send the request to teleport to the island on the server where it's located
                         plugin.debug("Island teleport request sent to server: " + serverByWorldName);
@@ -242,29 +243,6 @@ public class IslandHandler {
 
         return teleportIslandFuture;
     }
-
-    private void teleportToIslandOnCurrentServer(Player player, UUID islandUuid, String islandName, CompletableFuture<Void> future) {
-        // Teleportation logic on the current server
-        Optional<String> islandSpawn = cacheHandler.getPlayerIslandSpawn(player.getUniqueId(), islandUuid);
-
-        if (islandSpawn.isEmpty()) {
-            islandSpawn = Optional.of("0,100,0,0,0");
-        }
-
-        String[] parts = islandSpawn.get().split(",");
-        double x = Double.parseDouble(parts[0]);
-        double y = Double.parseDouble(parts[1]);
-        double z = Double.parseDouble(parts[2]);
-        float yaw = Float.parseFloat(parts[3]);
-        float pitch = Float.parseFloat(parts[4]);
-
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            Location location = new Location(Bukkit.getWorld(islandName), x, y, z, yaw, pitch);
-            player.teleport(location);
-            future.complete(null);
-        });
-    }
-
 
     public void connectToServer(Player player, String serverName) {
         ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
@@ -307,5 +285,4 @@ public class IslandHandler {
         }
         return null;
     }
-
 }
