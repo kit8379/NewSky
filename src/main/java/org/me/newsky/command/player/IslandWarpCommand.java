@@ -4,11 +4,12 @@ import org.bukkit.command.CommandSender;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.BaseWarpCommand;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.island.IslandHandler;
 
 public class IslandWarpCommand extends BaseWarpCommand {
 
-    public IslandWarpCommand(ConfigHandler config, CacheHandler cacheHandler) {
-        super(config, cacheHandler);
+    public IslandWarpCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
+        super(config, cacheHandler, islandHandler);
     }
 
     @Override
