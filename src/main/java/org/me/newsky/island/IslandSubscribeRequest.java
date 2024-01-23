@@ -62,6 +62,7 @@ public class IslandSubscribeRequest {
         // Extract additional data from the message
         String worldName = parts.length > 4 ? parts[4] : null;
         String playerName = parts.length > 5 ? parts[5] : null;
+        String locationString = parts.length > 6 ? parts[6] : null;
 
         // Perform the operation based on the type
         if ("createIsland".equals(operation)) {
@@ -77,7 +78,7 @@ public class IslandSubscribeRequest {
                     });
         }
         if ("teleportToIsland".equals(operation)) {
-            return islandOperation.teleportToWorld(worldName, playerName)
+            return islandOperation.teleportToWorld(worldName, playerName, locationString)
                     .thenRun(() -> {
                         plugin.debug("teleportToIsland operation completed for world: " + worldName);
                     });

@@ -83,7 +83,7 @@ public class IslandOperation {
     }
 
 
-    public CompletableFuture<Void> teleportToWorld(String worldName, String playerName) {
+    public CompletableFuture<Void> teleportToWorld(String worldName, String playerName, String locationString) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
         // Asynchronous task to fetch island spawn
@@ -91,13 +91,7 @@ public class IslandOperation {
             UUID worldUuid = UUID.fromString(worldName.replace("island-", ""));
             UUID playerUuid = UUID.fromString(playerName);
 
-            Optional<String> islandSpawn = cacheHandler.getPlayerIslandSpawn(playerUuid, worldUuid);
-
-            if (islandSpawn.isEmpty()) {
-                islandSpawn = Optional.of("0,100,0,0,0");
-            }
-
-            String[] parts = islandSpawn.get().split(",");
+            String[] parts = locationString.split(",");
             double x = Double.parseDouble(parts[0]);
             double y = Double.parseDouble(parts[1]);
             double z = Double.parseDouble(parts[2]);

@@ -53,7 +53,7 @@ public abstract class BaseCreateCommand {
             cacheHandler.createIsland(islandUuid);
             cacheHandler.addIslandPlayer(targetUuid, islandUuid, spawnLocation, role);
             sender.sendMessage(getIslandCreateSuccessMessage(args));
-            performPostCreationActions(sender, targetUuid, islandUuid);
+            performPostCreationActions(sender, targetUuid, islandUuid, spawnLocation);
         }).exceptionally(ex -> {
             sender.sendMessage("There was an error creating the island.");
             return null;
@@ -68,5 +68,5 @@ public abstract class BaseCreateCommand {
 
     protected abstract String getIslandCreateSuccessMessage(String[] args);
 
-    protected abstract void performPostCreationActions(CommandSender sender, UUID targetUuid, UUID islandUuid);
+    protected abstract void performPostCreationActions(CommandSender sender, UUID targetUuid, UUID islandUuid, String spawnLocation);
 }

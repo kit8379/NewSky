@@ -122,7 +122,7 @@ public class IslandHandler {
     }
 
 
-    public CompletableFuture<Void> teleportToIsland(Player player, UUID islandUuid) {
+    public CompletableFuture<Void> teleportToIsland(UUID islandUuid, Player player, String locationString) {
         String islandName = "island-" + islandUuid.toString();
         CompletableFuture<Void> teleportIslandFuture = new CompletableFuture<>();
 
@@ -140,12 +140,12 @@ public class IslandHandler {
                     if (serverByWorldName.equals(serverID)) {
                         // Teleport to the island on the current server
                         plugin.debug("Island teleported to on current server.");
-                        islandOperation.teleportToWorld(islandName, player.getUniqueId().toString())
+                        islandOperation.teleportToWorld(islandName, player.getUniqueId().toString(), locationString)
                                 .thenRun(() -> teleportIslandFuture.complete(null));
                     } else {
                         // Send the request to teleport to the island on the server where it's located
                         plugin.debug("Island teleport request sent to server: " + serverByWorldName);
-                        islandPublishRequest.sendRequest(serverByWorldName, "teleportToIsland:" + islandName + ":" + player.getUniqueId())
+                        islandPublishRequest.sendRequest(serverByWorldName, "teleportToIsland:" + islandName + ":" + player.getUniqueId() + ":" + locationString)
                                 .thenRun(() -> {
                                     // Connect to the server where the island is located
                                     connectToServer(player, serverByWorldName); // Assuming this method handles the server connection

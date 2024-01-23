@@ -45,7 +45,16 @@ public abstract class BaseHomeCommand {
 
         UUID islandUuid = islandUuidOpt.get();
 
-        CompletableFuture<Void> homeIslandFuture = islandHandler.teleportToIsland(playerSender, islandUuid);
+        // Check if the target has a spawn
+        Optional<String> spawnLocationOpt = cacheHandler.getPlayerIslandSpawn(targetUuid, islandUuid);
+        if (spawnLocationOpt.isEmpty()) {
+            sender.sendMessage("The target island does not have a spawn.");
+            return true;
+        }
+
+        String spawnLocation = spawnLocationOpt.get();
+
+        CompletableFuture<Void> homeIslandFuture = islandHandler.teleportToIsland(islandUuid, playerSender, spawnLocation);
         handleIslandTeleportFuture(homeIslandFuture, sender, args);
 
         return true;

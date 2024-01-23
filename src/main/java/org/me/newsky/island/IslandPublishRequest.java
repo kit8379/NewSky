@@ -22,7 +22,6 @@ public class IslandPublishRequest {
     }
 
     public CompletableFuture<Void> sendRequest(String targetServer, String operation) {
-        operation = targetServer + ":" + operation;
         String requestID = "Req-" + UUID.randomUUID();
 
         CompletableFuture<Void> future = new CompletableFuture<>();
@@ -45,7 +44,7 @@ public class IslandPublishRequest {
         plugin.debug("Subscribed to response channel for request: " + requestID);
 
         // Send request
-        redisHandler.publish("newsky-request-channel", requestID + ":" + serverID + ":" + operation);
+        redisHandler.publish("newsky-request-channel", requestID + ":" + serverID + ":" + targetServer + ":" + operation);
         plugin.debug("Sent request " + requestID + "to request channel for " + targetServer);
         scheduleTimeoutTask(future, requestID, responseSubscriber);
         return future;

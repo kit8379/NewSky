@@ -18,9 +18,8 @@ public class CacheHandler {
     public void cacheAllDataToRedis() {
         cacheIslandDataToRedis();
         cacheIslandPlayersToRedis();
+        cacheIslandWarpsToRedis();
     }
-
-
 
     private void cacheIslandDataToRedis() {
         databaseHandler.selectAllIslandData(resultSet -> {
@@ -56,6 +55,21 @@ public class CacheHandler {
         });
     }
 
+    private void cacheIslandWarpsToRedis() {
+        databaseHandler.selectAllIslandWarps(resultSet -> {
+            try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
+                while (resultSet.next()) {
+                    String playerUuid = resultSet.getString("player_uuid");
+                    String warpLocation = resultSet.getString("warp_location");
+
+                    jedis.hset("island_warps:" + playerUuid, "warp_location", warpLocation);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
     public void createIsland(UUID islandUuid) {
         // 1. Update the cache first.
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
@@ -78,6 +92,14 @@ public class CacheHandler {
 
         // 2. Update the database asynchronously.
         databaseHandler.addIslandPlayer(playerUuid, islandUuid, spawnLocation, role);
+    }
+
+    public void addOrUpdateWarpPoint(UUID playerUuid, UUID islandUuid, String warpLocation) {
+        try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
+            jedis.hset("island_warps:" + playerUuid.toString(), "warp_location", warpLocation);
+        }
+        // Also update in the database asynchronously.
+        databaseHandler.addWarpPoint(playerUuid, islandUuid, warpLocation);
     }
 
     public void deleteIsland(UUID islandUuid) {
@@ -108,6 +130,15 @@ public class CacheHandler {
         // 2. Remove from the database asynchronously.
         databaseHandler.deleteIslandPlayer(playerUuid, islandUuid);
     }
+
+    public void deleteWarpPoint(UUID playerUuid) {
+        try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
+            jedis.del("island_warps:" + playerUuid.toString());
+        }
+        // Also delete from the database asynchronously.
+        databaseHandler.deleteWarpPoint(playerUuid);
+    }
+
 
     /**
      * This method returns the island level of an island.
@@ -198,5 +229,19 @@ public class CacheHandler {
             e.printStackTrace();
         }
         return Optional.empty();
+    }
+
+    public Optional<String> getWarpLocation(UUID playerUuid) {
+        try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
+            String key = "island_warps:" + playerUuid.toString();
+            if (!jedis.exists(key)) {
+                return Optional.empty();
+            }
+            String warpLocation = jedis.hget(key, "warp_location");
+            return Optional.ofNullable(warpLocation);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Optional.empty();
+        }
     }
 }
