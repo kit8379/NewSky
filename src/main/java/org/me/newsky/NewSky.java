@@ -31,7 +31,6 @@ public class NewSky extends JavaPlugin {
     private MVWorldManager mvWorldManager;
     private ConfigHandler config;
     private String serverID;
-    private String serverMode;
 
     @Override
     public void onEnable() {
@@ -44,7 +43,6 @@ public class NewSky extends JavaPlugin {
         checkDependencies("Multiverse-Core", "VoidGen");
         initializeConfig();
         initalizeServerID();
-        initalizeServerMode();
         initializeMVWorldManager();
         initializeRedis();
         initializeDatabase();
@@ -88,18 +86,6 @@ public class NewSky extends JavaPlugin {
         } catch (Exception e) {
             e.printStackTrace();
             throw new IllegalStateException("Server ID load fail!");
-        }
-    }
-
-    private void initalizeServerMode() {
-        info("Start loading Server Mode now...");
-        try {
-            serverMode = config.getServerMode();
-            info("Server Mode load success!");
-            info("This Server Mode: " + serverID);
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException("Server Mode load fail!");
         }
     }
 
@@ -163,7 +149,7 @@ public class NewSky extends JavaPlugin {
     private void initalizeheartBeatHandler() {
         info("Start connecting to Heart Beat system now...");
         try {
-            heartBeatHandler = new HeartBeatHandler(this, redisHandler, serverID, serverMode);
+            heartBeatHandler = new HeartBeatHandler(this, redisHandler, serverID, config.getServerMode());
             heartBeatHandler.startHeartBeat();
             info("Heart Beat started!");
         } catch (Exception e) {

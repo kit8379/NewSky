@@ -15,12 +15,17 @@ public abstract class BaseReloadCommand {
     }
 
     public boolean execute(CommandSender sender, String[] args) {
+        // Check if the command arguments are valid
         if (!validateArgs(sender, args)) {
             return true;
         }
 
+        // Reload the plugin
         plugin.reload();
+
+        // Send the success message
         sender.sendMessage("§aPlugin reloaded");
+
         return true;
     }
 

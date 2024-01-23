@@ -3,21 +3,21 @@ package org.me.newsky.command.player;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.command.BaseSetwarpCommand;
+import org.me.newsky.command.BaseSetWarpCommand;
 import org.me.newsky.config.ConfigHandler;
 
 import java.util.UUID;
 
-public class IslandSetwarpCommand extends BaseSetwarpCommand {
+public class IslandSetWarpCommand extends BaseSetWarpCommand {
 
-    public IslandSetwarpCommand(ConfigHandler config, CacheHandler cacheHandler) {
+    public IslandSetWarpCommand(ConfigHandler config, CacheHandler cacheHandler) {
         super(config, cacheHandler);
     }
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length != 1) {
-            sender.sendMessage("§eUsage: §b/island setwarp");
+            sender.sendMessage("§eUsage: §b/island setwarp <warpName>");
             return false;
         }
         return true;
@@ -26,6 +26,11 @@ public class IslandSetwarpCommand extends BaseSetwarpCommand {
     @Override
     protected UUID getTargetUuid(CommandSender sender, String[] args) {
         return ((Player) sender).getUniqueId();
+    }
+
+    @Override
+    protected int getTargetWarpArgIndex() {
+        return 1;
     }
 
     @Override

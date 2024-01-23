@@ -22,20 +22,23 @@ public abstract class BaseDeleteCommand {
     }
 
     public boolean execute(CommandSender sender, String[] args) {
+        // Check if the command arguments are valid
         if (!validateArgs(sender, args)) {
             return true;
         }
 
+        // Get the target player's UUID
         UUID targetUuid = getTargetUuid(sender, args);
-        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
 
+        // Get the target player's island UUID
+        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
         if (islandUuidOpt.isEmpty()) {
             sender.sendMessage(getNoIslandMessage(args));
             return true;
         }
-
         UUID islandUuid = islandUuidOpt.get();
 
+        // Run the island deletion future
         CompletableFuture<Void> deleteIslandFuture = islandHandler.deleteIsland(islandUuid);
         handleIslandDeletionFuture(deleteIslandFuture, sender, islandUuid, args);
 
@@ -44,9 +47,12 @@ public abstract class BaseDeleteCommand {
 
     protected void handleIslandDeletionFuture(CompletableFuture<Void> future, CommandSender sender, UUID islandUuid, String[] args) {
         future.thenRun(() -> {
+            // Delete the island from the cache
             cacheHandler.deleteIsland(islandUuid);
+            // Send the success message
             sender.sendMessage(getIslandDeleteSuccessMessage(args));
         }).exceptionally(ex -> {
+            // Send the error message
             sender.sendMessage("There was an error deleting the island.");
             return null;
         });

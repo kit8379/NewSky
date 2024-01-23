@@ -17,8 +17,11 @@ public class IslandCommandExecutor implements CommandExecutor {
     private final IslandRemoveMemberCommand removeMemberCommand;
     private final IslandCreateCommand createCommand;
     private final IslandDeleteCommand deleteCommand;
-    private final IslandInfoCommand infoCommand;
     private final IslandHomeCommand homeCommand;
+    private final IslandWarpCommand warpCommand;
+    private final IslandSetWarpCommand setWarpCommand;
+    private final IslandDelWarpCommand delWarpCommand;
+    private final IslandInfoCommand infoCommand;
 
     public IslandCommandExecutor(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
         this.config = config;
@@ -28,6 +31,9 @@ public class IslandCommandExecutor implements CommandExecutor {
         this.createCommand = new IslandCreateCommand(config, cacheHandler, islandHandler);
         this.deleteCommand = new IslandDeleteCommand(config, cacheHandler, islandHandler);
         this.homeCommand = new IslandHomeCommand(config, cacheHandler, islandHandler);
+        this.warpCommand = new IslandWarpCommand(config, cacheHandler, islandHandler);
+        this.setWarpCommand = new IslandSetWarpCommand(config, cacheHandler);
+        this.delWarpCommand = new IslandDelWarpCommand(config, cacheHandler);
         this.infoCommand = new IslandInfoCommand(config, cacheHandler);
     }
 
@@ -57,10 +63,16 @@ public class IslandCommandExecutor implements CommandExecutor {
                 return createCommand.execute(sender, args);
             case "delete":
                 return deleteCommand.execute(sender, args);
-            case "info":
-                return infoCommand.execute(sender, args);
             case "home":
                 return homeCommand.execute(sender, args);
+            case "warp":
+                return warpCommand.execute(sender, args);
+            case "setwarp":
+                return setWarpCommand.execute(sender, args);
+            case "delwarp":
+                return delWarpCommand.execute(sender, args);
+            case "info":
+                return infoCommand.execute(sender, args);
             default:
                 sender.sendMessage("§cUnknown subcommand: " + subCommand);
                 return true;

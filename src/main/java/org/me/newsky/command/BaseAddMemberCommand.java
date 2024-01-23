@@ -20,26 +20,28 @@ public abstract class BaseAddMemberCommand {
     }
 
     public boolean execute(CommandSender sender, String[] args) {
+        // Check if the command arguments are valid
         if (!validateArgs(sender, args)) {
             return true;
         }
 
+        // Get the target player's UUID
         OfflinePlayer targetAdd = Bukkit.getOfflinePlayer(args[getTargetAddArgIndex()]);
-        UUID islandOwnerId = getIslandOwnerUuid(sender, args);
-        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(islandOwnerId);
 
-        // Check if the target island owner has an island
+        // Get the island owner's UUID
+        UUID islandOwnerId = getIslandOwnerUuid(sender, args);
+
+        // Get the island UUID from the island owner's UUID
+        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(islandOwnerId);
         if (islandUuidOpt.isEmpty()) {
             sender.sendMessage(getNoIslandMessage(args));
             return true;
         }
-
-        // Unwrap the Optional for further use
         UUID islandUuid = islandUuidOpt.get();
 
-        // Check if the target player is the island owner
+        // Check if the target player is already the owner of the island
         if (targetAdd.getUniqueId().equals(islandOwnerId)) {
-            sender.sendMessage(targetAdd.getName() + " is the island owner.");
+            sender.sendMessage(targetAdd.getName() + " is already the owner of the island.");
             return true;
         }
 
@@ -49,11 +51,14 @@ public abstract class BaseAddMemberCommand {
             return true;
         }
 
-        // Add the target player to the island
+        // Set the spawn location
         String spawnLocation = "0,100,0,100,100";
+        // Set the role
         String role = "member";
-        cacheHandler.addIslandPlayer(targetAdd.getUniqueId(), islandUuid, spawnLocation, role);
 
+        // Add the target player to the island
+        cacheHandler.addIslandPlayer(targetAdd.getUniqueId(), islandUuid, spawnLocation, role);
+        // Send the success message
         sender.sendMessage(getIslandAddMemberSuccessMessage(args));
 
         return true;

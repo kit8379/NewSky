@@ -21,26 +21,33 @@ public abstract class BaseInfoCommand {
     }
 
     public boolean execute(CommandSender sender, String[] args) {
+        // Get the target player's UUID
         UUID targetUuid = getTargetUuid(sender, args);
-        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
 
+        // Check if the target player has an island
+        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
         if (islandUuidOpt.isEmpty()) {
             sender.sendMessage("You have no island.");
             return true;
         }
-
         UUID islandUuid = islandUuidOpt.get();
-        Optional<UUID> ownerUuidOpt = cacheHandler.getIslandOwner(islandUuid);
 
+        // Get the island owner's UUID
+        Optional<UUID> ownerUuidOpt = cacheHandler.getIslandOwner(islandUuid);
         if (ownerUuidOpt.isEmpty()) {
             sender.sendMessage("Your island has no owner.");
             return true;
         }
-
         UUID ownerUuid = ownerUuidOpt.get();
+
+        // Get the island members' UUIDs
         Set<UUID> memberUuids = cacheHandler.getIslandMembers(islandUuid);
+
+        // Send the island info
         String membersString = buildMembersString(memberUuids);
 
+        // Send the island info
+        sender.sendMessage("Island ID: " + islandUuid);
         sender.sendMessage("Island Owner: " + Bukkit.getOfflinePlayer(ownerUuid).getName());
         sender.sendMessage("Island Members: " + membersString);
 

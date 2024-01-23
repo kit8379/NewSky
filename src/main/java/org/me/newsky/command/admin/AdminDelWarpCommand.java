@@ -3,21 +3,21 @@ package org.me.newsky.command.admin;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.command.BaseDelwarpCommand;
+import org.me.newsky.command.BaseDelWarpCommand;
 import org.me.newsky.config.ConfigHandler;
 
 import java.util.UUID;
 
-public class AdminDelwarpCommand extends BaseDelwarpCommand {
+public class AdminDelWarpCommand extends BaseDelWarpCommand {
 
-    public AdminDelwarpCommand(ConfigHandler config, CacheHandler cacheHandler) {
+    public AdminDelWarpCommand(ConfigHandler config, CacheHandler cacheHandler) {
         super(config, cacheHandler);
     }
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
-        if (args.length != 2) {
-            sender.sendMessage("§eUsage: §b/islandadmin delwarp <player>");
+        if (args.length != 3) {
+            sender.sendMessage("§eUsage: §b/islandadmin delwarp <player> <warpName>");
             return false;
         }
         return true;
@@ -29,12 +29,17 @@ public class AdminDelwarpCommand extends BaseDelwarpCommand {
     }
 
     @Override
+    protected int getTargetWarpArgIndex() {
+        return 2;
+    }
+
+    @Override
     protected String getNoWarpMessage(String[] args) {
-        return "Player " + args[0] + " does not have an island or a warp point.";
+        return "Player '" + args[1] + "' does not have a warp point named '" + args[2] + "'.";
     }
 
     @Override
     protected String getDelWarpSuccessMessage(String[] args) {
-        return "Warp point successfully deleted from " + args[0] + "'s island.";
+        return "Warp point '" + args[2] + "' successfully deleted for player '" + args[1] + "'.";
     }
 }

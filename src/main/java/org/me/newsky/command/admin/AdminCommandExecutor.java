@@ -18,6 +18,9 @@ public class AdminCommandExecutor implements CommandExecutor {
     private final AdminDeleteCommand deleteCommand;
     private final AdminInfoCommand infoCommand;
     private final AdminHomeCommand homeCommand;
+    private final AdminWarpCommand warpCommand;
+    private final AdminSetWarpCommand setWarpCommand;
+    private final AdminDelWarpCommand delWarpCommand;
     private final AdminReloadCommand reloadCommand;
 
     public AdminCommandExecutor(NewSky plugin, ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
@@ -27,6 +30,9 @@ public class AdminCommandExecutor implements CommandExecutor {
         this.createCommand = new AdminCreateCommand(config, cacheHandler, islandHandler);
         this.deleteCommand = new AdminDeleteCommand(config, cacheHandler, islandHandler);
         this.homeCommand = new AdminHomeCommand(config, cacheHandler, islandHandler);
+        this.warpCommand = new AdminWarpCommand(config, cacheHandler, islandHandler);
+        this.setWarpCommand = new AdminSetWarpCommand(config, cacheHandler);
+        this.delWarpCommand = new AdminDelWarpCommand(config, cacheHandler);
         this.infoCommand = new AdminInfoCommand(config, cacheHandler);
         this.reloadCommand = new AdminReloadCommand(plugin, config);
     }
@@ -58,10 +64,16 @@ public class AdminCommandExecutor implements CommandExecutor {
                 return createCommand.execute(sender, args);
             case "delete":
                 return deleteCommand.execute(sender, args);
-            case "info":
-                return infoCommand.execute(sender, args);
             case "home":
                 return homeCommand.execute(sender, args);
+            case "warp":
+                return warpCommand.execute(sender, args);
+            case "setwarp":
+                return setWarpCommand.execute(sender, args);
+            case "delwarp":
+                return delWarpCommand.execute(sender, args);
+            case "info":
+                return infoCommand.execute(sender, args);
             case "reload":
                 return reloadCommand.execute(sender, args);
             default:

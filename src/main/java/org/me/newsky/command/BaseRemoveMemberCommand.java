@@ -20,30 +20,32 @@ public abstract class BaseRemoveMemberCommand {
     }
 
     public boolean execute(CommandSender sender, String[] args) {
+        // Check if the command arguments are valid
         if (!validateArgs(sender, args)) {
             return true;
         }
 
-        OfflinePlayer targetRemove = Bukkit.getOfflinePlayer(args[getTargetRemoveArgIndex()]);
+        // Get the island owner's UUID
         UUID islandOwnerId = getIslandOwnerUuid(sender, args);
-        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(islandOwnerId);
 
-        // Check if the target island owner has an island
+        // Check if the island owner has an island
+        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(islandOwnerId);
         if (islandUuidOpt.isEmpty()) {
             sender.sendMessage(getNoIslandMessage(args));
             return true;
         }
-
-        // Unwrap the Optional for further use
         UUID islandUuid = islandUuidOpt.get();
 
-        // Check if the target player is not a member of the island
+        // Get the target player's UUID
+        OfflinePlayer targetRemove = Bukkit.getOfflinePlayer(args[getTargetRemoveArgIndex()]);
+
+        // Check if the target player is a member of the island
         if (!cacheHandler.getIslandMembers(islandUuid).contains(targetRemove.getUniqueId())) {
             sender.sendMessage(targetRemove.getName() + " is not a member of the island.");
             return true;
         }
 
-        // Check if the target player is the owner of the island
+        // Check if the target player is the island owner
         if (targetRemove.getUniqueId().equals(islandOwnerId)) {
             sender.sendMessage("You cannot remove the island owner.");
             return true;
@@ -52,6 +54,7 @@ public abstract class BaseRemoveMemberCommand {
         // Remove the target player from the island
         cacheHandler.deleteIslandPlayer(targetRemove.getUniqueId(), islandUuid);
 
+        // Send the success message
         sender.sendMessage(getIslandRemoveMemberSuccessMessage(args));
 
         return true;

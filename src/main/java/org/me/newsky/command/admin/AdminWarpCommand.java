@@ -14,8 +14,9 @@ public class AdminWarpCommand extends BaseWarpCommand {
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
-        if (args.length != 2) {
-            sender.sendMessage("§eUsage: §b/islandadmin warp <player>");
+        // Allow one or two arguments: /islandadmin warp <player> [warpName]
+        if (args.length != 3) {
+            sender.sendMessage("§eUsage: §b/islandadmin warp <player> [warpName]");
             return false;
         }
         return true;

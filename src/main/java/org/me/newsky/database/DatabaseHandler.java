@@ -77,6 +77,7 @@ public class DatabaseHandler {
     public void createTables() {
         createIslandDataTable();
         createIslandPlayersTable();
+        createIslandWarpsTable();
     }
 
     private void createIslandDataTable() {
@@ -91,7 +92,7 @@ public class DatabaseHandler {
 
     private void createIslandWarpsTable() {
         executeUpdate(PreparedStatement::execute,
-                "CREATE TABLE IF NOT EXISTS island_warps (player_uuid VARCHAR(56), island_uuid VARCHAR(56), warp_location VARCHAR(256), PRIMARY KEY (player_uuid), FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid));").join();
+                "CREATE TABLE IF NOT EXISTS island_warps (player_uuid VARCHAR(56), island_uuid VARCHAR(56), warp_name VARCHAR(56), warp_location VARCHAR(256), PRIMARY KEY (player_uuid, warp_name), FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid));").join();
     }
 
     public void selectAllIslandData(ResultProcessor processor) {
@@ -125,13 +126,14 @@ public class DatabaseHandler {
         }, "INSERT INTO island_players (player_uuid, island_uuid, spawn, role) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE spawn = ?, role = ?");
     }
 
-    public void addWarpPoint(UUID playerUuid, UUID islandUuid, String warpLocation) {
+    public void addWarpPoint(UUID playerUuid, UUID islandUuid, String warpName, String warpLocation) {
         executeUpdate(statement -> {
             statement.setString(1, playerUuid.toString());
             statement.setString(2, islandUuid.toString());
-            statement.setString(3, warpLocation);
+            statement.setString(3, warpName);
             statement.setString(4, warpLocation);
-        }, "INSERT INTO island_warps (player_uuid, island_uuid, warp_location) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE warp_location = ?");
+            statement.setString(5, warpLocation);
+        }, "INSERT INTO island_warps (player_uuid, island_uuid, warp_name, warp_location) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE warp_location = ?");
     }
 
     public void deleteIslandData(UUID islandUuid) {
@@ -148,8 +150,11 @@ public class DatabaseHandler {
         }, "DELETE FROM island_players WHERE player_uuid = ? AND island_uuid = ?");
     }
 
-    public void deleteWarpPoint(UUID playerUuid) {
-        executeUpdate(statement -> statement.setString(1, playerUuid.toString()), "DELETE FROM island_warps WHERE player_uuid = ?");
+    public void deleteWarpPoint(UUID playerUuid, String warpName) {
+        executeUpdate(statement -> {
+            statement.setString(1, playerUuid.toString());
+            statement.setString(2, warpName);
+        }, "DELETE FROM island_warps WHERE player_uuid = ? AND warp_name = ?");
     }
 
     @FunctionalInterface

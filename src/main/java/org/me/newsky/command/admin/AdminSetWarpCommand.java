@@ -2,16 +2,15 @@ package org.me.newsky.command.admin;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.command.BaseSetwarpCommand;
+import org.me.newsky.command.BaseSetWarpCommand;
 import org.me.newsky.config.ConfigHandler;
 
 import java.util.UUID;
 
-public class AdminSetwarpCommand extends BaseSetwarpCommand {
+public class AdminSetWarpCommand extends BaseSetWarpCommand {
 
-    public AdminSetwarpCommand(ConfigHandler config, CacheHandler cacheHandler) {
+    public AdminSetWarpCommand(ConfigHandler config, CacheHandler cacheHandler) {
         super(config, cacheHandler);
     }
 
@@ -27,6 +26,11 @@ public class AdminSetwarpCommand extends BaseSetwarpCommand {
     @Override
     protected UUID getTargetUuid(CommandSender sender, String[] args) {
         return Bukkit.getOfflinePlayer(args[1]).getUniqueId();
+    }
+
+    @Override
+    protected int getTargetWarpArgIndex() {
+        return 2;
     }
 
     @Override

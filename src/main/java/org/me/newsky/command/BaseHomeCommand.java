@@ -23,37 +23,40 @@ public abstract class BaseHomeCommand {
     }
 
     public boolean execute(CommandSender sender, String[] args) {
-        if (!validateArgs(sender, args)) {
-            return true;
-        }
-
         // Check if the sender is a player
         if (!(sender instanceof Player)) {
             sender.sendMessage("Only players can use this command.");
             return true;
         }
 
-        Player playerSender = (Player) sender;
-        UUID targetUuid = getTargetUUID(sender, args);
-        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
+        // Check if the command arguments are valid
+        if (!validateArgs(sender, args)) {
+            return true;
+        }
 
-        // Check if the target island has an island
+        // Cast the sender to a player
+        Player playerSender = (Player) sender;
+
+        // Get the target player's UUID
+        UUID targetUuid = getTargetUUID(sender, args);
+
+        // Check if the player has an island
+        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
         if (islandUuidOpt.isEmpty()) {
             sender.sendMessage(getNoIslandMessage(args));
             return true;
         }
-
         UUID islandUuid = islandUuidOpt.get();
 
-        // Check if the target has a spawn
+        // Get the target player's island spawn location
         Optional<String> spawnLocationOpt = cacheHandler.getPlayerIslandSpawn(targetUuid, islandUuid);
         if (spawnLocationOpt.isEmpty()) {
             sender.sendMessage("The target island does not have a spawn.");
             return true;
         }
-
         String spawnLocation = spawnLocationOpt.get();
 
+        // Run the island teleportation future
         CompletableFuture<Void> homeIslandFuture = islandHandler.teleportToIsland(islandUuid, playerSender, spawnLocation);
         handleIslandTeleportFuture(homeIslandFuture, sender, args);
 
@@ -62,8 +65,10 @@ public abstract class BaseHomeCommand {
 
     protected void handleIslandTeleportFuture(CompletableFuture<Void> future, CommandSender sender, String[] args) {
         future.thenRun(() -> {
+            // Send the success message
             sender.sendMessage(getIslandHomeSuccessMessage(args));
         }).exceptionally(ex -> {
+            // Send the error message
             sender.sendMessage("There was an error teleporting to the island.");
             return null;
         });
