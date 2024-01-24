@@ -16,7 +16,7 @@ public class IslandSetWarpCommand extends BaseSetWarpCommand {
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
-        if (args.length != 2) {
+        if (args.length < 1 || args.length > 2) {
             sender.sendMessage("§eUsage: §b/island setwarp <warpName>");
             return false;
         }

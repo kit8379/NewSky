@@ -2,8 +2,8 @@ package org.me.newsky.command.player;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.me.newsky.command.BaseHomeCommand;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.command.BaseHomeCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 
@@ -17,7 +17,7 @@ public class IslandHomeCommand extends BaseHomeCommand {
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
-        if (args.length != 2) {
+        if (args.length < 1 || args.length > 2) {
             sender.sendMessage("§eUsage: §b/island home [homeName]");
             return false;
         }

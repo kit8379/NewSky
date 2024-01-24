@@ -1,18 +1,18 @@
 package org.me.newsky.command;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 
+import java.util.List;
 import java.util.Optional;
-import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public abstract class BaseWarpCommand {
 
@@ -42,13 +42,12 @@ public abstract class BaseWarpCommand {
         Player player = (Player) sender;
 
         // Get the target player's UUID
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(args[1]);
-        UUID targetUuid = targetPlayer.getUniqueId();
+        UUID targetUuid = getTargetUUID(sender, args);
 
         // Check if the player has an island
         Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
         if (islandUuidOpt.isEmpty()) {
-            sender.sendMessage("§c" + targetPlayer.getName() + " does not have an island.");
+            sender.sendMessage("§c" + args[1] + " does not have an island.");
             return true;
         }
         UUID islandUuid = islandUuidOpt.get();
@@ -61,12 +60,12 @@ public abstract class BaseWarpCommand {
         }
 
         // Get the warp name from the command arguments or a random warp name
-        String warpName = args.length > 2 ? args[2] : getRandomWarpName(warpNames);
+        String warpName = args.length > 2 ? args[2] : "default";
 
         // Check if the target warp point exists
         Optional<String> warpLocationOpt = cacheHandler.getWarpLocation(targetUuid, warpName);
         if (warpLocationOpt.isEmpty()) {
-            sender.sendMessage("§cWarp point '" + warpName + "' not found for " + targetPlayer.getName() + ".");
+            sender.sendMessage(getNoWarpMessage(args));
             return true;
         }
         String warpLocation = warpLocationOpt.get();
@@ -78,22 +77,31 @@ public abstract class BaseWarpCommand {
         return true;
     }
 
-    private String getRandomWarpName(Set<String> warpNames) {
-        int index = new Random().nextInt(warpNames.size());
-        return (String) warpNames.toArray()[index];
+    public List<String> onTabComplete(@NotNull CommandSender sender, String[] args) {
+        if (args.length == getTargetWarpArgIndex() + 1) {
+            UUID targetUuid = getTargetUUID(sender, args);
+            Set<String> homeNames = cacheHandler.getWarpNames(targetUuid);
+            return homeNames.stream().filter(name -> name.toLowerCase().startsWith(args[getTargetWarpArgIndex()].toLowerCase())).collect(Collectors.toList());
+        }
+        return null;
     }
 
     protected void handleIslandTeleportFuture(CompletableFuture<Void> future, CommandSender sender, String warpName) {
         future.thenRun(() -> {
-                    // Send the success message
-                    sender.sendMessage("Teleported to the warp point '" + warpName + "'.");
-                })
-                .exceptionally(ex -> {
-                    // Send the error message
-                    sender.sendMessage("There was an error teleporting to the warp point");
-                    return null;
-                });
+            // Send the success message
+            sender.sendMessage("Teleported to the warp point '" + warpName + "'.");
+        }).exceptionally(ex -> {
+            // Send the error message
+            sender.sendMessage("There was an error teleporting to the warp point");
+            return null;
+        });
     }
 
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
+
+    protected abstract UUID getTargetUUID(CommandSender sender, String[] args);
+
+    protected abstract int getTargetWarpArgIndex();
+
+    protected abstract String getNoWarpMessage(String[] args);
 }

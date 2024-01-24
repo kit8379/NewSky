@@ -17,7 +17,7 @@ public class AdminHomeCommand extends BaseHomeCommand {
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
-        if (args.length != 3) {
+        if (args.length < 2 || args.length > 3) {
             sender.sendMessage("§eUsage: §b/islandadmin home <player> [homeName]");
             return false;
         }

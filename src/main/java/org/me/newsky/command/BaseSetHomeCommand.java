@@ -51,16 +51,11 @@ public abstract class BaseSetHomeCommand {
         }
 
         // Get the home name from the command arguments
-        String homeName = args[getTargetHomeArgIndex()];
+        String homeName = args.length > getTargetHomeArgIndex() ? args[getTargetHomeArgIndex()] : "default";
 
         // Get the home location
         Location loc = player.getLocation();
-        String homeLocation = String.format("%.1f,%.1f,%.1f,%.1f,%.1f",
-                loc.getX(),
-                loc.getY(),
-                loc.getZ(),
-                loc.getYaw(),
-                loc.getPitch());
+        String homeLocation = String.format("%.1f,%.1f,%.1f,%.1f,%.1f", loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
 
 
         // Add or update the home point

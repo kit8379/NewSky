@@ -2,8 +2,8 @@ package org.me.newsky.command.admin;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
-import org.me.newsky.command.BaseRemoveMemberCommand;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.command.BaseRemoveMemberCommand;
 import org.me.newsky.config.ConfigHandler;
 
 import java.util.UUID;

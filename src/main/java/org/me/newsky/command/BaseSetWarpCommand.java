@@ -52,16 +52,11 @@ public abstract class BaseSetWarpCommand {
         }
 
         // Get the target warp name
-        String warpName = args[getTargetWarpArgIndex()];
+        String warpName = args.length > getTargetWarpArgIndex() ? args[getTargetWarpArgIndex()] : "default";
 
         // Set the warp point
         Location loc = player.getLocation();
-        String warpLocation = String.format("%.1f,%.1f,%.1f,%.1f,%.1f",
-                loc.getX(),
-                loc.getY(),
-                loc.getZ(),
-                loc.getYaw(),
-                loc.getPitch());
+        String warpLocation = String.format("%.1f,%.1f,%.1f,%.1f,%.1f", loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
 
         // Add the warp point to the cache
         cacheHandler.addOrUpdateWarpPoint(targetUuid, warpName, warpLocation);

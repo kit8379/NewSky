@@ -55,9 +55,7 @@ public abstract class BaseInfoCommand {
     }
 
     private String buildMembersString(Set<UUID> memberUuids) {
-        return memberUuids.stream()
-                .map(uuid -> Bukkit.getOfflinePlayer(uuid).getName())
-                .collect(Collectors.joining(", "));
+        return memberUuids.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).collect(Collectors.joining(", "));
     }
 
     protected abstract UUID getTargetUuid(CommandSender sender, String[] args);

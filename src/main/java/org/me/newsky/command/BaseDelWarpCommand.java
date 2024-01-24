@@ -53,8 +53,12 @@ public abstract class BaseDelWarpCommand {
     }
 
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
+
     protected abstract UUID getTargetUuid(CommandSender sender, String[] args);
+
     protected abstract int getTargetWarpArgIndex();
+
     protected abstract String getNoWarpMessage(String[] args);
+
     protected abstract String getDelWarpSuccessMessage(String[] args);
 }

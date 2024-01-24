@@ -61,8 +61,12 @@ public abstract class BaseRemoveMemberCommand {
     }
 
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
+
     protected abstract int getTargetRemoveArgIndex();
+
     protected abstract UUID getIslandOwnerUuid(CommandSender sender, String[] args);
+
     protected abstract String getNoIslandMessage(String[] args);
+
     protected abstract String getIslandRemoveMemberSuccessMessage(String[] args);
 }

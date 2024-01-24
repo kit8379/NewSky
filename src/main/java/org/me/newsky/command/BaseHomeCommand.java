@@ -2,14 +2,17 @@ package org.me.newsky.command;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public abstract class BaseHomeCommand {
 
@@ -55,7 +58,7 @@ public abstract class BaseHomeCommand {
         }
 
         // Get the target home name
-        String homeName = args[getTargetHomeArgIndex()];
+        String homeName = args.length > getTargetHomeArgIndex() ? args[getTargetHomeArgIndex()] : "default";
 
         // Get the target player's home location
         Optional<String> homeLocationOpt = cacheHandler.getHomeLocation(targetUuid, homeName);
@@ -72,16 +75,24 @@ public abstract class BaseHomeCommand {
         return true;
     }
 
+    public List<String> onTabComplete(@NotNull CommandSender sender, String[] args) {
+        if (args.length == getTargetHomeArgIndex() + 1) {
+            UUID targetUuid = getTargetUUID(sender, args);
+            Set<String> homeNames = cacheHandler.getHomeNames(targetUuid);
+            return homeNames.stream().filter(name -> name.toLowerCase().startsWith(args[getTargetHomeArgIndex()].toLowerCase())).collect(Collectors.toList());
+        }
+        return null;
+    }
+
     protected void handleIslandTeleportFuture(CompletableFuture<Void> future, CommandSender sender, String[] args) {
         future.thenRun(() -> {
-                    // Send the success message
-                    sender.sendMessage(getIslandHomeSuccessMessage(args));
-                })
-                .exceptionally(ex -> {
-                    // Send the error message
-                    sender.sendMessage("There was an error teleporting to the island.");
-                    return null;
-                });
+            // Send the success message
+            sender.sendMessage(getIslandHomeSuccessMessage(args));
+        }).exceptionally(ex -> {
+            // Send the error message
+            sender.sendMessage("There was an error teleporting to the island.");
+            return null;
+        });
     }
 
     protected abstract boolean validateArgs(CommandSender sender, String[] args);

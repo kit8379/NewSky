@@ -62,8 +62,12 @@ public abstract class BaseAddMemberCommand {
     }
 
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
+
     protected abstract int getTargetAddArgIndex();
+
     protected abstract UUID getIslandOwnerUuid(CommandSender sender, String[] args);
+
     protected abstract String getNoIslandMessage(String[] args);
+
     protected abstract String getIslandAddMemberSuccessMessage(String[] args);
 }

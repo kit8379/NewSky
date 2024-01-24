@@ -5,7 +5,6 @@ import org.bukkit.entity.Player;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.BaseSetHomeCommand;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.island.IslandHandler;
 
 import java.util.UUID;
 
@@ -17,7 +16,7 @@ public class IslandSetHomeCommand extends BaseSetHomeCommand {
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
-        if (args.length != 2) {
+        if (args.length < 1 || args.length > 2) {
             sender.sendMessage("§eUsage: §b/island sethome <homeName>");
             return false;
         }

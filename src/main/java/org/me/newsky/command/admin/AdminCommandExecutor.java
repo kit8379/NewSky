@@ -29,9 +29,7 @@ public class AdminCommandExecutor implements CommandExecutor, TabCompleter {
     private final AdminSetWarpCommand setWarpCommand;
     private final AdminDelWarpCommand delWarpCommand;
     private final AdminReloadCommand reloadCommand;
-    private final List<String> subCommands = Arrays.asList(
-            "addmember", "removemember", "create", "delete", "home",
-            "sethome", "delhome", "warp", "setwarp", "delwarp", "info", "reload");
+    private final List<String> subCommands = Arrays.asList("addmember", "removemember", "create", "delete", "home", "sethome", "delhome", "warp", "setwarp", "delwarp", "info", "reload");
 
     public AdminCommandExecutor(NewSky plugin, ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
         this.config = config;
@@ -101,9 +99,17 @@ public class AdminCommandExecutor implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String[] args) {
         if (args.length == 1) {
-            return subCommands.stream()
-                    .filter(sub -> sub.startsWith(args[0].toLowerCase()))
-                    .collect(Collectors.toList());
+            return subCommands.stream().filter(sub -> sub.startsWith(args[0].toLowerCase())).collect(Collectors.toList());
+        } else if (args.length > 1) {
+            String subCommand = args[0].toLowerCase();
+            switch (subCommand) {
+                case "home":
+                    return homeCommand.onTabComplete(sender, args);
+                case "warp":
+                    return warpCommand.onTabComplete(sender, args);
+                default:
+                    break;
+            }
         }
         return null;
     }

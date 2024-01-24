@@ -3,7 +3,6 @@ package org.me.newsky.command.player;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-
 import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 import org.me.newsky.cache.CacheHandler;
@@ -29,9 +28,7 @@ public class IslandCommandExecutor implements CommandExecutor, TabCompleter {
     private final IslandSetWarpCommand setWarpCommand;
     private final IslandDelWarpCommand delWarpCommand;
     private final IslandInfoCommand infoCommand;
-    private final List<String> subCommands = Arrays.asList(
-            "addmember", "removemember", "create", "delete", "home",
-            "sethome", "delhome", "warp", "setwarp", "delwarp", "info");
+    private final List<String> subCommands = Arrays.asList("addmember", "removemember", "create", "delete", "home", "sethome", "delhome", "warp", "setwarp", "delwarp", "info");
 
     public IslandCommandExecutor(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
         this.config = config;
@@ -97,9 +94,17 @@ public class IslandCommandExecutor implements CommandExecutor, TabCompleter {
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String[] args) {
         if (args.length == 1) {
-            return subCommands.stream()
-                    .filter(sub -> sub.startsWith(args[0].toLowerCase()))
-                    .collect(Collectors.toList());
+            return subCommands.stream().filter(sub -> sub.startsWith(args[0].toLowerCase())).collect(Collectors.toList());
+        } else if (args.length > 1) {
+            String subCommand = args[0].toLowerCase();
+            switch (subCommand) {
+                case "home":
+                    return homeCommand.onTabComplete(sender, args);
+                case "warp":
+                    return warpCommand.onTabComplete(sender, args);
+                default:
+                    break;
+            }
         }
         return null;
     }
