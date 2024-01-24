@@ -4,28 +4,27 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.island.IslandHandler;
 
 import java.util.Optional;
 import java.util.UUID;
 
-public abstract class BaseSetWarpCommand {
+public abstract class BaseSetHomeCommand {
 
     protected final ConfigHandler config;
     protected final CacheHandler cacheHandler;
 
-    public BaseSetWarpCommand(ConfigHandler config, CacheHandler cacheHandler) {
+    public BaseSetHomeCommand(ConfigHandler config, CacheHandler cacheHandler) {
         this.config = config;
         this.cacheHandler = cacheHandler;
     }
 
     public boolean execute(CommandSender sender, String[] args) {
-        // Check if the sender is a player
         if (!(sender instanceof Player)) {
-            sender.sendMessage("This command can only be run by a player.");
+            sender.sendMessage("Only players can use this command.");
             return true;
         }
 
-        // Check if the command arguments are valid
         if (!validateArgs(sender, args)) {
             return true;
         }
@@ -50,17 +49,17 @@ public abstract class BaseSetWarpCommand {
             return true;
         }
 
-        // Get the target warp name
-        String warpName = args[getTargetWarpArgIndex()];
+        // Get the home name from the command arguments
+        String homeName = args[getTargetHomeArgIndex()];
 
-        // Set the warp point
-        String warpLocation = player.getLocation().toVector().toString();
+        // Get the home location
+        String homeLocation = player.getLocation().toVector().toString();
 
-        // Add the warp point to the cache
-        cacheHandler.addOrUpdateWarpPoint(targetUuid, warpName, warpLocation);
+        // Add or update the home point
+        cacheHandler.addOrUpdateHomePoint(targetUuid, homeName, homeLocation);
 
         // Send the success message
-        sender.sendMessage(getSetWarpSuccessMessage(args));
+        sender.sendMessage(getSetHomeSuccessMessage(homeName));
 
         return true;
     }
@@ -69,11 +68,11 @@ public abstract class BaseSetWarpCommand {
 
     protected abstract UUID getTargetUuid(CommandSender sender, String[] args);
 
-    protected abstract int getTargetWarpArgIndex();
+    protected abstract int getTargetHomeArgIndex();
 
     protected abstract String getNoIslandMessage(String[] args);
 
     protected abstract String getMustInIslandMessage(String[] args);
 
-    protected abstract String getSetWarpSuccessMessage(String[] args);
+    protected abstract String getSetHomeSuccessMessage(String homeName);
 }

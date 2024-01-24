@@ -104,11 +104,11 @@ public class CacheHandler {
         databaseHandler.addIslandPlayer(playerUuid, islandUuid, role);
     }
 
-    public void addOrUpdateWarpPoint(UUID playerUuid, UUID islandUuid, String warpName, String warpLocation) {
+    public void addOrUpdateWarpPoint(UUID playerUuid, String warpName, String warpLocation) {
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
             jedis.hset("island_warps:" + playerUuid.toString(), warpName, warpLocation);
         }
-        databaseHandler.addWarpPoint(playerUuid, islandUuid, warpName, warpLocation);
+        databaseHandler.addWarpPoint(playerUuid, warpName, warpLocation);
     }
 
     public void addOrUpdateHomePoint(UUID playerUuid, String homeName, String homeLocation) {

@@ -17,7 +17,6 @@ public class AdminHomeCommand extends BaseHomeCommand {
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
-        // Allow either two or three arguments: /island admin home <player> [homeName]
         if (args.length != 3) {
             sender.sendMessage("§eUsage: §b/islandadmin home <player> [homeName]");
             return false;
@@ -38,6 +37,11 @@ public class AdminHomeCommand extends BaseHomeCommand {
     @Override
     protected String getNoIslandMessage(String[] args) {
         return "§cPlayer " + args[1] + " does not have an island";
+    }
+
+    @Override
+    protected String getNoHomesMessage(String[] args) {
+        return "§cPlayer " + args[1] + " does not have any island homes";
     }
 
     @Override

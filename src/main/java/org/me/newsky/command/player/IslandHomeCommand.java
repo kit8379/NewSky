@@ -7,7 +7,6 @@ import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 
-import java.util.Set;
 import java.util.UUID;
 
 public class IslandHomeCommand extends BaseHomeCommand {
@@ -18,7 +17,6 @@ public class IslandHomeCommand extends BaseHomeCommand {
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
-        // Allow one or two arguments: /island home [homeName]
         if (args.length != 2) {
             sender.sendMessage("§eUsage: §b/island home [homeName]");
             return false;
@@ -39,6 +37,11 @@ public class IslandHomeCommand extends BaseHomeCommand {
     @Override
     protected String getNoIslandMessage(String[] args) {
         return "§cYou do not have an island";
+    }
+
+    @Override
+    protected String getNoHomesMessage(String[] args) {
+        return "§cYou do not have any island homes";
     }
 
     @Override

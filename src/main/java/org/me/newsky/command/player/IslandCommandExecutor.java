@@ -18,6 +18,8 @@ public class IslandCommandExecutor implements CommandExecutor {
     private final IslandCreateCommand createCommand;
     private final IslandDeleteCommand deleteCommand;
     private final IslandHomeCommand homeCommand;
+    private final IslandSetHomeCommand setHomeCommand;
+    private final IslandDelHomeCommand delHomeCommand;
     private final IslandWarpCommand warpCommand;
     private final IslandSetWarpCommand setWarpCommand;
     private final IslandDelWarpCommand delWarpCommand;
@@ -31,6 +33,8 @@ public class IslandCommandExecutor implements CommandExecutor {
         this.createCommand = new IslandCreateCommand(config, cacheHandler, islandHandler);
         this.deleteCommand = new IslandDeleteCommand(config, cacheHandler, islandHandler);
         this.homeCommand = new IslandHomeCommand(config, cacheHandler, islandHandler);
+        this.setHomeCommand = new IslandSetHomeCommand(config, cacheHandler);
+        this.delHomeCommand = new IslandDelHomeCommand(config, cacheHandler);
         this.warpCommand = new IslandWarpCommand(config, cacheHandler, islandHandler);
         this.setWarpCommand = new IslandSetWarpCommand(config, cacheHandler);
         this.delWarpCommand = new IslandDelWarpCommand(config, cacheHandler);
@@ -65,6 +69,10 @@ public class IslandCommandExecutor implements CommandExecutor {
                 return deleteCommand.execute(sender, args);
             case "home":
                 return homeCommand.execute(sender, args);
+            case "sethome":
+                return setHomeCommand.execute(sender, args);
+            case "delhome":
+                return delHomeCommand.execute(sender, args);
             case "warp":
                 return warpCommand.execute(sender, args);
             case "setwarp":

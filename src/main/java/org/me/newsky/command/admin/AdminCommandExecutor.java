@@ -18,6 +18,8 @@ public class AdminCommandExecutor implements CommandExecutor {
     private final AdminDeleteCommand deleteCommand;
     private final AdminInfoCommand infoCommand;
     private final AdminHomeCommand homeCommand;
+    private final AdminSetHomeCommand setHomeCommand;
+    private final AdminDelHomeCommand delHomeCommand;
     private final AdminWarpCommand warpCommand;
     private final AdminSetWarpCommand setWarpCommand;
     private final AdminDelWarpCommand delWarpCommand;
@@ -30,6 +32,8 @@ public class AdminCommandExecutor implements CommandExecutor {
         this.createCommand = new AdminCreateCommand(config, cacheHandler, islandHandler);
         this.deleteCommand = new AdminDeleteCommand(config, cacheHandler, islandHandler);
         this.homeCommand = new AdminHomeCommand(config, cacheHandler, islandHandler);
+        this.setHomeCommand = new AdminSetHomeCommand(config, cacheHandler);
+        this.delHomeCommand = new AdminDelHomeCommand(config, cacheHandler);
         this.warpCommand = new AdminWarpCommand(config, cacheHandler, islandHandler);
         this.setWarpCommand = new AdminSetWarpCommand(config, cacheHandler);
         this.delWarpCommand = new AdminDelWarpCommand(config, cacheHandler);
@@ -66,6 +70,10 @@ public class AdminCommandExecutor implements CommandExecutor {
                 return deleteCommand.execute(sender, args);
             case "home":
                 return homeCommand.execute(sender, args);
+            case "sethome":
+                return setHomeCommand.execute(sender, args);
+            case "delhome":
+                return delHomeCommand.execute(sender, args);
             case "warp":
                 return warpCommand.execute(sender, args);
             case "setwarp":

@@ -42,28 +42,8 @@ public abstract class BaseWarpCommand {
         Player player = (Player) sender;
 
         // Get the target player's UUID
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(args[0]);
-
-        // Get the target warp name
+        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(args[1]);
         UUID targetUuid = targetPlayer.getUniqueId();
-
-        // Check if the player has warp points
-        Set<String> warpNames = cacheHandler.getWarpNames(targetUuid);
-        if (warpNames.isEmpty()) {
-            sender.sendMessage("§c" + targetPlayer.getName() + " does not have any warp points set.");
-            return true;
-        }
-
-        // Get the warp name from the command arguments or a random warp name
-        String warpName = args.length > 1 ? args[1] : getRandomWarpName(warpNames);
-
-        // Check if the target warp point exists
-        Optional<String> warpLocationOpt = cacheHandler.getWarpLocation(targetUuid, warpName);
-        if (warpLocationOpt.isEmpty()) {
-            sender.sendMessage("§cWarp point '" + warpName + "' not found for " + targetPlayer.getName() + ".");
-            return true;
-        }
-        String warpLocation = warpLocationOpt.get();
 
         // Check if the player has an island
         Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
@@ -72,6 +52,24 @@ public abstract class BaseWarpCommand {
             return true;
         }
         UUID islandUuid = islandUuidOpt.get();
+
+        // Check if the player has warp points
+        Set<String> warpNames = cacheHandler.getWarpNames(targetUuid);
+        if (warpNames.isEmpty()) {
+            sender.sendMessage("§c" + args[1] + " does not have any warp points set.");
+            return true;
+        }
+
+        // Get the warp name from the command arguments or a random warp name
+        String warpName = args.length > 2 ? args[2] : getRandomWarpName(warpNames);
+
+        // Check if the target warp point exists
+        Optional<String> warpLocationOpt = cacheHandler.getWarpLocation(targetUuid, warpName);
+        if (warpLocationOpt.isEmpty()) {
+            sender.sendMessage("§cWarp point '" + warpName + "' not found for " + targetPlayer.getName() + ".");
+            return true;
+        }
+        String warpLocation = warpLocationOpt.get();
 
         // Run the island teleport future
         CompletableFuture<Void> warpIslandFuture = islandHandler.teleportToIsland(islandUuid, player, warpLocation);

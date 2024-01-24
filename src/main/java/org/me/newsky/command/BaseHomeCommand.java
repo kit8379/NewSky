@@ -7,6 +7,7 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -38,16 +39,23 @@ public abstract class BaseHomeCommand {
         // Get the target player's UUID
         UUID targetUuid = getTargetUUID(sender, args);
 
-        // Get the target home name
-        String homeName = args[getTargetHomeArgIndex()];
-
-        // Get the target player's island UUID
+        // Check if the player has an island and get the island UUID
         Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
         if (islandUuidOpt.isEmpty()) {
             sender.sendMessage(getNoIslandMessage(args));
             return true;
         }
         UUID islandUuid = islandUuidOpt.get();
+
+        // Check if the player has warp points
+        Set<String> homeNames = cacheHandler.getHomeNames(targetUuid);
+        if (homeNames.isEmpty()) {
+            sender.sendMessage(getNoHomesMessage(args));
+            return true;
+        }
+
+        // Get the target home name
+        String homeName = args[getTargetHomeArgIndex()];
 
         // Get the target player's home location
         Optional<String> homeLocationOpt = cacheHandler.getHomeLocation(targetUuid, homeName);
@@ -57,16 +65,20 @@ public abstract class BaseHomeCommand {
         }
         String homeLocation = homeLocationOpt.get();
 
+        // Run the island teleport future
         CompletableFuture<Void> homeIslandFuture = islandHandler.teleportToIsland(islandUuid, player, homeLocation);
-
         handleIslandTeleportFuture(homeIslandFuture, sender, args);
 
         return true;
     }
 
     protected void handleIslandTeleportFuture(CompletableFuture<Void> future, CommandSender sender, String[] args) {
-        future.thenRun(() -> sender.sendMessage(getIslandHomeSuccessMessage(args)))
+        future.thenRun(() -> {
+                    // Send the success message
+                    sender.sendMessage(getIslandHomeSuccessMessage(args));
+                })
                 .exceptionally(ex -> {
+                    // Send the error message
                     sender.sendMessage("There was an error teleporting to the island.");
                     return null;
                 });
@@ -79,6 +91,8 @@ public abstract class BaseHomeCommand {
     protected abstract int getTargetHomeArgIndex();
 
     protected abstract String getNoIslandMessage(String[] args);
+
+    protected abstract String getNoHomesMessage(String[] args);
 
     protected abstract String getNoHomeMessage(String[] args);
 

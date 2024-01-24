@@ -9,7 +9,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
-
 import java.util.concurrent.CompletableFuture;
 
 public class DatabaseHandler {
@@ -52,9 +51,7 @@ public class DatabaseHandler {
 
     private void executeQuery(String query, ResultProcessor processor) {
         CompletableFuture.runAsync(() -> {
-            try (Connection connection = getConnection();
-                 PreparedStatement statement = connection.prepareStatement(query);
-                 ResultSet resultSet = statement.executeQuery()) {
+            try (Connection connection = getConnection(); PreparedStatement statement = connection.prepareStatement(query); ResultSet resultSet = statement.executeQuery()) {
                 processor.process(resultSet);
             } catch (SQLException e) {
                 throw new RuntimeException(e);
@@ -64,8 +61,7 @@ public class DatabaseHandler {
 
     private CompletableFuture<Void> executeUpdate(PreparedStatementConsumer consumer, String query) {
         return CompletableFuture.runAsync(() -> {
-            try (Connection connection = getConnection();
-                 PreparedStatement statement = connection.prepareStatement(query)) {
+            try (Connection connection = getConnection(); PreparedStatement statement = connection.prepareStatement(query)) {
                 consumer.use(statement);
                 statement.executeUpdate();
             } catch (SQLException e) {
@@ -82,23 +78,19 @@ public class DatabaseHandler {
     }
 
     private void createIslandDataTable() {
-        executeUpdate(PreparedStatement::execute,
-                "CREATE TABLE IF NOT EXISTS islands (island_uuid VARCHAR(56) PRIMARY KEY, level INT(11) NOT NULL);").join();
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS islands (island_uuid VARCHAR(56) PRIMARY KEY, level INT(11) NOT NULL);").join();
     }
 
     private void createIslandPlayersTable() {
-        executeUpdate(PreparedStatement::execute,
-                "CREATE TABLE IF NOT EXISTS island_players (player_uuid VARCHAR(56), island_uuid VARCHAR(56) NOT NULL, role VARCHAR(56) NOT NULL, FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid), PRIMARY KEY (player_uuid, island_uuid));").join();
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_players (player_uuid VARCHAR(56), island_uuid VARCHAR(56) NOT NULL, role VARCHAR(56) NOT NULL, FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid), PRIMARY KEY (player_uuid, island_uuid));").join();
     }
 
     private void createIslandWarpsTable() {
-        executeUpdate(PreparedStatement::execute,
-                "CREATE TABLE IF NOT EXISTS island_warps (player_uuid VARCHAR(56), island_uuid VARCHAR(56), warp_name VARCHAR(56), warp_location VARCHAR(256), PRIMARY KEY (player_uuid, warp_name), FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid));").join();
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_warps (" + "player_uuid VARCHAR(56), " + "warp_name VARCHAR(56), " + "warp_location VARCHAR(256), " + "PRIMARY KEY (player_uuid, warp_name));").join();
     }
 
     private void createIslandHomesTable() {
-        executeUpdate(PreparedStatement::execute,
-                "CREATE TABLE IF NOT EXISTS island_homes (player_uuid VARCHAR(56), home_name VARCHAR(56), home_location VARCHAR(256), PRIMARY KEY (player_uuid, home_name));").join();
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_homes (" + "player_uuid VARCHAR(56), " + "home_name VARCHAR(56), " + "home_location VARCHAR(256), " + "PRIMARY KEY (player_uuid, home_name));").join();
     }
 
     public void selectAllIslandData(ResultProcessor processor) {
@@ -133,13 +125,12 @@ public class DatabaseHandler {
         }, "INSERT INTO island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?);");
     }
 
-    public void addWarpPoint(UUID playerUuid, UUID islandUuid, String warpName, String warpLocation) {
+    public void addWarpPoint(UUID playerUuid, String warpName, String warpLocation) {
         executeUpdate(statement -> {
             statement.setString(1, playerUuid.toString());
-            statement.setString(2, islandUuid.toString());
-            statement.setString(3, warpName);
-            statement.setString(4, warpLocation);
-        }, "INSERT INTO island_warps (player_uuid, island_uuid, warp_name, warp_location) VALUES (?, ?, ?, ?);");
+            statement.setString(2, warpName);
+            statement.setString(3, warpLocation);
+        }, "INSERT INTO island_warps (player_uuid, warp_name, warp_location) VALUES (?, ?, ?);");
     }
 
     public void addHomePoint(UUID playerUuid, String homeName, String homeLocation) {

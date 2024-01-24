@@ -3,21 +3,21 @@ package org.me.newsky.command.player;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.command.BaseDelWarpCommand;
+import org.me.newsky.command.BaseDelHomeCommand;
 import org.me.newsky.config.ConfigHandler;
 
 import java.util.UUID;
 
-public class IslandDelWarpCommand extends BaseDelWarpCommand {
+public class IslandDelHomeCommand extends BaseDelHomeCommand {
 
-    public IslandDelWarpCommand(ConfigHandler config, CacheHandler cacheHandler) {
+    public IslandDelHomeCommand(ConfigHandler config, CacheHandler cacheHandler) {
         super(config, cacheHandler);
     }
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length != 2) {
-            sender.sendMessage("§eUsage: §b/island delwarp <warpName>");
+            sender.sendMessage("§eUsage: §b/island delhome <homeName>");
             return false;
         }
         return true;
@@ -29,17 +29,17 @@ public class IslandDelWarpCommand extends BaseDelWarpCommand {
     }
 
     @Override
-    protected int getTargetWarpArgIndex() {
+    protected int getTargetHomeArgIndex() {
         return 1;
     }
 
     @Override
-    protected String getNoWarpMessage(String[] args) {
-        return "You do not have a warp point named '" + args[1] + "'.";
+    protected String getNoHomeMessage(String[] args) {
+        return "§cYou do not have a home named " + args[1] + ".";
     }
 
     @Override
-    protected String getDelWarpSuccessMessage(String[] args) {
-        return "Warp point '" + args[1] + "' successfully deleted.";
+    protected String getDelHomeSuccessMessage(String[] args) {
+        return "§aHome '" + args[1] + "' successfully deleted.";
     }
 }
