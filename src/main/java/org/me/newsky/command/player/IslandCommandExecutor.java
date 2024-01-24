@@ -28,7 +28,8 @@ public class IslandCommandExecutor implements CommandExecutor, TabCompleter {
     private final IslandSetWarpCommand setWarpCommand;
     private final IslandDelWarpCommand delWarpCommand;
     private final IslandInfoCommand infoCommand;
-    private final List<String> subCommands = Arrays.asList("addmember", "removemember", "create", "delete", "home", "sethome", "delhome", "warp", "setwarp", "delwarp", "info");
+    private final IslandLockCommand lockCommand;
+    private final List<String> subCommands = Arrays.asList("addmember", "removemember", "create", "delete", "home", "sethome", "delhome", "warp", "setwarp", "delwarp", "lock", "info");
 
     public IslandCommandExecutor(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
         this.config = config;
@@ -43,6 +44,7 @@ public class IslandCommandExecutor implements CommandExecutor, TabCompleter {
         this.setWarpCommand = new IslandSetWarpCommand(config, cacheHandler);
         this.delWarpCommand = new IslandDelWarpCommand(config, cacheHandler);
         this.infoCommand = new IslandInfoCommand(config, cacheHandler);
+        this.lockCommand = new IslandLockCommand(config, cacheHandler);
     }
 
     @Override
@@ -85,6 +87,8 @@ public class IslandCommandExecutor implements CommandExecutor, TabCompleter {
                 return delWarpCommand.execute(sender, args);
             case "info":
                 return infoCommand.execute(sender, args);
+            case "lock":
+                return lockCommand.execute(sender, args);
             default:
                 sender.sendMessage("§cUnknown subcommand: " + subCommand);
                 return true;

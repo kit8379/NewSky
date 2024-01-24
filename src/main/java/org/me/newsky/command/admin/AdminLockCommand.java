@@ -3,22 +3,21 @@ package org.me.newsky.command.admin;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.command.BaseDeleteCommand;
+import org.me.newsky.command.BaseLockCommand;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.island.IslandHandler;
 
 import java.util.UUID;
 
-public class AdminDeleteCommand extends BaseDeleteCommand {
+public class AdminLockCommand extends BaseLockCommand {
 
-    public AdminDeleteCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
-        super(config, cacheHandler, islandHandler);
+    public AdminLockCommand(ConfigHandler config, CacheHandler cacheHandler) {
+        super(config, cacheHandler);
     }
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage("§eUsage: §b/islandadmin delete <player>");
+            sender.sendMessage("§eUsage: §b/islandadmin create <player>");
             return false;
         }
         return true;
@@ -35,7 +34,7 @@ public class AdminDeleteCommand extends BaseDeleteCommand {
     }
 
     @Override
-    protected String getIslandDeleteSuccessMessage(String[] args) {
-        return "§aIsland deleted for player " + args[1];
+    protected String getIslandLockedMessage(String[] args) {
+        return null;
     }
 }

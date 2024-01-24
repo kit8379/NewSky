@@ -18,7 +18,7 @@ public class AdminCreateCommand extends BaseCreateCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage("§eUsage: §b/island admin create <player>");
+            sender.sendMessage("§eUsage: §b/islandadmin create <player>");
             return false;
         }
         return true;

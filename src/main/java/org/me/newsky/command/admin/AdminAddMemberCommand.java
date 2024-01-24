@@ -17,7 +17,7 @@ public class AdminAddMemberCommand extends BaseAddMemberCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage("§eUsage: §b/island admin addmember <player> <island owner>");
+            sender.sendMessage("§eUsage: §b/islandadmin addmember <player> <island owner>");
             return false;
         }
         return true;

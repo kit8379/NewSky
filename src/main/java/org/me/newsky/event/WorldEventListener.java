@@ -16,7 +16,6 @@ public class WorldEventListener implements Listener {
 
     @EventHandler(priority=EventPriority.HIGHEST)
     public void worldInit(WorldInitEvent e) {
-
         String worldName = e.getWorld().getName();
         if (worldName.startsWith("island-")) {
             e.getWorld().setKeepSpawnInMemory(false);

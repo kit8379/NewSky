@@ -28,8 +28,9 @@ public class AdminCommandExecutor implements CommandExecutor, TabCompleter {
     private final AdminWarpCommand warpCommand;
     private final AdminSetWarpCommand setWarpCommand;
     private final AdminDelWarpCommand delWarpCommand;
+    private final AdminLockCommand lockCommand;
     private final AdminReloadCommand reloadCommand;
-    private final List<String> subCommands = Arrays.asList("addmember", "removemember", "create", "delete", "home", "sethome", "delhome", "warp", "setwarp", "delwarp", "info", "reload");
+    private final List<String> subCommands = Arrays.asList("addmember", "removemember", "create", "delete", "home", "sethome", "delhome", "warp", "setwarp", "delwarp", "info", "lock", "reload");
 
     public AdminCommandExecutor(NewSky plugin, ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
         this.config = config;
@@ -45,6 +46,7 @@ public class AdminCommandExecutor implements CommandExecutor, TabCompleter {
         this.delWarpCommand = new AdminDelWarpCommand(config, cacheHandler);
         this.infoCommand = new AdminInfoCommand(config, cacheHandler);
         this.reloadCommand = new AdminReloadCommand(plugin, config);
+        this.lockCommand = new AdminLockCommand(config, cacheHandler);
     }
 
     @Override

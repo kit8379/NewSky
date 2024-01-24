@@ -25,7 +25,6 @@ public class PlayerJoinListener implements Listener {
         UUID playerId = event.getPlayer().getUniqueId();
         Location pendingLocation = teleportManager.getPendingTeleport(playerId);
         plugin.debug("Pending location for " + playerId + " is " + pendingLocation);
-
         if (pendingLocation != null) {
             event.getPlayer().teleport(pendingLocation);
             teleportManager.removePendingTeleport(playerId);

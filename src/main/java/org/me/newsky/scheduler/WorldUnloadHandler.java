@@ -41,10 +41,8 @@ public class WorldUnloadHandler {
                 if (currentTime - inactiveTime > MAX_INACTIVE_TIME) {
                     // Schedule the world unload on the main thread
                     Bukkit.getScheduler().runTask(plugin, () -> {
-                        if (mvWorldManager.isMVWorld(world.getName())) {
-                            mvWorldManager.unloadWorld(world.getName());
-                            plugin.getLogger().info("Unloaded inactive world: " + world.getName());
-                        }
+                        mvWorldManager.unloadWorld(world.getName());
+                        plugin.getLogger().info("Unloaded inactive world: " + world.getName());
                     });
                     inactiveWorlds.remove(world.getName());
                 } else {
