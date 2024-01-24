@@ -40,6 +40,6 @@ public class IslandDelHomeCommand extends BaseDelHomeCommand {
 
     @Override
     protected String getDelHomeSuccessMessage(String[] args) {
-        return "§aHome '" + args[1] + "' successfully deleted.";
+        return "§aHome " + args[1] + " successfully deleted.";
     }
 }

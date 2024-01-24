@@ -16,7 +16,6 @@ public class WorldEventListener implements Listener {
 
     @EventHandler(priority=EventPriority.HIGHEST)
     public void worldInit(WorldInitEvent e) {
-        plugin.debug("WorldInitEvent triggered for " + e.getWorld().getName());
 
         String worldName = e.getWorld().getName();
         if (worldName.startsWith("island-")) {

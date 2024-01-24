@@ -46,6 +46,6 @@ public class AdminSetHomeCommand extends BaseSetHomeCommand {
 
     @Override
     protected String getSetHomeSuccessMessage(String homeName) {
-        return "§aHome '" + homeName + "' set successfully for the player.";
+        return "§aHome " + homeName + " set successfully for the player.";
     }
 }

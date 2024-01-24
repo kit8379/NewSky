@@ -86,7 +86,6 @@ public class IslandOperation {
 
         // Asynchronous task to fetch island spawn
         CompletableFuture.runAsync(() -> {
-            UUID worldUuid = UUID.fromString(worldName.replace("island-", ""));
             UUID playerUuid = UUID.fromString(playerName);
 
             String[] parts = locationString.split(",");

@@ -46,6 +46,6 @@ public class IslandSetHomeCommand extends BaseSetHomeCommand {
 
     @Override
     protected String getSetHomeSuccessMessage(String homeName) {
-        return "§aHome '" + homeName + "' set successfully.";
+        return "§aHome " + homeName + " set successfully.";
     }
 }

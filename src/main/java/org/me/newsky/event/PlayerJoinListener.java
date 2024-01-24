@@ -22,18 +22,13 @@ public class PlayerJoinListener implements Listener {
 
     @EventHandler(priority= EventPriority.HIGHEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
-        plugin.debug("PlayerJoinEvent triggered for " + event.getPlayer().getName());
-
         UUID playerId = event.getPlayer().getUniqueId();
         Location pendingLocation = teleportManager.getPendingTeleport(playerId);
         plugin.debug("Pending location for " + playerId + " is " + pendingLocation);
 
         if (pendingLocation != null) {
             event.getPlayer().teleport(pendingLocation);
-            plugin.debug("Teleporting " + playerId + " to pending location.");
-
             teleportManager.removePendingTeleport(playerId);
-            plugin.debug("Removed pending teleport for " + playerId);
         }
     }
 }

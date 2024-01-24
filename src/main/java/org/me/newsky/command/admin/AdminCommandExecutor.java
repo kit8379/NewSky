@@ -3,13 +3,18 @@ package org.me.newsky.command.admin;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.command.TabCompleter;
 import org.jetbrains.annotations.NotNull;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 
-public class AdminCommandExecutor implements CommandExecutor {
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class AdminCommandExecutor implements CommandExecutor, TabCompleter {
 
     private final ConfigHandler config;
     private final AdminAddMemberCommand addMemberCommand;
@@ -24,6 +29,9 @@ public class AdminCommandExecutor implements CommandExecutor {
     private final AdminSetWarpCommand setWarpCommand;
     private final AdminDelWarpCommand delWarpCommand;
     private final AdminReloadCommand reloadCommand;
+    private final List<String> subCommands = Arrays.asList(
+            "addmember", "removemember", "create", "delete", "home",
+            "sethome", "delhome", "warp", "setwarp", "delwarp", "info", "reload");
 
     public AdminCommandExecutor(NewSky plugin, ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
         this.config = config;
@@ -88,5 +96,15 @@ public class AdminCommandExecutor implements CommandExecutor {
                 sender.sendMessage("§cUnknown subcommand.");
                 return true;
         }
+    }
+
+    @Override
+    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String[] args) {
+        if (args.length == 1) {
+            return subCommands.stream()
+                    .filter(sub -> sub.startsWith(args[0].toLowerCase()))
+                    .collect(Collectors.toList());
+        }
+        return null;
     }
 }

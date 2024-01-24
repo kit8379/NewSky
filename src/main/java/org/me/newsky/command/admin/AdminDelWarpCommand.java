@@ -35,11 +35,11 @@ public class AdminDelWarpCommand extends BaseDelWarpCommand {
 
     @Override
     protected String getNoWarpMessage(String[] args) {
-        return "Player '" + args[1] + "' does not have a warp point named '" + args[2] + "'.";
+        return "Player " + args[1] + " does not have a warp point named " + args[2] + ".";
     }
 
     @Override
     protected String getDelWarpSuccessMessage(String[] args) {
-        return "Warp point '" + args[2] + "' successfully deleted for player '" + args[1] + "'.";
+        return "Warp point " + args[2] + " successfully deleted for player " + args[1] + ".";
     }
 }

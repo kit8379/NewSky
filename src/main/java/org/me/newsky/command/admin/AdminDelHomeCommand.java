@@ -40,6 +40,6 @@ public class AdminDelHomeCommand extends BaseDelHomeCommand {
 
     @Override
     protected String getDelHomeSuccessMessage(String[] args) {
-        return "§aHome '" + args[2] + "' successfully deleted for player " + args[1] + ".";
+        return "§aHome " + args[2] + " successfully deleted for player " + args[1] + ".";
     }
 }

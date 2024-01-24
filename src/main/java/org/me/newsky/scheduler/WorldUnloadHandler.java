@@ -36,21 +36,22 @@ public class WorldUnloadHandler {
         long currentTime = System.currentTimeMillis();
         Bukkit.getWorlds().forEach(world -> {
             // Check if the world name starts with "island-"
-            if (world.getName().startsWith("island-")) {
-                if (world.getPlayers().isEmpty()) {
-                    long inactiveTime = inactiveWorlds.getOrDefault(world.getName(), currentTime);
-                    if (currentTime - inactiveTime > MAX_INACTIVE_TIME) {
+            if (world.getName().startsWith("island-") && world.getPlayers().isEmpty()) {
+                long inactiveTime = inactiveWorlds.getOrDefault(world.getName(), currentTime);
+                if (currentTime - inactiveTime > MAX_INACTIVE_TIME) {
+                    // Schedule the world unload on the main thread
+                    Bukkit.getScheduler().runTask(plugin, () -> {
                         if (mvWorldManager.isMVWorld(world.getName())) {
                             mvWorldManager.unloadWorld(world.getName());
                             plugin.getLogger().info("Unloaded inactive world: " + world.getName());
                         }
-                        inactiveWorlds.remove(world.getName());
-                    } else {
-                        inactiveWorlds.put(world.getName(), inactiveTime);
-                    }
-                } else {
+                    });
                     inactiveWorlds.remove(world.getName());
+                } else {
+                    inactiveWorlds.put(world.getName(), inactiveTime);
                 }
+            } else {
+                inactiveWorlds.remove(world.getName());
             }
         });
     }

@@ -141,15 +141,30 @@ public class DatabaseHandler {
         }, "INSERT INTO island_homes (player_uuid, home_name, home_location) VALUES (?, ?, ?);");
     }
 
-    public void deleteIslandData(UUID islandUuid) {
-        executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM islands WHERE island_uuid = ?;");
+    public void deleteIsland(UUID islandUuid) {
+        // Delete the island data
+        executeUpdate(statement -> statement.setString(1, islandUuid.toString()),
+                "DELETE FROM islands WHERE island_uuid = ?;");
     }
 
     public void deleteIslandPlayer(UUID playerUuid, UUID islandUuid) {
+        // Then delete the player from island_players
         executeUpdate(statement -> {
             statement.setString(1, playerUuid.toString());
             statement.setString(2, islandUuid.toString());
         }, "DELETE FROM island_players WHERE player_uuid = ? AND island_uuid = ?;");
+    }
+
+    public void deleteAllPlayerHomes(UUID playerUuid) {
+        executeUpdate(statement -> {
+            statement.setString(1, playerUuid.toString());
+        }, "DELETE FROM island_homes WHERE player_uuid = ?;");
+    }
+
+    public void deleteAllPlayerWarps(UUID playerUuid) {
+        executeUpdate(statement -> {
+            statement.setString(1, playerUuid.toString());
+        }, "DELETE FROM island_warps WHERE player_uuid = ?;");
     }
 
     public void deleteWarpPoint(UUID playerUuid, String warpName) {

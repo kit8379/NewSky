@@ -1,5 +1,6 @@
 package org.me.newsky.command;
 
+import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.cache.CacheHandler;
@@ -53,7 +54,14 @@ public abstract class BaseSetHomeCommand {
         String homeName = args[getTargetHomeArgIndex()];
 
         // Get the home location
-        String homeLocation = player.getLocation().toVector().toString();
+        Location loc = player.getLocation();
+        String homeLocation = String.format("%.1f,%.1f,%.1f,%.1f,%.1f",
+                loc.getX(),
+                loc.getY(),
+                loc.getZ(),
+                loc.getYaw(),
+                loc.getPitch());
+
 
         // Add or update the home point
         cacheHandler.addOrUpdateHomePoint(targetUuid, homeName, homeLocation);

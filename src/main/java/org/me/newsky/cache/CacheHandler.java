@@ -119,23 +119,49 @@ public class CacheHandler {
     }
 
     public void deleteIsland(UUID islandUuid) {
+        // Get all island members
+        Set<UUID> members = getIslandMembers(islandUuid);
+
+        // Delete homes and warps for each member
+        members.forEach(memberUuid -> {
+            deleteIslandPlayer(memberUuid, islandUuid);
+        });
+
+        // Finally, delete the island data
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
-            Set<String> playerKeys = jedis.keys("island_players:" + islandUuid + ":*");
-            for (String key : playerKeys) {
-                jedis.del(key);
-            }
+            jedis.del("island_data:" + islandUuid);
         }
-        try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
-            jedis.del("island_data:" + islandUuid.toString());
-        }
-        databaseHandler.deleteIslandData(islandUuid);
+
+        databaseHandler.deleteIsland(islandUuid);
     }
 
     public void deleteIslandPlayer(UUID playerUuid, UUID islandUuid) {
+        // Delete player's homes and warps first
+        deleteAllPlayerHomes(playerUuid);
+        deleteAllPlayerWarps(playerUuid);
+
+        // Then delete the player from island_players
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
-            jedis.del("island_players:" + islandUuid.toString() + ":" + playerUuid.toString());
+            jedis.del("island_players:" + islandUuid.toString() + ":" + playerUuid);
         }
+
         databaseHandler.deleteIslandPlayer(playerUuid, islandUuid);
+    }
+
+    private void deleteAllPlayerHomes(UUID playerUuid) {
+        try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
+            jedis.del("island_homes:" + playerUuid.toString());
+        }
+
+        databaseHandler.deleteAllPlayerHomes(playerUuid);
+    }
+
+    private void deleteAllPlayerWarps(UUID playerUuid) {
+        try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
+            jedis.del("island_warps:" + playerUuid.toString());
+        }
+
+        databaseHandler.deleteAllPlayerWarps(playerUuid);
     }
 
     public void deleteWarpPoint(UUID playerUuid, String warpName) {
@@ -215,11 +241,8 @@ public class CacheHandler {
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
             Set<String> keys = jedis.keys("island_players:" + islandUuid.toString() + ":*");
             for (String key : keys) {
-                Map<String, String> data = jedis.hgetAll(key);
-                if (!"owner".equals(data.get("role"))) {
-                    String[] parts = key.split(":");
-                    members.add(UUID.fromString(parts[2]));
-                }
+                String[] parts = key.split(":");
+                members.add(UUID.fromString(parts[2]));
             }
         }
         return members;
@@ -232,7 +255,6 @@ public class CacheHandler {
                 return Optional.empty();
             }
 
-            // Extracting the island UUID from the key pattern "island_players:<islandUuid>:<playerUuid>"
             String key = keys.iterator().next();
             String[] segments = key.split(":");
             if (segments.length != 3) {
