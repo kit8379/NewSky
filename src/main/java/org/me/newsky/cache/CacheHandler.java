@@ -23,12 +23,19 @@ public class CacheHandler {
         cacheIslandHomesToRedis();
     }
 
-    private void cacheIslandDataToRedis() {
+    public void cacheIslandDataToRedis() {
         databaseHandler.selectAllIslandData(resultSet -> {
             try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
                 while (resultSet.next()) {
                     String islandUuid = resultSet.getString("island_uuid");
-                    jedis.hset("island_data:" + islandUuid, "level", String.valueOf(resultSet.getInt("level")));
+                    int level = resultSet.getInt("level");
+                    boolean lock = resultSet.getBoolean("lock");
+
+                    Map<String, String> islandData = new HashMap<>();
+                    islandData.put("level", String.valueOf(level));
+                    islandData.put("lock", String.valueOf(lock));
+
+                    jedis.hmset("island_data:" + islandUuid, islandData);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -89,9 +96,13 @@ public class CacheHandler {
 
     public void createIsland(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
-            jedis.hset("island_data:" + islandUuid.toString(), "level", "0");
+            Map<String, String> islandData = new HashMap<>();
+            islandData.put("level", "0");
+            islandData.put("lock", "false");  // Adding default lock status
+
+            jedis.hmset("island_data:" + islandUuid.toString(), islandData);
         }
-        databaseHandler.updateIslandData(islandUuid, 0);
+        databaseHandler.addIslandData(islandUuid);
     }
 
     public void addIslandPlayer(UUID playerUuid, UUID islandUuid, String role) {
@@ -108,14 +119,28 @@ public class CacheHandler {
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
             jedis.hset("island_warps:" + playerUuid.toString(), warpName, warpLocation);
         }
-        databaseHandler.addWarpPoint(playerUuid, warpName, warpLocation);
+        databaseHandler.addOrUpdateWarpPoint(playerUuid, warpName, warpLocation);
     }
 
     public void addOrUpdateHomePoint(UUID playerUuid, String homeName, String homeLocation) {
         try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
             jedis.hset("island_homes:" + playerUuid.toString(), homeName, homeLocation);
         }
-        databaseHandler.addHomePoint(playerUuid, homeName, homeLocation);
+        databaseHandler.addOrUpdateHomePoint(playerUuid, homeName, homeLocation);
+    }
+
+    public void updateIslandLevel(UUID islandUuid, int level) {
+        try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
+            jedis.hset("island_data:" + islandUuid.toString(), "level", String.valueOf(level));
+        }
+        databaseHandler.updateIslandLevel(islandUuid, level);
+    }
+
+    public void updateIslandLock(UUID islandUuid, boolean lock) {
+        try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
+            jedis.hset("island_data:" + islandUuid.toString(), "lock", String.valueOf(lock));
+        }
+        databaseHandler.updateIslandLock(islandUuid, lock);
     }
 
     public void deleteIsland(UUID islandUuid) {
@@ -176,6 +201,26 @@ public class CacheHandler {
             jedis.hdel("island_homes:" + playerUuid.toString(), homeName);
         }
         databaseHandler.deleteHomePoint(playerUuid, homeName);
+    }
+
+    public int getIslandLevel(UUID islandUuid) {
+        try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
+            String level = jedis.hget("island_data:" + islandUuid.toString(), "level");
+            return Integer.parseInt(level);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+    public boolean getIslandLock(UUID islandUuid) {
+        try (Jedis jedis = redisHandler.getJedisPool().getResource()) {
+            String lock = jedis.hget("island_data:" + islandUuid.toString(), "lock");
+            return Boolean.parseBoolean(lock);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
     public Optional<String> getWarpLocation(UUID playerUuid, String warpName) {

@@ -2,8 +2,8 @@ package org.me.newsky.command.player;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.me.newsky.command.BaseLockCommand;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.command.BaseLockCommand;
 import org.me.newsky.config.ConfigHandler;
 
 import java.util.UUID;
@@ -30,7 +30,12 @@ public class IslandLockCommand extends BaseLockCommand {
     }
 
     @Override
-    protected String getIslandLockedMessage(String[] args) {
+    protected String getIslandUnLockSuccessMessage(String[] args) {
+        return "Island unlocked";
+    }
+
+    @Override
+    protected String getIslandLockSuccessMessage(String[] args) {
         return "Island locked";
     }
 }

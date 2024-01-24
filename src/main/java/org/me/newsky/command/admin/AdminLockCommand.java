@@ -34,7 +34,12 @@ public class AdminLockCommand extends BaseLockCommand {
     }
 
     @Override
-    protected String getIslandLockedMessage(String[] args) {
-        return null;
+    protected String getIslandUnLockSuccessMessage(String[] args) {
+        return "§aIsland unlocked for " + args[1] + ".";
+    }
+
+    @Override
+    protected String getIslandLockSuccessMessage(String[] args) {
+        return "§aIsland locked for " + args[1] + ".";
     }
 }

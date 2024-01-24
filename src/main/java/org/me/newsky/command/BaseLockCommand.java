@@ -4,7 +4,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.island.IslandHandler;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -43,7 +42,14 @@ public abstract class BaseLockCommand {
         }
         UUID islandUuid = islandUuidOpt.get();
 
-        sender.sendMessage(getIslandLockedMessage(args));
+        // Check if the island is locked and update the lock status
+        if (cacheHandler.getIslandLock(islandUuid)) {
+            cacheHandler.updateIslandLock(islandUuid, false);
+            sender.sendMessage(getIslandUnLockSuccessMessage(args));
+        } else {
+            cacheHandler.updateIslandLock(islandUuid, true);
+            sender.sendMessage(getIslandLockSuccessMessage(args));
+        }
 
         return true;
     }
@@ -54,5 +60,7 @@ public abstract class BaseLockCommand {
 
     protected abstract String getNoIslandMessage(String[] args);
 
-    protected abstract String getIslandLockedMessage(String[] args);
+    protected abstract String getIslandUnLockSuccessMessage(String[] args);
+
+    protected abstract String getIslandLockSuccessMessage(String[] args);
 }

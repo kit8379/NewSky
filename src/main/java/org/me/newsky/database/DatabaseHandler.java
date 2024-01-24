@@ -78,7 +78,7 @@ public class DatabaseHandler {
     }
 
     private void createIslandDataTable() {
-        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS islands (island_uuid VARCHAR(56) PRIMARY KEY, level INT(11) NOT NULL);").join();
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS islands (" + "island_uuid VARCHAR(56) PRIMARY KEY, " + "level INT(11) NOT NULL DEFAULT 0, " + "lock BOOLEAN NOT NULL DEFAULT FALSE);").join();
     }
 
     private void createIslandPlayersTable() {
@@ -109,12 +109,10 @@ public class DatabaseHandler {
         executeQuery("SELECT * FROM island_homes", processor);
     }
 
-    public void updateIslandData(UUID islandUuid, int level) {
+    public void addIslandData(UUID islandUuid) {
         executeUpdate(statement -> {
             statement.setString(1, islandUuid.toString());
-            statement.setInt(2, level);
-            statement.setInt(3, level);
-        }, "INSERT INTO islands (island_uuid, level) VALUES (?, ?) ON DUPLICATE KEY UPDATE level = ?");
+        }, "INSERT INTO islands (island_uuid) VALUES (?)");
     }
 
     public void addIslandPlayer(UUID playerUuid, UUID islandUuid, String role) {
@@ -125,7 +123,7 @@ public class DatabaseHandler {
         }, "INSERT INTO island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?);");
     }
 
-    public void addWarpPoint(UUID playerUuid, String warpName, String warpLocation) {
+    public void addOrUpdateWarpPoint(UUID playerUuid, String warpName, String warpLocation) {
         executeUpdate(statement -> {
             statement.setString(1, playerUuid.toString());
             statement.setString(2, warpName);
@@ -133,7 +131,7 @@ public class DatabaseHandler {
         }, "INSERT INTO island_warps (player_uuid, warp_name, warp_location) VALUES (?, ?, ?);");
     }
 
-    public void addHomePoint(UUID playerUuid, String homeName, String homeLocation) {
+    public void addOrUpdateHomePoint(UUID playerUuid, String homeName, String homeLocation) {
         executeUpdate(statement -> {
             statement.setString(1, playerUuid.toString());
             statement.setString(2, homeName);
@@ -141,10 +139,23 @@ public class DatabaseHandler {
         }, "INSERT INTO island_homes (player_uuid, home_name, home_location) VALUES (?, ?, ?);");
     }
 
+    public void updateIslandLevel(UUID islandUuid, int level) {
+        executeUpdate(statement -> {
+            statement.setInt(1, level);
+            statement.setString(2, islandUuid.toString());
+        }, "UPDATE islands SET level = ? WHERE island_uuid = ?;");
+    }
+
+    public void updateIslandLock(UUID islandUuid, boolean lock) {
+        executeUpdate(statement -> {
+            statement.setBoolean(1, lock);
+            statement.setString(2, islandUuid.toString());
+        }, "UPDATE islands SET lock = ? WHERE island_uuid = ?;");
+    }
+
     public void deleteIsland(UUID islandUuid) {
         // Delete the island data
-        executeUpdate(statement -> statement.setString(1, islandUuid.toString()),
-                "DELETE FROM islands WHERE island_uuid = ?;");
+        executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM islands WHERE island_uuid = ?;");
     }
 
     public void deleteIslandPlayer(UUID playerUuid, UUID islandUuid) {
