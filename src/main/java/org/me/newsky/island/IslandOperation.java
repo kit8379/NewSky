@@ -21,13 +21,11 @@ public class IslandOperation {
 
     private final NewSky plugin;
     private final MVWorldManager mvWorldManager;
-    private final CacheHandler cacheHandler;
     private final TeleportManager teleportManager;
 
     public IslandOperation(NewSky plugin, MVWorldManager mvWorldManager, CacheHandler cacheHandler, TeleportManager teleportManager) {
         this.plugin = plugin;
         this.mvWorldManager = mvWorldManager;
-        this.cacheHandler = cacheHandler;
         this.teleportManager = teleportManager;
     }
 

@@ -57,7 +57,7 @@ public abstract class BaseAddMemberCommand {
         String role = "member";
 
         // Add the target player to the island
-        cacheHandler.addIslandPlayer(targetAdd.getUniqueId(), islandUuid, spawnLocation, role);
+        cacheHandler.addIslandPlayer(targetAdd.getUniqueId(), islandUuid, role);
         // Send the success message
         sender.sendMessage(getIslandAddMemberSuccessMessage(args));
 

@@ -78,6 +78,7 @@ public class DatabaseHandler {
         createIslandDataTable();
         createIslandPlayersTable();
         createIslandWarpsTable();
+        createIslandHomesTable();
     }
 
     private void createIslandDataTable() {
@@ -87,12 +88,17 @@ public class DatabaseHandler {
 
     private void createIslandPlayersTable() {
         executeUpdate(PreparedStatement::execute,
-                "CREATE TABLE IF NOT EXISTS island_players (player_uuid VARCHAR(56), island_uuid VARCHAR(56) NOT NULL, spawn VARCHAR(256) NOT NULL, role VARCHAR(56) NOT NULL, FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid), PRIMARY KEY (player_uuid, island_uuid));").join();
+                "CREATE TABLE IF NOT EXISTS island_players (player_uuid VARCHAR(56), island_uuid VARCHAR(56) NOT NULL, role VARCHAR(56) NOT NULL, FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid), PRIMARY KEY (player_uuid, island_uuid));").join();
     }
 
     private void createIslandWarpsTable() {
         executeUpdate(PreparedStatement::execute,
                 "CREATE TABLE IF NOT EXISTS island_warps (player_uuid VARCHAR(56), island_uuid VARCHAR(56), warp_name VARCHAR(56), warp_location VARCHAR(256), PRIMARY KEY (player_uuid, warp_name), FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid));").join();
+    }
+
+    private void createIslandHomesTable() {
+        executeUpdate(PreparedStatement::execute,
+                "CREATE TABLE IF NOT EXISTS island_homes (player_uuid VARCHAR(56), home_name VARCHAR(56), home_location VARCHAR(256), PRIMARY KEY (player_uuid, home_name));").join();
     }
 
     public void selectAllIslandData(ResultProcessor processor) {
@@ -107,6 +113,10 @@ public class DatabaseHandler {
         executeQuery("SELECT * FROM island_warps", processor);
     }
 
+    public void selectAllIslandHomes(ResultProcessor processor) {
+        executeQuery("SELECT * FROM island_homes", processor);
+    }
+
     public void updateIslandData(UUID islandUuid, int level) {
         executeUpdate(statement -> {
             statement.setString(1, islandUuid.toString());
@@ -115,15 +125,12 @@ public class DatabaseHandler {
         }, "INSERT INTO islands (island_uuid, level) VALUES (?, ?) ON DUPLICATE KEY UPDATE level = ?");
     }
 
-    public void addIslandPlayer(UUID playerUuid, UUID islandUuid, String spawnLocation, String role) {
+    public void addIslandPlayer(UUID playerUuid, UUID islandUuid, String role) {
         executeUpdate(statement -> {
             statement.setString(1, playerUuid.toString());
             statement.setString(2, islandUuid.toString());
-            statement.setString(3, spawnLocation);
-            statement.setString(4, role);
-            statement.setString(5, spawnLocation);
-            statement.setString(6, role);
-        }, "INSERT INTO island_players (player_uuid, island_uuid, spawn, role) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE spawn = ?, role = ?");
+            statement.setString(3, role);
+        }, "INSERT INTO island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?);");
     }
 
     public void addWarpPoint(UUID playerUuid, UUID islandUuid, String warpName, String warpLocation) {
@@ -132,29 +139,40 @@ public class DatabaseHandler {
             statement.setString(2, islandUuid.toString());
             statement.setString(3, warpName);
             statement.setString(4, warpLocation);
-            statement.setString(5, warpLocation);
-        }, "INSERT INTO island_warps (player_uuid, island_uuid, warp_name, warp_location) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE warp_location = ?");
+        }, "INSERT INTO island_warps (player_uuid, island_uuid, warp_name, warp_location) VALUES (?, ?, ?, ?);");
+    }
+
+    public void addHomePoint(UUID playerUuid, String homeName, String homeLocation) {
+        executeUpdate(statement -> {
+            statement.setString(1, playerUuid.toString());
+            statement.setString(2, homeName);
+            statement.setString(3, homeLocation);
+        }, "INSERT INTO island_homes (player_uuid, home_name, home_location) VALUES (?, ?, ?);");
     }
 
     public void deleteIslandData(UUID islandUuid) {
-        // Delete all associated island players asynchronously
-        CompletableFuture<Void> deletePlayersFuture = executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM island_players WHERE island_uuid = ?");
-        // After deleting players, delete the island data
-        deletePlayersFuture.thenRun(() -> executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM islands WHERE island_uuid = ?"));
+        executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM islands WHERE island_uuid = ?;");
     }
 
     public void deleteIslandPlayer(UUID playerUuid, UUID islandUuid) {
         executeUpdate(statement -> {
             statement.setString(1, playerUuid.toString());
             statement.setString(2, islandUuid.toString());
-        }, "DELETE FROM island_players WHERE player_uuid = ? AND island_uuid = ?");
+        }, "DELETE FROM island_players WHERE player_uuid = ? AND island_uuid = ?;");
     }
 
     public void deleteWarpPoint(UUID playerUuid, String warpName) {
         executeUpdate(statement -> {
             statement.setString(1, playerUuid.toString());
             statement.setString(2, warpName);
-        }, "DELETE FROM island_warps WHERE player_uuid = ? AND warp_name = ?");
+        }, "DELETE FROM island_warps WHERE player_uuid = ? AND warp_name = ?;");
+    }
+
+    public void deleteHomePoint(UUID playerUuid, String homeName) {
+        executeUpdate(statement -> {
+            statement.setString(1, playerUuid.toString());
+            statement.setString(2, homeName);
+        }, "DELETE FROM island_homes WHERE player_uuid = ? AND home_name = ?;");
     }
 
     @FunctionalInterface

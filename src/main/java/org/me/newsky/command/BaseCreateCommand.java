@@ -55,7 +55,7 @@ public abstract class BaseCreateCommand {
             // Add the island to the cache
             cacheHandler.createIsland(islandUuid);
             // Add the player as the owner to the island in the cache
-            cacheHandler.addIslandPlayer(targetUuid, islandUuid, spawnLocation, role);
+            cacheHandler.addIslandPlayer(targetUuid, islandUuid, role);
             // Send the success message
             sender.sendMessage(getIslandCreateSuccessMessage(args));
             // Teleport the player to the island
