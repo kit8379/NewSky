@@ -210,7 +210,6 @@ public class NewSky extends JavaPlugin {
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(new WorldEventListener(this), this);
         getServer().getPluginManager().registerEvents(new PlayerJoinEventListener(this, teleportManager), this);
-        getServer().getPluginManager().registerEvents(new TeleportEventListener(cacheHandler), this);
         getServer().getPluginManager().registerEvents(new IslandProtectionListener(cacheHandler), this);
         getServer().getPluginManager().registerEvents(new IslandBoundaryListener(), this);
     }

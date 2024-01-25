@@ -16,8 +16,8 @@ public class IslandSetHomeCommand extends BaseSetHomeCommand {
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
-        if (args.length < 1 || args.length > 2) {
-            sender.sendMessage("§eUsage: §b/island sethome <homeName>");
+        if(args.length < 1 || args.length > 2) {
+            sender.sendMessage("§eUsage: §b/island sethome [homeName]");
             return false;
         }
         return true;
@@ -44,7 +44,7 @@ public class IslandSetHomeCommand extends BaseSetHomeCommand {
     }
 
     @Override
-    protected String getSetHomeSuccessMessage(String homeName) {
+    protected String getSetHomeSuccessMessage(String[] args, String homeName) {
         return "§aHome " + homeName + " set successfully.";
     }
 }

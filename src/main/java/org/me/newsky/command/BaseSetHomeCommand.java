@@ -29,13 +29,9 @@ public abstract class BaseSetHomeCommand {
             return true;
         }
 
-        // Cast the sender to a player
         Player player = (Player) sender;
-
-        // Get the target player's UUID
         UUID targetUuid = getTargetUuid(sender, args);
 
-        // Check if the player has an island
         Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
         if (islandUuidOpt.isEmpty()) {
             sender.sendMessage(getNoIslandMessage(args));
@@ -43,26 +39,17 @@ public abstract class BaseSetHomeCommand {
         }
         UUID islandUuid = islandUuidOpt.get();
 
-        // Check if the player is currently in the target island world
         if (!player.getWorld().getName().equals("island-" + islandUuid)) {
             sender.sendMessage(getMustInIslandMessage(args));
             return true;
         }
 
-        // Get the home name from the command arguments
         String homeName = args.length > getTargetHomeArgIndex() ? args[getTargetHomeArgIndex()] : "default";
-        args[getTargetHomeArgIndex()] = homeName;
-
-        // Get the home location
         Location loc = player.getLocation();
         String homeLocation = String.format("%.1f,%.1f,%.1f,%.1f,%.1f", loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
 
-
-        // Add or update the home point
         cacheHandler.addOrUpdateHomePoint(targetUuid, homeName, homeLocation);
-
-        // Send the success message
-        sender.sendMessage(getSetHomeSuccessMessage(homeName));
+        sender.sendMessage(getSetHomeSuccessMessage(args, homeName));
 
         return true;
     }
@@ -77,5 +64,5 @@ public abstract class BaseSetHomeCommand {
 
     protected abstract String getMustInIslandMessage(String[] args);
 
-    protected abstract String getSetHomeSuccessMessage(String homeName);
+    protected abstract String getSetHomeSuccessMessage(String[] args, String homeName);
 }

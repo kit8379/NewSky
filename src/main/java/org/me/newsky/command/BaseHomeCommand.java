@@ -36,13 +36,9 @@ public abstract class BaseHomeCommand {
             return true;
         }
 
-        // Cast the sender to a player
         Player player = (Player) sender;
-
-        // Get the target player's UUID
         UUID targetUuid = getTargetUUID(sender, args);
 
-        // Check if the player has an island and get the island UUID
         Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
         if (islandUuidOpt.isEmpty()) {
             sender.sendMessage(getNoIslandMessage(args));
@@ -50,28 +46,22 @@ public abstract class BaseHomeCommand {
         }
         UUID islandUuid = islandUuidOpt.get();
 
-        // Check if the player has warp points
         Set<String> homeNames = cacheHandler.getHomeNames(targetUuid);
         if (homeNames.isEmpty()) {
             sender.sendMessage(getNoHomesMessage(args));
             return true;
         }
 
-        // Get the target home name
         String homeName = args.length > getTargetHomeArgIndex() ? args[getTargetHomeArgIndex()] : "default";
-        args[getTargetHomeArgIndex()] = homeName;
-
-        // Get the target player's home location
         Optional<String> homeLocationOpt = cacheHandler.getHomeLocation(targetUuid, homeName);
         if (homeLocationOpt.isEmpty()) {
-            sender.sendMessage(getNoHomeMessage(args));
+            sender.sendMessage(getNoHomeMessage(args, homeName));
             return true;
         }
         String homeLocation = homeLocationOpt.get();
 
-        // Run the island teleport future
         CompletableFuture<Void> homeIslandFuture = islandHandler.teleportToIsland(islandUuid, player, homeLocation);
-        handleIslandTeleportFuture(homeIslandFuture, sender, args);
+        handleIslandTeleportFuture(homeIslandFuture, sender, homeName);
 
         return true;
     }
@@ -80,18 +70,20 @@ public abstract class BaseHomeCommand {
         if (args.length == getTargetHomeArgIndex() + 1) {
             UUID targetUuid = getTargetUUID(sender, args);
             Set<String> homeNames = cacheHandler.getHomeNames(targetUuid);
-            return homeNames.stream().filter(name -> name.toLowerCase().startsWith(args[getTargetHomeArgIndex()].toLowerCase())).collect(Collectors.toList());
+            return homeNames.stream()
+                    .filter(name -> name.toLowerCase().startsWith(args[getTargetHomeArgIndex()].toLowerCase()))
+                    .collect(Collectors.toList());
         }
         return null;
     }
 
-    protected void handleIslandTeleportFuture(CompletableFuture<Void> future, CommandSender sender, String[] args) {
+    protected void handleIslandTeleportFuture(CompletableFuture<Void> future, CommandSender sender, String homeName) {
         future.thenRun(() -> {
             // Send the success message
-            sender.sendMessage(getIslandHomeSuccessMessage(args));
+            sender.sendMessage(getIslandHomeSuccessMessage(homeName));
         }).exceptionally(ex -> {
             // Send the error message
-            sender.sendMessage("There was an error teleporting to the island.");
+            sender.sendMessage("There was an error teleporting to the island home.");
             return null;
         });
     }
@@ -106,7 +98,7 @@ public abstract class BaseHomeCommand {
 
     protected abstract String getNoHomesMessage(String[] args);
 
-    protected abstract String getNoHomeMessage(String[] args);
+    protected abstract String getNoHomeMessage(String[] args, String homeName);
 
-    protected abstract String getIslandHomeSuccessMessage(String[] args);
+    protected abstract String getIslandHomeSuccessMessage(String homeName);
 }

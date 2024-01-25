@@ -16,11 +16,7 @@ public class AdminSetHomeCommand extends BaseSetHomeCommand {
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
-        if (args.length != 3) {
-            sender.sendMessage("§eUsage: §b/islandadmin sethome <player> <homeName>");
-            return false;
-        }
-        return true;
+        return args.length == 3;
     }
 
     @Override
@@ -44,7 +40,7 @@ public class AdminSetHomeCommand extends BaseSetHomeCommand {
     }
 
     @Override
-    protected String getSetHomeSuccessMessage(String homeName) {
-        return "§aHome " + homeName + " set successfully for the player.";
+    protected String getSetHomeSuccessMessage(String[] args, String homeName) {
+        return "§aHome " + homeName + " set successfully for " + args[1] + ".";
     }
 }

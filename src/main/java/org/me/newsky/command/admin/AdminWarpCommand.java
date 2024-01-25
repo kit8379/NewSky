@@ -35,7 +35,7 @@ public class AdminWarpCommand extends BaseWarpCommand {
     }
 
     @Override
-    protected String getNoWarpMessage(String[] args) {
-        return "§cPlayer " + args[1] + " does not have a warp named " + args[2];
+    protected String getNoWarpMessage(String[] args, String warpName) {
+        return "§cPlayer " + args[1] + " does not have a warp named " + warpName;
     }
 }

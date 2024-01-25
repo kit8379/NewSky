@@ -36,21 +36,21 @@ public class IslandHomeCommand extends BaseHomeCommand {
 
     @Override
     protected String getNoIslandMessage(String[] args) {
-        return "§cYou do not have an island";
+        return "§cYou do not have an island.";
     }
 
     @Override
     protected String getNoHomesMessage(String[] args) {
-        return "§cYou do not have any island homes";
+        return "§cYou do not have any island homes.";
     }
 
     @Override
-    protected String getNoHomeMessage(String[] args) {
-        return "§cYou do not have a home named " + args[1];
+    protected String getNoHomeMessage(String[] args, String homeName) {
+        return "§cYou do not have a home named " + homeName + ".";
     }
 
     @Override
-    protected String getIslandHomeSuccessMessage(String[] args) {
-        return "§cTeleported to your island home: " + args[1];
+    protected String getIslandHomeSuccessMessage(String homeName) {
+        return "§aTeleported to your island home: " + homeName + ".";
     }
 }
