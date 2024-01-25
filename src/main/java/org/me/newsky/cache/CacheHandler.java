@@ -299,7 +299,6 @@ public class CacheHandler {
             if (keys.isEmpty()) {
                 return Optional.empty();
             }
-
             String key = keys.iterator().next();
             String[] segments = key.split(":");
             if (segments.length != 3) {

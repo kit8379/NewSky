@@ -10,18 +10,19 @@ import org.me.newsky.teleport.TeleportManager;
 
 import java.util.UUID;
 
-public class PlayerJoinListener implements Listener {
+public class PlayerJoinEventListener implements Listener {
 
     private final NewSky plugin;
     private final TeleportManager teleportManager;
 
-    public PlayerJoinListener(NewSky plugin, TeleportManager teleportManager) {
+    public PlayerJoinEventListener(NewSky plugin, TeleportManager teleportManager) {
         this.plugin = plugin;
         this.teleportManager = teleportManager;
     }
 
     @EventHandler(priority= EventPriority.HIGHEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
+        // Check if the player has a pending teleport
         UUID playerId = event.getPlayer().getUniqueId();
         Location pendingLocation = teleportManager.getPendingTeleport(playerId);
         plugin.debug("Pending location for " + playerId + " is " + pendingLocation);

@@ -10,7 +10,8 @@ import org.me.newsky.command.admin.AdminCommandExecutor;
 import org.me.newsky.command.player.IslandCommandExecutor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
-import org.me.newsky.event.PlayerJoinListener;
+import org.me.newsky.event.PlayerJoinEventListener;
+import org.me.newsky.event.TeleportEventListener;
 import org.me.newsky.event.WorldEventListener;
 import org.me.newsky.island.IslandHandler;
 import org.me.newsky.heartbeat.HeartBeatHandler;
@@ -195,7 +196,8 @@ public class NewSky extends JavaPlugin {
 
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(new WorldEventListener(this), this);
-        getServer().getPluginManager().registerEvents(new PlayerJoinListener(this ,teleportManager), this);
+        getServer().getPluginManager().registerEvents(new PlayerJoinEventListener(this ,teleportManager), this);
+        getServer().getPluginManager().registerEvents(new TeleportEventListener(cacheHandler), this);
     }
 
     private void registerCommands() {

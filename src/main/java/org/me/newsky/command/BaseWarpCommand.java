@@ -52,6 +52,15 @@ public abstract class BaseWarpCommand {
         }
         UUID islandUuid = islandUuidOpt.get();
 
+        // Check if the island is locked
+        boolean isLocked = cacheHandler.getIslandLock(islandUuid);
+        if (isLocked) {
+            if (!cacheHandler.getIslandMembers(islandUuid).contains(targetUuid)) {
+                sender.sendMessage("§cThe island is currently locked.");
+                return true;
+            }
+        }
+
         // Check if the player has warp points
         Set<String> warpNames = cacheHandler.getWarpNames(targetUuid);
         if (warpNames.isEmpty()) {
