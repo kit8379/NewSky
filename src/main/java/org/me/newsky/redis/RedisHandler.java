@@ -1,5 +1,6 @@
 package org.me.newsky.redis;
 
+import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.JedisPool;
@@ -10,13 +11,18 @@ import java.util.concurrent.CompletableFuture;
 
 public class RedisHandler {
 
+    private final NewSky plugin;
+    private final int database;
     private final JedisPool jedisPool;
 
-    public RedisHandler(ConfigHandler config) {
-        // Get Redis config
+    public RedisHandler(NewSky plugin, ConfigHandler config) {
+        this.plugin = plugin;
+
+        // Get and set Redis config
         String host = config.getRedisHost();
         int port = config.getRedisPort();
         String password = config.getRedisPassword();
+        this.database = config.getRedisDatabase();
 
         // Create JedisPool
         JedisPoolConfig poolConfig = new JedisPoolConfig();
@@ -24,14 +30,17 @@ public class RedisHandler {
         try (Jedis jedis = jedisPool.getResource()) {
             if (password != null && !password.isEmpty()) {
                 jedis.auth(password);
+                plugin.debug("Authenticated Redis connection");
             }
+            jedis.select(database);
+            plugin.debug("Selected Redis database " + database);
         }
     }
 
     // Publish a message to a channel
     public void publish(String channel, String message) {
         CompletableFuture.runAsync(() -> {
-            try (Jedis jedis = jedisPool.getResource()) {
+            try (Jedis jedis = getJedis()) {
                 jedis.publish(channel, message);
             }
         });
@@ -40,15 +49,16 @@ public class RedisHandler {
     // Subscribe to a channel
     public void subscribe(JedisPubSub pubSub, String channel) {
         CompletableFuture.runAsync(() -> {
-            try (Jedis jedis = jedisPool.getResource()) {
+            try (Jedis jedis = getJedis()) {
                 jedis.subscribe(pubSub, channel);
             }
         });
     }
 
-    // Getter for JedisPool
-    public JedisPool getJedisPool() {
-        return jedisPool;
+    public Jedis getJedis() {
+        Jedis jedis = jedisPool.getResource();
+        jedis.select(database);
+        return jedis;
     }
 
     // Remember to close your JedisPool when your application ends

@@ -16,10 +16,13 @@ redis:
   host: "127.0.0.1"
   port: 6379
   password: "your_redis_password"
+  database: 0
 
 server:
   name: "server1" # Unique name for your server
   mode: "island" # lobby or island
+
+spawn-command: "spawn <player>"
 
 debug: false # Enable debug mode
 

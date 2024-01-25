@@ -104,7 +104,7 @@ public class NewSky extends JavaPlugin {
     private void initializeRedis() {
         info("Start connecting to Redis now...");
         try {
-            redisHandler = new RedisHandler(config);
+            redisHandler = new RedisHandler(this, config);
             info("Redis connection success!");
         } catch (Exception e) {
             e.printStackTrace();

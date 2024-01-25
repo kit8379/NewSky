@@ -65,6 +65,10 @@ public class ConfigHandler {
         return config.getString("redis.password");
     }
 
+    public int getRedisDatabase() {
+        return config.getInt("redis.database");
+    }
+
     public String getServerName() {
         return config.getString("server.name");
     }
