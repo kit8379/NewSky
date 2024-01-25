@@ -2,8 +2,8 @@ package org.me.newsky.scheduler;
 
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitTask;
-import com.onarandombox.MultiverseCore.api.MVWorldManager;
 import org.me.newsky.NewSky;
+import org.me.newsky.world.WorldHandler;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -11,15 +11,15 @@ import java.util.concurrent.TimeUnit;
 
 public class WorldUnloadHandler {
 
-    private final NewSky plugin;
-    private final MVWorldManager mvWorldManager;
-    private BukkitTask unloadTask;
-    private final Map<String, Long> inactiveWorlds = new HashMap<>();
     private static final long MAX_INACTIVE_TIME = TimeUnit.MINUTES.toMillis(10);
+    private final NewSky plugin;
+    private final WorldHandler worldHandler;
+    private final Map<String, Long> inactiveWorlds = new HashMap<>();
+    private BukkitTask unloadTask;
 
-    public WorldUnloadHandler(NewSky plugin, MVWorldManager mvWorldManager) {
+    public WorldUnloadHandler(NewSky plugin, WorldHandler worldHandler) {
         this.plugin = plugin;
-        this.mvWorldManager = mvWorldManager;
+        this.worldHandler = worldHandler;
     }
 
     public void startWorldUnloadTask() {
@@ -41,7 +41,7 @@ public class WorldUnloadHandler {
                 if (currentTime - inactiveTime > MAX_INACTIVE_TIME) {
                     // Schedule the world unload on the main thread
                     Bukkit.getScheduler().runTask(plugin, () -> {
-                        mvWorldManager.unloadWorld(world.getName());
+                        worldHandler.unloadWorld(world.getName());
                         plugin.getLogger().info("Unloaded inactive world: " + world.getName());
                     });
                     inactiveWorlds.remove(world.getName());

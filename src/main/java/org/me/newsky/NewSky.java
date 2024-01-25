@@ -10,18 +10,22 @@ import org.me.newsky.command.admin.AdminCommandExecutor;
 import org.me.newsky.command.player.IslandCommandExecutor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
-import org.me.newsky.event.PlayerJoinEventListener;
-import org.me.newsky.event.TeleportEventListener;
-import org.me.newsky.event.WorldEventListener;
-import org.me.newsky.island.IslandHandler;
+import org.me.newsky.event.*;
 import org.me.newsky.heartbeat.HeartBeatHandler;
+import org.me.newsky.island.IslandHandler;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.scheduler.WorldUnloadHandler;
 import org.me.newsky.teleport.TeleportManager;
+import org.me.newsky.world.WorldHandler;
 
 import java.util.Objects;
 
 public class NewSky extends JavaPlugin {
+
+    private String serverID;
+    private ConfigHandler config;
+    private MVWorldManager mvWorldManager;
+    private WorldHandler worldHandler;
     private RedisHandler redisHandler;
     private DatabaseHandler databaseHandler;
     private CacheHandler cacheHandler;
@@ -29,9 +33,6 @@ public class NewSky extends JavaPlugin {
     private HeartBeatHandler heartBeatHandler;
     private WorldUnloadHandler worldUnloadHandler;
     private IslandHandler islandHandler;
-    private MVWorldManager mvWorldManager;
-    private ConfigHandler config;
-    private String serverID;
 
     @Override
     public void onEnable() {
@@ -41,10 +42,11 @@ public class NewSky extends JavaPlugin {
     }
 
     private void initalize() {
-        checkDependencies("Multiverse-Core", "VoidGen");
+        checkDependencies("Multiverse-Core");
         initializeConfig();
         initalizeServerID();
         initializeMVWorldManager();
+        initializeWorldHandler();
         initializeRedis();
         initializeDatabase();
         initializeCache();
@@ -74,7 +76,7 @@ public class NewSky extends JavaPlugin {
             info("Config load success!");
         } catch (Exception e) {
             e.printStackTrace();
-            throw new IllegalStateException("Config load fail!");
+            throw new IllegalStateException("Config load fail! Plugin will be disabled!");
         }
     }
 
@@ -86,7 +88,7 @@ public class NewSky extends JavaPlugin {
             info("This Server ID: " + serverID);
         } catch (Exception e) {
             e.printStackTrace();
-            throw new IllegalStateException("Server ID load fail!");
+            throw new IllegalStateException("Server ID load fail! Plugin will be disabled!");
         }
     }
 
@@ -98,6 +100,17 @@ public class NewSky extends JavaPlugin {
         } catch (Exception e) {
             e.printStackTrace();
             throw new IllegalStateException("MVmanager load fail! Plugin will be disabled!");
+        }
+    }
+
+    private void initializeWorldHandler() {
+        info("Starting WorldHandler");
+        try {
+            worldHandler = new WorldHandler(this, mvWorldManager);
+            info("WorldHandler loaded");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IllegalStateException("WorldHandler load fail! Plugin will be disabled!");
         }
     }
 
@@ -162,7 +175,7 @@ public class NewSky extends JavaPlugin {
     private void initalizeWorldUnloadHandler() {
         info("Starting world unload handler");
         try {
-            worldUnloadHandler = new WorldUnloadHandler(this, mvWorldManager);
+            worldUnloadHandler = new WorldUnloadHandler(this, worldHandler);
             worldUnloadHandler.startWorldUnloadTask();
             info("World unload handler loaded");
         } catch (Exception e) {
@@ -185,7 +198,7 @@ public class NewSky extends JavaPlugin {
     private void initializeIslandHandler() {
         info("Starting island handler");
         try {
-            islandHandler = new IslandHandler(this, mvWorldManager, redisHandler, heartBeatHandler, teleportManager, serverID);
+            islandHandler = new IslandHandler(this, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
             islandHandler.subscribeToRequests();
             info("Islands loaded");
         } catch (Exception e) {
@@ -196,8 +209,10 @@ public class NewSky extends JavaPlugin {
 
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(new WorldEventListener(this), this);
-        getServer().getPluginManager().registerEvents(new PlayerJoinEventListener(this ,teleportManager), this);
+        getServer().getPluginManager().registerEvents(new PlayerJoinEventListener(this, teleportManager), this);
         getServer().getPluginManager().registerEvents(new TeleportEventListener(cacheHandler), this);
+        getServer().getPluginManager().registerEvents(new IslandProtectionListener(cacheHandler), this);
+        getServer().getPluginManager().registerEvents(new IslandBoundaryListener(), this);
     }
 
     private void registerCommands() {

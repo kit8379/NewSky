@@ -52,7 +52,6 @@ public class HeartBeatHandler {
     private void sendHeartBeats() {
         redisHandler.publish("newsky-heartbeat-channel", serverID);
         serverLastHeartbeat.put(serverID, System.currentTimeMillis());
-        plugin.debug("Sent heartbeat to the channel.");
     }
 
     private void listenForHeartBeats() {
@@ -60,7 +59,6 @@ public class HeartBeatHandler {
             @Override
             public void onMessage(String channel, String message) {
                 serverLastHeartbeat.put(message, System.currentTimeMillis());
-                plugin.debug("Received heartbeat from " + message);
             }
         };
         redisHandler.subscribe(heartBeatSubscriber, "newsky-heartbeat-channel");
@@ -70,7 +68,7 @@ public class HeartBeatHandler {
         long now = System.currentTimeMillis();
         serverLastHeartbeat.entrySet().removeIf(entry -> {
             if (now - entry.getValue() > TIMEOUT_MS) {
-                plugin.debug("Server " + entry.getKey() + " timed out and removed.");
+                plugin.info("Server " + entry.getKey() + " timed out and removed.");
                 return true;
             }
             return false;

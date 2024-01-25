@@ -1,39 +1,34 @@
 package org.me.newsky.world;
 
-import org.bukkit.Bukkit;
+import com.onarandombox.MultiverseCore.api.MVWorldManager;
 import org.bukkit.World;
-import org.bukkit.WorldCreator;
+import org.bukkit.WorldType;
 import org.me.newsky.NewSky;
 
 public class WorldHandler {
 
     private final NewSky plugin;
+    private final MVWorldManager mvWorldManager;
 
-    public WorldHandler(NewSky plugin) {
+    public WorldHandler(NewSky plugin, MVWorldManager mvWorldManager) {
         this.plugin = plugin;
+        this.mvWorldManager = mvWorldManager;
     }
 
     public void createWorld(String worldName) {
-        WorldCreator creator = new WorldCreator(worldName);
-        // creator.generator(new VoidWorldGenerator());
-        Bukkit.getScheduler().runTask(plugin, () -> Bukkit.createWorld(creator));
+        mvWorldManager.addWorld(worldName, World.Environment.NORMAL, null, WorldType.NORMAL, true, "VoidGen", false);;
     }
 
-
     public void loadWorld(String worldName) {
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            if (Bukkit.getWorld(worldName) == null) {
-                Bukkit.createWorld(new WorldCreator(worldName));
-            }
-        });
+        mvWorldManager.loadWorld(worldName);
     }
 
     public void unloadWorld(String worldName) {
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            World world = Bukkit.getWorld(worldName);
-            if (world != null) {
-                Bukkit.unloadWorld(world, true);
-            }
-        });
+        mvWorldManager.unloadWorld(worldName);
     }
+
+    public void deleteWorld(String worldName) {
+        mvWorldManager.deleteWorld(worldName);
+    }
+
 }

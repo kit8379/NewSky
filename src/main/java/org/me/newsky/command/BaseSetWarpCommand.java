@@ -53,6 +53,7 @@ public abstract class BaseSetWarpCommand {
 
         // Get the target warp name
         String warpName = args.length > getTargetWarpArgIndex() ? args[getTargetWarpArgIndex()] : "default";
+        args[getTargetWarpArgIndex()] = warpName;
 
         // Set the warp point
         Location loc = player.getLocation();

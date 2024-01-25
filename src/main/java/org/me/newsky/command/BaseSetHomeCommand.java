@@ -51,6 +51,7 @@ public abstract class BaseSetHomeCommand {
 
         // Get the home name from the command arguments
         String homeName = args.length > getTargetHomeArgIndex() ? args[getTargetHomeArgIndex()] : "default";
+        args[getTargetHomeArgIndex()] = homeName;
 
         // Get the home location
         Location loc = player.getLocation();

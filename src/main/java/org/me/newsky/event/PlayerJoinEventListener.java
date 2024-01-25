@@ -1,6 +1,7 @@
 package org.me.newsky.event;
 
 import org.bukkit.Location;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -23,12 +24,13 @@ public class PlayerJoinEventListener implements Listener {
     @EventHandler(priority= EventPriority.HIGHEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
         // Check if the player has a pending teleport
-        UUID playerId = event.getPlayer().getUniqueId();
-        Location pendingLocation = teleportManager.getPendingTeleport(playerId);
-        plugin.debug("Pending location for " + playerId + " is " + pendingLocation);
+        Player player = event.getPlayer();
+        UUID playerUuid = player.getUniqueId();
+        Location pendingLocation = teleportManager.getPendingTeleport(playerUuid);
+        plugin.debug("Pending location for " + playerUuid + " is " + pendingLocation);
         if (pendingLocation != null) {
-            event.getPlayer().teleport(pendingLocation);
-            teleportManager.removePendingTeleport(playerId);
+            player.teleport(pendingLocation);
+            teleportManager.removePendingTeleport(playerUuid);
         }
     }
 }

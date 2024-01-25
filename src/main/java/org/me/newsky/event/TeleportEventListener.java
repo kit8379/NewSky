@@ -1,5 +1,6 @@
 package org.me.newsky.event;
 
+import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -15,19 +16,17 @@ public class TeleportEventListener implements Listener {
         this.cacheHandler = cacheHandler;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler
     public void onPlayerTeleport(PlayerTeleportEvent event) {
         // Check if the destination world is an island
-        if (event.getTo() != null && event.getTo().getWorld() != null) {
-            String worldName = event.getTo().getWorld().getName();
-            if (worldName.startsWith("island-")) {
-                UUID islandUuid = UUID.fromString(worldName.substring("island-".length()));
-                boolean isLocked = cacheHandler.getIslandLock(islandUuid);
-                if (isLocked) {
-                    if (!cacheHandler.getIslandMembers(islandUuid).contains(event.getPlayer().getUniqueId())) {
-                        event.setCancelled(true);
-                        event.getPlayer().sendMessage("§cIsland is currently locked.");
-                    }
+        Location to = event.getTo();
+        if (to != null && to.getWorld() != null && to.getWorld().getName().startsWith("island-")) {
+            UUID islandUuid = UUID.fromString(to.getWorld().getName().substring(7));
+            boolean isLocked = cacheHandler.getIslandLock(islandUuid);
+            if (isLocked) {
+                if (!cacheHandler.getIslandMembers(islandUuid).contains(event.getPlayer().getUniqueId())) {
+                    event.setCancelled(true);
+                    event.getPlayer().sendMessage("§cIsland is currently locked.");
                 }
             }
         }

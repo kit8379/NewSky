@@ -22,7 +22,5 @@ server:
   name: "server1" # Unique name for your server
   mode: "island" # lobby or island
 
-spawn-command: "spawn <player>"
-
 debug: false # Enable debug mode
 

@@ -78,7 +78,7 @@ public class DatabaseHandler {
     }
 
     private void createIslandDataTable() {
-        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS islands (" + "island_uuid VARCHAR(56) PRIMARY KEY, " + "level INT(11) NOT NULL DEFAULT 0, " + "lock BOOLEAN NOT NULL DEFAULT FALSE);").join();
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS islands (" + "island_uuid VARCHAR(56) PRIMARY KEY, " + "level INT(11) NOT NULL DEFAULT 0, " + "`lock` BOOLEAN NOT NULL DEFAULT FALSE);").join();
     }
 
     private void createIslandPlayersTable() {

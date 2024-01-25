@@ -11,12 +11,10 @@ import java.util.concurrent.CompletableFuture;
 
 public class RedisHandler {
 
-    private final NewSky plugin;
     private final int database;
     private final JedisPool jedisPool;
 
     public RedisHandler(NewSky plugin, ConfigHandler config) {
-        this.plugin = plugin;
 
         // Get and set Redis config
         String host = config.getRedisHost();

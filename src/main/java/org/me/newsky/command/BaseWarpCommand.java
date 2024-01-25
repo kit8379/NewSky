@@ -70,6 +70,7 @@ public abstract class BaseWarpCommand {
 
         // Get the warp name from the command arguments or a random warp name
         String warpName = args.length > 2 ? args[2] : "default";
+        args[2] = warpName;
 
         // Check if the target warp point exists
         Optional<String> warpLocationOpt = cacheHandler.getWarpLocation(targetUuid, warpName);

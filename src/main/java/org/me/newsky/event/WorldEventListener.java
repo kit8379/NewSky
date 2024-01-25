@@ -1,5 +1,6 @@
 package org.me.newsky.event;
 
+import org.bukkit.World;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -14,11 +15,13 @@ public class WorldEventListener implements Listener {
         this.plugin = plugin;
     }
 
-    @EventHandler(priority=EventPriority.HIGHEST)
+    @EventHandler(priority=EventPriority.MONITOR)
     public void worldInit(WorldInitEvent e) {
-        String worldName = e.getWorld().getName();
+        // Check if the world is an island
+        World world = e.getWorld();
+        String worldName = world.getName();
         if (worldName.startsWith("island-")) {
-            e.getWorld().setKeepSpawnInMemory(false);
+            world.setKeepSpawnInMemory(false);
             plugin.debug("World " + worldName + " set to not keep spawn in memory.");
         }
     }

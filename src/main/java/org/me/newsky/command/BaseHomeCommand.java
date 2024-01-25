@@ -59,6 +59,7 @@ public abstract class BaseHomeCommand {
 
         // Get the target home name
         String homeName = args.length > getTargetHomeArgIndex() ? args[getTargetHomeArgIndex()] : "default";
+        args[getTargetHomeArgIndex()] = homeName;
 
         // Get the target player's home location
         Optional<String> homeLocationOpt = cacheHandler.getHomeLocation(targetUuid, homeName);
