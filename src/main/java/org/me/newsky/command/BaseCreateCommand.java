@@ -36,8 +36,9 @@ public abstract class BaseCreateCommand {
             sender.sendMessage(getExistingIslandMessage(args));
             return true;
         }
-        UUID islandUuid = UUID.randomUUID();
 
+        // Generate a new island UUID
+        UUID islandUuid = UUID.randomUUID();
         // Set the island spawn location
         String spawnLocation = "0,100,0,100,100";
         // Set the island owner role

@@ -164,14 +164,6 @@ public class IslandHandler {
         player.sendPluginMessage(plugin, "BungeeCord", byteArray.toByteArray());
     }
 
-    public void subscribeToRequests() {
-        islandSubscribeRequest.subscribeToRequests();
-    }
-
-    public void unsubscribeFromRequests() {
-        islandSubscribeRequest.unsubscribeFromRequests();
-    }
-
     private String findServerByWorldName(String worldName, ConcurrentHashMap<String, String> worldListResponses) {
         plugin.debug("Searching for server by world name: " + worldName);
         plugin.debug("Processing world list responses: " + worldListResponses);
@@ -186,5 +178,13 @@ public class IslandHandler {
             }
         }
         return null;
+    }
+
+    public void subscribeToRequests() {
+        islandSubscribeRequest.subscribeToRequests();
+    }
+
+    public void unsubscribeFromRequests() {
+        islandSubscribeRequest.unsubscribeFromRequests();
     }
 }
