@@ -57,3 +57,15 @@ redis:
   host: "localhost"
   port: 6379
   password: ""
+```
+
+### Contributing:
+
+🌟 Contributions are welcome! Whether you're a developer, a writer, or just a Minecraft enthusiast, you can help by:
+
+- Submitting pull requests
+- Reporting bugs and suggesting features
+- Helping with documentation and the wiki
+- Sharing NewSky with others
+
+💖 Support: If you enjoy using NewSky and want to support its development, consider starring the repository or contributing directly to the project.
