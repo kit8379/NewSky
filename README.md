@@ -25,8 +25,17 @@
 - 🛠️ Easy-to-use API for Developers
 
 #### Plugin Hooks
-- WorldEdit (Island schematics and manipulation)
-- Vault (Economy integration)
+- Multiverse-Core
+- VoidGen
+
+------------
+
+### To-DO List
+1. Remove the dependency of using Multiverse-Core and VoidGen.
+2. Allow to store world in common share path or distributed storage system so as to load island dynmically across servers. 
+(The create island feature has already implemented to dynmically create on across servers already. But the island world is currently stay in that server only. It is not hard to add this function but I have no time to implement it in recent months.)
+3. Add support to using AdvancedSlimeWorldManager instead of normal Bukkit world.
+4. Implement command permission and finalise the display messages that can be customize in messages.yml
 
 ------------
 
@@ -40,17 +49,32 @@
 
 ```yaml
 # NewSky configuration file
-database:
-  host: "localhost"
+DB:
+  host: "127.0.0.1"
   port: 3306
-  name: "newskydb"
-  username: "user"
-  password: "password"
+  database: "newsky"
+  username: "test"
+  password: "test"
+  properties: "?autoReconnect=true&useSSL=false"
+  # Don't touch below settings if you don't know what you're doing
+  max-pool-size: 10
+  connection-timeout: 30000
+  cache-prep-statements: "true"
+  prep-stmt-cache-size: "250"
+  prep-stmt-cache-sql-limit: "2048"
 
 redis:
-  host: "localhost"
+  host: "127.0.0.1"
   port: 6379
-  password: ""
+  password: "your_redis_password"
+  database: 0
+
+server:
+  name: "server1" # Unique name for your server
+  mode: "island" # lobby or island
+
+debug: false # Enable debug mode
+
 ```
 
 ### Contributing:
