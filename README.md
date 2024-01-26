@@ -1,12 +1,6 @@
 <h1 align="center"><img height="35" src="https://emoji.gg/assets/emoji/7333-parrotdance.gif"> NewSky - A Revolutionary Skyblock Experience</h1>
 <div align="center">
 
-![GitHub Repo stars](https://img.shields.io/github/stars/YourUsername/NewSky?style=for-the-badge) 
-![GitHub watchers](https://img.shields.io/github/watchers/YourUsername/NewSky?style=for-the-badge) 
-![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/YourUsername/NewSky?include_prereleases&style=for-the-badge) 
-![GitHub all releases](https://img.shields.io/github/downloads/YourUsername/NewSky/total?style=for-the-badge) 
-![GitHub issues](https://img.shields.io/github/issues/YourUsername/NewSky?style=for-the-badge)
-
 </div>
 
 🌟 **NewSky** brings an unparalleled Skyblock experience to Minecraft servers, combining innovative features with intuitive design for both players and server administrators.
