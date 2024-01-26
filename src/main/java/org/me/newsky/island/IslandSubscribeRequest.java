@@ -12,7 +12,6 @@ public class IslandSubscribeRequest {
     private final RedisHandler redisHandler;
     private final IslandOperation islandOperation;
     private final String serverID;
-
     private JedisPubSub requestSubscriber;
 
     public IslandSubscribeRequest(NewSky plugin, RedisHandler redisHandler, IslandOperation islandOperation, String serverID) {
@@ -28,21 +27,14 @@ public class IslandSubscribeRequest {
             public void onMessage(String channel, String message) {
                 String[] parts = message.split(":");
                 String requestID = parts[0];
-                String receiverID = parts[2];
+                String targetServer = parts[2];
 
-                if(!receiverID.equals(serverID)) {
-                    return;
+                // Check if the target server matches this server or if the request is for all servers
+                if (targetServer.equals(serverID) || targetServer.equals("all")) {
+                    processRequest(parts).thenAccept(responseData -> {
+                        redisHandler.publish("newsky-response-channel-" + requestID, serverID + ":" + responseData);
+                    });
                 }
-
-                // Process the request
-                processRequest(message).thenRun(() ->
-                        // Send response
-                        {
-                            redisHandler.publish("newsky-response-channel-" + requestID, serverID);
-                            plugin.debug("Sent response back to request " + requestID + " to response channel.");
-                        }
-
-                );
             }
         };
 
@@ -55,35 +47,34 @@ public class IslandSubscribeRequest {
         }
     }
 
-    private CompletableFuture<Void> processRequest(String message) {
-        String[] parts = message.split(":");
+    private CompletableFuture<String> processRequest(String[] parts) {
         String operation = parts[3];
 
-        // Extract additional data from the message
-        String worldName = parts.length > 4 ? parts[4] : null;
-        String playerName = parts.length > 5 ? parts[5] : null;
-        String locationString = parts.length > 6 ? parts[6] : null;
+        switch (operation) {
+            case "createIsland":
+                String worldNameForCreate = parts.length > 4 ? parts[4] : null;
+                return islandOperation.createWorld(worldNameForCreate)
+                        .thenApply(v -> {
+                            plugin.debug("createIsland operation completed for world: " + worldNameForCreate);
+                            return "Created";
+                        });
 
-        // Perform the operation based on the type
-        if ("createIsland".equals(operation)) {
-            return islandOperation.createWorld(worldName)
-                    .thenRun(() -> {
-                        plugin.debug("createIsland operation completed for world: " + worldName);
-                    });
+            case "deleteIsland":
+                String worldNameForDelete = parts.length > 4 ? parts[4] : null;
+                return islandOperation.deleteWorld(worldNameForDelete)
+                        .thenApply(v -> {
+                            plugin.debug("deleteIsland operation completed for world: " + worldNameForDelete);
+                            return "Deleted";
+                        });
+
+            case "updateWorldList":
+                return islandOperation.updateWorldList()
+                        .thenApply(updatedList -> {
+                            plugin.debug("updateWorldList operation completed.");
+                            return "Updated";
+                        });
+            default:
+                return CompletableFuture.completedFuture("Unknown operation: " + operation);
         }
-        if ("deleteIsland".equals(operation)) {
-            return islandOperation.deleteWorld(worldName)
-                    .thenRun(() -> {
-                        plugin.debug("deleteIsland operation completed for world: " + worldName);
-                    });
-        }
-        if ("teleportToIsland".equals(operation)) {
-            return islandOperation.teleportToWorld(worldName, playerName, locationString)
-                    .thenRun(() -> {
-                        plugin.debug("teleportToIsland operation completed for world: " + worldName);
-                    });
-        }
-        return CompletableFuture.completedFuture(null);
     }
 }
-

@@ -1,11 +1,13 @@
 package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
+import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.JedisPubSub;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 
 public class IslandPublishRequest {
@@ -13,54 +15,55 @@ public class IslandPublishRequest {
     private static final long TIMEOUT_SECONDS = 30L;
     private final NewSky plugin;
     private final RedisHandler redisHandler;
+    private final HeartBeatHandler heartBeatHandler;
     private final String serverID;
 
-    public IslandPublishRequest(NewSky plugin, RedisHandler redisHandler, String serverID) {
+    public IslandPublishRequest(NewSky plugin, RedisHandler redisHandler, HeartBeatHandler heartBeatHandler, String serverID) {
         this.plugin = plugin;
         this.redisHandler = redisHandler;
+        this.heartBeatHandler = heartBeatHandler;
         this.serverID = serverID;
     }
 
-    public CompletableFuture<Void> sendRequest(String targetServer, String operation) {
+    public CompletableFuture<ConcurrentHashMap<String, String>> sendRequest(String targetServer, String operation) {
         String requestID = "Req-" + UUID.randomUUID();
-
-        CompletableFuture<Void> future = new CompletableFuture<>();
+        CompletableFuture<ConcurrentHashMap<String, String>> future = new CompletableFuture<>();
+        ConcurrentHashMap<String, String> responses = new ConcurrentHashMap<>();
 
         JedisPubSub responseSubscriber = new JedisPubSub() {
             @Override
             public void onMessage(String channel, String message) {
-                plugin.debug("Received response from " + message + " for request " + requestID);
+                String[] responseParts = message.split(":");
+                String responderID = responseParts[0];
+                String responseData = responseParts.length > 1 ? responseParts[1] : null;
 
-                // Unsubscribe from the response channel
-                this.unsubscribe();
-                plugin.debug("Unsubscribed from response channel for request: " + requestID);
+                if (responseData != null) {
+                    responses.put(responderID, responseData);
+                }
 
-                future.complete(null);
+                if (targetServer.equals("all") && responses.size() == heartBeatHandler.getActiveServers().size()) {
+                    future.complete(responses);
+                    this.unsubscribe();
+                } else if (responderID.equals(targetServer)) {
+                    future.complete(responses);
+                    this.unsubscribe();
+                }
             }
         };
 
-        // Subscribe to the response channel
         redisHandler.subscribe(responseSubscriber, "newsky-response-channel-" + requestID);
-        plugin.debug("Subscribed to response channel for request: " + requestID);
+        String requestMessage = requestID + ":" + serverID + ":" + targetServer + ":" + operation;
+        redisHandler.publish("newsky-request-channel", requestMessage);
 
-        // Send request
-        redisHandler.publish("newsky-request-channel", requestID + ":" + serverID + ":" + targetServer + ":" + operation);
-        plugin.debug("Sent request " + requestID + "to request channel for " + targetServer);
         scheduleTimeoutTask(future, requestID, responseSubscriber);
         return future;
     }
 
-    private void scheduleTimeoutTask(CompletableFuture<Void> future, String requestID, JedisPubSub responseSubscriber) {
+    private void scheduleTimeoutTask(CompletableFuture<ConcurrentHashMap<String, String>> future, String requestID, JedisPubSub responseSubscriber) {
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (!future.isDone()) {
-                plugin.info("Request " + requestID + " timed out.");
-
-                // Unsubscribe from the response channel
                 responseSubscriber.unsubscribe();
-                plugin.debug("Unsubscribed from response channel due to timeout for request: " + requestID);
-
-                future.completeExceptionally(new TimeoutException("Timeout waiting for responses to request:" + requestID));
-
+                future.completeExceptionally(new TimeoutException("Timeout waiting for response to request: " + requestID));
             }
         }, TIMEOUT_SECONDS * 20);
     }

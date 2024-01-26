@@ -10,10 +10,12 @@ import org.me.newsky.world.WorldHandler;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class IslandHandler {
 
@@ -23,8 +25,6 @@ public class IslandHandler {
     private final IslandOperation islandOperation;
     private final IslandPublishRequest islandPublishRequest;
     private final IslandSubscribeRequest islandSubscribeRequest;
-    private final UpdatePublishRequest updatePublishRequest;
-    private final UpdateSubscribeRequest updateSubscribeRequest;
 
 
     public IslandHandler(NewSky plugin, WorldHandler worldHandler, RedisHandler redisHandler, HeartBeatHandler heartBeatHandler, TeleportManager teleportManager, String serverID) {
@@ -33,15 +33,12 @@ public class IslandHandler {
         this.serverID = serverID;
 
         this.islandOperation = new IslandOperation(plugin, worldHandler, teleportManager);
-        this.islandPublishRequest = new IslandPublishRequest(plugin, redisHandler, serverID);
+        this.islandPublishRequest = new IslandPublishRequest(plugin, redisHandler, heartBeatHandler, serverID);
         this.islandSubscribeRequest = new IslandSubscribeRequest(plugin, redisHandler, islandOperation, serverID);
-        this.updatePublishRequest = new UpdatePublishRequest(plugin, redisHandler, heartBeatHandler, serverID);
-        this.updateSubscribeRequest = new UpdateSubscribeRequest(plugin, redisHandler, islandOperation, serverID);
     }
 
     public CompletableFuture<Void> createIsland(UUID islandUuid) {
         String islandName = "island-" + islandUuid.toString();
-
         CompletableFuture<Void> createIslandFuture = new CompletableFuture<>();
 
         Set<String> activeServers = heartBeatHandler.getActiveServers();
@@ -61,13 +58,12 @@ public class IslandHandler {
         if (selectedServer.equals(serverID)) {
             // Create the island on the current server
             plugin.debug("Island created on current server.");
-            islandOperation.createWorld(islandName).thenRun(() -> {
-                createIslandFuture.complete(null);
-            });
+            islandOperation.createWorld(islandName).thenRun(() -> createIslandFuture.complete(null));
         } else {
             // Send the request to create island on the selected server
             plugin.debug("Island creation request sent to server: " + selectedServer);
-            islandPublishRequest.sendRequest(selectedServer, "createIsland:" + islandName).thenRun(() -> {
+            islandPublishRequest.sendRequest(selectedServer, "createIsland").thenAccept(responses -> {
+                // Handle responses here, if needed
                 createIslandFuture.complete(null);
             });
         }
@@ -82,11 +78,10 @@ public class IslandHandler {
 
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
         String islandName = "island-" + islandUuid.toString();
-
         CompletableFuture<Void> deleteIslandFuture = new CompletableFuture<>();
 
         // Request the world list from all active servers
-        updatePublishRequest.sendUpdateRequest().thenCompose(worldListResponses -> {
+        islandPublishRequest.sendRequest("all", "updateWorldList").thenCompose(worldListResponses -> {
             // Process the responses to find the server where the island is located
             String serverByWorldName = findServerByWorldName(islandName, worldListResponses);
             if (serverByWorldName == null) {
@@ -101,7 +96,10 @@ public class IslandHandler {
             } else {
                 // Send the request to delete the island on the server where it's located
                 plugin.debug("Island delete request sent to server: " + serverByWorldName);
-                islandPublishRequest.sendRequest(serverByWorldName, "deleteIsland:" + islandName).thenRun(() -> deleteIslandFuture.complete(null));
+                islandPublishRequest.sendRequest(serverByWorldName, "deleteIsland:" + islandName).thenAccept(responses -> {
+                    // Handle responses here, if needed
+                    deleteIslandFuture.complete(null);
+                });
             }
         }).exceptionally(ex -> {
             plugin.info("Failed to delete island: " + ex.getMessage());
@@ -112,13 +110,12 @@ public class IslandHandler {
         return deleteIslandFuture;
     }
 
-
     public CompletableFuture<Void> teleportToIsland(UUID islandUuid, Player player, String locationString) {
         String islandName = "island-" + islandUuid.toString();
         CompletableFuture<Void> teleportIslandFuture = new CompletableFuture<>();
 
         // Request the world list from all active servers
-        updatePublishRequest.sendUpdateRequest().thenCompose(worldListResponses -> {
+        islandPublishRequest.sendRequest("all", "updateWorldList").thenCompose(worldListResponses -> {
             // Process the responses to find the server where the island is located
             String serverByWorldName = findServerByWorldName(islandName, worldListResponses);
             if (serverByWorldName == null) {
@@ -129,15 +126,17 @@ public class IslandHandler {
             if (serverByWorldName.equals(serverID)) {
                 // Teleport to the island on the current server
                 plugin.debug("Island teleported to on current server.");
-                islandOperation.teleportToWorld(islandName, player.getUniqueId().toString(), locationString).thenRun(() -> teleportIslandFuture.complete(null));
+                islandOperation.teleportToWorld(islandName, player.getUniqueId().toString(), locationString)
+                        .thenRun(() -> teleportIslandFuture.complete(null));
             } else {
                 // Send the request to teleport to the island on the server where it's located
                 plugin.debug("Island teleport request sent to server: " + serverByWorldName);
-                islandPublishRequest.sendRequest(serverByWorldName, "teleportToIsland:" + islandName + ":" + player.getUniqueId() + ":" + locationString).thenRun(() -> {
-                    // Connect to the server where the island is located
-                    connectToServer(player, serverByWorldName); // Assuming this method handles the server connection
-                    teleportIslandFuture.complete(null);
-                });
+                islandPublishRequest.sendRequest(serverByWorldName, "teleportToIsland:" + islandName + ":" + player.getUniqueId() + ":" + locationString)
+                        .thenAccept(responses -> {
+                            // Handle responses here, if needed
+                            connectToServer(player, serverByWorldName); // Assuming this method handles the server connection
+                            teleportIslandFuture.complete(null);
+                        });
             }
         }).exceptionally(ex -> {
             plugin.info("Failed to teleport to the island: " + ex.getMessage());
@@ -164,23 +163,19 @@ public class IslandHandler {
 
     public void subscribeToRequests() {
         islandSubscribeRequest.subscribeToRequests();
-        updateSubscribeRequest.subscribeToUpdateRequests();
     }
 
     public void unsubscribeFromRequests() {
         islandSubscribeRequest.unsubscribeFromRequests();
-        updateSubscribeRequest.unsubscribeFromUpdateRequests();
     }
 
-    private String findServerByWorldName(String worldName, Set<String> worldListResponses) {
+    private String findServerByWorldName(String worldName, ConcurrentHashMap<String, String> worldListResponses) {
         plugin.debug("Searching for server by world name: " + worldName);
         plugin.debug("Processing world list responses: " + worldListResponses);
 
-        for (String response : worldListResponses) {
-            String[] serverAndWorlds = response.split(":", 2);
-            if (serverAndWorlds.length < 2) continue; // Skip if no worlds are listed
-            String serverId = serverAndWorlds[0];
-            String[] worlds = serverAndWorlds[1].split(",");
+        for (Map.Entry<String, String> entry : worldListResponses.entrySet()) {
+            String serverId = entry.getKey();
+            String[] worlds = entry.getValue().split(",");
             for (String world : worlds) {
                 if (world.equals(worldName)) {
                     return serverId;
