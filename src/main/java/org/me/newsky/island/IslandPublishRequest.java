@@ -5,6 +5,7 @@ import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.JedisPubSub;
 
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -29,31 +30,36 @@ public class IslandPublishRequest {
         String requestID = "Req-" + UUID.randomUUID();
         CompletableFuture<ConcurrentHashMap<String, String>> future = new CompletableFuture<>();
         ConcurrentHashMap<String, String> responses = new ConcurrentHashMap<>();
+        Set<String> activeServers = heartBeatHandler.getActiveServers();
 
         JedisPubSub responseSubscriber = new JedisPubSub() {
             @Override
             public void onMessage(String channel, String message) {
                 String[] responseParts = message.split(":");
                 String responderID = responseParts[0];
-                String responseData = responseParts.length > 1 ? responseParts[1] : null;
+                String responseData = responseParts.length > 1 ? responseParts[1] : "";
 
-                if (responseData != null) {
-                    responses.put(responderID, responseData);
-                }
+                responses.put(responderID, responseData);
+                plugin.debug("Received response from server: " + responderID + " for request: " + requestID + " with data: " + responseData);
 
-                if (targetServer.equals("all") && responses.size() == heartBeatHandler.getActiveServers().size()) {
-                    future.complete(responses);
+                // Check if responses have been received from all active servers for 'all' target
+                if (targetServer.equals("all") && responses.keySet().containsAll(activeServers)) {
                     this.unsubscribe();
+                    plugin.debug("Received all responses for request: " + requestID);
+                    future.complete(responses);
                 } else if (responderID.equals(targetServer)) {
-                    future.complete(responses);
                     this.unsubscribe();
+                    plugin.debug("Received response for request: " + requestID);
+                    future.complete(responses);
                 }
             }
         };
 
         redisHandler.subscribe(responseSubscriber, "newsky-response-channel-" + requestID);
         String requestMessage = requestID + ":" + serverID + ":" + targetServer + ":" + operation;
+
         redisHandler.publish("newsky-request-channel", requestMessage);
+        plugin.debug("Sending request: " + requestID + " to server: " + targetServer + " for operation: " + operation);
 
         scheduleTimeoutTask(future, requestID, responseSubscriber);
         return future;

@@ -5,6 +5,7 @@ import com.onarandombox.MultiverseCore.api.MVWorldManager;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.admin.AdminCommandExecutor;
 import org.me.newsky.command.player.IslandCommandExecutor;
@@ -22,6 +23,7 @@ import java.util.Objects;
 
 public class NewSky extends JavaPlugin {
 
+    private NewSkyAPI api;
     private String serverID;
     private ConfigHandler config;
     private MVWorldManager mvWorldManager;
@@ -57,6 +59,7 @@ public class NewSky extends JavaPlugin {
         initializeIslandHandler();
         registerListeners();
         registerCommands();
+        api = new NewSkyAPI(this);
     }
 
     private void checkDependencies(String... pluginNames) {
@@ -249,5 +252,9 @@ public class NewSky extends JavaPlugin {
         if (config.isDebug()) {
             getLogger().info("§bDEBUG: " + message);
         }
+    }
+
+    public NewSkyAPI getAPI() {
+        return api;
     }
 }

@@ -78,7 +78,7 @@ public class DatabaseHandler {
     }
 
     private void createIslandDataTable() {
-        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS islands (" + "island_uuid VARCHAR(56) PRIMARY KEY, " + "level INT(11) NOT NULL DEFAULT 0, " + "`lock` BOOLEAN NOT NULL DEFAULT FALSE);").join();
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS islands (" + "island_uuid VARCHAR(56) PRIMARY KEY, " + "`lock` BOOLEAN NOT NULL DEFAULT FALSE);").join();
     }
 
     private void createIslandPlayersTable() {
@@ -139,13 +139,6 @@ public class DatabaseHandler {
         }, "INSERT INTO island_homes (player_uuid, home_name, home_location) VALUES (?, ?, ?);");
     }
 
-    public void updateIslandLevel(UUID islandUuid, int level) {
-        executeUpdate(statement -> {
-            statement.setInt(1, level);
-            statement.setString(2, islandUuid.toString());
-        }, "UPDATE islands SET level = ? WHERE island_uuid = ?;");
-    }
-
     public void updateIslandLock(UUID islandUuid, boolean lock) {
         executeUpdate(statement -> {
             statement.setBoolean(1, lock);
@@ -159,23 +152,19 @@ public class DatabaseHandler {
     }
 
     public void deleteIslandPlayer(UUID playerUuid, UUID islandUuid) {
+        executeUpdate(statement -> {
+            statement.setString(1, playerUuid.toString());
+        }, "DELETE FROM island_homes WHERE player_uuid = ?;");
+
+        executeUpdate(statement -> {
+            statement.setString(1, playerUuid.toString());
+        }, "DELETE FROM island_warps WHERE player_uuid = ?;");
+
         // Then delete the player from island_players
         executeUpdate(statement -> {
             statement.setString(1, playerUuid.toString());
             statement.setString(2, islandUuid.toString());
         }, "DELETE FROM island_players WHERE player_uuid = ? AND island_uuid = ?;");
-    }
-
-    public void deleteAllPlayerHomes(UUID playerUuid) {
-        executeUpdate(statement -> {
-            statement.setString(1, playerUuid.toString());
-        }, "DELETE FROM island_homes WHERE player_uuid = ?;");
-    }
-
-    public void deleteAllPlayerWarps(UUID playerUuid) {
-        executeUpdate(statement -> {
-            statement.setString(1, playerUuid.toString());
-        }, "DELETE FROM island_warps WHERE player_uuid = ?;");
     }
 
     public void deleteWarpPoint(UUID playerUuid, String warpName) {

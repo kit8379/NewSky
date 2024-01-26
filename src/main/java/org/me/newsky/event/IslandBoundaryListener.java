@@ -12,8 +12,13 @@ public class IslandBoundaryListener implements Listener {
 
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event) {
+        Location from = event.getFrom();
         Location to = event.getTo();
-        if (to == null || to.getWorld() == null || !to.getWorld().getName().startsWith("island-")) {
+        if (to == null || (from.getBlockX() - to.getBlockX() == 0 && from.getBlockZ() - to.getBlockZ() == 0)) {
+            return;
+        }
+
+        if (to.getWorld() == null || !to.getWorld().getName().startsWith("island-")) {
             return;
         }
 

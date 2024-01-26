@@ -58,12 +58,13 @@ public class IslandHandler {
         if (selectedServer.equals(serverID)) {
             // Create the island on the current server
             plugin.debug("Island created on current server.");
-            islandOperation.createWorld(islandName).thenRun(() -> createIslandFuture.complete(null));
+            islandOperation.createWorld(islandName).thenRun(() -> {
+                createIslandFuture.complete(null);
+            });
         } else {
             // Send the request to create island on the selected server
             plugin.debug("Island creation request sent to server: " + selectedServer);
-            islandPublishRequest.sendRequest(selectedServer, "createIsland").thenAccept(responses -> {
-                // Handle responses here, if needed
+            islandPublishRequest.sendRequest(selectedServer, "createIsland:" + islandName).thenAccept(responses -> {
                 createIslandFuture.complete(null);
             });
         }
@@ -127,7 +128,9 @@ public class IslandHandler {
                 // Teleport to the island on the current server
                 plugin.debug("Island teleported to on current server.");
                 islandOperation.teleportToWorld(islandName, player.getUniqueId().toString(), locationString)
-                        .thenRun(() -> teleportIslandFuture.complete(null));
+                        .thenRun(() -> {
+                            teleportIslandFuture.complete(null);
+                        });
             } else {
                 // Send the request to teleport to the island on the server where it's located
                 plugin.debug("Island teleport request sent to server: " + serverByWorldName);
