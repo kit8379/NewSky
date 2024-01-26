@@ -1,4 +1,4 @@
-<h1 align="center"><img height="35" src="https://emoji.gg/emoji/9330-minecraftcube"> NewSky - A Revolutionary Skyblock Experience</h1>
+<h1 align="center"><img height="35" src="https://cdn3.emoji.gg/emojis/9330-minecraftcube.gif"> NewSky - A Revolutionary Skyblock Experience</h1>
 <div align="center">
 
 </div>
