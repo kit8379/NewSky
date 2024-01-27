@@ -6,6 +6,10 @@ authors: [ TonyPak ]
 depend:
   - VoidGen
   - Multiverse-Core
+libraries:
+  - 'redis.clients:jedis:${jedis_version}'
+  - 'com.mysql:mysql-connector-java:${mysql_driver_version}'
+  - 'com.zaxxer:HikariCP:${hikari_version}'
 commands:
   island:
     description: Island command
