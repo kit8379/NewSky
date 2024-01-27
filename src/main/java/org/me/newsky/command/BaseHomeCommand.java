@@ -66,7 +66,7 @@ public abstract class BaseHomeCommand {
         return true;
     }
 
-    public List<String> onTabComplete(@NotNull CommandSender sender, String[] args) {
+    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull String[] args) {
         if (args.length == getTargetHomeArgIndex() + 1) {
             UUID targetUuid = getTargetUUID(sender, args);
             Set<String> homeNames = cacheHandler.getHomeNames(targetUuid);

@@ -33,7 +33,11 @@ public class IslandOperation {
                 File worldContainer = plugin.getServer().getWorldContainer();
                 File[] files = worldContainer.listFiles();
                 if (files != null) {
-                    String result = Arrays.stream(files).filter(File::isDirectory).map(File::getName).filter(name -> name.startsWith("island-")).collect(Collectors.joining(","));
+                    String result = Arrays.stream(files)
+                            .filter(File::isDirectory)
+                            .map(File::getName)
+                            .filter(name -> name.startsWith("island-"))
+                            .collect(Collectors.joining(","));
                     updateFuture.complete(result);
                 }
             } catch (Exception e) {
@@ -44,31 +48,19 @@ public class IslandOperation {
         return updateFuture;
     }
 
-
     public CompletableFuture<Void> createWorld(String worldName) {
-        CompletableFuture<Void> createFuture = new CompletableFuture<>();
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            worldHandler.createWorld(worldName);
-            createFuture.complete(null);
-        });
-        return createFuture;
+        return worldHandler.createWorld(worldName);
     }
 
-
     public CompletableFuture<Void> deleteWorld(String worldName) {
-        CompletableFuture<Void> deleteFuture = new CompletableFuture<>();
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            worldHandler.deleteWorld(worldName);
-            deleteFuture.complete(null);
-        });
-        return deleteFuture;
+        return worldHandler.deleteWorld(worldName);
     }
 
     public CompletableFuture<Void> teleportToWorld(String worldName, String playerName, String locationString) {
         CompletableFuture<Void> future = new CompletableFuture<>();
+
         CompletableFuture.runAsync(() -> {
             UUID playerUuid = UUID.fromString(playerName);
-
             String[] parts = locationString.split(",");
             double x = Double.parseDouble(parts[0]);
             double y = Double.parseDouble(parts[1]);
@@ -78,7 +70,6 @@ public class IslandOperation {
 
             // Switching back to the main thread to interact with the Minecraft world
             Bukkit.getScheduler().runTask(plugin, () -> {
-                worldHandler.loadWorld(worldName);
                 Location location = new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch);
                 Player player = Bukkit.getPlayer(playerUuid);
                 if (player != null) {
@@ -96,4 +87,3 @@ public class IslandOperation {
         return future;
     }
 }
-

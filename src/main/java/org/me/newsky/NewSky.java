@@ -1,9 +1,5 @@
 package org.me.newsky;
 
-import com.onarandombox.MultiverseCore.MultiverseCore;
-import com.onarandombox.MultiverseCore.api.MVWorldManager;
-import org.bukkit.Bukkit;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.cache.CacheHandler;
@@ -26,7 +22,6 @@ public class NewSky extends JavaPlugin {
     private NewSkyAPI api;
     private String serverID;
     private ConfigHandler config;
-    private MVWorldManager mvWorldManager;
     private WorldHandler worldHandler;
     private RedisHandler redisHandler;
     private DatabaseHandler databaseHandler;
@@ -44,10 +39,8 @@ public class NewSky extends JavaPlugin {
     }
 
     private void initalize() {
-        checkDependencies("Multiverse-Core");
         initializeConfig();
         initalizeServerID();
-        initializeMVWorldManager();
         initializeWorldHandler();
         initializeRedis();
         initializeDatabase();
@@ -60,15 +53,6 @@ public class NewSky extends JavaPlugin {
         registerListeners();
         registerCommands();
         api = new NewSkyAPI(this);
-    }
-
-    private void checkDependencies(String... pluginNames) {
-        for (String pluginName : pluginNames) {
-            Plugin plugin = Bukkit.getServer().getPluginManager().getPlugin(pluginName);
-            if (!(plugin != null && plugin.isEnabled())) {
-                throw new IllegalStateException(pluginName + " not found! Plugin will be disabled!");
-            }
-        }
     }
 
     private void initializeConfig() {
@@ -95,21 +79,10 @@ public class NewSky extends JavaPlugin {
         }
     }
 
-    private void initializeMVWorldManager() {
-        info("Starting MVmanager");
-        try {
-            mvWorldManager = ((MultiverseCore) Objects.requireNonNull(Bukkit.getServer().getPluginManager().getPlugin("Multiverse-Core"))).getMVWorldManager();
-            info("MVmanager loaded");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException("MVmanager load fail! Plugin will be disabled!");
-        }
-    }
-
     private void initializeWorldHandler() {
         info("Starting WorldHandler");
         try {
-            worldHandler = new WorldHandler(this, mvWorldManager);
+            worldHandler = new WorldHandler(this);
             info("WorldHandler loaded");
         } catch (Exception e) {
             e.printStackTrace();

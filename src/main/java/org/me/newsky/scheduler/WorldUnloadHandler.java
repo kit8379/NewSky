@@ -39,7 +39,7 @@ public class WorldUnloadHandler {
                 long inactiveTime = inactiveWorlds.getOrDefault(world.getName(), currentTime);
                 if (currentTime - inactiveTime > MAX_INACTIVE_TIME) {
                     Bukkit.getScheduler().runTask(plugin, () -> {
-                        worldHandler.unloadWorld(world.getName());
+//                        worldHandler.unloadWorld(world.getName());
                         plugin.getLogger().info("Unloaded inactive world: " + world.getName());
                     });
                     inactiveWorlds.remove(world.getName());
