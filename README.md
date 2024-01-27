@@ -3,6 +3,9 @@
 
 </div>
 
+<h2 align="center">⚠️ Important Notice ⚠️</h2>
+<h3 align="center">NewSky is currently in ALPHA stage and not recommended for production use. A stable release is expected around June. Please wait a few more months for a more polished version.</h3>
+
 🌟 **NewSky** brings an unparalleled Skyblock experience to Minecraft servers, combining innovative features with intuitive design for both players and server administrators.
 
 ⚙️ **Current Stage:** ALPHA. The plugin is under active development with basic functionalities such as island creation, management, and Redis-based caching already implemented.
@@ -32,15 +35,15 @@
 
 ### To-DO List
 1. Remove the dependency of using Multiverse-Core and VoidGen.
-2. Allow to store world in common share path or distributed storage system so as to load island dynmically across servers. 
-(The create island feature has already implemented to dynmically create on across servers already. But the island world is currently stay in that server only. It is not hard to add this function but I have no time to implement it in recent months.)
+2. Allow to store world in common share path or distributed storage system so as to load island dynamically across servers.
+   (The create island feature has already implemented to dynamically create on across servers already. But the island world is currently stay in that server only. It is not hard to add this function but I have no time to implement it in recent months.)
 3. Add support to using AdvancedSlimeWorldManager instead of normal Bukkit world.
-4. Implement command permission and finalise the display messages that can be customize in messages.yml
+4. Implement command permission and finalise the display messages that can be customized in messages.yml
 
 ------------
 
 ### Installation:
-1. Download the latest version of NewSky from the [releases page](#).
+1. Download the latest version of NewSky from the [releases page](https://github.com/kit8379/NewSky/releases/tag/alpha).
 2. Place the NewSky.jar file into your server's `plugins` folder.
 3. Restart your server. NewSky will generate a default configuration file.
 4. Configure the plugin to your needs.
@@ -74,7 +77,6 @@ server:
   mode: "island" # lobby or island
 
 debug: false # Enable debug mode
-
 ```
 
 ### Contributing:
