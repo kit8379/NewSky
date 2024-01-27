@@ -10,26 +10,19 @@ import org.me.newsky.world.WorldHandler;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class IslandHandler {
 
     private final NewSky plugin;
-    private final HeartBeatHandler heartBeatHandler;
     private final String serverID;
     private final IslandOperation islandOperation;
     private final IslandPublishRequest islandPublishRequest;
     private final IslandSubscribeRequest islandSubscribeRequest;
 
-
     public IslandHandler(NewSky plugin, WorldHandler worldHandler, RedisHandler redisHandler, HeartBeatHandler heartBeatHandler, TeleportManager teleportManager, String serverID) {
         this.plugin = plugin;
-        this.heartBeatHandler = heartBeatHandler;
         this.serverID = serverID;
         this.islandOperation = new IslandOperation(plugin, worldHandler, teleportManager);
         this.islandPublishRequest = new IslandPublishRequest(plugin, redisHandler, heartBeatHandler, serverID);
@@ -38,43 +31,26 @@ public class IslandHandler {
 
     public CompletableFuture<Void> createIsland(UUID islandUuid) {
         String islandName = "island-" + islandUuid.toString();
-        Set<String> activeServers = heartBeatHandler.getActiveServers();
-
-        if (activeServers.isEmpty()) {
-            return CompletableFuture.failedFuture(new IllegalStateException("No active servers available"));
-        }
-
-        String selectedServer = activeServers.stream()
-                .skip(new Random().nextInt(activeServers.size()))
-                .findFirst()
-                .orElse(null);
-
-        if (selectedServer == null) {
-            return CompletableFuture.failedFuture(new IllegalStateException("Error selecting a random server"));
-        }
-
-        if (selectedServer.equals(serverID)) {
-            return islandOperation.createWorld(islandName);
-        } else {
-            return islandPublishRequest.sendRequest(selectedServer, "createIsland:" + islandName)
-                    .thenApply(responses -> null);
-        }
+        return findServerWithLeastWorld()
+                .thenCompose(targetServer -> {
+                    if (targetServer.equals(serverID)) {
+                        return islandOperation.createWorld(islandName);
+                    } else {
+                        return islandPublishRequest.sendRequest(targetServer, "createIsland:" + islandName)
+                                .thenApply(responses -> null);
+                    }
+                });
     }
+
 
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
         String islandName = "island-" + islandUuid.toString();
-
-        return islandPublishRequest.sendRequest("all", "updateWorldList")
-                .thenCompose(worldListResponses -> {
-                    String serverByWorldName = findServerByWorldName(islandName, worldListResponses);
-                    if (serverByWorldName == null) {
-                        return CompletableFuture.failedFuture(new IllegalStateException("Island not found on any server"));
-                    }
-
-                    if (serverByWorldName.equals(serverID)) {
+        return findServerByWorldName(islandName)
+                .thenCompose(targetServer -> {
+                    if (targetServer.equals(serverID)) {
                         return islandOperation.deleteWorld(islandName);
                     } else {
-                        return islandPublishRequest.sendRequest(serverByWorldName, "deleteIsland:" + islandName)
+                        return islandPublishRequest.sendRequest(targetServer, "deleteIsland:" + islandName)
                                 .thenApply(responses -> null);
                     }
                 });
@@ -82,21 +58,41 @@ public class IslandHandler {
 
     public CompletableFuture<Void> teleportToIsland(UUID islandUuid, Player player, String locationString) {
         String islandName = "island-" + islandUuid.toString();
+        return findServerByWorldName(islandName)
+                .thenCompose(targetServer -> {
+                    if (targetServer.equals(serverID)) {
+                        return islandOperation.teleportToWorld(islandName, player.getUniqueId().toString(), locationString);
+                    } else {
+                        return islandPublishRequest.sendRequest(targetServer, "teleportToIsland:" + islandName + ":" + player.getUniqueId() + ":" + locationString)
+                                .thenRun(() -> connectToServer(player, targetServer));
+                    }
+                });
+    }
 
-        return islandPublishRequest.sendRequest("all", "updateWorldList").thenCompose(worldListResponses -> {
-            String serverByWorldName = findServerByWorldName(islandName, worldListResponses);
+    private CompletableFuture<String> findServerByWorldName(String worldName) {
+        return islandPublishRequest.sendRequest("all", "updateWorldList")
+                .thenApply(worldListResponses -> {
+                    for (Map.Entry<String, String> entry : worldListResponses.entrySet()) {
+                        String serverId = entry.getKey();
+                        String[] worlds = entry.getValue().split(",");
+                        for (String world : worlds) {
+                            if (world.equals(worldName)) {
+                                return serverId;
+                            }
+                        }
+                    }
+                    throw new IllegalStateException("World not found on any server");
+                });
+    }
 
-            if (serverByWorldName == null) {
-                return CompletableFuture.failedFuture(new IllegalStateException("Island not found on any server"));
-            }
-
-            if (serverByWorldName.equals(serverID)) {
-                return islandOperation.teleportToWorld(islandName, player.getUniqueId().toString(), locationString);
-            } else {
-                return islandPublishRequest.sendRequest(serverByWorldName, "teleportToIsland:" + islandName + ":" + player.getUniqueId() + ":" + locationString)
-                        .thenRun(() -> connectToServer(player, serverByWorldName));
-            }
-        });
+    private CompletableFuture<String> findServerWithLeastWorld() {
+        return islandPublishRequest.sendRequest("all", "updateWorldList")
+                .thenApply(worldListResponses -> {
+                    return worldListResponses.entrySet().stream()
+                            .min(Comparator.comparingInt(entry -> entry.getValue().split(",").length))
+                            .map(Map.Entry::getKey)
+                            .orElseThrow(() -> new IllegalStateException("No active server available"));
+                });
     }
 
     public void connectToServer(Player player, String serverName) {
@@ -109,19 +105,6 @@ public class IslandHandler {
             throw new RuntimeException(e);
         }
         player.sendPluginMessage(plugin, "BungeeCord", byteArray.toByteArray());
-    }
-
-    private String findServerByWorldName(String worldName, ConcurrentHashMap<String, String> worldListResponses) {
-        for (Map.Entry<String, String> entry : worldListResponses.entrySet()) {
-            String serverId = entry.getKey();
-            String[] worlds = entry.getValue().split(",");
-            for (String world : worlds) {
-                if (world.equals(worldName)) {
-                    return serverId;
-                }
-            }
-        }
-        return null;
     }
 
     public void subscribeToRequests() {
