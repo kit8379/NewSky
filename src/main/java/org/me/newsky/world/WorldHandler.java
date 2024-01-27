@@ -1,9 +1,12 @@
 package org.me.newsky.world;
 
 import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.WorldCreator;
+import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.Comparator;
@@ -19,20 +22,17 @@ public class WorldHandler {
     }
 
     public CompletableFuture<Void> createWorld(String worldName) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-
-        try {
-            copyTemplateWorld(worldName);
-        } catch (Exception e) {
-            return CompletableFuture.failedFuture(e);
-        }
-
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            new WorldCreator(worldName).generator(new VoidGenerator()).createWorld();
-            future.complete(null);
+        return CompletableFuture.runAsync(() -> {
+            try {
+                copyTemplateWorld(worldName);
+            } catch (IOException e) {
+                throw new RuntimeException("Error copying template world: " + e.getMessage(), e);
+            }
+        }).thenRunAsync(() -> {
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                loadWorld(worldName);
+            });
         });
-
-        return future;
     }
 
     private void copyTemplateWorld(String worldName) throws IOException {
@@ -56,34 +56,56 @@ public class WorldHandler {
     }
 
     public CompletableFuture<Void> deleteWorld(String worldName) {
+        return unloadWorld(worldName).thenRunAsync(() -> {
+            try {
+                Path worldDirectory = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
+                if (!deleteDirectory(worldDirectory)) {
+                    throw new RuntimeException("Failed to delete some files in world directory");
+                }
+            } catch (IOException e) {
+                throw new RuntimeException("Error deleting world directory: " + e.getMessage(), e);
+            }
+        });
+    }
+
+    private boolean deleteDirectory(Path path) throws IOException {
+        try (Stream<Path> stream = Files.walk(path)) {
+            stream.sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    private void loadWorld(String worldName) {
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            new WorldCreator(worldName).generator(new VoidGenerator()).createWorld();
+        });
+    }
+
+    public CompletableFuture<Void> unloadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
         Bukkit.getScheduler().runTask(plugin, () -> {
-            Bukkit.unloadWorld(worldName, false);
-            try {
-                Path worldDirectory = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
-                deleteDirectory(worldDirectory);
-                future.complete(null);
-            } catch (Exception e) {
-                future.completeExceptionally(e);
+            World world = Bukkit.getWorld(worldName);
+            if (world != null) {
+                removePlayersFromWorld(world);
+                if (!Bukkit.unloadWorld(world, false)) {
+                    throw new IllegalStateException("Failed to unload world: " + worldName);
+                }
+            } else {
+                throw new IllegalStateException("World not found: " + worldName);
             }
+            future.complete(null);
         });
 
         return future;
     }
 
-
-    private void deleteDirectory(Path path) {
-        try (Stream<Path> stream = Files.walk(path)) {
-            stream.sorted(Comparator.reverseOrder())
-                    .map(Path::toFile)
-                    .forEach(file -> {
-                        if (!file.delete()) {
-                            throw new RuntimeException("Failed to delete file: " + file.getAbsolutePath());
-                        }
-                    });
-        } catch (IOException e) {
-            throw new RuntimeException("Error deleting world directory: " + e.getMessage(), e);
+    private void removePlayersFromWorld(World world) {
+        World safeWorld = Bukkit.getServer().getWorlds().get(0);
+        for (Player player : world.getPlayers()) {
+            player.teleport(safeWorld.getSpawnLocation());
         }
     }
 }

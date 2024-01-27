@@ -26,26 +26,18 @@ public class IslandOperation {
     }
 
     public CompletableFuture<String> updateWorldList() {
-        CompletableFuture<String> updateFuture = new CompletableFuture<>();
-
-        CompletableFuture.runAsync(() -> {
-            try {
-                File worldContainer = plugin.getServer().getWorldContainer();
-                File[] files = worldContainer.listFiles();
-                if (files != null) {
-                    String result = Arrays.stream(files)
-                            .filter(File::isDirectory)
-                            .map(File::getName)
-                            .filter(name -> name.startsWith("island-"))
-                            .collect(Collectors.joining(","));
-                    updateFuture.complete(result);
-                }
-            } catch (Exception e) {
-                updateFuture.completeExceptionally(e);
+        return CompletableFuture.supplyAsync(() -> {
+            File worldContainer = plugin.getServer().getWorldContainer();
+            File[] files = worldContainer.listFiles();
+            if (files == null) {
+                return "";
             }
+            return Arrays.stream(files)
+                    .filter(File::isDirectory)
+                    .map(File::getName)
+                    .filter(name -> name.startsWith("island-"))
+                    .collect(Collectors.joining(","));
         });
-
-        return updateFuture;
     }
 
     public CompletableFuture<Void> createWorld(String worldName) {
@@ -68,7 +60,6 @@ public class IslandOperation {
             float yaw = Float.parseFloat(parts[3]);
             float pitch = Float.parseFloat(parts[4]);
 
-            // Switching back to the main thread to interact with the Minecraft world
             Bukkit.getScheduler().runTask(plugin, () -> {
                 Location location = new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch);
                 Player player = Bukkit.getPlayer(playerUuid);
@@ -79,9 +70,6 @@ public class IslandOperation {
                 }
                 future.complete(null);
             });
-        }).exceptionally(e -> {
-            future.completeExceptionally(e);
-            return null;
         });
 
         return future;

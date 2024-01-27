@@ -29,10 +29,9 @@ public class IslandSubscribeRequest {
                 String requestID = parts[0];
                 String targetServer = parts[2];
 
-                // Check if the target server matches this server or if the request is for all servers
                 if (targetServer.equals(serverID) || targetServer.equals("all")) {
                     plugin.debug("Received request: " + requestID + " for server: " + targetServer + " with operation: " + parts[3]);
-                    processRequest(parts).thenAccept(responseData -> {
+                    processRequest(parts).thenAccept((String responseData) -> {
                         redisHandler.publish("newsky-response-channel-" + requestID, serverID + ":" + responseData);
                         plugin.debug("Sent response for request: " + requestID + " with data: " + responseData);
                     });
@@ -54,32 +53,32 @@ public class IslandSubscribeRequest {
 
         switch (operation) {
             case "updateWorldList":
-                return islandOperation.updateWorldList().thenApply(updatedList -> updatedList);
+                return islandOperation.updateWorldList().thenApply((String updatedList) -> {
+                    return updatedList;
+                });
 
             case "createIsland":
-                String worldNameForCreate = parts.length > 4 ? parts[4] : null;
-                return islandOperation.createWorld(worldNameForCreate).thenApply(v -> {
-                    plugin.debug("createIsland operation completed for world: " + worldNameForCreate);
+                String worldNameForCreate = parts[4];
+                return islandOperation.createWorld(worldNameForCreate).thenApply((Void v) -> {
                     return "Created";
                 });
 
             case "deleteIsland":
-                String worldNameForDelete = parts.length > 4 ? parts[4] : null;
-                return islandOperation.deleteWorld(worldNameForDelete).thenApply(v -> {
-                    plugin.debug("deleteIsland operation completed for world: " + worldNameForDelete);
+                String worldNameForDelete = parts[4];
+                return islandOperation.deleteWorld(worldNameForDelete).thenApply((Void v) -> {
                     return "Deleted";
                 });
 
             case "teleportToIsland":
-                String worldNameForTeleport = parts.length > 4 ? parts[4] : null;
-                String playerName = parts.length > 5 ? parts[5] : null;
-                String locationString = parts.length > 6 ? parts[6] : null;
-                return islandOperation.teleportToWorld(worldNameForTeleport, playerName, locationString).thenApply(v -> {
-                    plugin.debug("teleportToIsland operation completed for world: " + worldNameForTeleport);
+                String worldNameForTeleport = parts[4];
+                String playerName = parts[5];
+                String locationString = parts[6];
+                return islandOperation.teleportToWorld(worldNameForTeleport, playerName, locationString).thenApply((Void v) -> {
                     return "Teleported";
                 });
+
             default:
-                return CompletableFuture.completedFuture("Unknown operation");
+                return CompletableFuture.failedFuture(new IllegalArgumentException("Unknown operation: " + operation));
         }
     }
 }

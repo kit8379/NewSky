@@ -12,7 +12,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeoutException;
 
 public class IslandPublishRequest {
-
     private static final long TIMEOUT_SECONDS = 30L;
     private final NewSky plugin;
     private final RedisHandler redisHandler;
@@ -42,14 +41,11 @@ public class IslandPublishRequest {
                 responses.put(responderID, responseData);
                 plugin.debug("Received response from server: " + responderID + " for request: " + requestID + " with data: " + responseData);
 
-                // Check if responses have been received from all active servers for 'all' target
                 if (targetServer.equals("all") && responses.keySet().containsAll(activeServers)) {
                     this.unsubscribe();
-                    plugin.debug("Received all responses for request: " + requestID);
                     future.complete(responses);
                 } else if (responderID.equals(targetServer)) {
                     this.unsubscribe();
-                    plugin.debug("Received response for request: " + requestID);
                     future.complete(responses);
                 }
             }
@@ -62,6 +58,7 @@ public class IslandPublishRequest {
         plugin.debug("Sending request: " + requestID + " to server: " + targetServer + " for operation: " + operation);
 
         scheduleTimeoutTask(future, requestID, responseSubscriber);
+
         return future;
     }
 
