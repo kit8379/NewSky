@@ -27,13 +27,15 @@ public class IslandSubscribeRequest {
             public void onMessage(String channel, String message) {
                 String[] parts = message.split(":");
                 String requestID = parts[0];
+                String sourceServer = parts[1];
                 String targetServer = parts[2];
+                String operation = parts[3];
 
                 if (targetServer.equals(serverID) || targetServer.equals("all")) {
-                    plugin.debug("Received request: " + requestID + " for server: " + targetServer + " with operation: " + parts[3]);
+                    plugin.debug("Received request: " + requestID + " from server: " + sourceServer + " for operation: " + operation);
                     processRequest(parts).thenAccept((String responseData) -> {
                         redisHandler.publish("newsky-response-channel-" + requestID, serverID + ":" + responseData);
-                        plugin.debug("Sent response for request: " + requestID + " with data: " + responseData);
+                        plugin.debug("Sent response to server: " + sourceServer + " for request: " + requestID + " for operation: " + operation + " with data: " + responseData);
                     });
                 }
             }

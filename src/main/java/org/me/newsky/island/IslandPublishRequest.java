@@ -39,7 +39,7 @@ public class IslandPublishRequest {
                 String responseData = responseParts.length > 1 ? responseParts[1] : "";
 
                 responses.put(responderID, responseData);
-                plugin.debug("Received response from server: " + responderID + " for request: " + requestID + " with data: " + responseData);
+                plugin.debug("Received response from server: " + responderID + " for request: " + requestID + " for operation: " + operation + " with data: " + responseData);
 
                 if (targetServer.equals("all") && responses.keySet().containsAll(activeServers)) {
                     this.unsubscribe();

@@ -59,16 +59,23 @@ public class IslandOperation {
         double z = Double.parseDouble(parts[2]);
         float yaw = Float.parseFloat(parts[3]);
         float pitch = Float.parseFloat(parts[4]);
-        Location location = new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch);
 
         if (Bukkit.getWorld(worldName) == null) {
-            worldHandler.loadWorld(worldName).thenRun(() -> teleportPlayer(future, playerUuid, location));
+            plugin.debug("World " + worldName + " not loaded, loading now.");
+            worldHandler.loadWorld(worldName)
+                    .thenRun(() -> teleportPlayer(future, playerUuid, new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch)))
+                    .exceptionally(e -> {
+                        plugin.debug("Exception while loading world for teleport: " + e.getMessage());
+                        future.completeExceptionally(e);
+                        return null;
+                    });
         } else {
-            teleportPlayer(future, playerUuid, location);
+            teleportPlayer(future, playerUuid, new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch));
         }
 
         return future;
     }
+
 
     private void teleportPlayer(CompletableFuture<Void> future, UUID playerUuid, Location location) {
         Bukkit.getScheduler().runTask(plugin, () -> {
