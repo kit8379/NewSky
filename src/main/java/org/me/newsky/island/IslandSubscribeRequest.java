@@ -39,7 +39,6 @@ public class IslandSubscribeRequest {
                     }).exceptionally(e -> {
                         redisHandler.publish("newsky-response-channel-" + requestID, serverID + ":Error");
                         plugin.debug("Sent error response to server: " + sourceServer + " for request: " + requestID + " for operation: " + operation);
-                        plugin.debug(e.getMessage());
                         return null;
                     });
                 }

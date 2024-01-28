@@ -63,12 +63,7 @@ public class IslandOperation {
         if (Bukkit.getWorld(worldName) == null) {
             plugin.debug("World " + worldName + " not loaded, loading now.");
             worldHandler.loadWorld(worldName)
-                    .thenRun(() -> teleportPlayer(future, playerUuid, new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch)))
-                    .exceptionally(e -> {
-                        plugin.debug("Exception while loading world for teleport: " + e.getMessage());
-                        future.completeExceptionally(e);
-                        return null;
-                    });
+                    .thenRun(() -> teleportPlayer(future, playerUuid, new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch)));
         } else {
             teleportPlayer(future, playerUuid, new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch));
         }
