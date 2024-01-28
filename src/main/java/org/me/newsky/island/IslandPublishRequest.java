@@ -41,12 +41,16 @@ public class IslandPublishRequest {
                 responses.put(responderID, responseData);
                 plugin.debug("Received response from server: " + responderID + " for request: " + requestID + " for operation: " + operation + " with data: " + responseData);
 
-                if (targetServer.equals("all") && responses.keySet().containsAll(activeServers)) {
+                boolean shouldComplete = (targetServer.equals("all") && responses.keySet().containsAll(activeServers))
+                        || responderID.equals(targetServer);
+
+                if (shouldComplete) {
                     this.unsubscribe();
-                    future.complete(responses);
-                } else if (responderID.equals(targetServer)) {
-                    this.unsubscribe();
-                    future.complete(responses);
+                    if (responses.containsValue("Error")) {
+                        future.completeExceptionally(new IllegalStateException("Error received from server: " + responderID + " for request: " + requestID + " for operation: " + operation));
+                    } else {
+                        future.complete(responses);
+                    }
                 }
             }
         };

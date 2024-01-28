@@ -36,6 +36,10 @@ public class IslandSubscribeRequest {
                     processRequest(parts).thenAccept((String responseData) -> {
                         redisHandler.publish("newsky-response-channel-" + requestID, serverID + ":" + responseData);
                         plugin.debug("Sent response to server: " + sourceServer + " for request: " + requestID + " for operation: " + operation + " with data: " + responseData);
+                    }).exceptionally((Throwable t) -> {
+                        redisHandler.publish("newsky-response-channel-" + requestID, serverID + ":Error");
+                        plugin.debug("Sent error response to server: " + sourceServer + " for request: " + requestID + " for operation: " + operation);
+                        return null;
                     });
                 }
             }
