@@ -36,9 +36,10 @@ public class IslandSubscribeRequest {
                     processRequest(parts).thenAccept((String responseData) -> {
                         redisHandler.publish("newsky-response-channel-" + requestID, serverID + ":" + responseData);
                         plugin.debug("Sent response to server: " + sourceServer + " for request: " + requestID + " for operation: " + operation + " with data: " + responseData);
-                    }).exceptionally((Throwable t) -> {
+                    }).exceptionally(e -> {
                         redisHandler.publish("newsky-response-channel-" + requestID, serverID + ":Error");
                         plugin.debug("Sent error response to server: " + sourceServer + " for request: " + requestID + " for operation: " + operation);
+                        plugin.debug(e.getMessage());
                         return null;
                     });
                 }
@@ -59,19 +60,19 @@ public class IslandSubscribeRequest {
 
         switch (operation) {
             case "updateWorldList":
-                return islandOperation.updateWorldList().thenApply((String updatedList) -> {
+                return islandOperation.updateWorldList().thenApply(updatedList -> {
                     return updatedList;
                 });
 
             case "createIsland":
                 String worldNameForCreate = parts[4];
-                return islandOperation.createWorld(worldNameForCreate).thenApply((Void v) -> {
+                return islandOperation.createWorld(worldNameForCreate).thenApply(v -> {
                     return "Created";
                 });
 
             case "deleteIsland":
                 String worldNameForDelete = parts[4];
-                return islandOperation.deleteWorld(worldNameForDelete).thenApply((Void v) -> {
+                return islandOperation.deleteWorld(worldNameForDelete).thenApply(v -> {
                     return "Deleted";
                 });
 
@@ -79,7 +80,7 @@ public class IslandSubscribeRequest {
                 String worldNameForTeleport = parts[4];
                 String playerName = parts[5];
                 String locationString = parts[6];
-                return islandOperation.teleportToWorld(worldNameForTeleport, playerName, locationString).thenApply((Void v) -> {
+                return islandOperation.teleportToWorld(worldNameForTeleport, playerName, locationString).thenApply(v -> {
                     return "Teleported";
                 });
 
