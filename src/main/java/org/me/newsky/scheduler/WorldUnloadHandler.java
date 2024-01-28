@@ -38,13 +38,12 @@ public class WorldUnloadHandler {
             if (world.getName().startsWith("island-") && world.getPlayers().isEmpty()) {
                 long inactiveTime = inactiveWorlds.getOrDefault(world.getName(), currentTime);
                 if (currentTime - inactiveTime > MAX_INACTIVE_TIME) {
-                    Bukkit.getScheduler().runTask(plugin, () -> {
-//                        worldHandler.unloadWorld(world.getName());
-                        plugin.getLogger().info("Unloaded inactive world: " + world.getName());
-                    });
+                    worldHandler.unloadWorld(world.getName()).thenRun(() ->
+                            plugin.getLogger().info("Unloaded inactive world: " + world.getName())
+                    );
                     inactiveWorlds.remove(world.getName());
                 } else {
-                    inactiveWorlds.put(world.getName(), inactiveTime);
+                    inactiveWorlds.put(world.getName(), currentTime);
                 }
             } else {
                 inactiveWorlds.remove(world.getName());

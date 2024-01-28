@@ -80,4 +80,12 @@ public class ConfigHandler {
     public boolean isDebug() {
         return config.getBoolean("debug");
     }
+
+    public String getTemplateWorldName() {
+        return config.getString("world.template-world-name");
+    }
+
+    public String getPublicWorldDirectory() {
+        return config.getString("world.public-world-directory");
+    }
 }

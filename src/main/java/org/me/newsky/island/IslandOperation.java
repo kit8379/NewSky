@@ -51,27 +51,34 @@ public class IslandOperation {
     public CompletableFuture<Void> teleportToWorld(String worldName, String playerName, String locationString) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        CompletableFuture.runAsync(() -> {
-            UUID playerUuid = UUID.fromString(playerName);
-            String[] parts = locationString.split(",");
-            double x = Double.parseDouble(parts[0]);
-            double y = Double.parseDouble(parts[1]);
-            double z = Double.parseDouble(parts[2]);
-            float yaw = Float.parseFloat(parts[3]);
-            float pitch = Float.parseFloat(parts[4]);
+        // Parse location components
+        UUID playerUuid = UUID.fromString(playerName);
+        String[] parts = locationString.split(",");
+        double x = Double.parseDouble(parts[0]);
+        double y = Double.parseDouble(parts[1]);
+        double z = Double.parseDouble(parts[2]);
+        float yaw = Float.parseFloat(parts[3]);
+        float pitch = Float.parseFloat(parts[4]);
+        Location location = new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch);
 
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                Location location = new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch);
-                Player player = Bukkit.getPlayer(playerUuid);
-                if (player != null) {
-                    player.teleport(location);
-                } else {
-                    teleportManager.addPendingTeleport(playerUuid, location);
-                }
-                future.complete(null);
-            });
-        });
+        if (Bukkit.getWorld(worldName) == null) {
+            worldHandler.loadWorld(worldName).thenRun(() -> teleportPlayer(future, playerUuid, location));
+        } else {
+            teleportPlayer(future, playerUuid, location);
+        }
 
         return future;
+    }
+
+    private void teleportPlayer(CompletableFuture<Void> future, UUID playerUuid, Location location) {
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            Player player = Bukkit.getPlayer(playerUuid);
+            if (player != null) {
+                player.teleport(location);
+            } else {
+                teleportManager.addPendingTeleport(playerUuid, location);
+            }
+            future.complete(null);
+        });
     }
 }

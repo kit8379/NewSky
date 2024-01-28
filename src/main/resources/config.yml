@@ -22,5 +22,9 @@ server:
   name: "server1" # Unique name for your server
   mode: "island" # lobby or island
 
+world:
+  template-world-name: "skyblock"
+  public-world-directory: "/path/to/your/server/worlds"
+
 debug: false # Enable debug mode
 

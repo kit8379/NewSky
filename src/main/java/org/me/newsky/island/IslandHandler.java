@@ -42,7 +42,6 @@ public class IslandHandler {
                 });
     }
 
-
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
         String islandName = "island-" + islandUuid.toString();
         return findServerByWorldName(islandName)
