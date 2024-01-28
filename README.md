@@ -28,8 +28,7 @@
 - 🛠️ Easy-to-use API for Developers
 
 #### Plugin Hooks
-- Multiverse-Core
-- VoidGen
+/
 
 ------------
 
