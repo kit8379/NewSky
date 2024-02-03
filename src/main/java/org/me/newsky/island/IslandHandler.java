@@ -3,6 +3,9 @@ package org.me.newsky.island;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.heartbeat.HeartBeatHandler;
+import org.me.newsky.island.post.IslandOperation;
+import org.me.newsky.island.post.IslandPublishRequest;
+import org.me.newsky.island.post.IslandSubscribeRequest;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.teleport.TeleportManager;
 import org.me.newsky.world.WorldHandler;
@@ -15,88 +18,41 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-public class IslandHandler {
+public abstract class IslandHandler {
 
-    private final NewSky plugin;
-    private final String serverID;
-    private final IslandOperation islandOperation;
-    private final IslandPublishRequest islandPublishRequest;
-    private final IslandSubscribeRequest islandSubscribeRequest;
+    protected NewSky plugin;
+    protected String serverID;
+    protected WorldHandler worldHandler;
+    protected RedisHandler redisHandler;
+    protected HeartBeatHandler heartBeatHandler;
+    protected TeleportManager teleportManager;
+    protected IslandOperation islandOperation;
+    protected IslandPublishRequest islandPublishRequest;
+    protected IslandSubscribeRequest islandSubscribeRequest;
 
     public IslandHandler(NewSky plugin, WorldHandler worldHandler, RedisHandler redisHandler, HeartBeatHandler heartBeatHandler, TeleportManager teleportManager, String serverID) {
         this.plugin = plugin;
         this.serverID = serverID;
+        this.worldHandler = worldHandler;
+        this.redisHandler = redisHandler;
+        this.heartBeatHandler = heartBeatHandler;
+        this.teleportManager = teleportManager;
         this.islandOperation = new IslandOperation(plugin, worldHandler, teleportManager);
         this.islandPublishRequest = new IslandPublishRequest(plugin, redisHandler, heartBeatHandler, serverID);
         this.islandSubscribeRequest = new IslandSubscribeRequest(plugin, redisHandler, islandOperation, serverID);
     }
 
-    public CompletableFuture<Void> createIsland(UUID islandUuid) {
-        String islandName = "island-" + islandUuid.toString();
-        return findServerWithLeastWorld().thenCompose(targetServer -> {
-            if (targetServer.equals(serverID)) {
-                return islandOperation.createWorld(islandName);
-            } else {
-                return islandPublishRequest.sendRequest(targetServer, "createIsland:" + islandName).thenApply(responses -> {
-                    return null;
-                });
-            }
-        });
-    }
+    public abstract CompletableFuture<Void> createIsland(UUID islandUuid);
 
-    public CompletableFuture<Void> loadIsland(UUID islandUuid) {
-        String islandName = "island-" + islandUuid.toString();
-        return findServerByWorldName(islandName).thenCompose(targetServer -> {
-            if (targetServer.equals(serverID)) {
-                return islandOperation.loadWorld(islandName);
-            } else {
-                return islandPublishRequest.sendRequest(targetServer, "loadIsland:" + islandName).thenApply(responses -> {
-                    return null;
-                });
-            }
-        });
-    }
+    public abstract CompletableFuture<Void> loadIsland(UUID islandUuid);
 
-    public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
-        String islandName = "island-" + islandUuid.toString();
-        return findServerByWorldName(islandName).thenCompose(targetServer -> {
-            if (targetServer.equals(serverID)) {
-                return islandOperation.unloadWorld(islandName);
-            } else {
-                return islandPublishRequest.sendRequest(targetServer, "unloadIsland:" + islandName).thenApply(responses -> {
-                    return null;
-                });
-            }
-        });
-    }
+    public abstract CompletableFuture<Void> unloadIsland(UUID islandUuid);
 
-    public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
-        String islandName = "island-" + islandUuid.toString();
-        return findServerByWorldName(islandName).thenCompose(targetServer -> {
-            if (targetServer.equals(serverID)) {
-                return islandOperation.deleteWorld(islandName);
-            } else {
-                return islandPublishRequest.sendRequest(targetServer, "deleteIsland:" + islandName).thenApply(responses -> {
-                    return null;
-                });
-            }
-        });
-    }
+    public abstract CompletableFuture<Void> deleteIsland(UUID islandUuid);
 
-    public CompletableFuture<Void> teleportToIsland(UUID islandUuid, Player player, String locationString) {
-        String islandName = "island-" + islandUuid.toString();
-        return findServerByWorldName(islandName).thenCompose(targetServer -> {
-            if (targetServer.equals(serverID)) {
-                return islandOperation.teleportToWorld(islandName, player.getUniqueId().toString(), locationString);
-            } else {
-                return islandPublishRequest.sendRequest(targetServer, "teleportToIsland:" + islandName + ":" + player.getUniqueId() + ":" + locationString).thenRun(() -> {
-                    connectToServer(player, targetServer);
-                });
-            }
-        });
-    }
+    public abstract CompletableFuture<Void> teleportToIsland(UUID islandUuid, Player player, String locationString);
 
-    private CompletableFuture<String> findServerByWorldName(String worldName) {
+    protected CompletableFuture<String> findServerByWorldName(String worldName) {
         return islandPublishRequest.sendRequest("all", "updateWorldList").thenApply(worldListResponses -> {
             for (Map.Entry<String, String> entry : worldListResponses.entrySet()) {
                 String serverId = entry.getKey();
@@ -111,7 +67,7 @@ public class IslandHandler {
         });
     }
 
-    private CompletableFuture<String> findServerWithLeastWorld() {
+    protected CompletableFuture<String> findServerWithLeastWorld() {
         return islandPublishRequest.sendRequest("all", "updateWorldList").thenApply(worldListResponses -> {
             return worldListResponses.entrySet().stream().min(Comparator.comparingInt(entry -> {
                 return entry.getValue().split(",").length;
@@ -121,16 +77,16 @@ public class IslandHandler {
         });
     }
 
-    public void connectToServer(Player player, String serverName) {
+    protected void connectToServer(Player player, String serverName) {
         ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
         DataOutputStream out = new DataOutputStream(byteArray);
         try {
             out.writeUTF("Connect");
             out.writeUTF(serverName);
+            player.sendPluginMessage(plugin, "BungeeCord", byteArray.toByteArray());
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            plugin.getLogger().severe("Could not send Connect request: " + e.getMessage());
         }
-        player.sendPluginMessage(plugin, "BungeeCord", byteArray.toByteArray());
     }
 
     public void subscribeToRequests() {

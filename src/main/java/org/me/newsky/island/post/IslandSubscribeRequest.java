@@ -1,4 +1,4 @@
-package org.me.newsky.island;
+package org.me.newsky.island.post;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.redis.RedisHandler;

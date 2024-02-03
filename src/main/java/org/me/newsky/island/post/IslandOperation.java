@@ -1,4 +1,4 @@
-package org.me.newsky.island;
+package org.me.newsky.island.post;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;

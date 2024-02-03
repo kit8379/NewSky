@@ -6,12 +6,17 @@ import org.me.newsky.command.admin.AdminCommandExecutor;
 import org.me.newsky.command.player.IslandCommandExecutor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
-import org.me.newsky.event.*;
+import org.me.newsky.event.IslandBoundaryListener;
+import org.me.newsky.event.IslandProtectionListener;
+import org.me.newsky.event.PlayerJoinEventListener;
+import org.me.newsky.event.WorldEventListener;
 import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.island.IslandHandler;
+import org.me.newsky.island.StaticIslandHandler;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.scheduler.WorldUnloadSchedule;
 import org.me.newsky.teleport.TeleportManager;
+import org.me.newsky.world.StaticWorldHandler;
 import org.me.newsky.world.WorldHandler;
 
 import java.util.Objects;
@@ -79,7 +84,7 @@ public class NewSky extends JavaPlugin {
     private void initializeWorldHandler() {
         info("Starting WorldHandler");
         try {
-            worldHandler = new WorldHandler(this);
+            worldHandler = new StaticWorldHandler(this);
             info("WorldHandler loaded");
         } catch (Exception e) {
             e.printStackTrace();
@@ -171,7 +176,7 @@ public class NewSky extends JavaPlugin {
     private void initializeIslandHandler() {
         info("Starting island handler");
         try {
-            islandHandler = new IslandHandler(this, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
+            islandHandler = new StaticIslandHandler(this, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
             islandHandler.subscribeToRequests();
             info("Islands loaded");
         } catch (Exception e) {
@@ -195,7 +200,6 @@ public class NewSky extends JavaPlugin {
     @Override
     public void onDisable() {
         info("Plugin disabling...");
-        worldHandler.unloadAllIslandWorldsOnShutdown();
         shutdown();
         info("Plugin disabled!");
     }
