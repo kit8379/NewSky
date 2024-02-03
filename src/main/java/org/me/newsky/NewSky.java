@@ -11,14 +11,17 @@ import org.me.newsky.event.IslandProtectionListener;
 import org.me.newsky.event.PlayerJoinEventListener;
 import org.me.newsky.event.WorldEventListener;
 import org.me.newsky.heartbeat.HeartBeatHandler;
+import org.me.newsky.island.DynamicIslandHandler;
 import org.me.newsky.island.IslandHandler;
 import org.me.newsky.island.StaticIslandHandler;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.scheduler.WorldUnloadSchedule;
 import org.me.newsky.teleport.TeleportManager;
+import org.me.newsky.world.DynamicWorldHandler;
 import org.me.newsky.world.StaticWorldHandler;
 import org.me.newsky.world.WorldHandler;
 
+import java.nio.file.Path;
 import java.util.Objects;
 
 public class NewSky extends JavaPlugin {
@@ -84,7 +87,15 @@ public class NewSky extends JavaPlugin {
     private void initializeWorldHandler() {
         info("Starting WorldHandler");
         try {
-            worldHandler = new StaticWorldHandler(this);
+            if (config.getWorldMode().equals("static")) {
+                info("Using static world mode.");
+                worldHandler = new StaticWorldHandler(this);
+            }
+
+            if (config.getWorldMode().equals("dynamic")) {
+                info("Using dynamic world mode. World storage path: " + config.getStoragePath() + " .");
+                worldHandler = new DynamicWorldHandler(this, Path.of(config.getStoragePath()));
+            }
             info("WorldHandler loaded");
         } catch (Exception e) {
             e.printStackTrace();
@@ -176,9 +187,16 @@ public class NewSky extends JavaPlugin {
     private void initializeIslandHandler() {
         info("Starting island handler");
         try {
-            islandHandler = new StaticIslandHandler(this, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
+            if (config.getWorldMode().equals("static")) {
+                islandHandler = new StaticIslandHandler(this, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
+            }
+
+            if (config.getWorldMode().equals("dynamic")) {
+                islandHandler = new DynamicIslandHandler(this, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
+            }
+
             islandHandler.subscribeToRequests();
-            info("Islands loaded");
+            info("Island handler loaded");
         } catch (Exception e) {
             e.printStackTrace();
             throw new IllegalStateException("Islands load fail! Plugin will be disabled!");

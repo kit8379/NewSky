@@ -81,11 +81,11 @@ public class ConfigHandler {
         return config.getBoolean("debug");
     }
 
-    public String getTemplateWorldName() {
-        return config.getString("world.template-world-name");
+    public String getWorldMode() {
+        return config.getString("world.mode");
     }
 
-    public String getPublicWorldDirectory() {
-        return config.getString("world.public-world-directory");
+    public String getStoragePath() {
+        return config.getString("world.storage-path");
     }
 }

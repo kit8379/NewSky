@@ -20,13 +20,47 @@ public abstract class WorldHandler {
         this.plugin = plugin;
     }
 
-    public abstract CompletableFuture<Void> createWorld(String worldName);
+    public CompletableFuture<Void> createWorld(String worldName) {
+        plugin.debug("Creating world: " + worldName);
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        CompletableFuture.runAsync(() -> {
+            try {
+                plugin.debug("Copying template for world: " + worldName);
+                copyTemplateWorld(worldName);
+                plugin.debug("Template copied for world: " + worldName);
+            } catch (IOException e) {
+                plugin.debug("Error copying template" + " for world: " + worldName + " - " + e.getMessage());
+                future.completeExceptionally(e);
+            }
+        }).thenCompose(aVoid -> loadWorldToBukkit(worldName)).thenRun(() -> future.complete(null)).exceptionally(e -> {
+            plugin.debug("Exception in creating world: " + worldName + " - " + e.getMessage());
+            future.completeExceptionally(e);
+            return null;
+        });
+        return future;
+    }
 
-    public abstract CompletableFuture<Void> loadWorld(String worldName);
-
-    public abstract CompletableFuture<Void> unloadWorld(String worldName);
-
-    public abstract CompletableFuture<Void> deleteWorld(String worldName);
+    public CompletableFuture<Void> deleteWorld(String worldName) {
+        plugin.debug("Deleting world: " + worldName);
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
+            try {
+                plugin.debug("Deleting directory for world: " + worldName);
+                Path worldDirectory = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
+                deleteDirectory(worldDirectory);
+                plugin.debug("Directory deleted for world: " + worldName);
+                future.complete(null);
+            } catch (IOException e) {
+                plugin.debug("Error deleting world: " + worldName + " - " + e.getMessage());
+                future.completeExceptionally(e);
+            }
+        }).exceptionally(e -> {
+            plugin.debug("Exception in deleting world: " + worldName + " - " + e.getMessage());
+            future.completeExceptionally(e);
+            return null;
+        });
+        return future;
+    }
 
     protected void copyTemplateWorld(String worldName) throws IOException {
         Path sourceDirectory = plugin.getDataFolder().toPath().resolve("template/skyblock");
@@ -73,7 +107,7 @@ public abstract class WorldHandler {
     }
 
     protected void deleteDirectory(Path path) throws IOException {
-        Files.walkFileTree(path, new SimpleFileVisitor<Path>() {
+        Files.walkFileTree(path, new SimpleFileVisitor<>() {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                 Files.delete(file);
@@ -96,7 +130,7 @@ public abstract class WorldHandler {
     }
 
     protected void copyDirectory(Path source, Path target) throws IOException {
-        Files.walkFileTree(source, new SimpleFileVisitor<Path>() {
+        Files.walkFileTree(source, new SimpleFileVisitor<>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
                 Files.createDirectories(target.resolve(source.relativize(dir)));
@@ -110,4 +144,8 @@ public abstract class WorldHandler {
             }
         });
     }
+
+    public abstract CompletableFuture<Void> loadWorld(String worldName);
+
+    public abstract CompletableFuture<Void> unloadWorld(String worldName);
 }

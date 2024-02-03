@@ -23,8 +23,8 @@ server:
   mode: "island" # lobby or island
 
 world:
-  template-world-name: "skyblock"
-  public-world-directory: "/path/to/your/server/worlds"
+  mode: "island" # static or dynamic
+  storage-path: "/home/your_user/skyblock/worlds" # Path to store world files
 
 debug: false # Enable debug mode
 

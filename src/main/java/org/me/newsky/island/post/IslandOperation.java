@@ -61,9 +61,10 @@ public class IslandOperation {
         double z = Double.parseDouble(parts[2]);
         float yaw = Float.parseFloat(parts[3]);
         float pitch = Float.parseFloat(parts[4]);
-        Location location = new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch);
 
-        Runnable teleportLogic = () -> {
+        // Schedule teleportation on the main thread
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            Location location = new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch);
             Player player = Bukkit.getPlayer(playerUuid);
             if (player != null) {
                 player.teleport(location);
@@ -71,15 +72,7 @@ public class IslandOperation {
                 teleportManager.addPendingTeleport(playerUuid, location);
             }
             future.complete(null);
-        };
-
-        // Check if the world is loaded
-        if (Bukkit.getWorld(worldName) == null) {
-            plugin.debug("World " + worldName + " not loaded, loading now.");
-            worldHandler.loadWorld(worldName).thenRun(teleportLogic);
-        } else {
-            teleportLogic.run();
-        }
+        });
 
         return future;
     }

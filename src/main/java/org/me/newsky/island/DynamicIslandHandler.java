@@ -17,32 +17,30 @@ public class DynamicIslandHandler extends IslandHandler {
     }
 
     @Override
-    public CompletableFuture<Void> createIsland(UUID islandUuid) {
-        // TODO: Implement createIsland for dynamic mode
-        return null;
-    }
-
-    @Override
-    public CompletableFuture<Void> loadIsland(UUID islandUuid) {
-        // TODO: Implement loadIsland for dynamic mode
-        return null;
-    }
-
-    @Override
-    public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
-        // TODO: Implement unloadIsland for dynamic mode
-        return null;
-    }
-
-    @Override
-    public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
-        // TODO: Implement deleteIsland for dynamic mode
-        return null;
-    }
-
-    @Override
     public CompletableFuture<Void> teleportToIsland(UUID islandUuid, Player player, String locationString) {
-        // TODO: Implement teleportToIsland for dynamic mode
-        return null;
+        String islandName = "island-" + islandUuid.toString();
+        return findServerByWorldName(islandName).thenCompose(optionalServerId -> {
+            if (optionalServerId.isPresent()) {
+                String targetServer = optionalServerId.get();
+                return proceedWithTeleportation(islandName, player, locationString, targetServer);
+            } else {
+                return findServerWithLeastWorld().thenCompose(optionalLeastServerId -> {
+                    if (optionalLeastServerId.isPresent()) {
+                        String targetServer = optionalLeastServerId.get();
+                        return proceedWithTeleportation(islandName, player, locationString, targetServer);
+                    } else {
+                        return CompletableFuture.failedFuture(new IllegalStateException("No active servers available for teleportation"));
+                    }
+                });
+            }
+        });
+    }
+
+    private CompletableFuture<Void> proceedWithTeleportation(String islandName, Player player, String locationString, String targetServer) {
+        if (targetServer.equals(serverID)) {
+            return islandOperation.teleportToWorld(islandName, player.getUniqueId().toString(), locationString);
+        } else {
+            return islandPublishRequest.sendRequest(targetServer, "teleportToIsland:" + islandName + ":" + player.getUniqueId() + ":" + locationString).thenRun(() -> connectToServer(player, targetServer));
+        }
     }
 }
