@@ -7,6 +7,7 @@ depend:
   - VoidGen
   - Multiverse-Core
 libraries:
+  - 'com.mysql:mysql-connector-j:8.3.0'
   - 'redis.clients:jedis:5.1.0'
   - 'com.zaxxer:HikariCP:5.0.1'
 commands:
