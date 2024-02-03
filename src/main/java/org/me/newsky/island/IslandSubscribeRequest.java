@@ -69,6 +69,18 @@ public class IslandSubscribeRequest {
                     return "Created";
                 });
 
+            case "loadIsland":
+                String worldNameForLoad = parts[4];
+                return islandOperation.loadWorld(worldNameForLoad).thenApply(v -> {
+                    return "Loaded";
+                });
+
+            case "unloadIsland":
+                String worldNameForUnload = parts[4];
+                return islandOperation.unloadWorld(worldNameForUnload).thenApply(v -> {
+                    return "Unloaded";
+                });
+
             case "deleteIsland":
                 String worldNameForDelete = parts[4];
                 return islandOperation.deleteWorld(worldNameForDelete).thenApply(v -> {

@@ -9,6 +9,7 @@ import org.me.newsky.world.WorldHandler;
 
 import java.io.File;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -29,19 +30,20 @@ public class IslandOperation {
         return CompletableFuture.supplyAsync(() -> {
             File worldContainer = plugin.getServer().getWorldContainer();
             File[] files = worldContainer.listFiles();
-            if (files == null) {
-                return "";
-            }
-            return Arrays.stream(files)
-                    .filter(File::isDirectory)
-                    .map(File::getName)
-                    .filter(name -> name.startsWith("island-"))
-                    .collect(Collectors.joining(","));
+            return Optional.ofNullable(files).stream().flatMap(Arrays::stream).filter(File::isDirectory).map(File::getName).filter(name -> name.startsWith("island-")).collect(Collectors.joining(","));
         });
     }
 
     public CompletableFuture<Void> createWorld(String worldName) {
         return worldHandler.createWorld(worldName);
+    }
+
+    public CompletableFuture<Void> loadWorld(String worldName) {
+        return worldHandler.loadWorld(worldName);
+    }
+
+    public CompletableFuture<Void> unloadWorld(String worldName) {
+        return worldHandler.unloadWorld(worldName);
     }
 
     public CompletableFuture<Void> deleteWorld(String worldName) {
@@ -59,21 +61,9 @@ public class IslandOperation {
         double z = Double.parseDouble(parts[2]);
         float yaw = Float.parseFloat(parts[3]);
         float pitch = Float.parseFloat(parts[4]);
+        Location location = new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch);
 
-        if (Bukkit.getWorld(worldName) == null) {
-            plugin.debug("World " + worldName + " not loaded, loading now.");
-            worldHandler.loadWorld(worldName)
-                    .thenRun(() -> teleportPlayer(future, playerUuid, new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch)));
-        } else {
-            teleportPlayer(future, playerUuid, new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch));
-        }
-
-        return future;
-    }
-
-
-    private void teleportPlayer(CompletableFuture<Void> future, UUID playerUuid, Location location) {
-        Bukkit.getScheduler().runTask(plugin, () -> {
+        Runnable teleportLogic = () -> {
             Player player = Bukkit.getPlayer(playerUuid);
             if (player != null) {
                 player.teleport(location);
@@ -81,6 +71,16 @@ public class IslandOperation {
                 teleportManager.addPendingTeleport(playerUuid, location);
             }
             future.complete(null);
-        });
+        };
+
+        // Check if the world is loaded
+        if (Bukkit.getWorld(worldName) == null) {
+            plugin.debug("World " + worldName + " not loaded, loading now.");
+            worldHandler.loadWorld(worldName).thenRun(teleportLogic);
+        } else {
+            teleportLogic.run();
+        }
+
+        return future;
     }
 }

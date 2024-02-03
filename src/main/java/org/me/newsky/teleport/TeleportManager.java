@@ -20,12 +20,12 @@ public class TeleportManager {
         plugin.debug("Added pending teleport for " + playerId);
     }
 
-    public Location getPendingTeleport(UUID playerId) {
-        return pendingTeleports.get(playerId);
-    }
-
     public void removePendingTeleport(UUID playerId) {
         pendingTeleports.remove(playerId);
         plugin.debug("Removed pending teleport for " + playerId);
+    }
+
+    public Location getPendingTeleport(UUID playerId) {
+        return pendingTeleports.get(playerId);
     }
 }

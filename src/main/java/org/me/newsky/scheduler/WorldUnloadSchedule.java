@@ -9,7 +9,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public class WorldUnloadHandler {
+public class WorldUnloadSchedule {
 
     private static final long MAX_INACTIVE_TIME = TimeUnit.MINUTES.toMillis(10);
     private final NewSky plugin;
@@ -17,7 +17,7 @@ public class WorldUnloadHandler {
     private final Map<String, Long> inactiveWorlds = new HashMap<>();
     private BukkitTask unloadTask;
 
-    public WorldUnloadHandler(NewSky plugin, WorldHandler worldHandler) {
+    public WorldUnloadSchedule(NewSky plugin, WorldHandler worldHandler) {
         this.plugin = plugin;
         this.worldHandler = worldHandler;
     }

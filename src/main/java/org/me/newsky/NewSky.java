@@ -10,7 +10,7 @@ import org.me.newsky.event.*;
 import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.island.IslandHandler;
 import org.me.newsky.redis.RedisHandler;
-import org.me.newsky.scheduler.WorldUnloadHandler;
+import org.me.newsky.scheduler.WorldUnloadSchedule;
 import org.me.newsky.teleport.TeleportManager;
 import org.me.newsky.world.WorldHandler;
 
@@ -26,7 +26,7 @@ public class NewSky extends JavaPlugin {
     private CacheHandler cacheHandler;
     private TeleportManager teleportManager;
     private HeartBeatHandler heartBeatHandler;
-    private WorldUnloadHandler worldUnloadHandler;
+    private WorldUnloadSchedule worldUnloadSchedule;
     private IslandHandler islandHandler;
 
     @Override
@@ -45,7 +45,7 @@ public class NewSky extends JavaPlugin {
         initializeCache();
         initializeTeleportManager();
         initalizeheartBeatHandler();
-        initalizeWorldUnloadHandler();
+        initalizeWorldUnloadSchedule();
         initalizePluginMessaging();
         initializeIslandHandler();
         registerListeners();
@@ -145,15 +145,15 @@ public class NewSky extends JavaPlugin {
         }
     }
 
-    private void initalizeWorldUnloadHandler() {
+    private void initalizeWorldUnloadSchedule() {
         info("Starting world unload handler");
         try {
-            worldUnloadHandler = new WorldUnloadHandler(this, worldHandler);
-            worldUnloadHandler.startWorldUnloadTask();
+            worldUnloadSchedule = new WorldUnloadSchedule(this, worldHandler);
+            worldUnloadSchedule.startWorldUnloadTask();
             info("World unload handler loaded");
         } catch (Exception e) {
             e.printStackTrace();
-            throw new IllegalStateException("World unload handler load fail! Plugin will be disabled!");
+            throw new IllegalStateException("World unload schedule load fail! Plugin will be disabled!");
         }
     }
 
@@ -195,6 +195,7 @@ public class NewSky extends JavaPlugin {
     @Override
     public void onDisable() {
         info("Plugin disabling...");
+        worldHandler.unloadAllIslandWorldsOnShutdown();
         shutdown();
         info("Plugin disabled!");
     }
@@ -202,7 +203,7 @@ public class NewSky extends JavaPlugin {
     public void shutdown() {
         islandHandler.unsubscribeFromRequests();
         heartBeatHandler.stopHeartBeat();
-        worldUnloadHandler.stopWorldUnloadTask();
+        worldUnloadSchedule.stopWorldUnloadTask();
         redisHandler.disconnect();
         databaseHandler.close();
     }

@@ -29,6 +29,8 @@ public class AdminCommandExecutor implements CommandExecutor, TabCompleter {
     private final AdminSetWarpCommand setWarpCommand;
     private final AdminDelWarpCommand delWarpCommand;
     private final AdminLockCommand lockCommand;
+    private final AdminLoadCommand loadCommand;
+    private final AdminUnloadCommand unloadCommand;
     private final AdminReloadCommand reloadCommand;
     private final List<String> subCommands = Arrays.asList("addmember", "removemember", "create", "delete", "home", "sethome", "delhome", "warp", "setwarp", "delwarp", "info", "lock", "reload");
 
@@ -45,8 +47,10 @@ public class AdminCommandExecutor implements CommandExecutor, TabCompleter {
         this.setWarpCommand = new AdminSetWarpCommand(config, cacheHandler);
         this.delWarpCommand = new AdminDelWarpCommand(config, cacheHandler);
         this.infoCommand = new AdminInfoCommand(config, cacheHandler);
-        this.reloadCommand = new AdminReloadCommand(plugin, config);
         this.lockCommand = new AdminLockCommand(config, cacheHandler);
+        this.reloadCommand = new AdminReloadCommand(plugin, config);
+        this.loadCommand = new AdminLoadCommand(config, cacheHandler, islandHandler);
+        this.unloadCommand = new AdminUnloadCommand(config, cacheHandler, islandHandler);
     }
 
     @Override
@@ -90,6 +94,12 @@ public class AdminCommandExecutor implements CommandExecutor, TabCompleter {
                 return delWarpCommand.execute(sender, args);
             case "info":
                 return infoCommand.execute(sender, args);
+            case "lock":
+                return lockCommand.execute(sender, args);
+            case "load":
+                return loadCommand.execute(sender, args);
+            case "unload":
+                return unloadCommand.execute(sender, args);
             case "reload":
                 return reloadCommand.execute(sender, args);
             default:
