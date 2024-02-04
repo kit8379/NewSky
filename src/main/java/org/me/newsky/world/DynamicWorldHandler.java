@@ -20,8 +20,14 @@ public class DynamicWorldHandler extends WorldHandler {
     @Override
     public CompletableFuture<Void> loadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-        Path worldPath = storagePath.resolve(worldName);
 
+        if (isWorldLoaded(worldName)) {
+            plugin.debug("World " + worldName + " is already loaded.");
+            future.complete(null);
+            return future;
+        }
+
+        Path worldPath = storagePath.resolve(worldName);
         if (Files.exists(worldPath)) {
             try {
                 moveDirectory(worldPath, plugin.getServer().getWorldContainer().toPath().resolve(worldName));
@@ -32,12 +38,19 @@ public class DynamicWorldHandler extends WorldHandler {
                 return future;
             }
         }
+
         return loadWorldToBukkit(worldName);
     }
 
     @Override
     public CompletableFuture<Void> unloadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
+
+        if (!isWorldLoaded(worldName)) {
+            plugin.debug("World " + worldName + " is not loaded or does not exist.");
+            future.complete(null);
+            return future;
+        }
 
         unloadWorldFromBukkit(worldName).thenRun(() -> {
             Path worldPath = plugin.getServer().getWorldContainer().toPath().resolve(worldName);

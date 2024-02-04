@@ -145,6 +145,10 @@ public abstract class WorldHandler {
         });
     }
 
+    protected boolean isWorldLoaded(String worldName) {
+        return Bukkit.getWorld(worldName) != null;
+    }
+
     public abstract CompletableFuture<Void> loadWorld(String worldName);
 
     public abstract CompletableFuture<Void> unloadWorld(String worldName);

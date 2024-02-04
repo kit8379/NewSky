@@ -53,25 +53,29 @@ public class IslandOperation {
     public CompletableFuture<Void> teleportToWorld(String worldName, String playerName, String locationString) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        // Parse location components
-        UUID playerUuid = UUID.fromString(playerName);
-        String[] parts = locationString.split(",");
-        double x = Double.parseDouble(parts[0]);
-        double y = Double.parseDouble(parts[1]);
-        double z = Double.parseDouble(parts[2]);
-        float yaw = Float.parseFloat(parts[3]);
-        float pitch = Float.parseFloat(parts[4]);
+        worldHandler.loadWorld(worldName).thenAccept(aVoid -> {
+            UUID playerUuid = UUID.fromString(playerName);
+            String[] parts = locationString.split(",");
+            double x = Double.parseDouble(parts[0]);
+            double y = Double.parseDouble(parts[1]);
+            double z = Double.parseDouble(parts[2]);
+            float yaw = Float.parseFloat(parts[3]);
+            float pitch = Float.parseFloat(parts[4]);
 
-        // Schedule teleportation on the main thread
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            Location location = new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch);
-            Player player = Bukkit.getPlayer(playerUuid);
-            if (player != null) {
-                player.teleport(location);
-            } else {
-                teleportManager.addPendingTeleport(playerUuid, location);
-            }
-            future.complete(null);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                Location location = new Location(Bukkit.getWorld(worldName), x, y, z, yaw, pitch);
+                Player player = Bukkit.getPlayer(playerUuid);
+                if (player != null) {
+                    player.teleport(location);
+                    future.complete(null);
+                } else {
+                    teleportManager.addPendingTeleport(playerUuid, location);
+                    future.complete(null);
+                }
+            });
+        }).exceptionally(e -> {
+            future.completeExceptionally(e);
+            return null;
         });
 
         return future;

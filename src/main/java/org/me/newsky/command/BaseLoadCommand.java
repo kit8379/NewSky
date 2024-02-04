@@ -40,8 +40,8 @@ public abstract class BaseLoadCommand {
         UUID islandUuid = islandUuidOpt.get();
 
         // Run the island load future
-        CompletableFuture<Void> deleteIslandFuture = islandHandler.loadIsland(islandUuid);
-        handleIslandLoadFuture(deleteIslandFuture, sender, args);
+        CompletableFuture<Void> loadIslandFuture = islandHandler.loadIsland(islandUuid);
+        handleIslandLoadFuture(loadIslandFuture, sender, args);
 
         return true;
     }

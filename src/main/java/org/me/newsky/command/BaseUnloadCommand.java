@@ -40,8 +40,8 @@ public abstract class BaseUnloadCommand {
         UUID islandUuid = islandUuidOpt.get();
 
         // Run the island unload future
-        CompletableFuture<Void> deleteIslandFuture = islandHandler.unloadIsland(islandUuid);
-        handleIslandUnloadFuture(deleteIslandFuture, sender, args);
+        CompletableFuture<Void> unloadIslandFuture = islandHandler.unloadIsland(islandUuid);
+        handleIslandUnloadFuture(unloadIslandFuture, sender, args);
 
         return true;
     }

@@ -17,6 +17,30 @@ public class DynamicIslandHandler extends IslandHandler {
     }
 
     @Override
+    public CompletableFuture<Void> loadIsland(UUID islandUuid) {
+        String islandName = "island-" + islandUuid.toString();
+        return findServerByWorldName(islandName).thenCompose(optionalServerId -> {
+            if (optionalServerId.isPresent()) {
+                String targetServer = optionalServerId.get();
+                if (targetServer.equals(serverID)) {
+                    return islandOperation.loadWorld(islandName);
+                } else {
+                    return islandPublishRequest.sendRequest(targetServer, "loadIsland:" + islandName).thenApply(responses -> null);
+                }
+            } else {
+                return findServerWithLeastWorld().thenCompose(optionalLeastServerId -> {
+                    if (optionalLeastServerId.isPresent()) {
+                        String leastLoadedServer = optionalLeastServerId.get();
+                        return islandPublishRequest.sendRequest(leastLoadedServer, "loadIsland:" + islandName).thenApply(responses -> null);
+                    } else {
+                        return CompletableFuture.failedFuture(new IllegalStateException("No active servers available for loading the island"));
+                    }
+                });
+            }
+        });
+    }
+
+    @Override
     public CompletableFuture<Void> teleportToIsland(UUID islandUuid, Player player, String locationString) {
         String islandName = "island-" + islandUuid.toString();
         return findServerByWorldName(islandName).thenCompose(optionalServerId -> {

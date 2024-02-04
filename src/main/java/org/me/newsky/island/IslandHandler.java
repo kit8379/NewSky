@@ -59,22 +59,6 @@ public abstract class IslandHandler {
         });
     }
 
-    public CompletableFuture<Void> loadIsland(UUID islandUuid) {
-        String islandName = "island-" + islandUuid.toString();
-        return findServerByWorldName(islandName).thenCompose(optionalServerId -> {
-            if (optionalServerId.isPresent()) {
-                String targetServer = optionalServerId.get();
-                if (targetServer.equals(serverID)) {
-                    return islandOperation.loadWorld(islandName);
-                } else {
-                    return islandPublishRequest.sendRequest(targetServer, "loadIsland:" + islandName).thenApply(responses -> null);
-                }
-            } else {
-                return CompletableFuture.failedFuture(new IllegalStateException("Island world not found on any server"));
-            }
-        });
-    }
-
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
         String islandName = "island-" + islandUuid.toString();
         return findServerByWorldName(islandName).thenCompose(optionalServerId -> {
@@ -106,7 +90,6 @@ public abstract class IslandHandler {
             }
         });
     }
-
 
     protected CompletableFuture<Optional<String>> findServerByWorldName(String worldName) {
         return islandPublishRequest.sendRequest("all", "updateWorldList").thenApply(worldListResponses -> {
@@ -152,6 +135,7 @@ public abstract class IslandHandler {
         islandSubscribeRequest.unsubscribeFromRequests();
     }
 
+    public abstract CompletableFuture<Void> loadIsland(UUID islandUuid);
     public abstract CompletableFuture<Void> teleportToIsland(UUID islandUuid, Player player, String locationString);
 
 }

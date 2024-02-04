@@ -23,7 +23,7 @@ server:
   mode: "island" # lobby or island
 
 world:
-  mode: "island" # static or dynamic
+  mode: "dynamic" # static or dynamic
   storage-path: "/home/your_user/skyblock/worlds" # Path to store world files
 
 debug: false # Enable debug mode
