@@ -3,11 +3,9 @@ package org.me.newsky.world;
 import org.me.newsky.NewSky;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Stream;
 
 public class DynamicWorldHandler extends WorldHandler {
     private final Path storagePath;
@@ -28,6 +26,7 @@ public class DynamicWorldHandler extends WorldHandler {
         }
 
         Path worldPath = storagePath.resolve(worldName);
+        
         if (Files.exists(worldPath)) {
             try {
                 moveDirectory(worldPath, plugin.getServer().getWorldContainer().toPath().resolve(worldName));
@@ -70,15 +69,19 @@ public class DynamicWorldHandler extends WorldHandler {
     }
 
     private void moveDirectory(Path source, Path target) throws IOException {
-        try (Stream<Path> paths = Files.walk(source)) {
-            paths.forEach(sourcePath -> {
-                Path targetPath = target.resolve(source.relativize(sourcePath));
-                try {
-                    Files.move(sourcePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
-                } catch (IOException e) {
-                    throw new RuntimeException("Error moving file from " + sourcePath + " to " + targetPath, e);
-                }
-            });
-        }
+        Files.walkFileTree(source, new SimpleFileVisitor<>() {
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                Path targetDir = target.resolve(source.relativize(dir));
+                Files.createDirectories(targetDir);
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                Files.move(file, target.resolve(source.relativize(file)), StandardCopyOption.REPLACE_EXISTING);
+                return FileVisitResult.CONTINUE;
+            }
+        });
     }
 }

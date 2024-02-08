@@ -23,6 +23,7 @@ public abstract class WorldHandler {
     public CompletableFuture<Void> createWorld(String worldName) {
         plugin.debug("Creating world: " + worldName);
         CompletableFuture<Void> future = new CompletableFuture<>();
+
         CompletableFuture.runAsync(() -> {
             try {
                 plugin.debug("Copying template for world: " + worldName);
@@ -37,12 +38,14 @@ public abstract class WorldHandler {
             future.completeExceptionally(e);
             return null;
         });
+
         return future;
     }
 
     public CompletableFuture<Void> deleteWorld(String worldName) {
         plugin.debug("Deleting world: " + worldName);
         CompletableFuture<Void> future = new CompletableFuture<>();
+
         unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
             try {
                 plugin.debug("Deleting directory for world: " + worldName);
@@ -59,6 +62,7 @@ public abstract class WorldHandler {
             future.completeExceptionally(e);
             return null;
         });
+
         return future;
     }
 
@@ -70,6 +74,7 @@ public abstract class WorldHandler {
 
     protected CompletableFuture<Void> loadWorldToBukkit(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
+
         Bukkit.getScheduler().runTask(plugin, () -> {
             World world = Bukkit.getWorld(worldName);
             if (world == null) {
@@ -82,11 +87,13 @@ public abstract class WorldHandler {
                 future.completeExceptionally(new IllegalStateException("World already loaded: " + worldName));
             }
         });
+
         return future;
     }
 
     protected CompletableFuture<Void> unloadWorldFromBukkit(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
+
         Bukkit.getScheduler().runTask(plugin, () -> {
             World world = Bukkit.getWorld(worldName);
             if (world != null) {
@@ -103,6 +110,7 @@ public abstract class WorldHandler {
                 future.completeExceptionally(new IllegalStateException("World not found: " + worldName));
             }
         });
+
         return future;
     }
 
