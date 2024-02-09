@@ -75,6 +75,12 @@ public abstract class WorldHandler {
     protected CompletableFuture<Void> loadWorldToBukkit(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
+        if (isWorldLoaded(worldName)) {
+            plugin.debug("World already loaded in Bukkit: " + worldName);
+            future.complete(null);
+            return future;
+        }
+
         Bukkit.getScheduler().runTask(plugin, () -> {
             World world = Bukkit.getWorld(worldName);
             if (world == null) {
@@ -93,6 +99,12 @@ public abstract class WorldHandler {
 
     protected CompletableFuture<Void> unloadWorldFromBukkit(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
+
+        if (!isWorldLoaded(worldName)) {
+            plugin.debug("World not loaded in Bukkit: " + worldName);
+            future.complete(null);
+            return future;
+        }
 
         Bukkit.getScheduler().runTask(plugin, () -> {
             World world = Bukkit.getWorld(worldName);

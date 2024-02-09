@@ -14,16 +14,15 @@ public class StaticWorldHandler extends WorldHandler {
     public CompletableFuture<Void> loadWorld(String worldName) {
         plugin.debug("Attempting to load world: " + worldName);
         CompletableFuture<Void> future = new CompletableFuture<>();
-        if (isWorldLoaded(worldName)) {
-            plugin.debug("World " + worldName + " is already loaded.");
+
+        loadWorldToBukkit(worldName).thenRun(() -> {
             future.complete(null);
-        } else {
-            loadWorldToBukkit(worldName).thenRun(() -> future.complete(null)).exceptionally(e -> {
-                plugin.debug("Exception loading world: " + worldName + " - " + e.getMessage());
-                future.completeExceptionally(e);
-                return null;
-            });
-        }
+        }).exceptionally(e -> {
+            plugin.debug("Exception loading world: " + worldName + " - " + e.getMessage());
+            future.completeExceptionally(e);
+            return null;
+        });
+
         return future;
     }
 
@@ -31,16 +30,15 @@ public class StaticWorldHandler extends WorldHandler {
     public CompletableFuture<Void> unloadWorld(String worldName) {
         plugin.debug("Attempting to unload world: " + worldName);
         CompletableFuture<Void> future = new CompletableFuture<>();
-        if (!isWorldLoaded(worldName)) {
-            plugin.debug("World " + worldName + " is not loaded.");
+
+        unloadWorldFromBukkit(worldName).thenRun(() -> {
             future.complete(null);
-        } else {
-            unloadWorldFromBukkit(worldName).thenRun(() -> future.complete(null)).exceptionally(e -> {
-                plugin.debug("Exception unloading world: " + worldName + " - " + e.getMessage());
-                future.completeExceptionally(e);
-                return null;
-            });
-        }
+        }).exceptionally(e -> {
+            plugin.debug("Exception unloading world: " + worldName + " - " + e.getMessage());
+            future.completeExceptionally(e);
+            return null;
+        });
+
         return future;
     }
 }

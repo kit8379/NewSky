@@ -19,14 +19,8 @@ public class DynamicWorldHandler extends WorldHandler {
     public CompletableFuture<Void> loadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        if (isWorldLoaded(worldName)) {
-            plugin.debug("World " + worldName + " is already loaded.");
-            future.complete(null);
-            return future;
-        }
-
         Path worldPath = storagePath.resolve(worldName);
-        
+
         if (Files.exists(worldPath)) {
             try {
                 moveDirectory(worldPath, plugin.getServer().getWorldContainer().toPath().resolve(worldName));
@@ -44,12 +38,6 @@ public class DynamicWorldHandler extends WorldHandler {
     @Override
     public CompletableFuture<Void> unloadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-
-        if (!isWorldLoaded(worldName)) {
-            plugin.debug("World " + worldName + " is not loaded or does not exist.");
-            future.complete(null);
-            return future;
-        }
 
         unloadWorldFromBukkit(worldName).thenRun(() -> {
             Path worldPath = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
@@ -69,7 +57,7 @@ public class DynamicWorldHandler extends WorldHandler {
     }
 
     private void moveDirectory(Path source, Path target) throws IOException {
-        Files.walkFileTree(source, new SimpleFileVisitor<>() {
+        Files.walkFileTree(source, new SimpleFileVisitor<Path>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
                 Path targetDir = target.resolve(source.relativize(dir));
@@ -81,6 +69,16 @@ public class DynamicWorldHandler extends WorldHandler {
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                 Files.move(file, target.resolve(source.relativize(file)), StandardCopyOption.REPLACE_EXISTING);
                 return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                if (exc == null) {
+                    Files.delete(dir);
+                    return FileVisitResult.CONTINUE;
+                } else {
+                    throw exc;
+                }
             }
         });
     }

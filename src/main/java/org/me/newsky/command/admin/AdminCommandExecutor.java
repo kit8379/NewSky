@@ -32,7 +32,7 @@ public class AdminCommandExecutor implements CommandExecutor, TabCompleter {
     private final AdminLoadCommand loadCommand;
     private final AdminUnloadCommand unloadCommand;
     private final AdminReloadCommand reloadCommand;
-    private final List<String> subCommands = Arrays.asList("addmember", "removemember", "create", "delete", "home", "sethome", "delhome", "warp", "setwarp", "delwarp", "info", "lock", "reload");
+    private final List<String> subCommands = Arrays.asList("addmember", "removemember", "create", "delete", "home", "sethome", "delhome", "warp", "setwarp", "delwarp", "info", "lock", "load", "unload", "reload");
 
     public AdminCommandExecutor(NewSky plugin, ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
         this.config = config;
