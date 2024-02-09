@@ -57,7 +57,7 @@ public class DynamicWorldHandler extends WorldHandler {
     }
 
     private void moveDirectory(Path source, Path target) throws IOException {
-        Files.walkFileTree(source, new SimpleFileVisitor<Path>() {
+        Files.walkFileTree(source, new SimpleFileVisitor<>() {
             @Override
             public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
                 Path targetDir = target.resolve(source.relativize(dir));
