@@ -24,9 +24,7 @@ public class DynamicWorldHandler extends WorldHandler {
         if (Files.exists(worldPath)) {
             try {
                 moveDirectory(worldPath, plugin.getServer().getWorldContainer().toPath().resolve(worldName));
-                plugin.debug("Moved world " + worldName + " from storage to server.");
             } catch (IOException e) {
-                plugin.debug("Failed to move world " + worldName + " from storage to server: " + e.getMessage());
                 future.completeExceptionally(e);
                 return future;
             }
@@ -45,10 +43,8 @@ public class DynamicWorldHandler extends WorldHandler {
 
             try {
                 moveDirectory(worldPath, targetPath);
-                plugin.debug("Moved world " + worldName + " from server to storage.");
                 future.complete(null);
             } catch (IOException e) {
-                plugin.debug("Failed to move world " + worldName + " from server to storage: " + e.getMessage());
                 future.completeExceptionally(e);
             }
         });

@@ -21,20 +21,15 @@ public abstract class WorldHandler {
     }
 
     public CompletableFuture<Void> createWorld(String worldName) {
-        plugin.debug("Creating world: " + worldName);
         CompletableFuture<Void> future = new CompletableFuture<>();
 
         CompletableFuture.runAsync(() -> {
             try {
-                plugin.debug("Copying template for world: " + worldName);
                 copyTemplateWorld(worldName);
-                plugin.debug("Template copied for world: " + worldName);
             } catch (IOException e) {
-                plugin.debug("Error copying template" + " for world: " + worldName + " - " + e.getMessage());
                 future.completeExceptionally(e);
             }
         }).thenCompose(aVoid -> loadWorldToBukkit(worldName)).thenRun(() -> future.complete(null)).exceptionally(e -> {
-            plugin.debug("Exception in creating world: " + worldName + " - " + e.getMessage());
             future.completeExceptionally(e);
             return null;
         });
@@ -43,22 +38,17 @@ public abstract class WorldHandler {
     }
 
     public CompletableFuture<Void> deleteWorld(String worldName) {
-        plugin.debug("Deleting world: " + worldName);
         CompletableFuture<Void> future = new CompletableFuture<>();
 
         unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
             try {
-                plugin.debug("Deleting directory for world: " + worldName);
                 Path worldDirectory = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
                 deleteDirectory(worldDirectory);
-                plugin.debug("Directory deleted for world: " + worldName);
                 future.complete(null);
             } catch (IOException e) {
-                plugin.debug("Error deleting world: " + worldName + " - " + e.getMessage());
                 future.completeExceptionally(e);
             }
         }).exceptionally(e -> {
-            plugin.debug("Exception in deleting world: " + worldName + " - " + e.getMessage());
             future.completeExceptionally(e);
             return null;
         });
@@ -76,7 +66,6 @@ public abstract class WorldHandler {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
         if (isWorldLoaded(worldName)) {
-            plugin.debug("World already loaded in Bukkit: " + worldName);
             future.complete(null);
             return future;
         }
@@ -86,10 +75,8 @@ public abstract class WorldHandler {
             if (world == null) {
                 WorldCreator worldCreator = new WorldCreator(worldName).generator(new VoidGenerator());
                 Bukkit.createWorld(worldCreator);
-                plugin.debug("World created in Bukkit: " + worldName);
                 future.complete(null);
             } else {
-                plugin.debug("World already loaded in Bukkit: " + worldName);
                 future.completeExceptionally(new IllegalStateException("World already loaded: " + worldName));
             }
         });
@@ -101,7 +88,6 @@ public abstract class WorldHandler {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
         if (!isWorldLoaded(worldName)) {
-            plugin.debug("World not loaded in Bukkit: " + worldName);
             future.complete(null);
             return future;
         }
@@ -111,14 +97,11 @@ public abstract class WorldHandler {
             if (world != null) {
                 removePlayersFromWorld(world);
                 if (Bukkit.unloadWorld(world, true)) {
-                    plugin.debug("World unloaded in Bukkit: " + worldName);
                     future.complete(null);
                 } else {
-                    plugin.debug("Failed to unload world in Bukkit: " + worldName);
                     future.completeExceptionally(new IllegalStateException("Failed to unload world: " + worldName));
                 }
             } else {
-                plugin.debug("World not found for unloading in Bukkit: " + worldName);
                 future.completeExceptionally(new IllegalStateException("World not found: " + worldName));
             }
         });
