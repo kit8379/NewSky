@@ -60,11 +60,5 @@ public class DynamicIslandHandler extends IslandHandler {
         });
     }
 
-    private CompletableFuture<Void> proceedWithTeleportation(String islandName, Player player, String locationString, String targetServer) {
-        if (targetServer.equals(serverID)) {
-            return islandOperation.teleportToWorld(islandName, player.getUniqueId().toString(), locationString);
-        } else {
-            return islandPublishRequest.sendRequest(targetServer, "teleportToIsland:" + islandName + ":" + player.getUniqueId() + ":" + locationString).thenRun(() -> connectToServer(player, targetServer));
-        }
-    }
+
 }

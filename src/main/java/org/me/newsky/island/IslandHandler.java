@@ -98,11 +98,11 @@ public abstract class IslandHandler {
                 String[] worlds = entry.getValue().split(",");
                 for (String world : worlds) {
                     if (world.equals(worldName)) {
-                        return Optional.of(serverId); // World found on this server
+                        return Optional.of(serverId);
                     }
                 }
             }
-            return Optional.empty(); // World not found on any server
+            return Optional.empty();
         });
     }
 
@@ -113,6 +113,16 @@ public abstract class IslandHandler {
                 return entry.getValue().split(",").length;
             })).map(Map.Entry::getKey);
         });
+    }
+
+    protected CompletableFuture<Void> proceedWithTeleportation(String islandName, Player player, String locationString, String targetServer) {
+        if (targetServer.equals(serverID)) {
+            return islandOperation.teleportToWorld(islandName, player.getUniqueId().toString(), locationString);
+        } else {
+            return islandPublishRequest.sendRequest(targetServer, "teleportToIsland:" + islandName + ":" + player.getUniqueId() + ":" + locationString).thenRun(() -> {
+                connectToServer(player, targetServer);
+            });
+        }
     }
 
     protected void connectToServer(Player player, String serverName) {
@@ -136,6 +146,7 @@ public abstract class IslandHandler {
     }
 
     public abstract CompletableFuture<Void> loadIsland(UUID islandUuid);
+
     public abstract CompletableFuture<Void> teleportToIsland(UUID islandUuid, Player player, String locationString);
 
 }

@@ -152,31 +152,13 @@ public class CacheHandler {
 
     public void deleteIslandPlayer(UUID playerUuid, UUID islandUuid) {
         // Delete player's homes and warps first
-        deleteAllPlayerHomes(playerUuid);
-        deleteAllPlayerWarps(playerUuid);
-
-        // Then delete the player from island_players
         try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.del("island_homes:" + playerUuid.toString());
+            jedis.del("island_warps:" + playerUuid.toString());
             jedis.del("island_players:" + islandUuid.toString() + ":" + playerUuid);
         }
 
         databaseHandler.deleteIslandPlayer(playerUuid, islandUuid);
-    }
-
-    private void deleteAllPlayerHomes(UUID playerUuid) {
-        try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.del("island_homes:" + playerUuid.toString());
-        }
-
-        databaseHandler.deleteAllPlayerHomes(playerUuid);
-    }
-
-    private void deleteAllPlayerWarps(UUID playerUuid) {
-        try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.del("island_warps:" + playerUuid.toString());
-        }
-
-        databaseHandler.deleteAllPlayerWarps(playerUuid);
     }
 
     public void deleteWarpPoint(UUID playerUuid, String warpName) {

@@ -39,11 +39,7 @@ public class StaticIslandHandler extends IslandHandler {
         return findServerByWorldName(islandName).thenCompose(optionalTargetServer -> {
             if (optionalTargetServer.isPresent()) {
                 String targetServer = optionalTargetServer.get();
-                if (targetServer.equals(serverID)) {
-                    return islandOperation.teleportToWorld(islandName, player.getUniqueId().toString(), locationString);
-                } else {
-                    return islandPublishRequest.sendRequest(targetServer, "teleportToIsland:" + islandName + ":" + player.getUniqueId() + ":" + locationString).thenRun(() -> connectToServer(player, targetServer));
-                }
+                return proceedWithTeleportation(islandName, player, locationString, targetServer);
             } else {
                 return CompletableFuture.failedFuture(new IllegalStateException("Island world not found on any server"));
             }
