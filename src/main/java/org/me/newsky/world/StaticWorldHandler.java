@@ -14,6 +14,11 @@ public class StaticWorldHandler extends WorldHandler {
     public CompletableFuture<Void> loadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
+        if (isWorldLoaded(worldName)) {
+            future.complete(null);
+            return future;
+        }
+
         loadWorldToBukkit(worldName).thenRun(() -> {
             future.complete(null);
         }).exceptionally(e -> {
@@ -27,6 +32,11 @@ public class StaticWorldHandler extends WorldHandler {
     @Override
     public CompletableFuture<Void> unloadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
+
+        if (!isWorldLoaded(worldName)) {
+            future.complete(null);
+            return future;
+        }
 
         unloadWorldFromBukkit(worldName).thenRun(() -> {
             future.complete(null);

@@ -39,7 +39,6 @@ public abstract class WorldHandler {
 
     public CompletableFuture<Void> deleteWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-
         unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
             try {
                 Path worldDirectory = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
@@ -64,12 +63,6 @@ public abstract class WorldHandler {
 
     protected CompletableFuture<Void> loadWorldToBukkit(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-
-        if (isWorldLoaded(worldName)) {
-            future.complete(null);
-            return future;
-        }
-
         Bukkit.getScheduler().runTask(plugin, () -> {
             World world = Bukkit.getWorld(worldName);
             if (world == null) {
@@ -86,12 +79,6 @@ public abstract class WorldHandler {
 
     protected CompletableFuture<Void> unloadWorldFromBukkit(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-
-        if (!isWorldLoaded(worldName)) {
-            future.complete(null);
-            return future;
-        }
-
         Bukkit.getScheduler().runTask(plugin, () -> {
             World world = Bukkit.getWorld(worldName);
             if (world != null) {

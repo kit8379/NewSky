@@ -34,6 +34,11 @@ public class IslandDelHomeCommand extends BaseDelHomeCommand {
     }
 
     @Override
+    protected String getCannotDeleteDefaultHomeMessage(String args[]) {
+        return "§cYou cannot delete your default home.";
+    }
+
+    @Override
     protected String getNoHomeMessage(String[] args) {
         return "§cYou do not have a home named " + args[1] + ".";
     }

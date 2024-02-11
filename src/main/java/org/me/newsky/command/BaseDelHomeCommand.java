@@ -34,6 +34,12 @@ public abstract class BaseDelHomeCommand {
         // Get the target home name
         String homeName = args[getTargetHomeArgIndex()];
 
+        // Check if the player target home point is default
+        if (homeName.equals("default")) {
+            sender.sendMessage(getCannotDeleteDefaultHomeMessage(args));
+            return true;
+        }
+
         // Check if the player has the target home point
         Optional<String> homeLocationOpt = cacheHandler.getHomeLocation(targetUuid, homeName);
         if (homeLocationOpt.isEmpty()) {
@@ -55,6 +61,8 @@ public abstract class BaseDelHomeCommand {
     protected abstract UUID getTargetUuid(CommandSender sender, String[] args);
 
     protected abstract int getTargetHomeArgIndex();
+
+    protected abstract String getCannotDeleteDefaultHomeMessage(String[] args);
 
     protected abstract String getNoHomeMessage(String[] args);
 

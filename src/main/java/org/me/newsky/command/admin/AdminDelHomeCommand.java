@@ -34,6 +34,11 @@ public class AdminDelHomeCommand extends BaseDelHomeCommand {
     }
 
     @Override
+    protected String getCannotDeleteDefaultHomeMessage(String[] args) {
+        return "§cYou cannot delete " + args[1] + " the default home.";
+    }
+
+    @Override
     protected String getNoHomeMessage(String[] args) {
         return "§cPlayer " + args[1] + " does not have a home named " + args[2] + ".";
     }
