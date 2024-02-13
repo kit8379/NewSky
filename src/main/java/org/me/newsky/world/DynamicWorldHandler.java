@@ -18,38 +18,31 @@ public class DynamicWorldHandler extends WorldHandler {
     @Override
     public CompletableFuture<Void> loadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
+
         Path worldPath = storagePath.resolve(worldName);
-
-        if (isWorldLoaded(worldName)) {
-            future.complete(null);
-            return future;
-        }
-
-        if (Files.exists(worldPath)) {
+        if (Files.exists(worldPath) && !Files.exists(plugin.getServer().getWorldContainer().toPath().resolve(worldName))) {
             try {
                 moveDirectory(worldPath, plugin.getServer().getWorldContainer().toPath().resolve(worldName));
-                return loadWorldToBukkit(worldName);
             } catch (IOException e) {
                 future.completeExceptionally(e);
-                return future;
             }
-        } else {
-            future.completeExceptionally(new IOException("World directory does not exist in the storage path: " + worldPath));
-            return future;
         }
-    }
 
+        loadWorldToBukkit(worldName).thenRunAsync(() -> {
+            future.complete(null);
+        }).exceptionally(e -> {
+            future.completeExceptionally(e);
+            return null;
+        });
+
+        return future;
+    }
 
     @Override
     public CompletableFuture<Void> unloadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        if (!isWorldLoaded(worldName)) {
-            future.complete(null);
-            return future;
-        }
-
-        unloadWorldFromBukkit(worldName).thenRun(() -> {
+        unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
             Path worldPath = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
             Path targetPath = storagePath.resolve(worldName);
 
@@ -59,6 +52,39 @@ public class DynamicWorldHandler extends WorldHandler {
             } catch (IOException e) {
                 future.completeExceptionally(e);
             }
+        }).exceptionally(e -> {
+            future.completeExceptionally(e);
+            return null;
+        });
+
+        return future;
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteWorld(String worldName) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
+        // First, ensure the world is unloaded properly
+        unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
+            try {
+                Path worldDirectory = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
+                Path storageDirectory = storagePath.resolve(worldName);
+
+                if (Files.exists(worldDirectory)) {
+                    deleteDirectory(worldDirectory);
+                }
+
+                if (Files.exists(storageDirectory)) {
+                    deleteDirectory(storageDirectory);
+                }
+
+                future.complete(null);
+            } catch (IOException e) {
+                future.completeExceptionally(e);
+            }
+        }).exceptionally(e -> {
+            future.completeExceptionally(e);
+            return null;
         });
 
         return future;

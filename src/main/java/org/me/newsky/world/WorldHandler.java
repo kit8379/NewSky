@@ -20,41 +20,6 @@ public abstract class WorldHandler {
         this.plugin = plugin;
     }
 
-    public CompletableFuture<Void> createWorld(String worldName) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-
-        CompletableFuture.runAsync(() -> {
-            try {
-                copyTemplateWorld(worldName);
-            } catch (IOException e) {
-                future.completeExceptionally(e);
-            }
-        }).thenCompose(aVoid -> loadWorldToBukkit(worldName)).thenRun(() -> future.complete(null)).exceptionally(e -> {
-            future.completeExceptionally(e);
-            return null;
-        });
-
-        return future;
-    }
-
-    public CompletableFuture<Void> deleteWorld(String worldName) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
-            try {
-                Path worldDirectory = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
-                deleteDirectory(worldDirectory);
-                future.complete(null);
-            } catch (IOException e) {
-                future.completeExceptionally(e);
-            }
-        }).exceptionally(e -> {
-            future.completeExceptionally(e);
-            return null;
-        });
-
-        return future;
-    }
-
     protected void copyTemplateWorld(String worldName) throws IOException {
         Path sourceDirectory = plugin.getDataFolder().toPath().resolve("template/skyblock");
         Path targetDirectory = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
@@ -63,6 +28,12 @@ public abstract class WorldHandler {
 
     protected CompletableFuture<Void> loadWorldToBukkit(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
+
+        if (isWorldLoaded(worldName)) {
+            future.complete(null);
+            return future;
+        }
+
         Bukkit.getScheduler().runTask(plugin, () -> {
             World world = Bukkit.getWorld(worldName);
             if (world == null) {
@@ -79,21 +50,40 @@ public abstract class WorldHandler {
 
     protected CompletableFuture<Void> unloadWorldFromBukkit(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
+
+        if (!isWorldLoaded(worldName)) {
+            future.complete(null);
+            return future;
+        }
+
         Bukkit.getScheduler().runTask(plugin, () -> {
             World world = Bukkit.getWorld(worldName);
             if (world != null) {
                 removePlayersFromWorld(world);
-                if (Bukkit.unloadWorld(world, true)) {
-                    future.complete(null);
-                } else {
-                    future.completeExceptionally(new IllegalStateException("Failed to unload world: " + worldName));
-                }
+                Bukkit.unloadWorld(world, true);
+                future.complete(null);
             } else {
-                future.completeExceptionally(new IllegalStateException("World not found: " + worldName));
+                future.completeExceptionally(new IllegalStateException("World not loaded: " + worldName));
             }
         });
 
         return future;
+    }
+
+    protected void copyDirectory(Path source, Path target) throws IOException {
+        Files.walkFileTree(source, new SimpleFileVisitor<>() {
+            @Override
+            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                Files.createDirectories(target.resolve(source.relativize(dir)));
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                Files.copy(file, target.resolve(source.relativize(file)), StandardCopyOption.REPLACE_EXISTING);
+                return FileVisitResult.CONTINUE;
+            }
+        });
     }
 
     protected void deleteDirectory(Path path) throws IOException {
@@ -119,24 +109,49 @@ public abstract class WorldHandler {
         }
     }
 
-    protected void copyDirectory(Path source, Path target) throws IOException {
-        Files.walkFileTree(source, new SimpleFileVisitor<>() {
-            @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                Files.createDirectories(target.resolve(source.relativize(dir)));
-                return FileVisitResult.CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                Files.copy(file, target.resolve(source.relativize(file)), StandardCopyOption.REPLACE_EXISTING);
-                return FileVisitResult.CONTINUE;
-            }
-        });
-    }
-
     protected boolean isWorldLoaded(String worldName) {
         return Bukkit.getWorld(worldName) != null;
+    }
+
+    public CompletableFuture<Void> createWorld(String worldName) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
+        CompletableFuture.runAsync(() -> {
+            try {
+                copyTemplateWorld(worldName);
+            } catch (IOException e) {
+                future.completeExceptionally(e);
+            }
+        }).thenCompose(aVoid -> {
+            return loadWorldToBukkit(worldName);
+        }).thenRun(() -> {
+            future.complete(null);
+        }).exceptionally(e -> {
+            future.completeExceptionally(e);
+            return null;
+        });
+
+        return future;
+    }
+
+    public CompletableFuture<Void> deleteWorld(String worldName) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
+        unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
+            Path worldDirectory = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
+
+            try {
+                deleteDirectory(worldDirectory);
+                future.complete(null);
+            } catch (IOException e) {
+                future.completeExceptionally(e);
+            }
+        }).exceptionally(e -> {
+            future.completeExceptionally(e);
+            return null;
+        });
+
+        return future;
     }
 
     public abstract CompletableFuture<Void> loadWorld(String worldName);

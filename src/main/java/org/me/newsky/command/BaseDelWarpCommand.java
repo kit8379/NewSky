@@ -36,15 +36,23 @@ public abstract class BaseDelWarpCommand {
         // Get the target warp name
         String warpName = args[getTargetWarpArgIndex()];
 
+        // Check if the target player has an island
+        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
+        if (islandUuidOpt.isEmpty()) {
+            sender.sendMessage(getNoIslandMessage(args));
+            return true;
+        }
+        UUID islandUuid = islandUuidOpt.get();
+
         // Check if the player has the target warp point
-        Optional<String> warpLocationOpt = cacheHandler.getWarpLocation(targetUuid, warpName);
+        Optional<String> warpLocationOpt = cacheHandler.getWarpLocation(islandUuid, targetUuid, warpName);
         if (warpLocationOpt.isEmpty()) {
             sender.sendMessage(getNoWarpMessage(args));
             return true;
         }
 
         // Delete the warp point
-        cacheHandler.deleteWarpPoint(targetUuid, warpName);
+        cacheHandler.deleteWarpPoint(islandUuid, targetUuid, warpName);
 
         // Send the success message
         sender.sendMessage(getDelWarpSuccessMessage(args));
@@ -57,6 +65,8 @@ public abstract class BaseDelWarpCommand {
     protected abstract UUID getTargetUuid(CommandSender sender, String[] args);
 
     protected abstract int getTargetWarpArgIndex();
+
+    protected abstract String getNoIslandMessage(String[] args);
 
     protected abstract String getNoWarpMessage(String[] args);
 

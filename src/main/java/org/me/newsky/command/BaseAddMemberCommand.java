@@ -52,9 +52,9 @@ public abstract class BaseAddMemberCommand {
         String role = "member";
 
         // Add the target player to the island
-        cacheHandler.addIslandPlayer(targetUuid, islandUuid, role);
+        cacheHandler.addOrUpdateIslandPlayer(targetUuid, islandUuid, role);
         // Add the player default spawn
-        cacheHandler.addOrUpdateHomePoint(targetUuid, "default", spawnLocation);
+        cacheHandler.addOrUpdateHomePoint(targetUuid, islandUuid,"default", spawnLocation);
         // Send the success message
         sender.sendMessage(getIslandAddMemberSuccessMessage(args));
 

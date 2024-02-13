@@ -2,6 +2,8 @@ package org.me.newsky.world;
 
 import org.me.newsky.NewSky;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 
 public class StaticWorldHandler extends WorldHandler {
@@ -13,11 +15,6 @@ public class StaticWorldHandler extends WorldHandler {
     @Override
     public CompletableFuture<Void> loadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-
-        if (isWorldLoaded(worldName)) {
-            future.complete(null);
-            return future;
-        }
 
         loadWorldToBukkit(worldName).thenRun(() -> {
             future.complete(null);
@@ -33,13 +30,28 @@ public class StaticWorldHandler extends WorldHandler {
     public CompletableFuture<Void> unloadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        if (!isWorldLoaded(worldName)) {
+        unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
             future.complete(null);
-            return future;
-        }
+        }).exceptionally(e -> {
+            future.completeExceptionally(e);
+            return null;
+        });
 
-        unloadWorldFromBukkit(worldName).thenRun(() -> {
-            future.complete(null);
+        return future;
+    }
+
+    @Override
+    public CompletableFuture<Void> deleteWorld(String worldName) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
+        unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
+            try {
+                Path worldDirectory = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
+                deleteDirectory(worldDirectory);
+                future.complete(null);
+            } catch (IOException e) {
+                future.completeExceptionally(e);
+            }
         }).exceptionally(e -> {
             future.completeExceptionally(e);
             return null;

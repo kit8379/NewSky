@@ -46,14 +46,14 @@ public abstract class BaseHomeCommand {
         }
         UUID islandUuid = islandUuidOpt.get();
 
-        Set<String> homeNames = cacheHandler.getHomeNames(targetUuid);
+        Set<String> homeNames = cacheHandler.getHomeNames(islandUuid, targetUuid);
         if (homeNames.isEmpty()) {
             sender.sendMessage(getNoHomesMessage(args));
             return true;
         }
 
         String homeName = args.length > getTargetHomeArgIndex() ? args[getTargetHomeArgIndex()] : "default";
-        Optional<String> homeLocationOpt = cacheHandler.getHomeLocation(targetUuid, homeName);
+        Optional<String> homeLocationOpt = cacheHandler.getHomeLocation(islandUuid, targetUuid, homeName);
         if (homeLocationOpt.isEmpty()) {
             sender.sendMessage(getNoHomeMessage(args, homeName));
             return true;
@@ -69,7 +69,12 @@ public abstract class BaseHomeCommand {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull String[] args) {
         if (args.length == getTargetHomeArgIndex() + 1) {
             UUID targetUuid = getTargetUUID(sender, args);
-            Set<String> homeNames = cacheHandler.getHomeNames(targetUuid);
+            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
+            if (islandUuidOpt.isEmpty()) {
+                return null;
+            }
+            UUID islandUuid = islandUuidOpt.get();
+            Set<String> homeNames = cacheHandler.getHomeNames(islandUuid, targetUuid);
             return homeNames.stream()
                     .filter(name -> name.toLowerCase().startsWith(args[getTargetHomeArgIndex()].toLowerCase()))
                     .collect(Collectors.toList());

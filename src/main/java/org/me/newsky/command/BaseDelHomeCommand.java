@@ -34,6 +34,14 @@ public abstract class BaseDelHomeCommand {
         // Get the target home name
         String homeName = args[getTargetHomeArgIndex()];
 
+        // Check if the target player has an island
+        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
+        if (islandUuidOpt.isEmpty()) {
+            sender.sendMessage(getNoIslandMessage(args));
+            return true;
+        }
+        UUID islandUuid = islandUuidOpt.get();
+
         // Check if the player target home point is default
         if (homeName.equals("default")) {
             sender.sendMessage(getCannotDeleteDefaultHomeMessage(args));
@@ -41,14 +49,14 @@ public abstract class BaseDelHomeCommand {
         }
 
         // Check if the player has the target home point
-        Optional<String> homeLocationOpt = cacheHandler.getHomeLocation(targetUuid, homeName);
+        Optional<String> homeLocationOpt = cacheHandler.getHomeLocation(islandUuid, targetUuid, homeName);
         if (homeLocationOpt.isEmpty()) {
             sender.sendMessage(getNoHomeMessage(args));
             return true;
         }
 
         // Delete the home point
-        cacheHandler.deleteHomePoint(targetUuid, homeName);
+        cacheHandler.deleteHomePoint(targetUuid, islandUuid, homeName);
 
         // Send the success message
         sender.sendMessage(getDelHomeSuccessMessage(args));
@@ -62,9 +70,11 @@ public abstract class BaseDelHomeCommand {
 
     protected abstract int getTargetHomeArgIndex();
 
-    protected abstract String getCannotDeleteDefaultHomeMessage(String[] args);
+    protected abstract String getNoIslandMessage(String[] args);
 
     protected abstract String getNoHomeMessage(String[] args);
+
+    protected abstract String getCannotDeleteDefaultHomeMessage(String[] args);
 
     protected abstract String getDelHomeSuccessMessage(String[] args);
 }

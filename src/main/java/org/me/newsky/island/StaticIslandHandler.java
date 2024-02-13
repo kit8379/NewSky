@@ -7,6 +7,7 @@ import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.teleport.TeleportManager;
 import org.me.newsky.world.WorldHandler;
 
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -19,9 +20,10 @@ public class StaticIslandHandler extends IslandHandler {
     @Override
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
         String islandName = "island-" + islandUuid.toString();
-        return findServerByWorldName(islandName).thenCompose(optionalServerId -> {
-            if (optionalServerId.isPresent()) {
-                String targetServer = optionalServerId.get();
+        return fetchWorldList().thenCompose(worldListResponses -> {
+            Optional<String> serverId = findServerByWorldName(islandName, worldListResponses);
+            if (serverId.isPresent()) {
+                String targetServer = serverId.get();
                 if (targetServer.equals(serverID)) {
                     return islandOperation.loadWorld(islandName);
                 } else {
@@ -36,9 +38,10 @@ public class StaticIslandHandler extends IslandHandler {
     @Override
     public CompletableFuture<Void> teleportToIsland(UUID islandUuid, Player player, String locationString) {
         String islandName = "island-" + islandUuid.toString();
-        return findServerByWorldName(islandName).thenCompose(optionalTargetServer -> {
-            if (optionalTargetServer.isPresent()) {
-                String targetServer = optionalTargetServer.get();
+        return fetchWorldList().thenCompose(worldListResponses -> {
+            Optional<String> serverId = findServerByWorldName(islandName, worldListResponses);
+            if (serverId.isPresent()) {
+                String targetServer = serverId.get();
                 return proceedWithTeleportation(islandName, player, locationString, targetServer);
             } else {
                 return CompletableFuture.failedFuture(new IllegalStateException("Island world not found on any server"));

@@ -52,14 +52,14 @@ public abstract class BaseWarpCommand {
             return true;
         }
 
-        Set<String> warpNames = cacheHandler.getWarpNames(targetUuid);
+        Set<String> warpNames = cacheHandler.getWarpNames(islandUuid, targetUuid);
         if (warpNames.isEmpty()) {
             sender.sendMessage("§c" + args[1] + " does not have any warp points set.");
             return true;
         }
 
         String warpName = args.length > getTargetWarpArgIndex() ? args[getTargetWarpArgIndex()] : "default";
-        Optional<String> warpLocationOpt = cacheHandler.getWarpLocation(targetUuid, warpName);
+        Optional<String> warpLocationOpt = cacheHandler.getWarpLocation(islandUuid, targetUuid, warpName);
         if (warpLocationOpt.isEmpty()) {
             sender.sendMessage(getNoWarpMessage(args, warpName));
             return true;
@@ -75,7 +75,12 @@ public abstract class BaseWarpCommand {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull String[] args) {
         if (args.length == getTargetWarpArgIndex() + 1) {
             UUID targetUuid = getTargetUUID(sender, args);
-            Set<String> warpNames = cacheHandler.getWarpNames(targetUuid);
+            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
+            if (islandUuidOpt.isEmpty()) {
+                return null;
+            }
+            UUID islandUuid = islandUuidOpt.get();
+            Set<String> warpNames = cacheHandler.getWarpNames(islandUuid, targetUuid);
             return warpNames.stream()
                     .filter(name -> name.toLowerCase().startsWith(args[getTargetWarpArgIndex()].toLowerCase()))
                     .collect(Collectors.toList());

@@ -34,6 +34,11 @@ public class AdminDelHomeCommand extends BaseDelHomeCommand {
     }
 
     @Override
+    protected String getNoIslandMessage(String[] args) {
+        return "§cPlayer " + args[1] + " does not have an island.";
+    }
+
+    @Override
     protected String getCannotDeleteDefaultHomeMessage(String[] args) {
         return "§cYou cannot delete " + args[1] + " the default home.";
     }

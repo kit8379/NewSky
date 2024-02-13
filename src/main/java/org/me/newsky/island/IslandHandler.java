@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 public abstract class IslandHandler {
 
@@ -45,9 +46,10 @@ public abstract class IslandHandler {
 
     public CompletableFuture<Void> createIsland(UUID islandUuid) {
         String islandName = "island-" + islandUuid.toString();
-        return findServerWithLeastWorld().thenCompose(optionalServerId -> {
-            if (optionalServerId.isPresent()) {
-                String targetServer = optionalServerId.get();
+        return fetchWorldList().thenCompose(worldListResponses -> {
+            Optional<String> leastLoadedServer = findServerWithLeastWorld(worldListResponses);
+            if (leastLoadedServer.isPresent()) {
+                String targetServer = leastLoadedServer.get();
                 if (targetServer.equals(serverID)) {
                     return islandOperation.createWorld(islandName);
                 } else {
@@ -61,9 +63,10 @@ public abstract class IslandHandler {
 
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
         String islandName = "island-" + islandUuid.toString();
-        return findServerByWorldName(islandName).thenCompose(optionalServerId -> {
-            if (optionalServerId.isPresent()) {
-                String targetServer = optionalServerId.get();
+        return fetchWorldList().thenCompose(worldListResponses -> {
+            Optional<String> serverId = findServerByWorldName(islandName, worldListResponses);
+            if (serverId.isPresent()) {
+                String targetServer = serverId.get();
                 if (targetServer.equals(serverID)) {
                     return islandOperation.unloadWorld(islandName);
                 } else {
@@ -77,9 +80,10 @@ public abstract class IslandHandler {
 
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
         String islandName = "island-" + islandUuid.toString();
-        return findServerByWorldName(islandName).thenCompose(optionalServerId -> {
-            if (optionalServerId.isPresent()) {
-                String targetServer = optionalServerId.get();
+        return fetchWorldList().thenCompose(worldListResponses -> {
+            Optional<String> serverId = findServerByWorldName(islandName, worldListResponses);
+            if (serverId.isPresent()) {
+                String targetServer = serverId.get();
                 if (targetServer.equals(serverID)) {
                     return islandOperation.deleteWorld(islandName);
                 } else {
@@ -91,29 +95,29 @@ public abstract class IslandHandler {
         });
     }
 
-    protected CompletableFuture<Optional<String>> findServerByWorldName(String worldName) {
-        return islandPublishRequest.sendRequest("all", "updateWorldList").thenApply(worldListResponses -> {
-            for (Map.Entry<String, String> entry : worldListResponses.entrySet()) {
-                String serverId = entry.getKey();
-                String[] worlds = entry.getValue().split(",");
-                for (String world : worlds) {
-                    if (world.equals(worldName)) {
-                        return Optional.of(serverId);
-                    }
+    public CompletableFuture<ConcurrentHashMap<String, String>> fetchWorldList() {
+        return islandPublishRequest.sendRequest("all", "updateWorldList");
+    }
+
+    protected Optional<String> findServerByWorldName(String worldName, Map<String, String> worldListResponses) {
+        for (Map.Entry<String, String> entry : worldListResponses.entrySet()) {
+            String serverId = entry.getKey();
+            String[] worlds = entry.getValue().split(",");
+            for (String world : worlds) {
+                if (world.equals(worldName)) {
+                    return Optional.of(serverId);
                 }
             }
-            return Optional.empty();
-        });
+        }
+        return Optional.empty();
     }
 
-
-    protected CompletableFuture<Optional<String>> findServerWithLeastWorld() {
-        return islandPublishRequest.sendRequest("all", "updateWorldList").thenApply(worldListResponses -> {
-            return worldListResponses.entrySet().stream().min(Comparator.comparingInt(entry -> {
-                return entry.getValue().split(",").length;
-            })).map(Map.Entry::getKey);
-        });
+    protected Optional<String> findServerWithLeastWorld(Map<String, String> worldListResponses) {
+        return worldListResponses.entrySet().stream()
+                .min(Comparator.comparingInt(entry -> entry.getValue().split(",").length))
+                .map(Map.Entry::getKey);
     }
+
 
     protected CompletableFuture<Void> proceedWithTeleportation(String islandName, Player player, String locationString, String targetServer) {
         if (targetServer.equals(serverID)) {

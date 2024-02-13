@@ -34,6 +34,11 @@ public class AdminDelWarpCommand extends BaseDelWarpCommand {
     }
 
     @Override
+    protected String getNoIslandMessage(String[] args) {
+        return "Player " + args[1] + " does not have an island.";
+    }
+
+    @Override
     protected String getNoWarpMessage(String[] args) {
         return "Player " + args[1] + " does not have a warp point named " + args[2] + ".";
     }
