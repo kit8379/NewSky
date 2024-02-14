@@ -101,7 +101,7 @@ public class IslandSubscribeRequest {
                 });
 
             default:
-                return CompletableFuture.failedFuture(new IllegalStateException("Unknown operation: " + operation));
+                return CompletableFuture.failedFuture(new IllegalStateException("Unknown operation"));
         }
     }
 }
