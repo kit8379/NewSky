@@ -82,11 +82,11 @@ public class ConfigHandler {
     }
 
     public String getWorldMode() {
-        return config.getString("world.mode");
+        return config.getString("island.mode");
     }
 
     public String getStoragePath() {
-        return config.getString("world.storage-path");
+        return config.getString("island.storage-path");
     }
 
     public String getIslandNotFoundInServerMessage() {
@@ -97,11 +97,11 @@ public class ConfigHandler {
         return config.getString("messages.no-active-server");
     }
 
-    public String getWorldNotLoadedMessage() {
-        return config.getString("messages.world-not-loaded");
+    public String getIslandNotLoadedMessage() {
+        return config.getString("messages.island-not-loaded");
     }
 
-    public String getWorldAlreadyLoadedMessage() {
-        return config.getString("messages.world-already-loaded");
+    public String getIslandAlreadyLoadedMessage() {
+        return config.getString("messages.island-already-loaded");
     }
 }

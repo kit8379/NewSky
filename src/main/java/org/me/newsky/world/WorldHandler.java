@@ -32,11 +32,6 @@ public abstract class WorldHandler {
     protected CompletableFuture<Void> loadWorldToBukkit(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        if (isWorldLoaded(worldName)) {
-            future.complete(null);
-            return future;
-        }
-
         Bukkit.getScheduler().runTask(plugin, () -> {
             World world = Bukkit.getWorld(worldName);
             if (world == null) {
@@ -44,7 +39,7 @@ public abstract class WorldHandler {
                 Bukkit.createWorld(worldCreator);
                 future.complete(null);
             } else {
-                future.completeExceptionally(new IllegalStateException(config.getWorldAlreadyLoadedMessage()));
+                future.completeExceptionally(new IllegalStateException(config.getIslandAlreadyLoadedMessage()));
             }
         });
 
@@ -54,11 +49,6 @@ public abstract class WorldHandler {
     protected CompletableFuture<Void> unloadWorldFromBukkit(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        if (!isWorldLoaded(worldName)) {
-            future.complete(null);
-            return future;
-        }
-
         Bukkit.getScheduler().runTask(plugin, () -> {
             World world = Bukkit.getWorld(worldName);
             if (world != null) {
@@ -66,7 +56,7 @@ public abstract class WorldHandler {
                 Bukkit.unloadWorld(world, true);
                 future.complete(null);
             } else {
-                future.completeExceptionally(new IllegalStateException(config.getWorldNotLoadedMessage()));
+                future.completeExceptionally(new IllegalStateException(config.getIslandNotLoadedMessage()));
             }
         });
 
@@ -110,10 +100,6 @@ public abstract class WorldHandler {
         for (Player player : world.getPlayers()) {
             player.teleport(safeWorld.getSpawnLocation());
         }
-    }
-
-    protected boolean isWorldLoaded(String worldName) {
-        return Bukkit.getWorld(worldName) != null;
     }
 
     public CompletableFuture<Void> createWorld(String worldName) {

@@ -5,7 +5,6 @@ DB:
   username: "test"
   password: "test"
   properties: "?autoReconnect=true&useSSL=false"
-  # Don't touch below settings if you don't know what you're doing
   max-pool-size: 10
   connection-timeout: 30000
   cache-prep-statements: "true"
@@ -22,15 +21,21 @@ server:
   name: "server1" # Unique name for your server
   mode: "island" # lobby or island
 
-world:
+island:
   mode: "dynamic" # static or dynamic
   storage-path: "/home/your_user/skyblock/worlds" # Path to store world files
+  generator: "VoidWorld" # Generator name: VoidWorld, SeaWorld
+  template-world: "skyblock" # Template name: skyblock, acidisland
+  center: "0,132,0,100,100" # Center of the island
+  spawn: "0,132,0,100,100" # Spawn location
+  size: 100 # Size of the island
+  border-buffer: 10 # Buffer for the border
 
 debug: false # Enable debug mode
 
 messages:
   island-not-found-in-server: "&cIsland not found in any active server."
   no-active-server: "&cNo active server is available. Please try again later"
-  world-not-loaded: "&cWorld not loaded."
-  world-already-loaded: "&cWorld already loaded."
+  island-not-loaded: "&cIsland not loaded."
+  island-already-loaded: "&cIsland already loaded."
 

@@ -46,6 +46,7 @@ public class IslandPublishRequest {
                 String responseData = responseParts[2];
 
                 if (!responseState.equals("Success")) {
+                    this.unsubscribe();
                     future.completeExceptionally(new IllegalStateException(responseData));
                     plugin.debug("Received error response from " + responderID + " for request " + requestID + ": " + responseData);
                     return;

@@ -17,7 +17,7 @@ public class StaticWorldHandler extends WorldHandler {
     public CompletableFuture<Void> loadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        loadWorldToBukkit(worldName).thenRun(() -> {
+        loadWorldToBukkit(worldName).thenRunAsync(() -> {
             future.complete(null);
         }).exceptionally(e -> {
             future.completeExceptionally(e);

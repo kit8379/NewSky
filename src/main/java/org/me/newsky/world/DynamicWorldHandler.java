@@ -19,17 +19,19 @@ public class DynamicWorldHandler extends WorldHandler {
     @Override
     public CompletableFuture<Void> loadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-
-        Path worldPath = storagePath.resolve(worldName);
-        if (Files.exists(worldPath) && !Files.exists(plugin.getServer().getWorldContainer().toPath().resolve(worldName))) {
-            try {
-                moveDirectory(worldPath, plugin.getServer().getWorldContainer().toPath().resolve(worldName));
-            } catch (IOException e) {
-                future.completeExceptionally(e);
+        
+        CompletableFuture.runAsync(() -> {
+            Path worldPath = storagePath.resolve(worldName);
+            if (Files.exists(worldPath) && !Files.exists(plugin.getServer().getWorldContainer().toPath().resolve(worldName))) {
+                try {
+                    moveDirectory(worldPath, plugin.getServer().getWorldContainer().toPath().resolve(worldName));
+                } catch (IOException e) {
+                    future.completeExceptionally(e);
+                }
             }
-        }
-
-        loadWorldToBukkit(worldName).thenRunAsync(() -> {
+        }).thenCompose(aVoid -> {
+            return loadWorldToBukkit(worldName);
+        }).thenRun(() -> {
             future.complete(null);
         }).exceptionally(e -> {
             future.completeExceptionally(e);
