@@ -1,6 +1,7 @@
 package org.me.newsky.world;
 
 import org.me.newsky.NewSky;
+import org.me.newsky.config.ConfigHandler;
 
 import java.io.IOException;
 import java.nio.file.*;
@@ -10,8 +11,8 @@ import java.util.concurrent.CompletableFuture;
 public class DynamicWorldHandler extends WorldHandler {
     private final Path storagePath;
 
-    public DynamicWorldHandler(NewSky plugin, Path storagePath) {
-        super(plugin);
+    public DynamicWorldHandler(NewSky plugin, ConfigHandler config, Path storagePath) {
+        super(plugin, config);
         this.storagePath = storagePath;
     }
 

@@ -73,9 +73,6 @@ public class IslandOperation {
                     future.complete(null);
                 }
             });
-        }).exceptionally(e -> {
-            future.completeExceptionally(e);
-            return null;
         });
 
         return future;

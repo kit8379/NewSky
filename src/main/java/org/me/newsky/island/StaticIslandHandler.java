@@ -2,6 +2,7 @@ package org.me.newsky.island;
 
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
+import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.teleport.TeleportManager;
@@ -13,8 +14,8 @@ import java.util.concurrent.CompletableFuture;
 
 public class StaticIslandHandler extends IslandHandler {
 
-    public StaticIslandHandler(NewSky plugin, WorldHandler worldHandler, RedisHandler redisHandler, HeartBeatHandler heartBeatHandler, TeleportManager teleportManager, String serverID) {
-        super(plugin, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
+    public StaticIslandHandler(NewSky plugin, ConfigHandler config, WorldHandler worldHandler, RedisHandler redisHandler, HeartBeatHandler heartBeatHandler, TeleportManager teleportManager, String serverID) {
+        super(plugin, config, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
     }
 
     @Override
@@ -30,7 +31,7 @@ public class StaticIslandHandler extends IslandHandler {
                     return islandPublishRequest.sendRequest(targetServer, "loadIsland:" + islandName).thenApply(responses -> null);
                 }
             } else {
-                return CompletableFuture.failedFuture(new IllegalStateException("Island world not found on any server"));
+                return CompletableFuture.failedFuture(new IllegalStateException(config.getIslandNotFoundInServerMessage()));
             }
         });
     }
@@ -44,7 +45,7 @@ public class StaticIslandHandler extends IslandHandler {
                 String targetServer = serverId.get();
                 return proceedWithTeleportation(islandName, player, locationString, targetServer);
             } else {
-                return CompletableFuture.failedFuture(new IllegalStateException("Island world not found on any server"));
+                return CompletableFuture.failedFuture(new IllegalStateException(config.getIslandNotFoundInServerMessage()));
             }
         });
     }

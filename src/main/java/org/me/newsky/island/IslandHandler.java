@@ -2,6 +2,7 @@ package org.me.newsky.island;
 
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
+import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.island.post.IslandOperation;
 import org.me.newsky.island.post.IslandPublishRequest;
@@ -23,6 +24,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public abstract class IslandHandler {
 
     protected NewSky plugin;
+
+    protected ConfigHandler config;
     protected String serverID;
     protected WorldHandler worldHandler;
     protected RedisHandler redisHandler;
@@ -32,8 +35,9 @@ public abstract class IslandHandler {
     protected IslandPublishRequest islandPublishRequest;
     protected IslandSubscribeRequest islandSubscribeRequest;
 
-    public IslandHandler(NewSky plugin, WorldHandler worldHandler, RedisHandler redisHandler, HeartBeatHandler heartBeatHandler, TeleportManager teleportManager, String serverID) {
+    public IslandHandler(NewSky plugin, ConfigHandler config, WorldHandler worldHandler, RedisHandler redisHandler, HeartBeatHandler heartBeatHandler, TeleportManager teleportManager, String serverID) {
         this.plugin = plugin;
+        this.config = config;
         this.serverID = serverID;
         this.worldHandler = worldHandler;
         this.redisHandler = redisHandler;
@@ -56,7 +60,7 @@ public abstract class IslandHandler {
                     return islandPublishRequest.sendRequest(targetServer, "createIsland:" + islandName).thenApply(responses -> null);
                 }
             } else {
-                return CompletableFuture.failedFuture(new IllegalStateException("No active servers available"));
+                return CompletableFuture.failedFuture(new IllegalStateException(config.getNoActiveServerMessage()));
             }
         });
     }
@@ -73,7 +77,7 @@ public abstract class IslandHandler {
                     return islandPublishRequest.sendRequest(targetServer, "unloadIsland:" + islandName).thenApply(responses -> null);
                 }
             } else {
-                return CompletableFuture.failedFuture(new IllegalStateException("Island world not found on any server for unloading"));
+                return CompletableFuture.failedFuture(new IllegalStateException(config.getIslandNotFoundInServerMessage()));
             }
         });
     }
@@ -90,7 +94,7 @@ public abstract class IslandHandler {
                     return islandPublishRequest.sendRequest(targetServer, "deleteIsland:" + islandName).thenApply(responses -> null);
                 }
             } else {
-                return CompletableFuture.failedFuture(new IllegalStateException("Island world not found on any server for deletion"));
+                return islandOperation.deleteWorld(islandName);
             }
         });
     }
@@ -113,9 +117,9 @@ public abstract class IslandHandler {
     }
 
     protected Optional<String> findServerWithLeastWorld(Map<String, String> worldListResponses) {
-        return worldListResponses.entrySet().stream()
-                .min(Comparator.comparingInt(entry -> entry.getValue().split(",").length))
-                .map(Map.Entry::getKey);
+        return worldListResponses.entrySet().stream().min(Comparator.comparingInt(entry -> {
+            return entry.getValue().split(",").length;
+        })).map(Map.Entry::getKey);
     }
 
 
@@ -137,7 +141,7 @@ public abstract class IslandHandler {
             out.writeUTF(serverName);
             player.sendPluginMessage(plugin, "BungeeCord", byteArray.toByteArray());
         } catch (IOException e) {
-            plugin.getLogger().severe("Could not send Connect request: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 

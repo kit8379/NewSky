@@ -120,8 +120,10 @@ public class DatabaseHandler {
             statement.setString(1, playerUuid.toString());
             statement.setString(2, islandUuid.toString());
             statement.setString(3, role);
+            statement.setString(4, role);
         }, "INSERT INTO island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE role = ?;");
     }
+
 
     public void addOrUpdateWarpPoint(UUID playerUuid, UUID islandUuid, String warpName, String warpLocation) {
         executeUpdate(statement -> {

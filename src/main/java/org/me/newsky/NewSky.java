@@ -89,12 +89,12 @@ public class NewSky extends JavaPlugin {
         try {
             if (config.getWorldMode().equals("static")) {
                 info("Using static world mode.");
-                worldHandler = new StaticWorldHandler(this);
+                worldHandler = new StaticWorldHandler(this, config);
             }
 
             if (config.getWorldMode().equals("dynamic")) {
                 info("Using dynamic world mode. World storage path: " + config.getStoragePath() + " .");
-                worldHandler = new DynamicWorldHandler(this, Path.of(config.getStoragePath()));
+                worldHandler = new DynamicWorldHandler(this, config, Path.of(config.getStoragePath()));
             }
             info("WorldHandler loaded");
         } catch (Exception e) {
@@ -188,11 +188,11 @@ public class NewSky extends JavaPlugin {
         info("Starting island handler");
         try {
             if (config.getWorldMode().equals("static")) {
-                islandHandler = new StaticIslandHandler(this, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
+                islandHandler = new StaticIslandHandler(this, config, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
             }
 
             if (config.getWorldMode().equals("dynamic")) {
-                islandHandler = new DynamicIslandHandler(this, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
+                islandHandler = new DynamicIslandHandler(this, config, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
             }
 
             islandHandler.subscribeToRequests();

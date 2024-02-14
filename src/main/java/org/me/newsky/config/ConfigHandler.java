@@ -88,4 +88,20 @@ public class ConfigHandler {
     public String getStoragePath() {
         return config.getString("world.storage-path");
     }
+
+    public String getIslandNotFoundInServerMessage() {
+        return config.getString("messages.island-not-found-in-server");
+    }
+
+    public String getNoActiveServerMessage() {
+        return config.getString("messages.no-active-server");
+    }
+
+    public String getWorldNotLoadedMessage() {
+        return config.getString("messages.world-not-loaded");
+    }
+
+    public String getWorldAlreadyLoadedMessage() {
+        return config.getString("messages.world-already-loaded");
+    }
 }

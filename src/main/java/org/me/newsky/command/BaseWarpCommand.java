@@ -81,19 +81,25 @@ public abstract class BaseWarpCommand {
             }
             UUID islandUuid = islandUuidOpt.get();
             Set<String> warpNames = cacheHandler.getWarpNames(islandUuid, targetUuid);
-            return warpNames.stream()
-                    .filter(name -> name.toLowerCase().startsWith(args[getTargetWarpArgIndex()].toLowerCase()))
-                    .collect(Collectors.toList());
+            return warpNames.stream().filter(name -> name.toLowerCase().startsWith(args[getTargetWarpArgIndex()].toLowerCase())).collect(Collectors.toList());
         }
         return null;
     }
 
     protected void handleIslandTeleportFuture(CompletableFuture<Void> future, CommandSender sender, String warpName) {
-        future.thenRun(() -> sender.sendMessage("Teleported to the warp point '" + warpName + "'."))
-                .exceptionally(ex -> {
-                    sender.sendMessage("There was an error teleporting to the warp point");
-                    return null;
-                });
+        future.thenRun(() -> {
+            // Send the success message
+            sender.sendMessage("Teleported to the warp point '" + warpName + "'.");
+        }).exceptionally(ex -> {
+            // Send the error message
+            if (ex instanceof IllegalStateException) {
+                sender.sendMessage(ex.getMessage());
+            } else {
+                ex.printStackTrace();
+                sender.sendMessage("There was an error creating the island.");
+            }
+            return null;
+        });
     }
 
     protected abstract boolean validateArgs(CommandSender sender, String[] args);

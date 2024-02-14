@@ -5,6 +5,7 @@ import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
+import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.world.generator.VoidGenerator;
 
 import java.io.IOException;
@@ -15,9 +16,11 @@ import java.util.concurrent.CompletableFuture;
 public abstract class WorldHandler {
 
     protected final NewSky plugin;
+    protected final ConfigHandler config;
 
-    public WorldHandler(NewSky plugin) {
+    public WorldHandler(NewSky plugin, ConfigHandler config) {
         this.plugin = plugin;
+        this.config = config;
     }
 
     protected void copyTemplateWorld(String worldName) throws IOException {
@@ -41,7 +44,7 @@ public abstract class WorldHandler {
                 Bukkit.createWorld(worldCreator);
                 future.complete(null);
             } else {
-                future.completeExceptionally(new IllegalStateException("World already loaded: " + worldName));
+                future.completeExceptionally(new IllegalStateException(config.getWorldAlreadyLoadedMessage()));
             }
         });
 
@@ -63,7 +66,7 @@ public abstract class WorldHandler {
                 Bukkit.unloadWorld(world, true);
                 future.complete(null);
             } else {
-                future.completeExceptionally(new IllegalStateException("World not loaded: " + worldName));
+                future.completeExceptionally(new IllegalStateException(config.getWorldNotLoadedMessage()));
             }
         });
 

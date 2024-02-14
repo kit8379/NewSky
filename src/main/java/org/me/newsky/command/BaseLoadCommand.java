@@ -51,8 +51,12 @@ public abstract class BaseLoadCommand {
             // Send the success message
             sender.sendMessage(args[1] + "'s island has been loaded.");
         }).exceptionally(ex -> {
-            // Send the error message
-            sender.sendMessage("There was an error loading the island.");
+            if (ex instanceof IllegalStateException) {
+                sender.sendMessage(ex.getMessage());
+            } else {
+                ex.printStackTrace();
+                sender.sendMessage("There was an error creating the island.");
+            }
             return null;
         });
     }

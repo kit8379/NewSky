@@ -1,6 +1,7 @@
 package org.me.newsky.world;
 
 import org.me.newsky.NewSky;
+import org.me.newsky.config.ConfigHandler;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -8,8 +9,8 @@ import java.util.concurrent.CompletableFuture;
 
 public class StaticWorldHandler extends WorldHandler {
 
-    public StaticWorldHandler(NewSky plugin) {
-        super(plugin);
+    public StaticWorldHandler(NewSky plugin, ConfigHandler config) {
+        super(plugin, config);
     }
 
     @Override

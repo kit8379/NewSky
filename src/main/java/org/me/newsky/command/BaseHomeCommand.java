@@ -88,7 +88,12 @@ public abstract class BaseHomeCommand {
             sender.sendMessage(getIslandHomeSuccessMessage(homeName));
         }).exceptionally(ex -> {
             // Send the error message
-            sender.sendMessage("There was an error teleporting to the island home.");
+            if (ex instanceof IllegalStateException) {
+                sender.sendMessage(ex.getMessage());
+            } else {
+                ex.printStackTrace();
+                sender.sendMessage("There was an error creating the island.");
+            }
             return null;
         });
     }

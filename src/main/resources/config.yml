@@ -28,3 +28,9 @@ world:
 
 debug: false # Enable debug mode
 
+messages:
+  island-not-found-in-server: "&cIsland not found in any active server."
+  no-active-server: "&cNo active server is available. Please try again later"
+  world-not-loaded: "&cWorld not loaded."
+  world-already-loaded: "&cWorld already loaded."
+
