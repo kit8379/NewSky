@@ -91,7 +91,7 @@ public class ConfigHandler {
     }
 
     public String getTemplateWorldName() {
-        return config.getString("world.template");
+        return config.getString("island.template");
     }
 
     public int getIslandSize() {

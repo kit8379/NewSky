@@ -29,20 +29,16 @@ public class IslandSubscribeRequest {
                 String requestID = parts[0];
                 String sourceServer = parts[1];
                 String targetServer = parts[2];
+                String operation = parts[3];
 
-                plugin.debug("Received request " + requestID + " from " + sourceServer + " for " + targetServer + " server");
                 if (targetServer.equals(serverID) || targetServer.equals("all")) {
+                    plugin.debug("Received request: " + requestID + " from server: " + sourceServer + " for operation: " + operation);
                     processRequest(parts).thenAccept((String responseData) -> {
-                        redisHandler.publish("newsky-response-channel-" + requestID, serverID + ":" + "Success" + ":" + responseData);
-                        plugin.debug("Send response to request " + requestID + " with data " + responseData);
-                    }).exceptionally(ex -> {
-                        if (ex instanceof IllegalStateException) {
-                            redisHandler.publish("newsky-response-channel-" + requestID, serverID + ":" + "Error" + ":" + ex.getMessage());
-                        } else {
-                            ex.printStackTrace();
-                            redisHandler.publish("newsky-response-channel-" + requestID, serverID + ":" + "Error" + ":" + "There was an error processing the request");
-                        }
-                        plugin.debug("Send response to request " + requestID + " with error");
+                        redisHandler.publish("newsky-response-channel-" + requestID, serverID + ":" + responseData);
+                        plugin.debug("Sent response to server: " + sourceServer + " for request: " + requestID + " for operation: " + operation + " with data: " + responseData);
+                    }).exceptionally(e -> {
+                        redisHandler.publish("newsky-response-channel-" + requestID, serverID + ":Error");
+                        plugin.debug("Sent error response to server: " + sourceServer + " for request: " + requestID + " for operation: " + operation);
                         return null;
                     });
                 }
@@ -50,7 +46,6 @@ public class IslandSubscribeRequest {
         };
 
         redisHandler.subscribe(requestSubscriber, "newsky-request-channel");
-        plugin.debug("Subscribed to newsky-request-channel");
     }
 
     public void unsubscribeFromRequests() {
@@ -101,7 +96,7 @@ public class IslandSubscribeRequest {
                 });
 
             default:
-                return CompletableFuture.failedFuture(new IllegalStateException("Unknown operation"));
+                return CompletableFuture.failedFuture(new IllegalStateException("Unknown operation: " + operation));
         }
     }
 }
