@@ -19,12 +19,14 @@ public class DynamicWorldHandler extends WorldHandler {
     @Override
     public CompletableFuture<Void> loadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-        
+
         CompletableFuture.runAsync(() -> {
             Path worldPath = storagePath.resolve(worldName);
-            if (Files.exists(worldPath) && !Files.exists(plugin.getServer().getWorldContainer().toPath().resolve(worldName))) {
+            Path targetPath = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
+
+            if (Files.exists(worldPath) && !Files.exists(targetPath)) {
                 try {
-                    moveDirectory(worldPath, plugin.getServer().getWorldContainer().toPath().resolve(worldName));
+                    moveDirectory(worldPath, targetPath);
                 } catch (IOException e) {
                     future.completeExceptionally(e);
                 }
@@ -49,12 +51,14 @@ public class DynamicWorldHandler extends WorldHandler {
             Path worldPath = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
             Path targetPath = storagePath.resolve(worldName);
 
-            try {
-                moveDirectory(worldPath, targetPath);
-                future.complete(null);
-            } catch (IOException e) {
-                future.completeExceptionally(e);
+            if (Files.exists(worldPath) && !Files.exists(targetPath)) {
+                try {
+                    moveDirectory(worldPath, targetPath);
+                } catch (IOException e) {
+                    future.completeExceptionally(e);
+                }
             }
+            future.complete(null);
         }).exceptionally(e -> {
             future.completeExceptionally(e);
             return null;
@@ -69,22 +73,25 @@ public class DynamicWorldHandler extends WorldHandler {
 
         // First, ensure the world is unloaded properly
         unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
-            try {
-                Path worldDirectory = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
-                Path storageDirectory = storagePath.resolve(worldName);
+            Path worldPath = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
+            Path targetPath = storagePath.resolve(worldName);
 
-                if (Files.exists(worldDirectory)) {
-                    deleteDirectory(worldDirectory);
+            if (Files.exists(worldPath)) {
+                try {
+                    deleteDirectory(worldPath);
+                } catch (IOException e) {
+                    future.completeExceptionally(e);
                 }
-
-                if (Files.exists(storageDirectory)) {
-                    deleteDirectory(storageDirectory);
-                }
-
-                future.complete(null);
-            } catch (IOException e) {
-                future.completeExceptionally(e);
             }
+
+            if (Files.exists(targetPath)) {
+                try {
+                    deleteDirectory(targetPath);
+                } catch (IOException e) {
+                    future.completeExceptionally(e);
+                }
+            }
+            future.complete(null);
         }).exceptionally(e -> {
             future.completeExceptionally(e);
             return null;

@@ -17,11 +17,15 @@ public class IslandProtectionListener implements Listener {
     private final ConfigHandler config;
     private final CacheHandler cacheHandler;
     private final int halfSize;
+    private final int islandCenterX;
+    private final int islandCenterZ;
 
     public IslandProtectionListener(ConfigHandler config, CacheHandler cacheHandler) {
         this.config = config;
         this.cacheHandler = cacheHandler;
         this.halfSize = config.getIslandSize() / 2;
+        this.islandCenterX = 0;
+        this.islandCenterZ = 0;
     }
 
     @EventHandler
@@ -54,9 +58,6 @@ public class IslandProtectionListener implements Listener {
         }
 
         UUID islandUuid = UUID.fromString(location.getWorld().getName().substring(7));
-
-        int islandCenterX = 0;
-        int islandCenterZ = 0;
 
         // Assuming islandCenter and halfSize are cached or constants
         int minX = islandCenterX - halfSize;

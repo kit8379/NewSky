@@ -11,11 +11,15 @@ public class IslandBoundaryListener implements Listener {
     private final ConfigHandler config;
     private final int islandSize;
     private final int bufferSize;
+    private final int centerX;
+    private final int centerZ;
 
     public IslandBoundaryListener(ConfigHandler config) {
         this.config = config;
         this.islandSize = config.getIslandSize();
         this.bufferSize = config.getBufferSize();
+        this.centerX = 0;
+        this.centerZ = 0;
     }
 
     @EventHandler
@@ -29,9 +33,6 @@ public class IslandBoundaryListener implements Listener {
         if (to.getWorld() == null || !to.getWorld().getName().startsWith("island-")) {
             return;
         }
-
-        int centerX = 0;
-        int centerZ = 0;
 
         int minX = centerX - (islandSize / 2) - bufferSize;
         int maxX = centerX + (islandSize / 2) + bufferSize;

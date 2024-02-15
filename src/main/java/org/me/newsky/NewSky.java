@@ -149,7 +149,7 @@ public class NewSky extends JavaPlugin {
     private void initalizeheartBeatHandler() {
         info("Start connecting to Heart Beat system now...");
         try {
-            heartBeatHandler = new HeartBeatHandler(this, redisHandler, serverID, config.isLobby());
+            heartBeatHandler = new HeartBeatHandler(this, config, redisHandler, serverID);
             heartBeatHandler.startHeartBeat();
             info("Heart Beat started!");
         } catch (Exception e) {
@@ -204,8 +204,9 @@ public class NewSky extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new WorldEventListener(this), this);
         getServer().getPluginManager().registerEvents(new PlayerJoinEventListener(this, teleportManager), this);
         getServer().getPluginManager().registerEvents(new IslandProtectionListener(config, cacheHandler), this);
-        getServer().getPluginManager().registerEvents(new IslandPvPListener(config, cacheHandler), this);
         getServer().getPluginManager().registerEvents(new IslandBoundaryListener(config), this);
+        getServer().getPluginManager().registerEvents(new IslandPvPListener(config, cacheHandler), this);
+        getServer().getPluginManager().registerEvents(new IslandLockListener(config, cacheHandler), this);
     }
 
     private void registerCommands() {
@@ -241,7 +242,7 @@ public class NewSky extends JavaPlugin {
 
     public void debug(String message) {
         if (config.isDebug()) {
-            getLogger().info("§bDEBUG: " + message);
+            getLogger().info(config.getDebugPrefix() + message);
         }
     }
 }

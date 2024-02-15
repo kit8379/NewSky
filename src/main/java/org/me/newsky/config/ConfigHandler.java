@@ -78,6 +78,10 @@ public class ConfigHandler {
         return config.getString("server.name");
     }
 
+    public int getHeartbeatInterval() {
+        return config.getInt("server.heartbeat-interval");
+    }
+
     public boolean isLobby() {
         return config.getBoolean("server.lobby");
     }
@@ -106,10 +110,6 @@ public class ConfigHandler {
         return config.getInt("island.spawn.x");
     }
 
-    public String getCannotLeaveIslandBoundaryMessage() {
-        return Utils.colorize(config.getString("messages.cannot-leave-island-boundary"));
-    }
-
     public int getIslandSpawnY() {
         return config.getInt("island.spawn.y");
     }
@@ -124,6 +124,14 @@ public class ConfigHandler {
 
     public float getIslandSpawnPitch() {
         return (float) config.getDouble("island.spawn.pitch");
+    }
+
+    public String getDebugPrefix() {
+        return Utils.colorize(config.getString("debug-prefix"));
+    }
+
+    public String getCannotLeaveIslandBoundaryMessage() {
+        return Utils.colorize(config.getString("messages.cannot-leave-island-boundary"));
     }
 
     public String getIslandNotFoundInServerMessage() {

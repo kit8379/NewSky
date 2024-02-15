@@ -4,6 +4,7 @@ import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 
@@ -46,13 +47,15 @@ public class StaticWorldHandler extends WorldHandler {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
         unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
-            try {
-                Path worldDirectory = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
-                deleteDirectory(worldDirectory);
-                future.complete(null);
-            } catch (IOException e) {
-                future.completeExceptionally(e);
+            Path worldPath = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
+            if (Files.exists(worldPath)) {
+                try {
+                    deleteDirectory(worldPath);
+                } catch (IOException e) {
+                    future.completeExceptionally(e);
+                }
             }
+            future.complete(null);
         }).exceptionally(e -> {
             future.completeExceptionally(e);
             return null;

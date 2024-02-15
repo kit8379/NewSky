@@ -47,8 +47,14 @@ public abstract class BaseAddMemberCommand {
         }
 
         // Set the spawn location
-        String spawnLocation = "0,100,0,100,100";
-        // Set the role
+        int spawnX = config.getIslandSpawnX();
+        int spawnY = config.getIslandSpawnY();
+        int spawnZ = config.getIslandSpawnZ();
+        float spawnYaw = config.getIslandSpawnYaw();
+        float spawnPitch = config.getIslandSpawnPitch();
+        String spawnLocation = spawnX + "," + spawnY + "," + spawnZ + "," + spawnYaw + "," + spawnPitch;
+
+        // Set the member role
         String role = "member";
 
         // Add the target player to the island

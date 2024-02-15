@@ -22,6 +22,7 @@ debug: false
 server:
   name: "server1"
   lobby: false
+  heartbeat-interval: 5 # seconds
   mode: "dynamic"
   storage-path: "/path/to/storage"
 
@@ -37,6 +38,8 @@ island:
     pitch: 0
 
 messages:
+  debug-prefix: "&7[&eNewSky-Debug&7] &b"
+  cannot-leave-island-boundary: "&cYou cannot leave the island boundary."
   island-not-found-in-server: "&cIsland not found on this server."
   no-active-server: "&cNo active servers available."
   island-not-loaded: "&cIsland is not loaded."

@@ -39,9 +39,16 @@ public abstract class BaseCreateCommand {
 
         // Generate a new island UUID
         UUID islandUuid = UUID.randomUUID();
+
         // Set the island spawn location
-        String spawnLocation = "0,132,0,100,100";
-        // Set the island owner role
+        int spawnX = config.getIslandSpawnX();
+        int spawnY = config.getIslandSpawnY();
+        int spawnZ = config.getIslandSpawnZ();
+        float spawnYaw = config.getIslandSpawnYaw();
+        float spawnPitch = config.getIslandSpawnPitch();
+        String spawnLocation = spawnX + "," + spawnY + "," + spawnZ + "," + spawnYaw + "," + spawnPitch;
+
+        // Set the owner role
         String role = "owner";
 
         // Run the island creation future

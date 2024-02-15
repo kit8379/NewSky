@@ -99,8 +99,8 @@ public class CacheHandler {
     public void createIsland(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             Map<String, String> islandData = new HashMap<>();
-            islandData.put("lock", "false");  // Adding default lock status
-            islandData.put("pvp", "false");  // Adding default pvp status
+            islandData.put("lock", "false");
+            islandData.put("pvp", "false");
 
             jedis.hmset("island_data:" + islandUuid.toString(), islandData);
         }

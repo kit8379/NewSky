@@ -46,7 +46,7 @@ public abstract class BaseDelWarpCommand {
         }
 
         // Delete the warp point
-        cacheHandler.deleteWarpPoint(islandUuid, targetUuid, warpName);
+        cacheHandler.deleteWarpPoint(targetUuid, islandUuid, warpName);
 
         // Send the success message
         sender.sendMessage(getDelWarpSuccessMessage(args));
