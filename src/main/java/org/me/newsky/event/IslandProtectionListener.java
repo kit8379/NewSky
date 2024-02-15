@@ -8,22 +8,27 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.config.ConfigHandler;
 
 import java.util.UUID;
 
 public class IslandProtectionListener implements Listener {
 
+    private final ConfigHandler config;
     private final CacheHandler cacheHandler;
+    private final int halfSize;
 
-    public IslandProtectionListener(CacheHandler cacheHandler) {
+    public IslandProtectionListener(ConfigHandler config, CacheHandler cacheHandler) {
+        this.config = config;
         this.cacheHandler = cacheHandler;
+        this.halfSize = config.getIslandSize() / 2;
     }
 
     @EventHandler
     public void onBlockBreak(BlockBreakEvent event) {
         if (!canPlayerEdit(event.getPlayer(), event.getBlock().getLocation())) {
             event.setCancelled(true);
-            event.getPlayer().sendMessage("§cYou cannot break blocks that not in your island.");
+            event.getPlayer().sendMessage(config.getCannotEditIslandMessage());
         }
     }
 
@@ -31,7 +36,7 @@ public class IslandProtectionListener implements Listener {
     public void onBlockPlace(BlockPlaceEvent event) {
         if (!canPlayerEdit(event.getPlayer(), event.getBlockPlaced().getLocation())) {
             event.setCancelled(true);
-            event.getPlayer().sendMessage("§cYou cannot place blocks that not in your island.");
+            event.getPlayer().sendMessage(config.getCannotEditIslandMessage());
         }
     }
 
@@ -39,7 +44,7 @@ public class IslandProtectionListener implements Listener {
     public void onPlayerInteract(PlayerInteractEvent event) {
         if (event.getClickedBlock() != null && !canPlayerEdit(event.getPlayer(), event.getClickedBlock().getLocation())) {
             event.setCancelled(true);
-            event.getPlayer().sendMessage("§cYou cannot interact with blocks that not in your island.");
+            event.getPlayer().sendMessage(config.getCannotEditIslandMessage());
         }
     }
 
@@ -52,7 +57,6 @@ public class IslandProtectionListener implements Listener {
 
         int islandCenterX = 0;
         int islandCenterZ = 0;
-        int halfSize = 50; // Half the size of the island (100x100 total)
 
         // Assuming islandCenter and halfSize are cached or constants
         int minX = islandCenterX - halfSize;

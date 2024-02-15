@@ -3,21 +3,21 @@ package org.me.newsky.command.admin;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.command.BaseLockCommand;
+import org.me.newsky.command.BasePvpCommand;
 import org.me.newsky.config.ConfigHandler;
 
 import java.util.UUID;
 
-public class AdminLockCommand extends BaseLockCommand {
+public class AdminPvpCommand extends BasePvpCommand {
 
-    public AdminLockCommand(ConfigHandler config, CacheHandler cacheHandler) {
+    public AdminPvpCommand(ConfigHandler config, CacheHandler cacheHandler) {
         super(config, cacheHandler);
     }
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage("§eUsage: §b/islandadmin create <player>");
+            sender.sendMessage("§eUsage: §b/islandadmin pvp <player>");
             return false;
         }
         return true;
@@ -30,16 +30,16 @@ public class AdminLockCommand extends BaseLockCommand {
 
     @Override
     protected String getNoIslandMessage(String[] args) {
-        return "§cPlayer " + args[1] + " does not have an island";
+        return "Player does not have an island";
     }
 
     @Override
-    protected String getIslandUnLockSuccessMessage(String[] args) {
-        return "§aIsland unlocked for " + args[1] + "'s island";
+    protected String getIslandPvpEnableSuccessMessage(String[] args) {
+        return "Island PvP enabled for " + args[1] + "'s island";
     }
 
     @Override
-    protected String getIslandLockSuccessMessage(String[] args) {
-        return "§aIsland locked for " + args[1] + "'s island";
+    protected String getIslandPvPDisableSuccessMessage(String[] args) {
+        return "Island PvP disabled for " + args[1] + "'s island";
     }
 }

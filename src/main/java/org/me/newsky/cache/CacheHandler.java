@@ -100,6 +100,7 @@ public class CacheHandler {
         try (Jedis jedis = redisHandler.getJedis()) {
             Map<String, String> islandData = new HashMap<>();
             islandData.put("lock", "false");  // Adding default lock status
+            islandData.put("pvp", "false");  // Adding default pvp status
 
             jedis.hmset("island_data:" + islandUuid.toString(), islandData);
         }
@@ -137,6 +138,13 @@ public class CacheHandler {
             jedis.hset("island_data:" + islandUuid.toString(), "lock", String.valueOf(lock));
         }
         databaseHandler.updateIslandLock(islandUuid, lock);
+    }
+
+    public void updateIslandPvp(UUID islandUuid, boolean pvp) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.hset("island_data:" + islandUuid.toString(), "pvp", String.valueOf(pvp));
+        }
+        databaseHandler.updateIslandPvp(islandUuid, pvp);
     }
 
     public void deleteIsland(UUID islandUuid) {
@@ -177,6 +185,16 @@ public class CacheHandler {
         try (Jedis jedis = redisHandler.getJedis()) {
             String lock = jedis.hget("island_data:" + islandUuid.toString(), "lock");
             return Boolean.parseBoolean(lock);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean getIslandPvp(UUID islandUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            String pvp = jedis.hget("island_data:" + islandUuid.toString(), "pvp");
+            return Boolean.parseBoolean(pvp);
         } catch (Exception e) {
             e.printStackTrace();
             return false;

@@ -22,7 +22,7 @@ public class WorldEventListener implements Listener {
         String worldName = world.getName();
         if (worldName.startsWith("island-")) {
             world.setKeepSpawnInMemory(false);
-            plugin.debug("World " + worldName + " set to not keep spawn in memory.");
+            plugin.debug("Island world " + worldName + " set to not keep spawn in memory.");
         }
     }
 }

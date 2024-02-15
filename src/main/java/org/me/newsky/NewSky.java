@@ -6,10 +6,7 @@ import org.me.newsky.command.admin.AdminCommandExecutor;
 import org.me.newsky.command.player.IslandCommandExecutor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
-import org.me.newsky.event.IslandBoundaryListener;
-import org.me.newsky.event.IslandProtectionListener;
-import org.me.newsky.event.PlayerJoinEventListener;
-import org.me.newsky.event.WorldEventListener;
+import org.me.newsky.event.*;
 import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.island.DynamicIslandHandler;
 import org.me.newsky.island.IslandHandler;
@@ -87,12 +84,12 @@ public class NewSky extends JavaPlugin {
     private void initializeWorldHandler() {
         info("Starting WorldHandler");
         try {
-            if (config.getWorldMode().equals("static")) {
+            if (config.getServerMode().equals("static")) {
                 info("Using static world mode.");
                 worldHandler = new StaticWorldHandler(this, config);
             }
 
-            if (config.getWorldMode().equals("dynamic")) {
+            if (config.getServerMode().equals("dynamic")) {
                 info("Using dynamic world mode. World storage path: " + config.getStoragePath() + " .");
                 worldHandler = new DynamicWorldHandler(this, config, Path.of(config.getStoragePath()));
             }
@@ -152,7 +149,7 @@ public class NewSky extends JavaPlugin {
     private void initalizeheartBeatHandler() {
         info("Start connecting to Heart Beat system now...");
         try {
-            heartBeatHandler = new HeartBeatHandler(this, redisHandler, serverID, config.getServerMode());
+            heartBeatHandler = new HeartBeatHandler(this, redisHandler, serverID, config.isLobby());
             heartBeatHandler.startHeartBeat();
             info("Heart Beat started!");
         } catch (Exception e) {
@@ -187,11 +184,11 @@ public class NewSky extends JavaPlugin {
     private void initializeIslandHandler() {
         info("Starting island handler");
         try {
-            if (config.getWorldMode().equals("static")) {
+            if (config.getServerMode().equals("static")) {
                 islandHandler = new StaticIslandHandler(this, config, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
             }
 
-            if (config.getWorldMode().equals("dynamic")) {
+            if (config.getServerMode().equals("dynamic")) {
                 islandHandler = new DynamicIslandHandler(this, config, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
             }
 
@@ -206,8 +203,9 @@ public class NewSky extends JavaPlugin {
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(new WorldEventListener(this), this);
         getServer().getPluginManager().registerEvents(new PlayerJoinEventListener(this, teleportManager), this);
-        getServer().getPluginManager().registerEvents(new IslandProtectionListener(cacheHandler), this);
-        getServer().getPluginManager().registerEvents(new IslandBoundaryListener(), this);
+        getServer().getPluginManager().registerEvents(new IslandProtectionListener(config, cacheHandler), this);
+        getServer().getPluginManager().registerEvents(new IslandPvPListener(config, cacheHandler), this);
+        getServer().getPluginManager().registerEvents(new IslandBoundaryListener(config), this);
     }
 
     private void registerCommands() {

@@ -69,24 +69,60 @@ public class ConfigHandler {
         return config.getInt("redis.database");
     }
 
+    public boolean isDebug() {
+        return config.getBoolean("debug");
+    }
+
     public String getServerName() {
         return config.getString("server.name");
+    }
+
+    public boolean isLobby() {
+        return config.getBoolean("server.lobby");
     }
 
     public String getServerMode() {
         return config.getString("server.mode");
     }
 
-    public boolean isDebug() {
-        return config.getBoolean("debug");
-    }
-
-    public String getWorldMode() {
-        return config.getString("island.mode");
-    }
-
     public String getStoragePath() {
-        return config.getString("island.storage-path");
+        return config.getString("server.storage-path");
+    }
+
+    public String getTemplateWorldName() {
+        return config.getString("world.template");
+    }
+
+    public int getIslandSize() {
+        return config.getInt("island.size");
+    }
+
+    public int getBufferSize() {
+        return config.getInt("island.buffer");
+    }
+
+    public int getIslandSpawnX() {
+        return config.getInt("island.spawn.x");
+    }
+
+    public String getCannotLeaveIslandBoundaryMessage() {
+        return config.getString("messages.cannot-leave-island-boundary");
+    }
+
+    public int getIslandSpawnY() {
+        return config.getInt("island.spawn.y");
+    }
+
+    public int getIslandSpawnZ() {
+        return config.getInt("island.spawn.z");
+    }
+
+    public float getIslandSpawnYaw() {
+        return (float) config.getDouble("island.spawn.yaw");
+    }
+
+    public float getIslandSpawnPitch() {
+        return (float) config.getDouble("island.spawn.pitch");
     }
 
     public String getIslandNotFoundInServerMessage() {
@@ -103,5 +139,13 @@ public class ConfigHandler {
 
     public String getIslandAlreadyLoadedMessage() {
         return config.getString("messages.island-already-loaded");
+    }
+
+    public String getCannotEditIslandMessage() {
+        return config.getString("messages.cannot-edit-island");
+    }
+
+    public String getIslandPvpDisabledMessage() {
+        return config.getString("messages.island-pvp-disabled");
     }
 }

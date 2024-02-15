@@ -78,7 +78,7 @@ public class DatabaseHandler {
     }
 
     private void createIslandDataTable() {
-        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS islands (" + "island_uuid VARCHAR(56) PRIMARY KEY, " + "`lock` BOOLEAN NOT NULL DEFAULT FALSE);").join();
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS islands (" + "island_uuid VARCHAR(56) PRIMARY KEY, " + "`lock` BOOLEAN NOT NULL DEFAULT FALSE, " + "pvp BOOLEAN NOT NULL DEFAULT FALSE);").join();
     }
 
     private void createIslandPlayersTable() {
@@ -151,6 +151,13 @@ public class DatabaseHandler {
             statement.setBoolean(1, lock);
             statement.setString(2, islandUuid.toString());
         }, "UPDATE islands SET lock = ? WHERE island_uuid = ?;");
+    }
+
+    public void updateIslandPvp(UUID islandUuid, boolean pvp) {
+        executeUpdate(statement -> {
+            statement.setBoolean(1, pvp);
+            statement.setString(2, islandUuid.toString());
+        }, "UPDATE islands SET pvp = ? WHERE island_uuid = ?;");
     }
 
     public void deleteIsland(UUID islandUuid) {

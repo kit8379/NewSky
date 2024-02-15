@@ -3,14 +3,14 @@ package org.me.newsky.command.player;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.command.BaseLockCommand;
+import org.me.newsky.command.BasePvpCommand;
 import org.me.newsky.config.ConfigHandler;
 
 import java.util.UUID;
 
-public class IslandLockCommand extends BaseLockCommand {
+public class IslandPvpCommand extends BasePvpCommand {
 
-    public IslandLockCommand(ConfigHandler config, CacheHandler cacheHandler) {
+    public IslandPvpCommand(ConfigHandler config, CacheHandler cacheHandler) {
         super(config, cacheHandler);
     }
 
@@ -30,12 +30,12 @@ public class IslandLockCommand extends BaseLockCommand {
     }
 
     @Override
-    protected String getIslandUnLockSuccessMessage(String[] args) {
-        return "Island unlocked for your island";
+    protected String getIslandPvpEnableSuccessMessage(String[] args) {
+        return "Island PvP enabled for your island";
     }
 
     @Override
-    protected String getIslandLockSuccessMessage(String[] args) {
-        return "Island locked for your island";
+    protected String getIslandPvPDisableSuccessMessage(String[] args) {
+        return "Island PvP disabled for your island";
     }
 }

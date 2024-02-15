@@ -24,7 +24,7 @@ public abstract class WorldHandler {
     }
 
     protected void copyTemplateWorld(String worldName) throws IOException {
-        Path sourceDirectory = plugin.getDataFolder().toPath().resolve("template/skyblock");
+        Path sourceDirectory = plugin.getDataFolder().toPath().resolve("template/" + config.getTemplateWorldName());
         Path targetDirectory = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
         copyDirectory(sourceDirectory, targetDirectory);
     }
@@ -35,7 +35,7 @@ public abstract class WorldHandler {
         Bukkit.getScheduler().runTask(plugin, () -> {
             World world = Bukkit.getWorld(worldName);
             if (world == null) {
-                WorldCreator worldCreator = new WorldCreator(worldName).generator(new VoidGenerator());
+                WorldCreator worldCreator = new WorldCreator(worldName).generator(new VoidGenerator(config.getIslandSpawnX(), config.getIslandSpawnY(), config.getIslandSpawnZ(), config.getIslandSpawnYaw(), config.getIslandSpawnPitch()));
                 Bukkit.createWorld(worldCreator);
                 future.complete(null);
             } else {

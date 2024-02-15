@@ -1,41 +1,46 @@
 DB:
-  host: "127.0.0.1"
+  host: "localhost"
   port: 3306
   database: "newsky"
-  username: "test"
-  password: "test"
+  username: "root"
+  password: "password"
   properties: "?autoReconnect=true&useSSL=false"
   max-pool-size: 10
   connection-timeout: 30000
   cache-prep-statements: "true"
-  prep-stmt-cache-size: "250"
-  prep-stmt-cache-sql-limit: "2048"
+  prep-stmt-cache-size: 250
+  prep-stmt-cache-sql-limit: 2048
 
 redis:
-  host: "127.0.0.1"
+  host: "localhost"
   port: 6379
-  password: "your_redis_password"
+  password: ""
   database: 0
 
+debug: false
+
 server:
-  name: "server1" # Unique name for your server
-  mode: "island" # lobby or island
+  name: "server1"
+  lobby: false
+  mode: "dynamic"
+  storage-path: "/path/to/storage"
 
 island:
-  mode: "dynamic" # static or dynamic
-  storage-path: "/home/your_user/skyblock/worlds" # Path to store world files
-  generator: "VoidWorld" # Generator name: VoidWorld, SeaWorld
-  template-world: "skyblock" # Template name: skyblock, acidisland
-  center: "0,132,0,100,100" # Center of the island
-  spawn: "0,132,0,100,100" # Spawn location
-  size: 100 # Size of the island
-  border-buffer: 10 # Buffer for the border
-
-debug: false # Enable debug mode
+  template: "skyblock"
+  size: 100
+  buffer: 10
+  spawn:
+    x: 0
+    y: 64
+    z: 0
+    yaw: 0
+    pitch: 0
 
 messages:
-  island-not-found-in-server: "&cIsland not found in any active server."
-  no-active-server: "&cNo active server is available. Please try again later"
-  island-not-loaded: "&cIsland not loaded."
-  island-already-loaded: "&cIsland already loaded."
-
+  island-not-found-in-server: "Island not found in any server."
+  no-active-server: "No active servers available."
+  island-not-loaded: "Island is not loaded."
+  island-already-loaded: "Island is already loaded."
+  cannot-edit-island: "You cannot edit this island."
+  cannot-leave-island-boundary: "You cannot leave the island boundary."
+  island-pvp-disabled: "PvP is disabled in this island."
