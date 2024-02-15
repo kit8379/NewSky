@@ -18,7 +18,7 @@ public class IslandWarpCommand extends BaseWarpCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2 || args.length > 3) {
-            sender.sendMessage("§eUsage: §b/island warp <player> [warpName]");
+            sender.sendMessage(config.getPlayerWarpUsageMessage());
             return false;
         }
         return true;
@@ -32,10 +32,5 @@ public class IslandWarpCommand extends BaseWarpCommand {
     @Override
     protected int getTargetWarpArgIndex() {
         return 2;
-    }
-
-    @Override
-    protected String getNoWarpMessage(String[] args, String warpName) {
-        return "§cPlayer " + args[1] + " does not have a warp named " + warpName;
     }
 }

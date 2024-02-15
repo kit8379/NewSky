@@ -28,7 +28,7 @@ public abstract class BaseHomeCommand {
 
     public boolean execute(CommandSender sender, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage("Only players can use this command.");
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
             return true;
         }
 
@@ -45,12 +45,6 @@ public abstract class BaseHomeCommand {
             return true;
         }
         UUID islandUuid = islandUuidOpt.get();
-
-        Set<String> homeNames = cacheHandler.getHomeNames(islandUuid, targetUuid);
-        if (homeNames.isEmpty()) {
-            sender.sendMessage(getNoHomesMessage(args));
-            return true;
-        }
 
         String homeName = args.length > getTargetHomeArgIndex() ? args[getTargetHomeArgIndex()] : "default";
         Optional<String> homeLocationOpt = cacheHandler.getHomeLocation(islandUuid, targetUuid, homeName);
@@ -105,8 +99,6 @@ public abstract class BaseHomeCommand {
     protected abstract int getTargetHomeArgIndex();
 
     protected abstract String getNoIslandMessage(String[] args);
-
-    protected abstract String getNoHomesMessage(String[] args);
 
     protected abstract String getNoHomeMessage(String[] args, String homeName);
 

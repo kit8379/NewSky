@@ -29,7 +29,9 @@ public class IslandCommandExecutor implements CommandExecutor, TabCompleter {
     private final IslandDelWarpCommand delWarpCommand;
     private final IslandInfoCommand infoCommand;
     private final IslandLockCommand lockCommand;
-    private final List<String> subCommands = Arrays.asList("addmember", "removemember", "create", "delete", "home", "sethome", "delhome", "warp", "setwarp", "delwarp", "lock", "info");
+
+    private final IslandPvpCommand pvpCommand;
+    private final List<String> subCommands = Arrays.asList("addmember", "removemember", "create", "delete", "home", "sethome", "delhome", "warp", "setwarp", "delwarp", "info", "lock", "pvp");
 
     public IslandCommandExecutor(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
         this.config = config;
@@ -45,20 +47,26 @@ public class IslandCommandExecutor implements CommandExecutor, TabCompleter {
         this.delWarpCommand = new IslandDelWarpCommand(config, cacheHandler);
         this.infoCommand = new IslandInfoCommand(config, cacheHandler);
         this.lockCommand = new IslandLockCommand(config, cacheHandler);
+        this.pvpCommand = new IslandPvpCommand(config, cacheHandler);
     }
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage("§c§l--- Island Help ---");
-            sender.sendMessage("§6Usage: §e/island <subcommand> [arguments]");
-            sender.sendMessage("§6Available commands:");
-            sender.sendMessage("§eaddmember §7- Adds a member to an island.");
-            sender.sendMessage("§eremovemember §7- Removes a member from an island.");
-            sender.sendMessage("§ecreate §7- Creates an island for a player.");
-            sender.sendMessage("§edelete §7- Deletes an island.");
-            sender.sendMessage("§einfo §7- Displays information about an island.");
-            sender.sendMessage("§c§l-------------------------");
+            sender.sendMessage(config.getPlayerCommandHelpMessage());
+            sender.sendMessage(config.getPlayerAddMemberUsageMessage());
+            sender.sendMessage(config.getPlayerRemoveMemberUsageMessage());
+            sender.sendMessage(config.getPlayerCreateUsageMessage());
+            sender.sendMessage(config.getPlayerDeleteUsageMessage());
+            sender.sendMessage(config.getPlayerHomeUsageMessage());
+            sender.sendMessage(config.getPlayerSetHomeUsageMessage());
+            sender.sendMessage(config.getPlayerDelHomeUsageMessage());
+            sender.sendMessage(config.getPlayerWarpUsageMessage());
+            sender.sendMessage(config.getPlayerSetWarpUsageMessage());
+            sender.sendMessage(config.getPlayerDelWarpUsageMessage());
+            sender.sendMessage(config.getPlayerInfoUsageMessage());
+            sender.sendMessage(config.getPlayerLockUsageMessage());
+            sender.sendMessage(config.getPlayerPvpUsageMessage());
             return true;
         }
 
@@ -89,6 +97,8 @@ public class IslandCommandExecutor implements CommandExecutor, TabCompleter {
                 return infoCommand.execute(sender, args);
             case "lock":
                 return lockCommand.execute(sender, args);
+            case "pvp":
+                return pvpCommand.execute(sender, args);
             default:
                 sender.sendMessage("§cUnknown subcommand: " + subCommand);
                 return true;

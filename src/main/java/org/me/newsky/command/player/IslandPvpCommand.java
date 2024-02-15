@@ -26,16 +26,16 @@ public class IslandPvpCommand extends BasePvpCommand {
 
     @Override
     protected String getNoIslandMessage(String[] args) {
-        return "You do not have an island";
+        return config.getPlayerNoIslandMessage();
     }
 
     @Override
     protected String getIslandPvpEnableSuccessMessage(String[] args) {
-        return "Island PvP enabled for your island";
+        return config.getPlayerPvpEnableSuccessMessage();
     }
 
     @Override
     protected String getIslandPvPDisableSuccessMessage(String[] args) {
-        return "Island PvP disabled for your island";
+        return config.getPlayerPvpDisableSuccessMessage();
     }
 }

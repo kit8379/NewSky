@@ -19,12 +19,6 @@ public abstract class BaseDelWarpCommand {
     }
 
     public boolean execute(CommandSender sender, String[] args) {
-        // Check if the sender is a player
-        if (!(sender instanceof Player)) {
-            sender.sendMessage("Only players can use this command.");
-            return true;
-        }
-
         // Check if the command arguments are valid
         if (!validateArgs(sender, args)) {
             return true;

@@ -18,7 +18,7 @@ public class IslandHomeCommand extends BaseHomeCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 1 || args.length > 2) {
-            sender.sendMessage("§eUsage: §b/island home [homeName]");
+            sender.sendMessage(config.getPlayerHomeUsageMessage());
             return false;
         }
         return true;
@@ -36,21 +36,16 @@ public class IslandHomeCommand extends BaseHomeCommand {
 
     @Override
     protected String getNoIslandMessage(String[] args) {
-        return "§cYou do not have an island.";
-    }
-
-    @Override
-    protected String getNoHomesMessage(String[] args) {
-        return "§cYou do not have any island homes.";
+        return config.getPlayerNoIslandMessage();
     }
 
     @Override
     protected String getNoHomeMessage(String[] args, String homeName) {
-        return "§cYou do not have a home named " + homeName + ".";
+        return config.getPlayerNoHomeMessage(homeName);
     }
 
     @Override
     protected String getIslandHomeSuccessMessage(String homeName) {
-        return "§aTeleported to your island home: " + homeName + ".";
+        return config.getPlayerHomeSuccessMessage(homeName);
     }
 }

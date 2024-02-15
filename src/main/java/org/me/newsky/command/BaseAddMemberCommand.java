@@ -42,7 +42,7 @@ public abstract class BaseAddMemberCommand {
 
         // Check if the target player is already a member of the island
         if (cacheHandler.getIslandMembers(islandUuid).contains(targetUuid)) {
-            sender.sendMessage(targetAdd.getName() + " is already a member of the island.");
+            sender.sendMessage(config.getIslandMemberExistsMessage(targetAdd.getName()));
             return true;
         }
 

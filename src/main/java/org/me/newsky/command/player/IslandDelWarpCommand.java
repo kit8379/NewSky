@@ -17,7 +17,7 @@ public class IslandDelWarpCommand extends BaseDelWarpCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length != 2) {
-            sender.sendMessage("§eUsage: §b/island delwarp <warpName>");
+            sender.sendMessage(config.getPlayerDelWarpUsageMessage());
             return false;
         }
         return true;
@@ -35,16 +35,16 @@ public class IslandDelWarpCommand extends BaseDelWarpCommand {
 
     @Override
     protected String getNoIslandMessage(String[] args) {
-        return "You do not have an island.";
+        return config.getPlayerNoIslandMessage();
     }
 
     @Override
     protected String getNoWarpMessage(String[] args) {
-        return "You do not have a warp point named " + args[1] + ".";
+        return config.getPlayerNoWarpMessage(args[1]);
     }
 
     @Override
     protected String getDelWarpSuccessMessage(String[] args) {
-        return "Warp point '" + args[1] + "' successfully deleted.";
+        return config.getPlayerDelWarpSuccessMessage(args[1]);
     }
 }

@@ -17,7 +17,7 @@ public class AdminPvpCommand extends BasePvpCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage("§eUsage: §b/islandadmin pvp <player>");
+            sender.sendMessage(config.getAdminPvpUsageMessage());
             return false;
         }
         return true;
@@ -30,16 +30,16 @@ public class AdminPvpCommand extends BasePvpCommand {
 
     @Override
     protected String getNoIslandMessage(String[] args) {
-        return "Player does not have an island";
+        return config.getAdminNoIslandMessage(args[1]);
     }
 
     @Override
     protected String getIslandPvpEnableSuccessMessage(String[] args) {
-        return "Island PvP enabled for " + args[1] + "'s island";
+        return config.getAdminPvpEnableSuccessMessage(args[1]);
     }
 
     @Override
     protected String getIslandPvPDisableSuccessMessage(String[] args) {
-        return "Island PvP disabled for " + args[1] + "'s island";
+        return config.getAdminPvpDisableSuccessMessage(args[1]);
     }
 }

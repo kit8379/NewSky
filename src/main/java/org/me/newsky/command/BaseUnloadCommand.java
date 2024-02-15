@@ -34,7 +34,7 @@ public abstract class BaseUnloadCommand {
         // Get the target player's island UUID
         Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
         if (islandUuidOpt.isEmpty()) {
-            sender.sendMessage(args[1] + " does not have an island.");
+            sender.sendMessage(config.getNoIslandMessage(args[1]));
             return true;
         }
         UUID islandUuid = islandUuidOpt.get();
@@ -49,7 +49,7 @@ public abstract class BaseUnloadCommand {
     protected void handleIslandUnloadFuture(CompletableFuture<Void> future, CommandSender sender, String[] args) {
         future.thenRun(() -> {
             // Send the success message
-            sender.sendMessage(args[1] + "'s island has been unloaded.");
+            sender.sendMessage(config.getIslandUnloadSuccessMessage(args[1]));
         }).exceptionally(ex -> {
             if (ex instanceof IllegalStateException) {
                 sender.sendMessage(ex.getMessage());

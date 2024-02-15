@@ -29,10 +29,11 @@ public class AdminCommandExecutor implements CommandExecutor, TabCompleter {
     private final AdminSetWarpCommand setWarpCommand;
     private final AdminDelWarpCommand delWarpCommand;
     private final AdminLockCommand lockCommand;
+    private final AdminPvpCommand pvpCommand;
     private final AdminLoadCommand loadCommand;
     private final AdminUnloadCommand unloadCommand;
     private final AdminReloadCommand reloadCommand;
-    private final List<String> subCommands = Arrays.asList("addmember", "removemember", "create", "delete", "home", "sethome", "delhome", "warp", "setwarp", "delwarp", "info", "lock", "load", "unload", "reload");
+    private final List<String> subCommands = Arrays.asList("addmember", "removemember", "create", "delete", "home", "sethome", "delhome", "warp", "setwarp", "delwarp", "info", "lock", "pvp", "load", "unload", "reload");
 
     public AdminCommandExecutor(NewSky plugin, ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
         this.config = config;
@@ -48,6 +49,7 @@ public class AdminCommandExecutor implements CommandExecutor, TabCompleter {
         this.delWarpCommand = new AdminDelWarpCommand(config, cacheHandler);
         this.infoCommand = new AdminInfoCommand(config, cacheHandler);
         this.lockCommand = new AdminLockCommand(config, cacheHandler);
+        this.pvpCommand = new AdminPvpCommand(config, cacheHandler);
         this.reloadCommand = new AdminReloadCommand(plugin, config);
         this.loadCommand = new AdminLoadCommand(config, cacheHandler, islandHandler);
         this.unloadCommand = new AdminUnloadCommand(config, cacheHandler, islandHandler);
@@ -56,15 +58,23 @@ public class AdminCommandExecutor implements CommandExecutor, TabCompleter {
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
         if (args.length == 0) {
-            sender.sendMessage("§c§l--- Island Admin Help ---");
-            sender.sendMessage("§6Usage: §e/islandadmin <subcommand> [arguments]");
-            sender.sendMessage("§6Available commands:");
-            sender.sendMessage("§eaddmember §7- Adds a member to an island.");
-            sender.sendMessage("§eremovemember §7- Removes a member from an island.");
-            sender.sendMessage("§ecreate §7- Creates an island for a player.");
-            sender.sendMessage("§edelete §7- Deletes an island.");
-            sender.sendMessage("§einfo §7- Displays information about an island.");
-            sender.sendMessage("§c§l-------------------------");
+            sender.sendMessage(config.getAdminCommandHelpMessage());
+            sender.sendMessage(config.getAdminAddMemberUsageMessage());
+            sender.sendMessage(config.getAdminRemoveMemberUsageMessage());
+            sender.sendMessage(config.getAdminCreateUsageMessage());
+            sender.sendMessage(config.getAdminDeleteUsageMessage());
+            sender.sendMessage(config.getAdminHomeUsageMessage());
+            sender.sendMessage(config.getAdminSetHomeUsageMessage());
+            sender.sendMessage(config.getAdminDelHomeUsageMessage());
+            sender.sendMessage(config.getAdminWarpUsageMessage());
+            sender.sendMessage(config.getAdminSetWarpUsageMessage());
+            sender.sendMessage(config.getAdminDelWarpUsageMessage());
+            sender.sendMessage(config.getAdminInfoUsageMessage());
+            sender.sendMessage(config.getAdminLockUsageMessage());
+            sender.sendMessage(config.getAdminPvpUsageMessage());
+            sender.sendMessage(config.getAdminLoadUsageMessage());
+            sender.sendMessage(config.getAdminUnloadUsageMessage());
+            sender.sendMessage(config.getAdminReloadUsageMessage());
             return true;
         }
 
@@ -96,6 +106,8 @@ public class AdminCommandExecutor implements CommandExecutor, TabCompleter {
                 return infoCommand.execute(sender, args);
             case "lock":
                 return lockCommand.execute(sender, args);
+            case "pvp":
+                return pvpCommand.execute(sender, args);
             case "load":
                 return loadCommand.execute(sender, args);
             case "unload":

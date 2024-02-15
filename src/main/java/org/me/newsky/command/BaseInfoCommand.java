@@ -27,7 +27,7 @@ public abstract class BaseInfoCommand {
         // Check if the target player has an island
         Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
         if (islandUuidOpt.isEmpty()) {
-            sender.sendMessage("You have no island.");
+            sender.sendMessage(config.getNoIslandMessage(Bukkit.getOfflinePlayer(targetUuid).getName()));
             return true;
         }
         UUID islandUuid = islandUuidOpt.get();
@@ -35,7 +35,7 @@ public abstract class BaseInfoCommand {
         // Get the island owner's UUID
         Optional<UUID> ownerUuidOpt = cacheHandler.getIslandOwner(islandUuid);
         if (ownerUuidOpt.isEmpty()) {
-            sender.sendMessage("Your island has no owner.");
+            sender.sendMessage(config.getNoOwnerMessage());
             return true;
         }
         UUID ownerUuid = ownerUuidOpt.get();
@@ -47,15 +47,15 @@ public abstract class BaseInfoCommand {
         String membersString = buildMembersString(memberUuids);
 
         // Send the island info
-        sender.sendMessage("Island ID: " + islandUuid);
-        sender.sendMessage("Island Owner: " + Bukkit.getOfflinePlayer(ownerUuid).getName());
-        sender.sendMessage("Island Members: " + membersString);
+        sender.sendMessage(config.getIslandIDMessage(islandUuid.toString()));
+        sender.sendMessage(config.getIslandOwnerMessage(Bukkit.getOfflinePlayer(ownerUuid).getName()));
+        sender.sendMessage(config.getIslandMembersMessage(membersString));
 
         return true;
     }
 
     private String buildMembersString(Set<UUID> memberUuids) {
-        return memberUuids.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).collect(Collectors.joining(", "));
+        return memberUuids.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).collect(Collectors.joining("\n"));
     }
 
     protected abstract UUID getTargetUuid(CommandSender sender, String[] args);

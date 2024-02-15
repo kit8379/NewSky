@@ -26,16 +26,16 @@ public class IslandLockCommand extends BaseLockCommand {
 
     @Override
     protected String getNoIslandMessage(String[] args) {
-        return "You do not have an island";
+        return config.getPlayerNoIslandMessage();
     }
 
     @Override
     protected String getIslandUnLockSuccessMessage(String[] args) {
-        return "Island unlocked for your island";
+        return config.getPlayerUnLockSuccessMessage();
     }
 
     @Override
     protected String getIslandLockSuccessMessage(String[] args) {
-        return "Island locked for your island";
+        return config.getPlayerLockSuccessMessage();
     }
 }

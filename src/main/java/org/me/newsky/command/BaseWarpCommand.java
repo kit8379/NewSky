@@ -1,5 +1,6 @@
 package org.me.newsky.command;
 
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -28,7 +29,7 @@ public abstract class BaseWarpCommand {
 
     public boolean execute(CommandSender sender, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage("This command can only be run by a player.");
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
             return true;
         }
 
@@ -41,27 +42,22 @@ public abstract class BaseWarpCommand {
 
         Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
         if (islandUuidOpt.isEmpty()) {
-            sender.sendMessage("§c" + args[1] + " does not have an island.");
+            sender.sendMessage(config.getNoIslandMessage(args[1]));
             return true;
         }
         UUID islandUuid = islandUuidOpt.get();
 
         boolean isLocked = cacheHandler.getIslandLock(islandUuid);
         if (isLocked && !cacheHandler.getIslandMembers(islandUuid).contains(targetUuid)) {
-            sender.sendMessage("§cThe island is currently locked.");
-            return true;
-        }
-
-        Set<String> warpNames = cacheHandler.getWarpNames(islandUuid, targetUuid);
-        if (warpNames.isEmpty()) {
-            sender.sendMessage("§c" + args[1] + " does not have any warp points set.");
+            sender.sendMessage(config.getIslandLockedMessage());
+            sender.sendMessage();
             return true;
         }
 
         String warpName = args.length > getTargetWarpArgIndex() ? args[getTargetWarpArgIndex()] : "default";
         Optional<String> warpLocationOpt = cacheHandler.getWarpLocation(islandUuid, targetUuid, warpName);
         if (warpLocationOpt.isEmpty()) {
-            sender.sendMessage(getNoWarpMessage(args, warpName));
+            sender.sendMessage(config.getNoWarpMessage(args[1], warpName));
             return true;
         }
         String warpLocation = warpLocationOpt.get();
@@ -89,7 +85,7 @@ public abstract class BaseWarpCommand {
     protected void handleIslandTeleportFuture(CompletableFuture<Void> future, CommandSender sender, String warpName) {
         future.thenRun(() -> {
             // Send the success message
-            sender.sendMessage("Teleported to the warp point '" + warpName + "'.");
+            sender.sendMessage(config.getWarpSuccessMessage(warpName));
         }).exceptionally(ex -> {
             // Send the error message
             if (ex instanceof IllegalStateException) {
@@ -108,5 +104,4 @@ public abstract class BaseWarpCommand {
 
     protected abstract int getTargetWarpArgIndex();
 
-    protected abstract String getNoWarpMessage(String[] args, String warpName);
 }

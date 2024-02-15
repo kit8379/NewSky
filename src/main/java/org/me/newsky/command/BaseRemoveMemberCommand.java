@@ -41,7 +41,7 @@ public abstract class BaseRemoveMemberCommand {
 
         // Check if the target player is a member of the island
         if (!cacheHandler.getIslandMembers(islandUuid).contains(targetRemove.getUniqueId())) {
-            sender.sendMessage(targetRemove.getName() + " is not a member of the island.");
+            sender.sendMessage(config.getNotIslandMemberMessage(targetRemove.getName()));
             return true;
         }
 
