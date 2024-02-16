@@ -34,9 +34,16 @@ public class AdminDeleteCommand extends BaseDeleteCommand {
         return Bukkit.getOfflinePlayer(args[1]).getUniqueId();
     }
 
+
+
     @Override
     protected String getNoIslandMessage(String[] args) {
         return config.getAdminNoIslandMessage(args[1]);
+    }
+
+    @Override
+    protected String getIslandDeleteWarningMessage(String[] args) {
+        return config.getAdminDeleteWarningMessage(args[1]);
     }
 
     @Override

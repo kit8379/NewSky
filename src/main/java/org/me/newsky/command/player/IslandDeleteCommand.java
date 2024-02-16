@@ -43,6 +43,11 @@ public class IslandDeleteCommand extends BaseDeleteCommand {
     }
 
     @Override
+    protected String getIslandDeleteWarningMessage(String[] args) {
+        return config.getPlayerDeleteWarningMessage();
+    }
+
+    @Override
     protected String getIslandDeleteSuccessMessage(String[] args) {
         return config.getPlayerDeleteSuccessMessage();
     }

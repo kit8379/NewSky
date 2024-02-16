@@ -24,7 +24,7 @@ public class AdminSetOwnerCommand extends BaseSetOwnerCommand {
     }
 
     @Override
-    protected boolean validateOwner(CommandSender sender, UUID islandUuid) {
+    protected boolean isOwner(CommandSender sender, UUID islandUuid) {
         return true;
     }
 

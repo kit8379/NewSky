@@ -36,7 +36,7 @@ public abstract class BaseSetOwnerCommand {
         }
         UUID islandUuid = islandUuidOpt.get();
 
-        if (validateOwner(sender, islandUuid)) {
+        if (!isOwner(sender, islandUuid)) {
             return true;
         }
 
@@ -64,7 +64,7 @@ public abstract class BaseSetOwnerCommand {
 
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
 
-    protected abstract boolean validateOwner(CommandSender sender, UUID islandUuid);
+    protected abstract boolean isOwner(CommandSender sender, UUID islandUuid);
 
     protected abstract UUID getIslandOwnerUuid(CommandSender sender, String[] args);
 

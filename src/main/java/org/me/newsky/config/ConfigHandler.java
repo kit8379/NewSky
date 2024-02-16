@@ -127,7 +127,7 @@ public class ConfigHandler {
     }
 
     public String getDebugPrefix() {
-        return Utils.colorize(config.getString("debug-prefix"));
+        return Utils.colorize(config.getString("messages.debug-prefix"));
     }
 
     public String getCannotLeaveIslandBoundaryMessage() {
@@ -553,11 +553,18 @@ public class ConfigHandler {
     }
 
     public String getPlayerCannotLeaveAsOwnerMessage() {
-        return config.getString("messages.player-cannot-leave-as-owner");
+        return Utils.colorize(config.getString("messages.player-cannot-leave-as-owner"));
     }
 
     public String getPlayerLeaveSuccessMessage() {
-        return config.getString("messages.player-leave-success");
+        return Utils.colorize(config.getString("messages.player-leave-success"));
     }
 
+    public String getAdminDeleteWarningMessage(String name) {
+        return Utils.colorize(config.getString("messages.admin-delete-warning").replace("{name}", name));
+    }
+
+    public String getPlayerDeleteWarningMessage() {
+        return Utils.colorize(config.getString("messages.player-delete-warning"));
+    }
 }

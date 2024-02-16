@@ -25,7 +25,7 @@ public class IslandSetOwnerCommand extends BaseSetOwnerCommand {
     }
 
     @Override
-    protected boolean validateOwner(CommandSender sender, UUID islandUuid) {
+    protected boolean isOwner(CommandSender sender, UUID islandUuid) {
         Player player = (Player) sender;
         Optional<UUID> islandOwnerOpt = cacheHandler.getIslandOwner(islandUuid);
         if (islandOwnerOpt.isEmpty() || !islandOwnerOpt.get().equals(player.getUniqueId())) {
