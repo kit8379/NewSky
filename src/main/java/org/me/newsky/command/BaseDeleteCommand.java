@@ -6,8 +6,6 @@ import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -17,7 +15,7 @@ public abstract class BaseDeleteCommand {
     protected final ConfigHandler config;
     protected final CacheHandler cacheHandler;
     protected final IslandHandler islandHandler;
-    private final Map<UUID, Long> confirmations = new HashMap<>();
+    private final Confirmation confirmations = new Confirmation();
 
     public BaseDeleteCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
         this.config = config;
@@ -48,20 +46,22 @@ public abstract class BaseDeleteCommand {
         UUID islandUuid = islandUuidOpt.get();
 
         // Check if the sender is the owner of the island
-        if(!isOwner(sender, islandUuid)) {
+        if (!isOwner(sender, islandUuid)) {
             return true;
         }
 
         // Double confirmation check
-        if (confirmations.containsKey(playerUuid) && System.currentTimeMillis() - confirmations.get(playerUuid) <= 10000) {
-            confirmations.remove(playerUuid);
+        String commandName = "delete"; // Use a constant or a method to get the command name
+        if (commandName.equals(confirmations.getIfPresent(playerUuid))) {
+            confirmations.invalidate(playerUuid);
             // Run the island deletion future
             CompletableFuture<Void> deleteIslandFuture = islandHandler.deleteIsland(islandUuid);
             handleIslandDeletionFuture(deleteIslandFuture, sender, islandUuid, args);
         } else {
-            confirmations.put(playerUuid, System.currentTimeMillis());
+            confirmations.put(playerUuid, commandName);
             sender.sendMessage(getIslandDeleteWarningMessage(args));
         }
+
 
         return true;
     }
