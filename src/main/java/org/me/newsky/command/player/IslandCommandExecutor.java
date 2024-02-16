@@ -123,8 +123,12 @@ public class IslandCommandExecutor implements CommandExecutor, TabCompleter {
             switch (subCommand) {
                 case "home":
                     return homeCommand.onTabComplete(sender, args);
+                case "delhome":
+                    return delHomeCommand.onTabComplete(sender, args);
                 case "warp":
                     return warpCommand.onTabComplete(sender, args);
+                case "delwarp":
+                    return delWarpCommand.onTabComplete(sender, args);
                 default:
                     break;
             }

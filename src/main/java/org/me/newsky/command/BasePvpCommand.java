@@ -22,8 +22,10 @@ public abstract class BasePvpCommand {
             return true;
         }
 
+        // Get the target UUID
         UUID targetUuid = getTargetUuid(sender, args);
 
+        // Check if the player is a member of an island
         Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
         if (islandUuidOpt.isEmpty()) {
             sender.sendMessage(getNoIslandMessage(args));
@@ -31,6 +33,7 @@ public abstract class BasePvpCommand {
         }
         UUID islandUuid = islandUuidOpt.get();
 
+        // Check if the island is locked and update the lock status
         if (cacheHandler.getIslandPvp(islandUuid)) {
             cacheHandler.updateIslandPvp(islandUuid, false);
             sender.sendMessage(getIslandPvPDisableSuccessMessage(args));

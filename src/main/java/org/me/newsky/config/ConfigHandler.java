@@ -274,6 +274,10 @@ public class ConfigHandler {
         return Utils.colorize(config.getString("messages.admin-pvp-usage"));
     }
 
+    public String getAdminSetOwnerUsageMessage() {
+        return Utils.colorize(config.getString("messages.admin-set-owner-usage"));
+    }
+
     public String getAdminNoIslandMessage(String name) {
         return Utils.colorize(config.getString("messages.admin-no-island").replace("{name}", name));
     }
@@ -294,16 +298,16 @@ public class ConfigHandler {
         return Utils.colorize(config.getString("messages.admin-create-island-success").replace("{name}", name));
     }
 
+    public String getAdminDeleteWarningMessage(String name) {
+        return Utils.colorize(config.getString("messages.admin-delete-warning").replace("{name}", name));
+    }
+
     public String getAdminDeleteSuccessMessage(String name) {
         return Utils.colorize(config.getString("messages.admin-delete-island-success").replace("{name}", name));
     }
 
     public String getAdminCannotDeleteDefaultHomeMessage(String name) {
         return Utils.colorize(config.getString("messages.admin-cannot-delete-default-home").replace("{name}", name));
-    }
-
-    public String getAdminNoHomesMessage(String name) {
-        return Utils.colorize(config.getString("messages.admin-no-homes").replace("{name}", name));
     }
 
     public String getAdminNoHomeMessage(String name, String home) {
@@ -357,6 +361,14 @@ public class ConfigHandler {
 
     public String getAdminPvpDisableSuccessMessage(String name) {
         return Utils.colorize(config.getString("messages.admin-pvp-disable-success").replace("{name}", name));
+    }
+
+    public String getAdminSetOwnerSuccessMessage(String name, String owner) {
+        return Utils.colorize(config.getString("messages.admin-set-owner-success").replace("{name}", name).replace("{owner}", owner));
+    }
+
+    public String getAdminAlreadyOwnerMessage(String name, String owner) {
+        return Utils.colorize(config.getString("messages.admin-already-owner").replace("{name}", name).replace("{owner}", owner));
     }
 
     public String getPlayerCommandHelpMessage() {
@@ -419,6 +431,14 @@ public class ConfigHandler {
         return Utils.colorize(config.getString("messages.player-pvp-usage"));
     }
 
+    public String getPlayerSetOwnerUsageMessage() {
+        return Utils.colorize(config.getString("messages.player-set-owner-usage"));
+    }
+
+    public String getPlayerLeaveUsageMessage() {
+        return Utils.colorize(config.getString("messages.player-leave-usage"));
+    }
+
     public String getPlayerNoIslandMessage() {
         return Utils.colorize(config.getString("messages.player-no-island"));
     }
@@ -451,9 +471,14 @@ public class ConfigHandler {
         return Utils.colorize(config.getString("messages.player-create-island-success"));
     }
 
+    public String getPlayerDeleteWarningMessage() {
+        return Utils.colorize(config.getString("messages.player-delete-warning"));
+    }
+
     public String getPlayerDeleteSuccessMessage() {
         return Utils.colorize(config.getString("messages.player-delete-island-success"));
     }
+
 
     public String getPlayerTeleportToIslandSuccessMessage() {
         return Utils.colorize(config.getString("messages.player-teleport-to-island-success"));
@@ -523,33 +548,13 @@ public class ConfigHandler {
         return Utils.colorize(config.getString("messages.island-locked"));
     }
 
-    public String getAdminSetOwnerUsageMessage() {
-        return Utils.colorize(config.getString("messages.admin-set-owner-usage"));
+
+    public String getPlayerSetOwnerSuccessMessage(String name) {
+        return Utils.colorize(config.getString("messages.player-set-owner-success").replace("{name}", name));
     }
 
-    public String getAdminSetOwnerSuccessMessage(String name, String owner) {
-        return Utils.colorize(config.getString("messages.admin-set-owner-success").replace("{name}", name).replace("{owner}", owner));
-    }
-
-    public String getAdminAlreadyOwnerMessage(String name, String owner) {
-        return Utils.colorize(config.getString("messages.admin-already-owner").replace("{name}", name).replace("{owner}", owner));
-    }
-
-
-    public String getPlayerSetOwnerUsageMessage() {
-        return Utils.colorize(config.getString("messages.player-set-owner-usage"));
-    }
-
-    public String getPlayerSetOwnerSuccessMessage(String owner) {
-        return Utils.colorize(config.getString("messages.player-set-owner-success").replace("{owner}", owner));
-    }
-
-    public String getPlayerAlreadyOwnerMessage(String owner) {
-        return Utils.colorize(config.getString("messages.player-already-owner").replace("{owner}", owner));
-    }
-
-    public String getPlayerLeaveUsageMessage() {
-        return Utils.colorize(config.getString("messages.player-leave-usage"));
+    public String getPlayerAlreadyOwnerMessage(String name) {
+        return Utils.colorize(config.getString("messages.player-already-owner").replace("{name}", name));
     }
 
     public String getPlayerCannotLeaveAsOwnerMessage() {
@@ -558,13 +563,5 @@ public class ConfigHandler {
 
     public String getPlayerLeaveSuccessMessage() {
         return Utils.colorize(config.getString("messages.player-leave-success"));
-    }
-
-    public String getAdminDeleteWarningMessage(String name) {
-        return Utils.colorize(config.getString("messages.admin-delete-warning").replace("{name}", name));
-    }
-
-    public String getPlayerDeleteWarningMessage() {
-        return Utils.colorize(config.getString("messages.player-delete-warning"));
     }
 }

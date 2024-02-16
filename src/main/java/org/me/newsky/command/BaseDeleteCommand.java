@@ -47,6 +47,7 @@ public abstract class BaseDeleteCommand {
         }
         UUID islandUuid = islandUuidOpt.get();
 
+        // Check if the sender is the owner of the island
         if(!isOwner(sender, islandUuid)) {
             return true;
         }

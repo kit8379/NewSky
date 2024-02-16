@@ -2,11 +2,15 @@ package org.me.newsky.command;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jetbrains.annotations.NotNull;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public abstract class BaseDelHomeCommand {
 
@@ -57,6 +61,22 @@ public abstract class BaseDelHomeCommand {
         sender.sendMessage(getDelHomeSuccessMessage(args));
 
         return true;
+    }
+
+    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull String[] args) {
+        if (args.length == getTargetHomeArgIndex() + 1) {
+            UUID targetUuid = getTargetUuid(sender, args);
+            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
+            if (islandUuidOpt.isEmpty()) {
+                return null;
+            }
+            UUID islandUuid = islandUuidOpt.get();
+            Set<String> homeNames = cacheHandler.getHomeNames(islandUuid, targetUuid);
+            return homeNames.stream()
+                    .filter(name -> name.toLowerCase().startsWith(args[getTargetHomeArgIndex()].toLowerCase()))
+                    .collect(Collectors.toList());
+        }
+        return null;
     }
 
     protected abstract boolean validateArgs(CommandSender sender, String[] args);

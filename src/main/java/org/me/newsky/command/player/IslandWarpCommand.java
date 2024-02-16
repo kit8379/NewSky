@@ -25,7 +25,7 @@ public class IslandWarpCommand extends BaseWarpCommand {
     }
 
     @Override
-    protected UUID getTargetUUID(CommandSender sender, String[] args) {
+    protected UUID getTargetUuid(CommandSender sender, String[] args) {
         return Bukkit.getOfflinePlayer(args[1]).getUniqueId();
     }
 

@@ -39,7 +39,7 @@ public class IslandDelHomeCommand extends BaseDelHomeCommand {
     }
 
     @Override
-    protected String getCannotDeleteDefaultHomeMessage(String args[]) {
+    protected String getCannotDeleteDefaultHomeMessage(String[] args) {
         return config.getPlayerCannotDeleteDefaultHomeMessage();
     }
 

@@ -136,6 +136,10 @@ public class AdminCommandExecutor implements CommandExecutor, TabCompleter {
                     return homeCommand.onTabComplete(sender, args);
                 case "warp":
                     return warpCommand.onTabComplete(sender, args);
+                case "delwarp":
+                    return delWarpCommand.onTabComplete(sender, args);
+                case "delhome":
+                    return delHomeCommand.onTabComplete(sender, args);
                 default:
                     break;
             }

@@ -27,18 +27,21 @@ public abstract class BaseHomeCommand {
     }
 
     public boolean execute(CommandSender sender, String[] args) {
+        // Check if the sender is a player
         if (!(sender instanceof Player)) {
             sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
             return true;
         }
 
+        // Validate the command arguments
         if (!validateArgs(sender, args)) {
             return true;
         }
 
-        Player player = (Player) sender;
-        UUID targetUuid = getTargetUUID(sender, args);
+        // Get the target UUID
+        UUID targetUuid = getTargetUuid(sender, args);
 
+        // Get the island UUID
         Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
         if (islandUuidOpt.isEmpty()) {
             sender.sendMessage(getNoIslandMessage(args));
@@ -46,6 +49,7 @@ public abstract class BaseHomeCommand {
         }
         UUID islandUuid = islandUuidOpt.get();
 
+        // Teleport the player to the island
         String homeName = args.length > getTargetHomeArgIndex() ? args[getTargetHomeArgIndex()] : "default";
         Optional<String> homeLocationOpt = cacheHandler.getHomeLocation(islandUuid, targetUuid, homeName);
         if (homeLocationOpt.isEmpty()) {
@@ -54,7 +58,8 @@ public abstract class BaseHomeCommand {
         }
         String homeLocation = homeLocationOpt.get();
 
-        CompletableFuture<Void> homeIslandFuture = islandHandler.teleportToIsland(islandUuid, player, homeLocation);
+        // Teleport the player to the island
+        CompletableFuture<Void> homeIslandFuture = islandHandler.teleportToIsland(islandUuid, (Player) sender, homeLocation);
         handleIslandTeleportFuture(homeIslandFuture, sender, homeName);
 
         return true;
@@ -62,7 +67,7 @@ public abstract class BaseHomeCommand {
 
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull String[] args) {
         if (args.length == getTargetHomeArgIndex() + 1) {
-            UUID targetUuid = getTargetUUID(sender, args);
+            UUID targetUuid = getTargetUuid(sender, args);
             Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
             if (islandUuidOpt.isEmpty()) {
                 return null;
@@ -94,7 +99,7 @@ public abstract class BaseHomeCommand {
 
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
 
-    protected abstract UUID getTargetUUID(CommandSender sender, String[] args);
+    protected abstract UUID getTargetUuid(CommandSender sender, String[] args);
 
     protected abstract int getTargetHomeArgIndex();
 
