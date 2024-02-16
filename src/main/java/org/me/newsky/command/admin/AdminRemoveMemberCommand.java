@@ -24,6 +24,11 @@ public class AdminRemoveMemberCommand extends BaseRemoveMemberCommand {
     }
 
     @Override
+    protected boolean isNotSelf(CommandSender sender, String[] args) {
+        return true;
+    }
+
+    @Override
     protected int getTargetRemoveArgIndex() {
         return 1;
     }

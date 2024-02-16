@@ -25,9 +25,7 @@ public abstract class BaseAddMemberCommand {
             return true;
         }
 
-        // Get the target player's UUID
-        OfflinePlayer targetAdd = Bukkit.getOfflinePlayer(args[getTargetAddArgIndex()]);
-        UUID targetUuid = targetAdd.getUniqueId();
+
 
         // Get the island owner's UUID
         UUID islandOwnerId = getIslandOwnerUuid(sender, args);
@@ -39,6 +37,10 @@ public abstract class BaseAddMemberCommand {
             return true;
         }
         UUID islandUuid = islandUuidOpt.get();
+
+        // Get the target player's UUID
+        OfflinePlayer targetAdd = Bukkit.getOfflinePlayer(args[getTargetAddArgIndex()]);
+        UUID targetUuid = targetAdd.getUniqueId();
 
         // Check if the target player is already a member of the island
         if (cacheHandler.getIslandMembers(islandUuid).contains(targetUuid)) {

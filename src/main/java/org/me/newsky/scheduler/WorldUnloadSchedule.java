@@ -39,9 +39,7 @@ public class WorldUnloadSchedule {
             if (world.getName().startsWith("island-") && world.getPlayers().isEmpty()) {
                 long inactiveTime = inactiveWorlds.getOrDefault(world.getName(), currentTime);
                 if (currentTime - inactiveTime > MAX_INACTIVE_TIME) {
-                    worldHandler.unloadWorld(world.getName()).thenRun(() ->
-                            plugin.info("Unloaded inactive island world: " + world.getName())
-                    );
+                    worldHandler.unloadWorld(world.getName()).thenRun(() -> plugin.info("Unloaded inactive island world: " + world.getName()));
                     inactiveWorlds.remove(world.getName());
                 } else {
                     inactiveWorlds.put(world.getName(), currentTime);

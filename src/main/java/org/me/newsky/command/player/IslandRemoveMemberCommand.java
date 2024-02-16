@@ -24,6 +24,15 @@ public class IslandRemoveMemberCommand extends BaseRemoveMemberCommand {
     }
 
     @Override
+    protected boolean isNotSelf(CommandSender sender, String[] args) {
+        if (args[1].equals(sender.getName())) {
+            sender.sendMessage(config.getPlayerRemoveMemberCannotRemoveSelfMessage());
+            return false;
+        }
+        return true;
+    }
+
+    @Override
     protected int getTargetRemoveArgIndex() {
         return 1;
     }

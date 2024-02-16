@@ -24,8 +24,9 @@ public abstract class BaseLoadCommand {
 
     public boolean execute(CommandSender sender, String[] args) {
         // Check if the command arguments are valid
-        if (!validateArgs(sender, args)) {
-            return true;
+        if (args.length < 2) {
+            sender.sendMessage(config.getAdminLoadUsageMessage());
+            return false;
         }
 
         // Get the target player's UUID
@@ -60,6 +61,4 @@ public abstract class BaseLoadCommand {
             return null;
         });
     }
-
-    protected abstract boolean validateArgs(CommandSender sender, String[] args);
 }

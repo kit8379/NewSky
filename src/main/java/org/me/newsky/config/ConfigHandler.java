@@ -206,6 +206,10 @@ public class ConfigHandler {
         return Utils.colorize(config.getString("messages.admin-command-help"));
     }
 
+    public String getAdminUnknownSubCommandMessage(String subCommand) {
+        return Utils.colorize(config.getString("messages.admin-unknown-sub-command").replace("{subCommand}", subCommand));
+    }
+
     public String getAdminAddMemberUsageMessage() {
         return Utils.colorize(config.getString("messages.admin-add-member-usage"));
     }
@@ -359,6 +363,10 @@ public class ConfigHandler {
         return Utils.colorize(config.getString("messages.player-command-help"));
     }
 
+    public String getPlayerUnknownSubCommandMessage(String subCommand) {
+        return Utils.colorize(config.getString("messages.player-unknown-sub-command").replace("{subCommand}", subCommand));
+    }
+
     public String getPlayerAddMemberUsageMessage() {
         return Utils.colorize(config.getString("messages.player-add-member-usage"));
     }
@@ -435,6 +443,10 @@ public class ConfigHandler {
         return Utils.colorize(config.getString("messages.player-remove-member-success").replace("{member}", member));
     }
 
+    public String getPlayerRemoveMemberCannotRemoveSelfMessage() {
+        return Utils.colorize(config.getString("messages.player-remove-member-cannot-remove-self"));
+    }
+
     public String getPlayerCreateSuccessMessage() {
         return Utils.colorize(config.getString("messages.player-create-island-success"));
     }
@@ -495,6 +507,10 @@ public class ConfigHandler {
         return Utils.colorize(config.getString("messages.player-home-success").replace("{home}", home));
     }
 
+    public String getPlayerNotOwnerMessage() {
+        return Utils.colorize(config.getString("messages.player-not-owner"));
+    }
+
     public String getWarpSuccessMessage(String warp) {
         return Utils.colorize(config.getString("messages.warp-success").replace("{warp}", warp));
     }
@@ -506,4 +522,42 @@ public class ConfigHandler {
     public String getIslandLockedMessage() {
         return Utils.colorize(config.getString("messages.island-locked"));
     }
+
+    public String getAdminSetOwnerUsageMessage() {
+        return Utils.colorize(config.getString("messages.admin-set-owner-usage"));
+    }
+
+    public String getAdminSetOwnerSuccessMessage(String name, String owner) {
+        return Utils.colorize(config.getString("messages.admin-set-owner-success").replace("{name}", name).replace("{owner}", owner));
+    }
+
+    public String getAdminAlreadyOwnerMessage(String name, String owner) {
+        return Utils.colorize(config.getString("messages.admin-already-owner").replace("{name}", name).replace("{owner}", owner));
+    }
+
+
+    public String getPlayerSetOwnerUsageMessage() {
+        return Utils.colorize(config.getString("messages.player-set-owner-usage"));
+    }
+
+    public String getPlayerSetOwnerSuccessMessage(String owner) {
+        return Utils.colorize(config.getString("messages.player-set-owner-success").replace("{owner}", owner));
+    }
+
+    public String getPlayerAlreadyOwnerMessage(String owner) {
+        return Utils.colorize(config.getString("messages.player-already-owner").replace("{owner}", owner));
+    }
+
+    public String getPlayerLeaveUsageMessage() {
+        return Utils.colorize(config.getString("messages.player-leave-usage"));
+    }
+
+    public String getPlayerCannotLeaveAsOwnerMessage() {
+        return config.getString("messages.player-cannot-leave-as-owner");
+    }
+
+    public String getPlayerLeaveSuccessMessage() {
+        return config.getString("messages.player-leave-success");
+    }
+
 }

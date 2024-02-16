@@ -147,6 +147,21 @@ public class CacheHandler {
         databaseHandler.updateIslandPvp(islandUuid, pvp);
     }
 
+    public void updateIslandOwner(UUID playerUuid, UUID islandUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            Set<String> keys = jedis.keys("island_players:" + islandUuid + ":*");
+            for (String key : keys) {
+                Map<String, String> data = jedis.hgetAll(key);
+                if ("owner".equals(data.get("role"))) {
+                    jedis.hset(key, "role", "member");
+                }
+            }
+            jedis.hset("island_players:" + islandUuid + ":" + playerUuid, "role", "owner");
+        }
+
+        databaseHandler.updateIslandOwner(playerUuid, islandUuid);
+    }
+
     public void deleteIsland(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.keys("island_warps:" + islandUuid + ":*").forEach(jedis::del);

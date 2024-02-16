@@ -10,129 +10,76 @@ import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class AdminCommandExecutor implements CommandExecutor, TabCompleter {
 
     private final ConfigHandler config;
-    private final AdminAddMemberCommand addMemberCommand;
-    private final AdminRemoveMemberCommand removeMemberCommand;
-    private final AdminCreateCommand createCommand;
-    private final AdminDeleteCommand deleteCommand;
-    private final AdminInfoCommand infoCommand;
-    private final AdminHomeCommand homeCommand;
-    private final AdminSetHomeCommand setHomeCommand;
-    private final AdminDelHomeCommand delHomeCommand;
-    private final AdminWarpCommand warpCommand;
-    private final AdminSetWarpCommand setWarpCommand;
-    private final AdminDelWarpCommand delWarpCommand;
-    private final AdminLockCommand lockCommand;
-    private final AdminPvpCommand pvpCommand;
-    private final AdminLoadCommand loadCommand;
-    private final AdminUnloadCommand unloadCommand;
-    private final AdminReloadCommand reloadCommand;
-    private final List<String> subCommands = Arrays.asList("addmember", "removemember", "create", "delete", "home", "sethome", "delhome", "warp", "setwarp", "delwarp", "info", "lock", "pvp", "load", "unload", "reload");
+    private final Map<String, CommandExecutor> commandMap;
 
     public AdminCommandExecutor(NewSky plugin, ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
         this.config = config;
-        this.addMemberCommand = new AdminAddMemberCommand(config, cacheHandler);
-        this.removeMemberCommand = new AdminRemoveMemberCommand(config, cacheHandler);
-        this.createCommand = new AdminCreateCommand(config, cacheHandler, islandHandler);
-        this.deleteCommand = new AdminDeleteCommand(config, cacheHandler, islandHandler);
-        this.homeCommand = new AdminHomeCommand(config, cacheHandler, islandHandler);
-        this.setHomeCommand = new AdminSetHomeCommand(config, cacheHandler);
-        this.delHomeCommand = new AdminDelHomeCommand(config, cacheHandler);
-        this.warpCommand = new AdminWarpCommand(config, cacheHandler, islandHandler);
-        this.setWarpCommand = new AdminSetWarpCommand(config, cacheHandler);
-        this.delWarpCommand = new AdminDelWarpCommand(config, cacheHandler);
-        this.infoCommand = new AdminInfoCommand(config, cacheHandler);
-        this.lockCommand = new AdminLockCommand(config, cacheHandler);
-        this.pvpCommand = new AdminPvpCommand(config, cacheHandler);
-        this.reloadCommand = new AdminReloadCommand(plugin, config);
-        this.loadCommand = new AdminLoadCommand(config, cacheHandler, islandHandler);
-        this.unloadCommand = new AdminUnloadCommand(config, cacheHandler, islandHandler);
+        this.commandMap = new HashMap<>();
+        commandMap.put("addmember", wrapCommand(new AdminAddMemberCommand(config, cacheHandler)));
+        commandMap.put("removemember", wrapCommand(new AdminRemoveMemberCommand(config, cacheHandler)));
+        commandMap.put("create", wrapCommand(new AdminCreateCommand(config, cacheHandler, islandHandler)));
+        commandMap.put("delete", wrapCommand(new AdminDeleteCommand(config, cacheHandler, islandHandler)));
+        commandMap.put("home", wrapCommand(new AdminHomeCommand(config, cacheHandler, islandHandler)));
+        commandMap.put("sethome", wrapCommand(new AdminSetHomeCommand(config, cacheHandler)));
+        commandMap.put("delhome", wrapCommand(new AdminDelHomeCommand(config, cacheHandler)));
+        commandMap.put("warp", wrapCommand(new AdminWarpCommand(config, cacheHandler, islandHandler)));
+        commandMap.put("setwarp", wrapCommand(new AdminSetWarpCommand(config, cacheHandler)));
+        commandMap.put("delwarp", wrapCommand(new AdminDelWarpCommand(config, cacheHandler)));
+        commandMap.put("info", wrapCommand(new AdminInfoCommand(config, cacheHandler)));
+        commandMap.put("lock", wrapCommand(new AdminLockCommand(config, cacheHandler)));
+        commandMap.put("pvp", wrapCommand(new AdminPvpCommand(config, cacheHandler)));
+        commandMap.put("setowner", wrapCommand(new AdminSetOwnerCommand(config, cacheHandler)));
+        commandMap.put("load", wrapCommand(new AdminLoadCommand(config, cacheHandler, islandHandler)));
+        commandMap.put("unload", wrapCommand(new AdminUnloadCommand(config, cacheHandler, islandHandler)));
+        commandMap.put("reload", wrapCommand(new AdminReloadCommand(plugin, config)));
+    }
+
+    private CommandExecutor wrapCommand(Object commandObject) {
+        return (sender, command, label, args) -> {
+            try {
+                return (Boolean) commandObject.getClass().getMethod("execute", CommandSender.class, String[].class).invoke(commandObject, sender, args);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return false;
+            }
+        };
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String label, String[] args) {
         if (args.length == 0) {
             sender.sendMessage(config.getAdminCommandHelpMessage());
-            sender.sendMessage(config.getAdminAddMemberUsageMessage());
-            sender.sendMessage(config.getAdminRemoveMemberUsageMessage());
-            sender.sendMessage(config.getAdminCreateUsageMessage());
-            sender.sendMessage(config.getAdminDeleteUsageMessage());
-            sender.sendMessage(config.getAdminHomeUsageMessage());
-            sender.sendMessage(config.getAdminSetHomeUsageMessage());
-            sender.sendMessage(config.getAdminDelHomeUsageMessage());
-            sender.sendMessage(config.getAdminWarpUsageMessage());
-            sender.sendMessage(config.getAdminSetWarpUsageMessage());
-            sender.sendMessage(config.getAdminDelWarpUsageMessage());
-            sender.sendMessage(config.getAdminInfoUsageMessage());
-            sender.sendMessage(config.getAdminLockUsageMessage());
-            sender.sendMessage(config.getAdminPvpUsageMessage());
-            sender.sendMessage(config.getAdminLoadUsageMessage());
-            sender.sendMessage(config.getAdminUnloadUsageMessage());
-            sender.sendMessage(config.getAdminReloadUsageMessage());
             return true;
         }
 
-
         String subCommand = args[0].toLowerCase();
+        CommandExecutor commandExecutor = commandMap.get(subCommand);
 
-        switch (subCommand) {
-            case "addmember":
-                return addMemberCommand.execute(sender, args);
-            case "removemember":
-                return removeMemberCommand.execute(sender, args);
-            case "create":
-                return createCommand.execute(sender, args);
-            case "delete":
-                return deleteCommand.execute(sender, args);
-            case "home":
-                return homeCommand.execute(sender, args);
-            case "sethome":
-                return setHomeCommand.execute(sender, args);
-            case "delhome":
-                return delHomeCommand.execute(sender, args);
-            case "warp":
-                return warpCommand.execute(sender, args);
-            case "setwarp":
-                return setWarpCommand.execute(sender, args);
-            case "delwarp":
-                return delWarpCommand.execute(sender, args);
-            case "info":
-                return infoCommand.execute(sender, args);
-            case "lock":
-                return lockCommand.execute(sender, args);
-            case "pvp":
-                return pvpCommand.execute(sender, args);
-            case "load":
-                return loadCommand.execute(sender, args);
-            case "unload":
-                return unloadCommand.execute(sender, args);
-            case "reload":
-                return reloadCommand.execute(sender, args);
-            default:
-                sender.sendMessage("§cUnknown subcommand.");
-                return true;
+        if (commandExecutor != null) {
+            return commandExecutor.onCommand(sender, cmd, label, args);
+        } else {
+            sender.sendMessage(config.getAdminUnknownSubCommandMessage(subCommand));
+            return true;
         }
     }
 
     @Override
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String[] args) {
         if (args.length == 1) {
-            return subCommands.stream().filter(sub -> sub.startsWith(args[0].toLowerCase())).collect(Collectors.toList());
+            return commandMap.keySet().stream().filter(sub -> sub.startsWith(args[0].toLowerCase())).collect(Collectors.toList());
         } else if (args.length > 1) {
             String subCommand = args[0].toLowerCase();
-            switch (subCommand) {
-                case "home":
-                    return homeCommand.onTabComplete(sender, args);
-                case "warp":
-                    return warpCommand.onTabComplete(sender, args);
-                default:
-                    break;
+            CommandExecutor commandExecutor = commandMap.get(subCommand);
+            if (commandExecutor instanceof TabCompleter) {
+                return ((TabCompleter) commandExecutor).onTabComplete(sender, command, alias, args);
             }
         }
         return null;

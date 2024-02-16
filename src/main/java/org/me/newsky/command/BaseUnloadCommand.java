@@ -24,8 +24,9 @@ public abstract class BaseUnloadCommand {
 
     public boolean execute(CommandSender sender, String[] args) {
         // Check if the command arguments are valid
-        if (!validateArgs(sender, args)) {
-            return true;
+        if (args.length < 2) {
+            sender.sendMessage(config.getAdminUnloadUsageMessage());
+            return false;
         }
 
         // Get the target player's UUID

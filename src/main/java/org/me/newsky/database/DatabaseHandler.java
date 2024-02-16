@@ -160,6 +160,13 @@ public class DatabaseHandler {
         }, "UPDATE islands SET pvp = ? WHERE island_uuid = ?;");
     }
 
+    public void updateIslandOwner(UUID playerUuid, UUID islandUuid) {
+        executeUpdate(statement -> {
+            statement.setString(1, playerUuid.toString());
+            statement.setString(2, islandUuid.toString());
+        }, "UPDATE island_players SET role = 'owner' WHERE player_uuid = ? AND island_uuid = ?;");
+    }
+
     public void deleteIsland(UUID islandUuid) {
         executeUpdate(statement -> {
             statement.setString(1, islandUuid.toString());

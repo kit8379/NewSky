@@ -38,6 +38,10 @@ public abstract class BaseDeleteCommand {
         }
         UUID islandUuid = islandUuidOpt.get();
 
+        if(!isOwner(sender, islandUuid)) {
+            return true;
+        }
+
         // Run the island deletion future
         CompletableFuture<Void> deleteIslandFuture = islandHandler.deleteIsland(islandUuid);
         handleIslandDeletionFuture(deleteIslandFuture, sender, islandUuid, args);
@@ -64,6 +68,8 @@ public abstract class BaseDeleteCommand {
     }
 
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
+
+    protected abstract boolean isOwner(CommandSender sender, UUID islandUuid);
 
     protected abstract UUID getTargetUuid(CommandSender sender, String[] args);
 
