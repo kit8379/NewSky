@@ -97,7 +97,7 @@ messages:
   admin-set-warp-success: '&aSuccessfully set warp {warp} for {name}''s island.'
   admin-pvp-enable-success: '&aSuccessfully enabled PvP for {name}''s island.'
   admin-pvp-disable-success: '&aSuccessfully disabled PvP for {name}''s island.'
-  admin-set-owner-success: '&aSuccessfully set {owner} as the owner of {name}''s island.'
+  admin-set-owner-success: '&aSuccessfully set {name} as the owner of {owner}''s island.'
   admin-already-owner: '&c{name} is already the owner of the island.'
   player-command-help: '&eUse /island <subcommand> for island commands.'
   player-unknown-sub-command: '&cUnknown subcommand: {subCommand}'
