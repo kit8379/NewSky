@@ -86,12 +86,20 @@ public class ConfigHandler {
         return config.getBoolean("server.lobby");
     }
 
-    public String getServerMode() {
-        return config.getString("server.mode");
+    public String getWorldLoadingType() {
+        return config.getString("server.world-loading-mode.type");
+    }
+
+    public String getNormalMode() {
+        return config.getString("server.world-loading-mode.normal.mode");
     }
 
     public String getStoragePath() {
-        return config.getString("server.storage-path");
+        return config.getString("server.world-loading-mode.normal.storage-path");
+    }
+
+    public String getSlimeDataSource() {
+        return config.getString("server.world-loading-mode.slime.data-source");
     }
 
     public String getTemplateWorldName() {

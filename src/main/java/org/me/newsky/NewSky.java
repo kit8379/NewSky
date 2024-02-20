@@ -85,19 +85,29 @@ public class NewSky extends JavaPlugin {
     private void initializeWorldHandler() {
         info("Starting WorldHandler");
         try {
-            switch (config.getServerMode()) {
-                case "static":
-                    info("Using static world mode.");
-                    worldHandler = new StaticWorldHandler(this, config);
-                    break;
-                case "dynamic":
-                    info("Using dynamic world mode. World storage path: " + config.getStoragePath() + " .");
-                    worldHandler = new DynamicWorldHandler(this, config, Path.of(config.getStoragePath()));
+            String worldLoadingType = config.getWorldLoadingType();
+            switch (worldLoadingType) {
+                case "normal":
+                    String normalMode = config.getNormalMode();
+                    switch (normalMode) {
+                        case "static":
+                            info("Using static normal world mode.");
+                            worldHandler = new StaticWorldHandler(this, config);
+                            break;
+                        case "dynamic":
+                            info("Using dynamic normal world mode. World storage path: " + config.getStoragePath() + " .");
+                            worldHandler = new DynamicWorldHandler(this, config, Path.of(config.getStoragePath()));
+                            break;
+                        default:
+                            throw new IllegalStateException("Invalid normal mode: " + normalMode);
+                    }
                     break;
                 case "slime":
-                    info("Using SlimeWorldManager for world handling.");
+                    info("Using SlimeWorldManager for world handling. Data source: " + config.getSlimeDataSource() + " .");
                     worldHandler = new SlimeWorldHandler(this, config);
                     break;
+                default:
+                    throw new IllegalStateException("Invalid world loading type: " + worldLoadingType);
             }
             info("WorldHandler loaded");
         } catch (Exception e) {
@@ -105,7 +115,6 @@ public class NewSky extends JavaPlugin {
             throw new IllegalStateException("WorldHandler load fail! Plugin will be disabled!");
         }
     }
-
 
     private void initializeRedis() {
         info("Start connecting to Redis now...");
@@ -191,12 +200,23 @@ public class NewSky extends JavaPlugin {
     private void initializeIslandHandler() {
         info("Starting island handler");
         try {
-            if (config.getServerMode().equals("static")) {
-                islandHandler = new StaticIslandHandler(this, config, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
-            }
-
-            if (config.getServerMode().equals("dynamic") || config.getServerMode().equals("slime")) {
-                islandHandler = new DynamicIslandHandler(this, config, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
+            String worldLoadingType = config.getWorldLoadingType();
+            switch (worldLoadingType) {
+                case "normal":
+                    String normalMode = config.getNormalMode();
+                    if (normalMode.equals("static")) {
+                        islandHandler = new StaticIslandHandler(this, config, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
+                    } else if (normalMode.equals("dynamic")) {
+                        islandHandler = new DynamicIslandHandler(this, config, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
+                    } else {
+                        throw new IllegalStateException("Invalid normal mode for island handler: " + normalMode);
+                    }
+                    break;
+                case "slime":
+                    islandHandler = new DynamicIslandHandler(this, config, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
+                    break;
+                default:
+                    throw new IllegalStateException("Invalid world loading type for island handler: " + worldLoadingType);
             }
 
             islandHandler.subscribeToRequests();
@@ -206,6 +226,7 @@ public class NewSky extends JavaPlugin {
             throw new IllegalStateException("Islands load fail! Plugin will be disabled!");
         }
     }
+
 
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(new WorldEventListener(this), this);

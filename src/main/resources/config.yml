@@ -1,3 +1,5 @@
+# The settings for the plugin.
+# The plugin uses MySQL to store the island data.
 DB:
   host: "localhost"
   port: 3306
@@ -5,37 +7,85 @@ DB:
   username: "root"
   password: "password"
   properties: "?autoReconnect=true&useSSL=false"
+
+  # The settings for the HikariCP connection pool.
+  # Usually no need to change these values.
   max-pool-size: 10
   connection-timeout: 30000
   cache-prep-statements: "true"
   prep-stmt-cache-size: 250
   prep-stmt-cache-sql-limit: 2048
 
+# The settings for the Redis server.
+# The plugin uses Redis to communicate between servers in the network.
 redis:
   host: "localhost"
   port: 6379
   password: ""
   database: 0
 
+# Whether the plugin is in debug mode. More detailed logs will be printed if this is set to true.
 debug: false
 
+# The settings for the server.
 server:
+  # The name of the server. Must be equal to the server name in the BungeeCord / Velocity config.
   name: "server1"
+  # Whether the server is the lobby server.
+  # If the server is the lobby server, the plugin will not load islands on this server.
   lobby: false
-  heartbeat-interval: 5 # seconds
-  mode: "dynamic"
-  storage-path: "/path/to/storage"
+  # The interval that the server send heartbeat to the each other server.
+  # Usually no need to change this value. The default value is 5 seconds.
+  heartbeat-interval: 5
 
+  # Below are the settings for the world-loading mode.
+  # The world-loading-mode is used to determine how the plugin should load and unload islands.
+  # The plugin supports two modes: "normal" and "slime".
+  world-loading-mode:
+    type: "normal"
+
+    # The settings for the normal world-loading mode.
+    # This mode uses the bukkit world management system to load and unload islands.
+    # Only required to be set if the world-loading-mode is set to "normal".
+    normal:
+      # Options: "static", "dynamic"
+      # Static mode will load all islands at startup and keep them loaded in the same server
+      # Dynamic mode will load and unload islands from the shared storage directory
+      mode: "dynamic"
+      # Path to the directory where the islands are stored
+      # This path must be accessible by all servers in the network
+      # Only required to be set if the above mode is set to "dynamic"
+      storage-path: "/path/to/storage"
+
+    # The settings for the slime world-loading mode.
+    # This mode uses the AdvancedSlimeWorldManager to load and unload islands.
+    # Only required to be set if the world-loading-mode is set to "slime".
+    slime:
+      data-source: "mysql" # Options: "mysql" or "mongodb"
+
+# The settings for the island.
 island:
+  # The template world name of the new island.
+  # The plugin will create a new island based on this template.
+  # The template world store in the template folder in the plugin  folder.
   template: "skyblock"
+
+  # The max size of the island. 100 means the island is 100x100.
   size: 100
+
+  # The border buffer between islands. 10 means the border is 10 blocks away from the island.
+  # This helps to prevent players have negative experience when they are near the end of the island area.
+  # Set it to 0 if you don't want any buffer. The border will be exactly at the edge of the island.
   buffer: 10
+
+  # The default spawn point of the island.
   spawn:
     x: 0
     y: 132
     z: 0
     yaw: 100
     pitch: 100
+
 
 messages:
   debug-prefix: '[Debug] '
