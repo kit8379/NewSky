@@ -1,4 +1,4 @@
-package org.me.newsky.world.generator;
+package org.me.newsky.world.normal.generator;
 
 import org.bukkit.World;
 import org.bukkit.generator.ChunkGenerator;

@@ -14,9 +14,10 @@ import org.me.newsky.island.StaticIslandHandler;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.scheduler.WorldUnloadSchedule;
 import org.me.newsky.teleport.TeleportManager;
-import org.me.newsky.world.DynamicWorldHandler;
-import org.me.newsky.world.StaticWorldHandler;
 import org.me.newsky.world.WorldHandler;
+import org.me.newsky.world.normal.DynamicWorldHandler;
+import org.me.newsky.world.normal.StaticWorldHandler;
+import org.me.newsky.world.slime.SlimeWorldHandler;
 
 import java.nio.file.Path;
 import java.util.Objects;
@@ -84,14 +85,19 @@ public class NewSky extends JavaPlugin {
     private void initializeWorldHandler() {
         info("Starting WorldHandler");
         try {
-            if (config.getServerMode().equals("static")) {
-                info("Using static world mode.");
-                worldHandler = new StaticWorldHandler(this, config);
-            }
-
-            if (config.getServerMode().equals("dynamic")) {
-                info("Using dynamic world mode. World storage path: " + config.getStoragePath() + " .");
-                worldHandler = new DynamicWorldHandler(this, config, Path.of(config.getStoragePath()));
+            switch (config.getServerMode()) {
+                case "static":
+                    info("Using static world mode.");
+                    worldHandler = new StaticWorldHandler(this, config);
+                    break;
+                case "dynamic":
+                    info("Using dynamic world mode. World storage path: " + config.getStoragePath() + " .");
+                    worldHandler = new DynamicWorldHandler(this, config, Path.of(config.getStoragePath()));
+                    break;
+                case "slime":
+                    info("Using SlimeWorldManager for world handling.");
+                    worldHandler = new SlimeWorldHandler(this, config);
+                    break;
             }
             info("WorldHandler loaded");
         } catch (Exception e) {
@@ -99,6 +105,7 @@ public class NewSky extends JavaPlugin {
             throw new IllegalStateException("WorldHandler load fail! Plugin will be disabled!");
         }
     }
+
 
     private void initializeRedis() {
         info("Start connecting to Redis now...");
@@ -188,7 +195,7 @@ public class NewSky extends JavaPlugin {
                 islandHandler = new StaticIslandHandler(this, config, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
             }
 
-            if (config.getServerMode().equals("dynamic")) {
+            if (config.getServerMode().equals("dynamic") || config.getServerMode().equals("slime")) {
                 islandHandler = new DynamicIslandHandler(this, config, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
             }
 

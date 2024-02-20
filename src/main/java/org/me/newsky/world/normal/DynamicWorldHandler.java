@@ -1,4 +1,4 @@
-package org.me.newsky.world;
+package org.me.newsky.world.normal;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
@@ -8,7 +8,7 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.concurrent.CompletableFuture;
 
-public class DynamicWorldHandler extends WorldHandler {
+public class DynamicWorldHandler extends NormalWorldHandler {
     private final Path storagePath;
 
     public DynamicWorldHandler(NewSky plugin, ConfigHandler config, Path storagePath) {

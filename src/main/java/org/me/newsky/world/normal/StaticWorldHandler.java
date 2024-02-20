@@ -1,14 +1,15 @@
-package org.me.newsky.world;
+package org.me.newsky.world.normal;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.world.normal.NormalWorldHandler;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 
-public class StaticWorldHandler extends WorldHandler {
+public class StaticWorldHandler extends NormalWorldHandler {
 
     public StaticWorldHandler(NewSky plugin, ConfigHandler config) {
         super(plugin, config);
