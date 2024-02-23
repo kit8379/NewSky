@@ -33,7 +33,7 @@ public class WorldUnloadSchedule {
     }
 
     private void checkAndUnloadWorlds() {
-        plugin.debug("Checking for inactive island worlds...");
+        plugin.info("Checking for inactive island worlds...");
         long currentTime = System.currentTimeMillis();
         Bukkit.getWorlds().forEach(world -> {
             if (world.getName().startsWith("island-") && world.getPlayers().isEmpty()) {
@@ -48,6 +48,6 @@ public class WorldUnloadSchedule {
                 inactiveWorlds.remove(world.getName());
             }
         });
-        plugin.debug("Finished checking for inactive island worlds.");
+        plugin.info("Finished checking for inactive island worlds.");
     }
 }

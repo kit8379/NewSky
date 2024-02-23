@@ -48,28 +48,6 @@ public abstract class NormalWorldHandler extends WorldHandler {
         return future;
     }
 
-    protected CompletableFuture<Void> unloadWorldFromBukkit(String worldName) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-
-        if (!isWorldLoaded(worldName)) {
-            future.complete(null);
-            return future;
-        }
-
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            World world = Bukkit.getWorld(worldName);
-            if (world != null) {
-                removePlayersFromWorld(world);
-                Bukkit.unloadWorld(world, true);
-                future.complete(null);
-            } else {
-                future.completeExceptionally(new IllegalStateException(config.getIslandNotLoadedMessage()));
-            }
-        });
-
-        return future;
-    }
-
     protected void copyDirectory(Path source, Path target) throws IOException {
         Files.walkFileTree(source, new SimpleFileVisitor<>() {
             @Override
@@ -102,6 +80,10 @@ public abstract class NormalWorldHandler extends WorldHandler {
         });
     }
 
+    protected boolean isWorldLoaded(String worldName) {
+        return Bukkit.getWorld(worldName) != null;
+    }
+
     protected void removePlayersFromWorld(World world) {
         World safeWorld = Bukkit.getServer().getWorlds().get(0);
         for (Player player : world.getPlayers()) {
@@ -109,8 +91,26 @@ public abstract class NormalWorldHandler extends WorldHandler {
         }
     }
 
-    protected boolean isWorldLoaded(String worldName) {
-        return Bukkit.getWorld(worldName) != null;
+    protected CompletableFuture<Void> unloadWorldFromBukkit(String worldName) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
+        if (!isWorldLoaded(worldName)) {
+            future.complete(null);
+            return future;
+        }
+
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            World world = Bukkit.getWorld(worldName);
+            if (world != null) {
+                removePlayersFromWorld(world);
+                Bukkit.unloadWorld(world, true);
+                future.complete(null);
+            } else {
+                future.completeExceptionally(new IllegalStateException(config.getIslandNotLoadedMessage()));
+            }
+        });
+
+        return future;
     }
 
     public CompletableFuture<Void> createWorld(String worldName) {
