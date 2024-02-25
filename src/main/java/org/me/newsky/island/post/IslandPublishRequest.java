@@ -9,10 +9,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.TimeUnit;
 
 public class IslandPublishRequest {
-    private static final long TIMEOUT_SECONDS = 30L;
     private final NewSky plugin;
     private final RedisHandler redisHandler;
     private final HeartBeatHandler heartBeatHandler;
@@ -36,19 +35,26 @@ public class IslandPublishRequest {
             public void onMessage(String channel, String message) {
                 String[] responseParts = message.split(":");
                 String responderID = responseParts[0];
-                String responseData = responseParts.length > 1 ? responseParts[1] : "";
+                String responseStatus = responseParts[1];
+                String responseData = responseParts.length > 2 ? responseParts[2] : "";
 
                 responses.put(responderID, responseData);
-                plugin.debug("Received response from server: " + responderID + " for request: " + requestID + " for operation: " + operation + " with data: " + responseData);
+                plugin.debug("Received response from server: " + responderID + " for request: " + requestID + " for operation: " + operation + " with status: " + responseStatus + " and data: " + responseData);
 
                 boolean shouldComplete = (targetServer.equals("all") && responses.keySet().containsAll(activeServers)) || responderID.equals(targetServer);
 
                 if (shouldComplete) {
                     this.unsubscribe();
-                    if (responses.containsValue("Error")) {
-                        future.completeExceptionally(new IllegalStateException("Error received from server: " + responderID + " for request: " + requestID + " for operation: " + operation));
-                    } else {
+                    plugin.debug("All responses received for request: " + requestID + ", unsubscribed from response channel.");
+
+                    // If all responses are "Success", complete the future with the responses
+                    if (responses.values().stream().allMatch(s -> s.equals("Success"))) {
                         future.complete(responses);
+                    } else {
+                        // Find the first error response message
+                        String errorMessage = responses.values().stream().filter(s -> s.equals("Error")).findFirst().orElse("Unknown error");
+
+                        future.completeExceptionally(new IllegalStateException(errorMessage));
                     }
                 }
             }
@@ -60,17 +66,12 @@ public class IslandPublishRequest {
         redisHandler.publish("newsky-request-channel", requestMessage);
         plugin.debug("Sending request: " + requestID + " to server: " + targetServer + " for operation: " + operation);
 
-        scheduleTimeoutTask(future, requestID, responseSubscriber);
+        // Set a timeout for the future
+        future.orTimeout(30, TimeUnit.SECONDS).whenComplete((result, error) -> {
+            responseSubscriber.unsubscribe();
+            plugin.debug("Request: " + requestID + " timed out, unsubscribed from response channel.");
+        });
 
         return future;
-    }
-
-    private void scheduleTimeoutTask(CompletableFuture<ConcurrentHashMap<String, String>> future, String requestID, JedisPubSub responseSubscriber) {
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            if (!future.isDone()) {
-                responseSubscriber.unsubscribe();
-                future.completeExceptionally(new TimeoutException("Timeout waiting for response to request: " + requestID));
-            }
-        }, TIMEOUT_SECONDS * 20);
     }
 }

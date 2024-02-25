@@ -107,7 +107,7 @@ public class IslandCommandExecutor implements CommandExecutor, TabCompleter {
             case "setowner":
                 return setOwnerCommand.execute(sender, args);
             case "leave":
-                return leaveCommand.execute(sender, args);
+                return leaveCommand.execute(sender);
             default:
                 sender.sendMessage(config.getPlayerUnknownSubCommandMessage(subCommand));
                 return true;

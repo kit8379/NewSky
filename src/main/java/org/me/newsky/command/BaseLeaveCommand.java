@@ -18,7 +18,7 @@ public abstract class BaseLeaveCommand {
         this.cacheHandler = cacheHandler;
     }
 
-    public boolean execute(CommandSender sender, String[] args) {
+    public boolean execute(CommandSender sender) {
         // Check if the sender is a player
         if (!(sender instanceof Player)) {
             sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());

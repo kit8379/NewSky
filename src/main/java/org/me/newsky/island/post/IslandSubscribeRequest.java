@@ -34,11 +34,11 @@ public class IslandSubscribeRequest {
                 if (targetServer.equals(serverID) || targetServer.equals("all")) {
                     plugin.debug("Received request: " + requestID + " from server: " + sourceServer + " for operation: " + operation);
                     processRequest(parts).thenAccept((String responseData) -> {
-                        redisHandler.publish("newsky-response-channel-" + requestID, serverID + ":" + responseData);
-                        plugin.debug("Sent response to server: " + sourceServer + " for request: " + requestID + " for operation: " + operation + " with data: " + responseData);
+                        redisHandler.publish("newsky-response-channel-" + requestID, serverID + ":Success:" + responseData);
+                        plugin.debug("Sent success response to server: " + sourceServer + " for request: " + requestID + " for operation: " + operation + " with data: " + responseData);
                     }).exceptionally(e -> {
-                        redisHandler.publish("newsky-response-channel-" + requestID, serverID + ":Error");
-                        plugin.debug("Sent error response to server: " + sourceServer + " for request: " + requestID + " for operation: " + operation);
+                        redisHandler.publish("newsky-response-channel-" + requestID, serverID + ":Error:" + e.getMessage());
+                        plugin.debug("Sent error response to server: " + sourceServer + " for request: " + requestID + " for operation: " + operation + " with error: " + e.getMessage());
                         return null;
                     });
                 }
@@ -47,6 +47,7 @@ public class IslandSubscribeRequest {
 
         redisHandler.subscribe(requestSubscriber, "newsky-request-channel");
     }
+
 
     public void unsubscribeFromRequests() {
         if (requestSubscriber != null) {

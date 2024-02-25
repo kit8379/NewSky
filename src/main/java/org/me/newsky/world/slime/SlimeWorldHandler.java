@@ -24,7 +24,7 @@ public class SlimeWorldHandler extends WorldHandler {
     public SlimeWorldHandler(NewSky plugin, ConfigHandler config) {
         super(plugin, config);
         this.slimePlugin = (SlimePlugin) Bukkit.getPluginManager().getPlugin("SlimeWorldManager");
-        this.slimeLoader = Objects.requireNonNull(slimePlugin).getLoader("mysql");
+        this.slimeLoader = Objects.requireNonNull(slimePlugin).getLoader(config.getSlimeDataSource());
 
         properties = new SlimePropertyMap();
         properties.setString(SlimeProperties.DIFFICULTY, "normal");

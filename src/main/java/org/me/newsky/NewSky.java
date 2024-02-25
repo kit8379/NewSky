@@ -19,7 +19,6 @@ import org.me.newsky.world.normal.DynamicWorldHandler;
 import org.me.newsky.world.normal.StaticWorldHandler;
 import org.me.newsky.world.slime.SlimeWorldHandler;
 
-import java.nio.file.Path;
 import java.util.Objects;
 
 public class NewSky extends JavaPlugin {
@@ -96,7 +95,7 @@ public class NewSky extends JavaPlugin {
                             break;
                         case "dynamic":
                             info("Using dynamic normal world mode. World storage path: " + config.getStoragePath() + " .");
-                            worldHandler = new DynamicWorldHandler(this, config, Path.of(config.getStoragePath()));
+                            worldHandler = new DynamicWorldHandler(this, config);
                             break;
                         default:
                             throw new IllegalStateException("Invalid normal mode: " + normalMode);

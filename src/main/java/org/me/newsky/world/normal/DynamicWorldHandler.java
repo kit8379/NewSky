@@ -11,9 +11,10 @@ import java.util.concurrent.CompletableFuture;
 public class DynamicWorldHandler extends NormalWorldHandler {
     private final Path storagePath;
 
-    public DynamicWorldHandler(NewSky plugin, ConfigHandler config, Path storagePath) {
+    public DynamicWorldHandler(NewSky plugin, ConfigHandler config) {
         super(plugin, config);
-        this.storagePath = storagePath;
+
+        this.storagePath = Path.of(config.getStoragePath());
     }
 
     @Override

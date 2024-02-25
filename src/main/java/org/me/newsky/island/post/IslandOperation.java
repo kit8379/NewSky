@@ -2,6 +2,7 @@ package org.me.newsky.island.post;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.teleport.TeleportManager;
@@ -10,6 +11,7 @@ import org.me.newsky.world.WorldHandler;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
@@ -27,12 +29,21 @@ public class IslandOperation {
     }
 
     public CompletableFuture<String> updateWorldList() {
-        return CompletableFuture.supplyAsync(() -> {
-            File worldContainer = plugin.getServer().getWorldContainer();
-            File[] files = worldContainer.listFiles();
-            return Optional.ofNullable(files).stream().flatMap(Arrays::stream).filter(File::isDirectory).map(File::getName).filter(name -> name.startsWith("island-")).collect(Collectors.joining(","));
-        });
+        CompletableFuture<String> future = new CompletableFuture<>();
+        // Add loaded worlds that start with "island-"
+        Set<String> worldNames = Bukkit.getWorlds().stream().map(World::getName).filter(name -> name.startsWith("island-")).collect(Collectors.toSet());
+
+        // Add unloaded worlds (directories in the world container) that start with "island-"
+        File worldContainer = Bukkit.getServer().getWorldContainer();
+        worldNames.addAll(Arrays.stream(Optional.ofNullable(worldContainer.listFiles()).orElse(new File[0])).filter(File::isDirectory).map(File::getName).filter(name -> name.startsWith("island-") && Bukkit.getWorld(name) == null).collect(Collectors.toSet()));
+
+        // Convert the set to a comma-separated string
+        String worldList = String.join(",", worldNames);
+        future.complete(worldList);
+
+        return future;
     }
+
 
     public CompletableFuture<Void> createWorld(String worldName) {
         return worldHandler.createWorld(worldName);
