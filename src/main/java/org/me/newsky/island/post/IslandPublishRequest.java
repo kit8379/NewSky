@@ -9,7 +9,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 public class IslandPublishRequest {
     private final NewSky plugin;
@@ -53,7 +52,6 @@ public class IslandPublishRequest {
                     } else {
                         // Find the first error response message
                         String errorMessage = responses.values().stream().filter(s -> s.equals("Error")).findFirst().orElse("Unknown error");
-
                         future.completeExceptionally(new IllegalStateException(errorMessage));
                     }
                 }
@@ -65,12 +63,6 @@ public class IslandPublishRequest {
 
         redisHandler.publish("newsky-request-channel", requestMessage);
         plugin.debug("Sending request: " + requestID + " to server: " + targetServer + " for operation: " + operation);
-
-        // Set a timeout for the future
-        future.orTimeout(30, TimeUnit.SECONDS).whenComplete((result, error) -> {
-            responseSubscriber.unsubscribe();
-            plugin.debug("Request: " + requestID + " timed out, unsubscribed from response channel.");
-        });
 
         return future;
     }
