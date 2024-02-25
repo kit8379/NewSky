@@ -21,7 +21,7 @@ public abstract class BaseSetWarpCommand {
 
     public boolean execute(CommandSender sender, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage("Only players can use this command.");
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
             return true;
         }
 
@@ -48,7 +48,7 @@ public abstract class BaseSetWarpCommand {
         Location loc = player.getLocation();
         String warpLocation = String.format("%.1f,%.1f,%.1f,%.1f,%.1f", loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
 
-        cacheHandler.addOrUpdateWarpPoint(targetUuid, warpName, warpLocation);
+        cacheHandler.addOrUpdateWarpPoint(targetUuid, islandUuid, warpName, warpLocation);
         sender.sendMessage(getSetWarpSuccessMessage(args, warpName));
 
         return true;

@@ -31,16 +31,16 @@ public class AdminSetHomeCommand extends BaseSetHomeCommand {
 
     @Override
     protected String getNoIslandMessage(String[] args) {
-        return "§cPlayer " + args[1] + " does not have an island.";
+        return config.getAdminNoIslandMessage(args[1]);
     }
 
     @Override
     protected String getMustInIslandMessage(String[] args) {
-        return "§cYou must be in the island world of " + args[1] + " to set their home.";
+        return config.getAdminMustInIslandSetHomeMessage(args[1]);
     }
 
     @Override
     protected String getSetHomeSuccessMessage(String[] args, String homeName) {
-        return "§aHome " + homeName + " set successfully for " + args[1] + ".";
+        return config.getAdminSetHomeSuccessMessage(args[1], homeName);
     }
 }

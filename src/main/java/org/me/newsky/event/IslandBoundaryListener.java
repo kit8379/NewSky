@@ -4,11 +4,23 @@ import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.me.newsky.config.ConfigHandler;
 
 public class IslandBoundaryListener implements Listener {
 
-    private static final int ISLAND_SIZE = 100;
-    private static final int BUFFER_SIZE = 10;
+    private final ConfigHandler config;
+    private final int islandSize;
+    private final int bufferSize;
+    private final int centerX;
+    private final int centerZ;
+
+    public IslandBoundaryListener(ConfigHandler config) {
+        this.config = config;
+        this.islandSize = config.getIslandSize();
+        this.bufferSize = config.getBufferSize();
+        this.centerX = 0;
+        this.centerZ = 0;
+    }
 
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event) {
@@ -22,17 +34,14 @@ public class IslandBoundaryListener implements Listener {
             return;
         }
 
-        int centerX = 0;
-        int centerZ = 0;
-
-        int minX = centerX - (ISLAND_SIZE / 2) - BUFFER_SIZE;
-        int maxX = centerX + (ISLAND_SIZE / 2) + BUFFER_SIZE;
-        int minZ = centerZ - (ISLAND_SIZE / 2) - BUFFER_SIZE;
-        int maxZ = centerZ + (ISLAND_SIZE / 2) + BUFFER_SIZE;
+        int minX = centerX - (islandSize / 2) - bufferSize;
+        int maxX = centerX + (islandSize / 2) + bufferSize;
+        int minZ = centerZ - (islandSize / 2) - bufferSize;
+        int maxZ = centerZ + (islandSize / 2) + bufferSize;
 
         if (to.getBlockX() < minX || to.getBlockX() > maxX || to.getBlockZ() < minZ || to.getBlockZ() > maxZ) {
             event.setCancelled(true);
-            event.getPlayer().sendMessage("§cYou cannot leave the island area.");
+            event.getPlayer().sendMessage(config.getCannotLeaveIslandBoundaryMessage());
         }
     }
 }

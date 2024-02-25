@@ -15,17 +15,18 @@ public class TeleportManager {
         this.plugin = plugin;
     }
 
-    public void addPendingTeleport(UUID playerId, Location location) {
-        pendingTeleports.put(playerId, location);
-        plugin.debug("Added pending teleport for " + playerId);
+    public void addPendingTeleport(UUID playerUuid, Location location) {
+        pendingTeleports.put(playerUuid, location);
+        plugin.debug("Added pending teleport for " + playerUuid);
     }
 
-    public void removePendingTeleport(UUID playerId) {
-        pendingTeleports.remove(playerId);
-        plugin.debug("Removed pending teleport for " + playerId);
+    public void removePendingTeleport(UUID playerUuid) {
+        pendingTeleports.remove(playerUuid);
+        plugin.debug("Removed pending teleport for " + playerUuid);
     }
 
-    public Location getPendingTeleport(UUID playerId) {
-        return pendingTeleports.get(playerId);
+    public Location getPendingTeleport(UUID playerUuid) {
+        return pendingTeleports.get(playerUuid);
     }
 }
+

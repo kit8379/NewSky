@@ -17,7 +17,7 @@ public class AdminAddMemberCommand extends BaseAddMemberCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage("§eUsage: §b/islandadmin addmember <player> <island owner>");
+            sender.sendMessage(config.getAdminAddMemberUsageMessage());
             return false;
         }
         return true;
@@ -35,11 +35,11 @@ public class AdminAddMemberCommand extends BaseAddMemberCommand {
 
     @Override
     protected String getNoIslandMessage(String[] args) {
-        return "§cPlayer " + args[2] + " does not have an island";
+        return config.getAdminNoIslandMessage(args[2]);
     }
 
     @Override
     protected String getIslandAddMemberSuccessMessage(String[] args) {
-        return "§aAdded " + args[1] + " to " + args[2] + "'s island";
+        return config.getAdminAddMemberSuccessMessage(args[1], args[2]);
     }
 }

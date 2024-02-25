@@ -17,7 +17,7 @@ public class IslandSetWarpCommand extends BaseSetWarpCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 1 || args.length > 2) {
-            sender.sendMessage("§eUsage: §b/island setwarp [warpName]");
+            sender.sendMessage(config.getPlayerSetWarpUsageMessage());
             return false;
         }
         return true;
@@ -35,16 +35,16 @@ public class IslandSetWarpCommand extends BaseSetWarpCommand {
 
     @Override
     protected String getNoIslandMessage(String[] args) {
-        return "You do not have an island to set a warp point.";
+        return config.getPlayerNoIslandMessage();
     }
 
     @Override
     protected String getMustInIslandMessage(String[] args) {
-        return "You must be in your island world to set a warp point.";
+        return config.getPlayerMustInIslandSetWarpMessage();
     }
 
     @Override
     protected String getSetWarpSuccessMessage(String[] args, String warpName) {
-        return "Warp point " + warpName + " set successfully.";
+        return config.getPlayerSetWarpSuccessMessage(warpName);
     }
 }

@@ -17,7 +17,7 @@ public class IslandSetHomeCommand extends BaseSetHomeCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if(args.length < 1 || args.length > 2) {
-            sender.sendMessage("§eUsage: §b/island sethome [homeName]");
+            sender.sendMessage(config.getPlayerSetHomeUsageMessage());
             return false;
         }
         return true;
@@ -35,16 +35,16 @@ public class IslandSetHomeCommand extends BaseSetHomeCommand {
 
     @Override
     protected String getNoIslandMessage(String[] args) {
-        return "§cYou do not have an island.";
+        return config.getPlayerNoIslandMessage();
     }
 
     @Override
     protected String getMustInIslandMessage(String[] args) {
-        return "§cYou must be in your island world to set a home.";
+        return config.getPlayerMustInIslandSetHomeMessage();
     }
 
     @Override
     protected String getSetHomeSuccessMessage(String[] args, String homeName) {
-        return "§aHome " + homeName + " set successfully.";
+        return config.getPlayerSetHomeSuccessMessage(homeName);
     }
 }

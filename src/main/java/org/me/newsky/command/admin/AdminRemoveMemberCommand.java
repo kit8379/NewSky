@@ -17,9 +17,14 @@ public class AdminRemoveMemberCommand extends BaseRemoveMemberCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage("§eUsage: §b/islandadmin removemember <player> <island owner>");
+            sender.sendMessage(config.getAdminRemoveMemberUsageMessage());
             return false;
         }
+        return true;
+    }
+
+    @Override
+    protected boolean isNotSelf(CommandSender sender, String[] args) {
         return true;
     }
 
@@ -35,11 +40,11 @@ public class AdminRemoveMemberCommand extends BaseRemoveMemberCommand {
 
     @Override
     protected String getNoIslandMessage(String[] args) {
-        return "§cPlayer " + args[2] + " does not have an island";
+        return config.getAdminNoIslandMessage(args[2]);
     }
 
     @Override
     protected String getIslandRemoveMemberSuccessMessage(String[] args) {
-        return "§aRemoved " + args[1] + " from " + args[2] + "'s island";
+        return config.getAdminRemoveMemberSuccessMessage(args[1], args[2]);
     }
 }

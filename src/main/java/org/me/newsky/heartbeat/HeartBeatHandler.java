@@ -2,35 +2,41 @@ package org.me.newsky.heartbeat;
 
 import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
+import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.JedisPubSub;
 
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.Set;
 
 public class HeartBeatHandler {
 
-    private static final long HEARTBEAT_RATE_MS = TimeUnit.SECONDS.toMillis(5);
-    private static final long TIMEOUT_MS = HEARTBEAT_RATE_MS * 2;
+
     private final NewSky plugin;
+    private final ConfigHandler config;
     private final RedisHandler redisHandler;
     private final String serverID;
-    private final String serverMode;
+    private final boolean lobby;
+    private final long heartbeatRateMs;
+    private final ConcurrentHashMap<String, Long> serverLastHeartbeat = new ConcurrentHashMap<>();
     private JedisPubSub heartBeatSubscriber;
     private BukkitTask combinedTask;
-    private final ConcurrentHashMap<String, Long> serverLastHeartbeat = new ConcurrentHashMap<>();
 
-    public HeartBeatHandler(NewSky plugin, RedisHandler redisHandler, String serverID, String serverMode) {
+    public HeartBeatHandler(NewSky plugin, ConfigHandler config, RedisHandler redisHandler, String serverID) {
         this.plugin = plugin;
+        this.config = config;
         this.redisHandler = redisHandler;
         this.serverID = serverID;
-        this.serverMode = serverMode;
+        this.lobby = config.isLobby();
+        this.heartbeatRateMs = TimeUnit.SECONDS.toMillis(config.getHeartbeatInterval());
     }
 
     public void startHeartBeat() {
         listenForHeartBeats();
-        combinedTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::combinedHeartBeatTask, 0L, HEARTBEAT_RATE_MS / 50); // Convert to server ticks
+        if (!lobby) {
+            combinedTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::sendHeartBeats, 0L, heartbeatRateMs / 50); // Convert to server ticks
+        }
     }
 
     public void stopHeartBeat() {
@@ -42,16 +48,10 @@ public class HeartBeatHandler {
         }
     }
 
-    private void combinedHeartBeatTask() {
-        if(serverMode.equals("island")) {
-            sendHeartBeats();
-        }
-        checkServerTimeouts();
-    }
-
     private void sendHeartBeats() {
         redisHandler.publish("newsky-heartbeat-channel", serverID);
         serverLastHeartbeat.put(serverID, System.currentTimeMillis());
+        checkServerTimeouts();
     }
 
     private void listenForHeartBeats() {
@@ -67,11 +67,8 @@ public class HeartBeatHandler {
     private void checkServerTimeouts() {
         long now = System.currentTimeMillis();
         serverLastHeartbeat.entrySet().removeIf(entry -> {
-            if (now - entry.getValue() > TIMEOUT_MS) {
-                plugin.info("Server " + entry.getKey() + " timed out and removed.");
-                return true;
-            }
-            return false;
+            plugin.debug("Server " + entry.getKey() + " has timed out");
+            return now - entry.getValue() > heartbeatRateMs;
         });
     }
 

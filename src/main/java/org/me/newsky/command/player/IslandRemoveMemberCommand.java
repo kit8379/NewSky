@@ -17,7 +17,16 @@ public class IslandRemoveMemberCommand extends BaseRemoveMemberCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage("§eUsage: §b/island removemember <player>");
+            sender.sendMessage(config.getPlayerRemoveMemberUsageMessage());
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    protected boolean isNotSelf(CommandSender sender, String[] args) {
+        if (args[1].equals(sender.getName())) {
+            sender.sendMessage(config.getPlayerRemoveMemberCannotRemoveSelfMessage());
             return false;
         }
         return true;
@@ -35,11 +44,11 @@ public class IslandRemoveMemberCommand extends BaseRemoveMemberCommand {
 
     @Override
     protected String getNoIslandMessage(String[] args) {
-        return "§cYou do not have an island";
+        return config.getPlayerNoIslandMessage();
     }
 
     @Override
     protected String getIslandRemoveMemberSuccessMessage(String[] args) {
-        return "§aRemoved " + args[1] + " from your island";
+        return config.getPlayerRemoveMemberSuccessMessage(args[1]);
     }
 }

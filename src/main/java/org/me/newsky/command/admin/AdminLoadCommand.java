@@ -11,9 +11,4 @@ public class AdminLoadCommand extends BaseLoadCommand {
     public AdminLoadCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
         super(config, cacheHandler, islandHandler);
     }
-
-    @Override
-    protected boolean validateArgs(CommandSender sender, String[] args) {
-        return true;
-    }
 }

@@ -59,7 +59,6 @@ public class RedisHandler {
         return jedis;
     }
 
-    // Remember to close your JedisPool when your application ends
     public void disconnect() {
         if (jedisPool != null) {
             jedisPool.close();

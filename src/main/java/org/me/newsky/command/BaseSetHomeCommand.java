@@ -21,7 +21,7 @@ public abstract class BaseSetHomeCommand {
 
     public boolean execute(CommandSender sender, String[] args) {
         if (!(sender instanceof Player)) {
-            sender.sendMessage("Only players can use this command.");
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
             return true;
         }
 
@@ -48,7 +48,7 @@ public abstract class BaseSetHomeCommand {
         Location loc = player.getLocation();
         String homeLocation = String.format("%.1f,%.1f,%.1f,%.1f,%.1f", loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
 
-        cacheHandler.addOrUpdateHomePoint(targetUuid, homeName, homeLocation);
+        cacheHandler.addOrUpdateHomePoint(targetUuid, islandUuid, homeName, homeLocation);
         sender.sendMessage(getSetHomeSuccessMessage(args, homeName));
 
         return true;

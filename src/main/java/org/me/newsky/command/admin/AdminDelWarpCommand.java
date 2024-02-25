@@ -17,7 +17,7 @@ public class AdminDelWarpCommand extends BaseDelWarpCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length != 3) {
-            sender.sendMessage("§eUsage: §b/islandadmin delwarp <player> <warpName>");
+            sender.sendMessage(config.getAdminDelWarpUsageMessage());
             return false;
         }
         return true;
@@ -34,12 +34,17 @@ public class AdminDelWarpCommand extends BaseDelWarpCommand {
     }
 
     @Override
+    protected String getNoIslandMessage(String[] args) {
+        return config.getAdminNoIslandMessage(args[1]);
+    }
+
+    @Override
     protected String getNoWarpMessage(String[] args) {
-        return "Player " + args[1] + " does not have a warp point named " + args[2] + ".";
+        return config.getAdminNoWarpMessage(args[1], args[2]);
     }
 
     @Override
     protected String getDelWarpSuccessMessage(String[] args) {
-        return "Warp point " + args[2] + " successfully deleted for player " + args[1] + ".";
+        return config.getAdminDelWarpSuccessMessage(args[1], args[2]);
     }
 }

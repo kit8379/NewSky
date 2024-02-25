@@ -17,7 +17,7 @@ public class IslandDelHomeCommand extends BaseDelHomeCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length != 2) {
-            sender.sendMessage("§eUsage: §b/island delhome <homeName>");
+            sender.sendMessage(config.getPlayerDelHomeUsageMessage());
             return false;
         }
         return true;
@@ -34,12 +34,22 @@ public class IslandDelHomeCommand extends BaseDelHomeCommand {
     }
 
     @Override
+    protected String getNoIslandMessage(String[] args) {
+        return config.getPlayerNoIslandMessage();
+    }
+
+    @Override
+    protected String getCannotDeleteDefaultHomeMessage(String[] args) {
+        return config.getPlayerCannotDeleteDefaultHomeMessage();
+    }
+
+    @Override
     protected String getNoHomeMessage(String[] args) {
-        return "§cYou do not have a home named " + args[1] + ".";
+        return config.getPlayerNoHomeMessage(args[1]);
     }
 
     @Override
     protected String getDelHomeSuccessMessage(String[] args) {
-        return "§aHome " + args[1] + " successfully deleted.";
+        return config.getPlayerDelHomeSuccessMessage(args[1]);
     }
 }

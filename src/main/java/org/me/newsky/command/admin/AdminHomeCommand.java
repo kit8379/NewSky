@@ -18,14 +18,14 @@ public class AdminHomeCommand extends BaseHomeCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2 || args.length > 3) {
-            sender.sendMessage("§eUsage: §b/islandadmin home <player> [homeName]");
+            sender.sendMessage(config.getAdminHomeUsageMessage());
             return false;
         }
         return true;
     }
 
     @Override
-    protected UUID getTargetUUID(CommandSender sender, String[] args) {
+    protected UUID getTargetUuid(CommandSender sender, String[] args) {
         return Bukkit.getOfflinePlayer(args[1]).getUniqueId();
     }
 
@@ -36,21 +36,16 @@ public class AdminHomeCommand extends BaseHomeCommand {
 
     @Override
     protected String getNoIslandMessage(String[] args) {
-        return "§cPlayer " + args[1] + " does not have an island.";
-    }
-
-    @Override
-    protected String getNoHomesMessage(String[] args) {
-        return "§cPlayer " + args[1] + " does not have any island homes.";
+        return config.getAdminNoIslandMessage(args[1]);
     }
 
     @Override
     protected String getNoHomeMessage(String[] args, String homeName) {
-        return "§cPlayer " + args[1] + " does not have a home named " + homeName + ".";
+        return config.getAdminNoHomeMessage(args[1], homeName);
     }
 
     @Override
     protected String getIslandHomeSuccessMessage(String homeName) {
-        return "§aTeleported to " + homeName + "'s island home.";
+        return config.getAdminHomeSuccessMessage(homeName);
     }
 }

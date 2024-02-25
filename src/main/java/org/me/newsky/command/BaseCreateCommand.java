@@ -39,9 +39,16 @@ public abstract class BaseCreateCommand {
 
         // Generate a new island UUID
         UUID islandUuid = UUID.randomUUID();
+
         // Set the island spawn location
-        String spawnLocation = "0,132,0,100,100";
-        // Set the island owner role
+        int spawnX = config.getIslandSpawnX();
+        int spawnY = config.getIslandSpawnY();
+        int spawnZ = config.getIslandSpawnZ();
+        float spawnYaw = config.getIslandSpawnYaw();
+        float spawnPitch = config.getIslandSpawnPitch();
+        String spawnLocation = spawnX + "," + spawnY + "," + spawnZ + "," + spawnYaw + "," + spawnPitch;
+
+        // Set the owner role
         String role = "owner";
 
         // Run the island creation future
@@ -56,16 +63,21 @@ public abstract class BaseCreateCommand {
             // Add the island to the cache
             cacheHandler.createIsland(islandUuid);
             // Add the player as the owner to the island in the cache
-            cacheHandler.addIslandPlayer(targetUuid, islandUuid, role);
+            cacheHandler.addOrUpdateIslandPlayer(targetUuid, islandUuid, role);
             // Add the player default spawn
-            cacheHandler.addOrUpdateHomePoint(targetUuid, "default", spawnLocation);
+            cacheHandler.addOrUpdateHomePoint(targetUuid, islandUuid, "default", spawnLocation);
             // Send the success message
             sender.sendMessage(getIslandCreateSuccessMessage(args));
             // Teleport the player to the island
             performPostCreationActions(sender, targetUuid, islandUuid, spawnLocation);
         }).exceptionally(ex -> {
             // Send the error message
-            sender.sendMessage("There was an error creating the island.");
+            if (ex instanceof IllegalStateException) {
+                sender.sendMessage(ex.getMessage());
+            } else {
+                ex.printStackTrace();
+                sender.sendMessage("There was an error creating the island.");
+            }
             return null;
         });
     }

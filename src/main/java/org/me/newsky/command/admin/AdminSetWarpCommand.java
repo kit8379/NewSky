@@ -17,7 +17,7 @@ public class AdminSetWarpCommand extends BaseSetWarpCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2 || args.length > 3) {
-            sender.sendMessage("§eUsage: §b/islandadmin setwarp <player> <warpName>");
+            sender.sendMessage(config.getAdminSetWarpUsageMessage());
             return false;
         }
         return true;
@@ -35,16 +35,16 @@ public class AdminSetWarpCommand extends BaseSetWarpCommand {
 
     @Override
     protected String getNoIslandMessage(String[] args) {
-        return "Player " + args[1] + " does not have an island.";
+        return config.getAdminNoIslandMessage(args[1]);
     }
 
     @Override
     protected String getMustInIslandMessage(String[] args) {
-        return "You must be in the island of " + args[1] + " to set a warp point.";
+        return config.getAdminMustInIslandSetWarpMessage(args[1]);
     }
 
     @Override
     protected String getSetWarpSuccessMessage(String[] args, String warpName) {
-        return "Warp point " + warpName + " set for player " + args[1] + " successfully.";
+        return config.getAdminSetWarpSuccessMessage(args[1], warpName);
     }
 }

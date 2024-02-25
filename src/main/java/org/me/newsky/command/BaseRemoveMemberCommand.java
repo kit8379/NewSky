@@ -25,6 +25,10 @@ public abstract class BaseRemoveMemberCommand {
             return true;
         }
 
+        if (!isNotSelf(sender, args)) {
+            return true;
+        }
+
         // Get the island owner's UUID
         UUID islandOwnerId = getIslandOwnerUuid(sender, args);
 
@@ -38,10 +42,11 @@ public abstract class BaseRemoveMemberCommand {
 
         // Get the target player's UUID
         OfflinePlayer targetRemove = Bukkit.getOfflinePlayer(args[getTargetRemoveArgIndex()]);
+        UUID targetUuid = targetRemove.getUniqueId();
 
         // Check if the target player is a member of the island
-        if (!cacheHandler.getIslandMembers(islandUuid).contains(targetRemove.getUniqueId())) {
-            sender.sendMessage(targetRemove.getName() + " is not a member of the island.");
+        if (!cacheHandler.getIslandMembers(islandUuid).contains(targetUuid)) {
+            sender.sendMessage(config.getNotIslandMemberMessage(targetRemove.getName()));
             return true;
         }
 
@@ -52,7 +57,7 @@ public abstract class BaseRemoveMemberCommand {
         }
 
         // Remove the target player from the island
-        cacheHandler.deleteIslandPlayer(targetRemove.getUniqueId(), islandUuid);
+        cacheHandler.deleteIslandPlayer(targetUuid, islandUuid);
 
         // Send the success message
         sender.sendMessage(getIslandRemoveMemberSuccessMessage(args));
@@ -61,6 +66,8 @@ public abstract class BaseRemoveMemberCommand {
     }
 
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
+
+    protected abstract boolean isNotSelf(CommandSender sender, String[] args);
 
     protected abstract int getTargetRemoveArgIndex();
 

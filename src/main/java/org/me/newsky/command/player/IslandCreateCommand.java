@@ -28,12 +28,12 @@ public class IslandCreateCommand extends BaseCreateCommand {
 
     @Override
     protected String getExistingIslandMessage(String[] args) {
-        return "§cYou already have an island";
+        return config.getPlayerAlreadyHasIslandMessage();
     }
 
     @Override
     protected String getIslandCreateSuccessMessage(String[] args) {
-        return "§aIsland created";
+        return config.getPlayerCreateSuccessMessage();
     }
 
     @Override
@@ -41,7 +41,7 @@ public class IslandCreateCommand extends BaseCreateCommand {
         // Teleport player to island
         CompletableFuture<Void> homeIslandFuture = islandHandler.teleportToIsland(islandUuid, (Player) sender, spawnLocation);
         homeIslandFuture.thenRun(() -> {
-            sender.sendMessage("Teleported to island");
+            sender.sendMessage(config.getPlayerTeleportToIslandSuccessMessage());
         }).exceptionally(ex -> {
             sender.sendMessage("There was an error teleporting to the island.");
             return null;

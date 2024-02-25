@@ -17,7 +17,7 @@ public class AdminLockCommand extends BaseLockCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage("§eUsage: §b/islandadmin create <player>");
+            sender.sendMessage(config.getAdminLockUsageMessage());
             return false;
         }
         return true;
@@ -30,16 +30,16 @@ public class AdminLockCommand extends BaseLockCommand {
 
     @Override
     protected String getNoIslandMessage(String[] args) {
-        return "§cPlayer " + args[1] + " does not have an island";
+        return config.getAdminNoIslandMessage(args[1]);
     }
 
     @Override
     protected String getIslandUnLockSuccessMessage(String[] args) {
-        return "§aIsland unlocked for " + args[1] + ".";
+        return config.getAdminUnLockSuccessMessage(args[1]);
     }
 
     @Override
     protected String getIslandLockSuccessMessage(String[] args) {
-        return "§aIsland locked for " + args[1] + ".";
+        return config.getAdminLockSuccessMessage(args[1]);
     }
 }

@@ -24,8 +24,9 @@ public abstract class BaseUnloadCommand {
 
     public boolean execute(CommandSender sender, String[] args) {
         // Check if the command arguments are valid
-        if (!validateArgs(sender, args)) {
-            return true;
+        if (args.length < 2) {
+            sender.sendMessage(config.getAdminUnloadUsageMessage());
+            return false;
         }
 
         // Get the target player's UUID
@@ -34,14 +35,14 @@ public abstract class BaseUnloadCommand {
         // Get the target player's island UUID
         Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
         if (islandUuidOpt.isEmpty()) {
-            sender.sendMessage(args[1] + " does not have an island.");
+            sender.sendMessage(config.getNoIslandMessage(args[1]));
             return true;
         }
         UUID islandUuid = islandUuidOpt.get();
 
         // Run the island unload future
-        CompletableFuture<Void> deleteIslandFuture = islandHandler.unloadIsland(islandUuid);
-        handleIslandUnloadFuture(deleteIslandFuture, sender, args);
+        CompletableFuture<Void> unloadIslandFuture = islandHandler.unloadIsland(islandUuid);
+        handleIslandUnloadFuture(unloadIslandFuture, sender, args);
 
         return true;
     }
@@ -49,10 +50,14 @@ public abstract class BaseUnloadCommand {
     protected void handleIslandUnloadFuture(CompletableFuture<Void> future, CommandSender sender, String[] args) {
         future.thenRun(() -> {
             // Send the success message
-            sender.sendMessage(args[1] + "'s island has been unloaded.");
+            sender.sendMessage(config.getIslandUnloadSuccessMessage(args[1]));
         }).exceptionally(ex -> {
-            // Send the error message
-            sender.sendMessage("There was an error unloading the island.");
+            if (ex instanceof IllegalStateException) {
+                sender.sendMessage(ex.getMessage());
+            } else {
+                ex.printStackTrace();
+                sender.sendMessage("There was an error creating the island.");
+            }
             return null;
         });
     }

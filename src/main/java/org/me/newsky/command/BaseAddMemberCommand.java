@@ -25,9 +25,7 @@ public abstract class BaseAddMemberCommand {
             return true;
         }
 
-        // Get the target player's UUID
-        OfflinePlayer targetAdd = Bukkit.getOfflinePlayer(args[getTargetAddArgIndex()]);
-        UUID targetUuid = targetAdd.getUniqueId();
+
 
         // Get the island owner's UUID
         UUID islandOwnerId = getIslandOwnerUuid(sender, args);
@@ -40,21 +38,31 @@ public abstract class BaseAddMemberCommand {
         }
         UUID islandUuid = islandUuidOpt.get();
 
+        // Get the target player's UUID
+        OfflinePlayer targetAdd = Bukkit.getOfflinePlayer(args[getTargetAddArgIndex()]);
+        UUID targetUuid = targetAdd.getUniqueId();
+
         // Check if the target player is already a member of the island
         if (cacheHandler.getIslandMembers(islandUuid).contains(targetUuid)) {
-            sender.sendMessage(targetAdd.getName() + " is already a member of the island.");
+            sender.sendMessage(config.getIslandMemberExistsMessage(targetAdd.getName()));
             return true;
         }
 
         // Set the spawn location
-        String spawnLocation = "0,100,0,100,100";
-        // Set the role
+        int spawnX = config.getIslandSpawnX();
+        int spawnY = config.getIslandSpawnY();
+        int spawnZ = config.getIslandSpawnZ();
+        float spawnYaw = config.getIslandSpawnYaw();
+        float spawnPitch = config.getIslandSpawnPitch();
+        String spawnLocation = spawnX + "," + spawnY + "," + spawnZ + "," + spawnYaw + "," + spawnPitch;
+
+        // Set the member role
         String role = "member";
 
         // Add the target player to the island
-        cacheHandler.addIslandPlayer(targetUuid, islandUuid, role);
+        cacheHandler.addOrUpdateIslandPlayer(targetUuid, islandUuid, role);
         // Add the player default spawn
-        cacheHandler.addOrUpdateHomePoint(targetUuid, "default", spawnLocation);
+        cacheHandler.addOrUpdateHomePoint(targetUuid, islandUuid,"default", spawnLocation);
         // Send the success message
         sender.sendMessage(getIslandAddMemberSuccessMessage(args));
 

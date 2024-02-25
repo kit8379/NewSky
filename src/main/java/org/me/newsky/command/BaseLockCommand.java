@@ -19,11 +19,6 @@ public abstract class BaseLockCommand {
     }
 
     public boolean execute(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player)) {
-            sender.sendMessage("Only players can use this command.");
-            return true;
-        }
-
         if (!validateArgs(sender, args)) {
             return true;
         }

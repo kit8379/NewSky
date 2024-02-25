@@ -18,9 +18,14 @@ public class AdminDeleteCommand extends BaseDeleteCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage("§eUsage: §b/islandadmin delete <player>");
+            sender.sendMessage(config.getAdminDeleteUsageMessage());
             return false;
         }
+        return true;
+    }
+
+    @Override
+    protected boolean isOwner(CommandSender sender, UUID islandUuid) {
         return true;
     }
 
@@ -29,13 +34,20 @@ public class AdminDeleteCommand extends BaseDeleteCommand {
         return Bukkit.getOfflinePlayer(args[1]).getUniqueId();
     }
 
+
+
     @Override
     protected String getNoIslandMessage(String[] args) {
-        return "§cPlayer " + args[1] + " does not have an island";
+        return config.getAdminNoIslandMessage(args[1]);
+    }
+
+    @Override
+    protected String getIslandDeleteWarningMessage(String[] args) {
+        return config.getAdminDeleteWarningMessage(args[1]);
     }
 
     @Override
     protected String getIslandDeleteSuccessMessage(String[] args) {
-        return "§aIsland deleted for player " + args[1];
+        return config.getAdminDeleteSuccessMessage(args[1]);
     }
 }

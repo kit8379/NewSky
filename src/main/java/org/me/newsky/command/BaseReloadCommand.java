@@ -24,7 +24,7 @@ public abstract class BaseReloadCommand {
         plugin.reload();
 
         // Send the success message
-        sender.sendMessage("§aPlugin reloaded");
+        sender.sendMessage(config.getPluginReloadedMessage());
 
         return true;
     }

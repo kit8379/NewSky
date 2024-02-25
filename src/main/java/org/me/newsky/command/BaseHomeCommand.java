@@ -27,18 +27,21 @@ public abstract class BaseHomeCommand {
     }
 
     public boolean execute(CommandSender sender, String[] args) {
+        // Check if the sender is a player
         if (!(sender instanceof Player)) {
-            sender.sendMessage("Only players can use this command.");
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
             return true;
         }
 
+        // Validate the command arguments
         if (!validateArgs(sender, args)) {
             return true;
         }
 
-        Player player = (Player) sender;
-        UUID targetUuid = getTargetUUID(sender, args);
+        // Get the target UUID
+        UUID targetUuid = getTargetUuid(sender, args);
 
+        // Get the island UUID
         Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
         if (islandUuidOpt.isEmpty()) {
             sender.sendMessage(getNoIslandMessage(args));
@@ -46,21 +49,17 @@ public abstract class BaseHomeCommand {
         }
         UUID islandUuid = islandUuidOpt.get();
 
-        Set<String> homeNames = cacheHandler.getHomeNames(targetUuid);
-        if (homeNames.isEmpty()) {
-            sender.sendMessage(getNoHomesMessage(args));
-            return true;
-        }
-
+        // Teleport the player to the island
         String homeName = args.length > getTargetHomeArgIndex() ? args[getTargetHomeArgIndex()] : "default";
-        Optional<String> homeLocationOpt = cacheHandler.getHomeLocation(targetUuid, homeName);
+        Optional<String> homeLocationOpt = cacheHandler.getHomeLocation(islandUuid, targetUuid, homeName);
         if (homeLocationOpt.isEmpty()) {
             sender.sendMessage(getNoHomeMessage(args, homeName));
             return true;
         }
         String homeLocation = homeLocationOpt.get();
 
-        CompletableFuture<Void> homeIslandFuture = islandHandler.teleportToIsland(islandUuid, player, homeLocation);
+        // Teleport the player to the island
+        CompletableFuture<Void> homeIslandFuture = islandHandler.teleportToIsland(islandUuid, (Player) sender, homeLocation);
         handleIslandTeleportFuture(homeIslandFuture, sender, homeName);
 
         return true;
@@ -68,8 +67,13 @@ public abstract class BaseHomeCommand {
 
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull String[] args) {
         if (args.length == getTargetHomeArgIndex() + 1) {
-            UUID targetUuid = getTargetUUID(sender, args);
-            Set<String> homeNames = cacheHandler.getHomeNames(targetUuid);
+            UUID targetUuid = getTargetUuid(sender, args);
+            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
+            if (islandUuidOpt.isEmpty()) {
+                return null;
+            }
+            UUID islandUuid = islandUuidOpt.get();
+            Set<String> homeNames = cacheHandler.getHomeNames(islandUuid, targetUuid);
             return homeNames.stream()
                     .filter(name -> name.toLowerCase().startsWith(args[getTargetHomeArgIndex()].toLowerCase()))
                     .collect(Collectors.toList());
@@ -83,20 +87,23 @@ public abstract class BaseHomeCommand {
             sender.sendMessage(getIslandHomeSuccessMessage(homeName));
         }).exceptionally(ex -> {
             // Send the error message
-            sender.sendMessage("There was an error teleporting to the island home.");
+            if (ex instanceof IllegalStateException) {
+                sender.sendMessage(ex.getMessage());
+            } else {
+                ex.printStackTrace();
+                sender.sendMessage("There was an error creating the island.");
+            }
             return null;
         });
     }
 
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
 
-    protected abstract UUID getTargetUUID(CommandSender sender, String[] args);
+    protected abstract UUID getTargetUuid(CommandSender sender, String[] args);
 
     protected abstract int getTargetHomeArgIndex();
 
     protected abstract String getNoIslandMessage(String[] args);
-
-    protected abstract String getNoHomesMessage(String[] args);
 
     protected abstract String getNoHomeMessage(String[] args, String homeName);
 

@@ -7,6 +7,7 @@ import org.me.newsky.command.BaseDeleteCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 
+import java.util.Optional;
 import java.util.UUID;
 
 public class IslandDeleteCommand extends BaseDeleteCommand {
@@ -21,17 +22,33 @@ public class IslandDeleteCommand extends BaseDeleteCommand {
     }
 
     @Override
+    protected boolean isOwner(CommandSender sender, UUID islandUuid) {
+        Player player = (Player) sender;
+        Optional<UUID> islandOwnerOpt = cacheHandler.getIslandOwner(islandUuid);
+        if (islandOwnerOpt.isEmpty() || !islandOwnerOpt.get().equals(player.getUniqueId())) {
+            sender.sendMessage(config.getPlayerNotOwnerMessage());
+            return false;
+        }
+        return true;
+    }
+
+    @Override
     protected UUID getTargetUuid(CommandSender sender, String[] args) {
         return ((Player) sender).getUniqueId();
     }
 
     @Override
     protected String getNoIslandMessage(String[] args) {
-        return "§cYou do not have an island";
+        return config.getPlayerNoIslandMessage();
+    }
+
+    @Override
+    protected String getIslandDeleteWarningMessage(String[] args) {
+        return config.getPlayerDeleteWarningMessage();
     }
 
     @Override
     protected String getIslandDeleteSuccessMessage(String[] args) {
-        return "§aIsland deleted";
+        return config.getPlayerDeleteSuccessMessage();
     }
 }
