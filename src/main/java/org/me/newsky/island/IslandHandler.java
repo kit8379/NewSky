@@ -145,14 +145,6 @@ public abstract class IslandHandler {
         }
     }
 
-    public void subscribeToRequests() {
-        islandSubscribeRequest.subscribeToRequests();
-    }
-
-    public void unsubscribeFromRequests() {
-        islandSubscribeRequest.unsubscribeFromRequests();
-    }
-
     public abstract CompletableFuture<Void> loadIsland(UUID islandUuid);
 
     public abstract CompletableFuture<Void> teleportToIsland(UUID islandUuid, Player player, String locationString);
