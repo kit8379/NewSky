@@ -9,9 +9,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 public class IslandPublishRequest {
+    private static final long TIMEOUT_SECONDS = 30L;
     private final NewSky plugin;
     private final RedisHandler redisHandler;
     private final HeartBeatHandler heartBeatHandler;
@@ -44,23 +45,32 @@ public class IslandPublishRequest {
 
                 if (shouldComplete) {
                     this.unsubscribe();
-                    future.complete(responses);
+                    if (responses.containsValue("Error")) {
+                        future.completeExceptionally(new IllegalStateException("Error received from server: " + responderID + " for request: " + requestID + " for operation: " + operation));
+                    } else {
+                        future.complete(responses);
+                    }
                 }
             }
         };
 
-        // Subscribe to the specific response channel
         redisHandler.subscribe(responseSubscriber, "newsky-response-channel-" + requestID);
         String requestMessage = requestID + ":" + serverID + ":" + targetServer + ":" + operation;
 
-        // Publish the request to the request channel
         redisHandler.publish("newsky-request-channel", requestMessage);
         plugin.debug("Sending request: " + requestID + " to server: " + targetServer + " for operation: " + operation);
 
-        future.orTimeout(30, TimeUnit.SECONDS).whenComplete((result, error) -> {
-            responseSubscriber.unsubscribe();
-        });
+        scheduleTimeoutTask(future, requestID, responseSubscriber);
 
         return future;
+    }
+
+    private void scheduleTimeoutTask(CompletableFuture<ConcurrentHashMap<String, String>> future, String requestID, JedisPubSub responseSubscriber) {
+        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
+            if (!future.isDone()) {
+                responseSubscriber.unsubscribe();
+                future.completeExceptionally(new TimeoutException("Timeout waiting for response to request: " + requestID));
+            }
+        }, TIMEOUT_SECONDS * 20);
     }
 }

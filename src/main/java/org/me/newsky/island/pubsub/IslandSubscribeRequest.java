@@ -36,7 +36,11 @@ public class IslandSubscribeRequest {
                     plugin.debug("Received request: " + requestID + " from server: " + sourceServer + " for operation: " + operation);
                     processRequest(parts).thenAccept((String responseData) -> {
                         redisHandler.publish("newsky-response-channel-" + requestID, serverID + ":" + responseData);
-                        plugin.debug("Sent response back to server: " + sourceServer + " for request: " + requestID + " for operation: " + operation + " with data: " + responseData);
+                        plugin.debug("Sent response to server: " + sourceServer + " for request: " + requestID + " for operation: " + operation + " with data: " + responseData);
+                    }).exceptionally(e -> {
+                        redisHandler.publish("newsky-response-channel-" + requestID, serverID + ":Error");
+                        plugin.debug("Sent error response to server: " + sourceServer + " for request: " + requestID + " for operation: " + operation);
+                        return null;
                     });
                 }
             }

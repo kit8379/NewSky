@@ -11,7 +11,6 @@ import java.util.concurrent.CompletableFuture;
 
 public class RedisHandler {
 
-    private final int database;
     private final JedisPool jedisPool;
 
     public RedisHandler(NewSky plugin, ConfigHandler config) {
@@ -20,7 +19,6 @@ public class RedisHandler {
         String host = config.getRedisHost();
         int port = config.getRedisPort();
         String password = config.getRedisPassword();
-        this.database = config.getRedisDatabase();
 
         // Create JedisPool
         JedisPoolConfig poolConfig = new JedisPoolConfig();
@@ -30,8 +28,6 @@ public class RedisHandler {
                 jedis.auth(password);
                 plugin.debug("Authenticated Redis connection");
             }
-            jedis.select(database);
-            plugin.debug("Selected Redis database " + database);
         }
     }
 
@@ -54,9 +50,7 @@ public class RedisHandler {
     }
 
     public Jedis getJedis() {
-        Jedis jedis = jedisPool.getResource();
-        jedis.select(database);
-        return jedis;
+        return jedisPool.getResource();
     }
 
     public void disconnect() {
