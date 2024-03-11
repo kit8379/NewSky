@@ -1,7 +1,6 @@
 package org.me.newsky.command;
 
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
