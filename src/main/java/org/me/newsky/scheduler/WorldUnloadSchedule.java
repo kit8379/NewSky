@@ -11,7 +11,7 @@ import java.util.concurrent.TimeUnit;
 
 public class WorldUnloadSchedule {
 
-    private static final long MAX_INACTIVE_TIME = TimeUnit.MINUTES.toMillis(10);
+    private static final long MAX_INACTIVE_TIME = TimeUnit.MINUTES.toMillis(5);
     private final NewSky plugin;
     private final WorldHandler worldHandler;
     private final Map<String, Long> inactiveWorlds = new HashMap<>();
