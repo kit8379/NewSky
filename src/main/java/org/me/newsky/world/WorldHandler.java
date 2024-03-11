@@ -26,5 +26,42 @@ public abstract class WorldHandler {
 
     public abstract CompletableFuture<Void> unloadWorld(String worldName);
 
+    public void saveWorld(World world) {
+        world.save();
+    }
+
+    protected boolean isWorldLoaded(String worldName) {
+        return Bukkit.getWorld(worldName) != null;
+    }
+
+    protected void removePlayersFromWorld(World world) {
+        World safeWorld = Bukkit.getServer().getWorlds().get(0);
+        for (Player player : world.getPlayers()) {
+            player.teleport(safeWorld.getSpawnLocation());
+        }
+    }
+
+    protected CompletableFuture<Void> unloadWorldFromBukkit(String worldName) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
+        if (!isWorldLoaded(worldName)) {
+            future.complete(null);
+            return future;
+        }
+
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            World world = Bukkit.getWorld(worldName);
+            if (world != null) {
+                removePlayersFromWorld(world);
+                Bukkit.unloadWorld(world, true);
+                future.complete(null);
+            } else {
+                future.completeExceptionally(new IllegalStateException(config.getIslandNotLoadedMessage()));
+            }
+        });
+
+        return future;
+    }
+
 
 }

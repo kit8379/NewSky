@@ -7,15 +7,15 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldInitEvent;
 import org.me.newsky.NewSky;
 
-public class WorldEventListener implements Listener {
+public class WorldInitListener implements Listener {
 
     private final NewSky plugin;
 
-    public WorldEventListener(NewSky plugin) {
+    public WorldInitListener(NewSky plugin) {
         this.plugin = plugin;
     }
 
-    @EventHandler(priority=EventPriority.HIGHEST)
+    @EventHandler
     public void worldInit(WorldInitEvent e) {
         // Check if the world is an island
         World world = e.getWorld();

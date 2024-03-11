@@ -4,9 +4,9 @@ import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.heartbeat.HeartBeatHandler;
-import org.me.newsky.island.post.IslandOperation;
-import org.me.newsky.island.post.IslandPublishRequest;
-import org.me.newsky.island.post.IslandSubscribeRequest;
+import org.me.newsky.island.post.PostIslandHandler;
+import org.me.newsky.island.pubsub.IslandPublishRequest;
+import org.me.newsky.island.pubsub.IslandSubscribeRequest;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.teleport.TeleportManager;
 import org.me.newsky.world.WorldHandler;
@@ -31,7 +31,7 @@ public abstract class IslandHandler {
     protected RedisHandler redisHandler;
     protected HeartBeatHandler heartBeatHandler;
     protected TeleportManager teleportManager;
-    protected IslandOperation islandOperation;
+    protected PostIslandHandler postIslandHandler;
     protected IslandPublishRequest islandPublishRequest;
     protected IslandSubscribeRequest islandSubscribeRequest;
 
@@ -43,9 +43,9 @@ public abstract class IslandHandler {
         this.redisHandler = redisHandler;
         this.heartBeatHandler = heartBeatHandler;
         this.teleportManager = teleportManager;
-        this.islandOperation = new IslandOperation(plugin, worldHandler, teleportManager);
+        this.postIslandHandler = new PostIslandHandler(plugin, worldHandler, teleportManager);
         this.islandPublishRequest = new IslandPublishRequest(plugin, redisHandler, heartBeatHandler, serverID);
-        this.islandSubscribeRequest = new IslandSubscribeRequest(plugin, redisHandler, islandOperation, serverID);
+        this.islandSubscribeRequest = new IslandSubscribeRequest(plugin, redisHandler, postIslandHandler, serverID);
     }
 
     public CompletableFuture<Void> createIsland(UUID islandUuid) {
@@ -55,7 +55,7 @@ public abstract class IslandHandler {
             if (leastLoadedServer.isPresent()) {
                 String targetServer = leastLoadedServer.get();
                 if (targetServer.equals(serverID)) {
-                    return islandOperation.createWorld(islandName);
+                    return postIslandHandler.createWorld(islandName);
                 } else {
                     return islandPublishRequest.sendRequest(targetServer, "createIsland:" + islandName).thenApply(responses -> null);
                 }
@@ -72,7 +72,7 @@ public abstract class IslandHandler {
             if (serverId.isPresent()) {
                 String targetServer = serverId.get();
                 if (targetServer.equals(serverID)) {
-                    return islandOperation.unloadWorld(islandName);
+                    return postIslandHandler.unloadWorld(islandName);
                 } else {
                     return islandPublishRequest.sendRequest(targetServer, "unloadIsland:" + islandName).thenApply(responses -> null);
                 }
@@ -89,12 +89,12 @@ public abstract class IslandHandler {
             if (serverId.isPresent()) {
                 String targetServer = serverId.get();
                 if (targetServer.equals(serverID)) {
-                    return islandOperation.deleteWorld(islandName);
+                    return postIslandHandler.deleteWorld(islandName);
                 } else {
                     return islandPublishRequest.sendRequest(targetServer, "deleteIsland:" + islandName).thenApply(responses -> null);
                 }
             } else {
-                return islandOperation.deleteWorld(islandName);
+                return postIslandHandler.deleteWorld(islandName);
             }
         });
     }
@@ -125,7 +125,7 @@ public abstract class IslandHandler {
 
     protected CompletableFuture<Void> proceedWithTeleportation(String islandName, Player player, String locationString, String targetServer) {
         if (targetServer.equals(serverID)) {
-            return islandOperation.teleportToWorld(islandName, player.getUniqueId().toString(), locationString);
+            return postIslandHandler.teleportToWorld(islandName, player.getUniqueId().toString(), locationString);
         } else {
             return islandPublishRequest.sendRequest(targetServer, "teleportToIsland:" + islandName + ":" + player.getUniqueId() + ":" + locationString).thenRun(() -> {
                 connectToServer(player, targetServer);

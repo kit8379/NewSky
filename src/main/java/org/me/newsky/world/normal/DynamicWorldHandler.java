@@ -1,11 +1,12 @@
 package org.me.newsky.world.normal;
 
+import org.bukkit.World;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 
 import java.io.IOException;
-import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 
 public class DynamicWorldHandler extends NormalWorldHandler {
@@ -13,7 +14,6 @@ public class DynamicWorldHandler extends NormalWorldHandler {
 
     public DynamicWorldHandler(NewSky plugin, ConfigHandler config) {
         super(plugin, config);
-
         this.storagePath = Path.of(config.getStoragePath());
     }
 
@@ -27,7 +27,7 @@ public class DynamicWorldHandler extends NormalWorldHandler {
 
             if (Files.exists(worldPath) && !Files.exists(targetPath)) {
                 try {
-                    moveDirectory(worldPath, targetPath);
+                    copyDirectory(worldPath, targetPath);
                 } catch (IOException e) {
                     future.completeExceptionally(e);
                 }
@@ -54,7 +54,7 @@ public class DynamicWorldHandler extends NormalWorldHandler {
 
             if (Files.exists(worldPath) && !Files.exists(targetPath)) {
                 try {
-                    moveDirectory(worldPath, targetPath);
+                    copyDirectory(worldPath, targetPath);
                 } catch (IOException e) {
                     future.completeExceptionally(e);
                 }
@@ -101,28 +101,23 @@ public class DynamicWorldHandler extends NormalWorldHandler {
         return future;
     }
 
-    private void moveDirectory(Path source, Path target) throws IOException {
-        Files.walkFileTree(source, new SimpleFileVisitor<>() {
-            @Override
-            public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                Path targetDir = target.resolve(source.relativize(dir));
-                Files.createDirectories(targetDir);
-                return FileVisitResult.CONTINUE;
-            }
+    @Override
+    public void saveWorld(World world) {
+        // Save the world
+        world.save();
 
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                Files.move(file, target.resolve(source.relativize(file)), StandardCopyOption.REPLACE_EXISTING);
-                return FileVisitResult.CONTINUE;
-            }
+        // Copy the world to the storage directory in async
+        CompletableFuture.runAsync(() -> {
+            Path worldPath = plugin.getServer().getWorldContainer().toPath().resolve(world.getName());
+            Path targetPath = storagePath.resolve(world.getName());
 
-            @Override
-            public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-                if (exc == null) {
-                    Files.delete(dir);
-                    return FileVisitResult.CONTINUE;
-                } else {
-                    throw exc;
+            if (Files.exists(worldPath)) {
+                try {
+                    copyDirectory(worldPath, targetPath);
+                    plugin.info("World " + world.getName() + " saved to storage directory.");
+                } catch (IOException e) {
+                    plugin.info("Failed to save world " + world.getName() + " to storage directory.");
+                    e.printStackTrace();
                 }
             }
         });

@@ -1,4 +1,4 @@
-package org.me.newsky.island.post;
+package org.me.newsky.island.pubsub;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.heartbeat.HeartBeatHandler;
@@ -9,10 +9,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.TimeUnit;
 
 public class IslandPublishRequest {
-    private static final long TIMEOUT_SECONDS = 30L;
     private final NewSky plugin;
     private final RedisHandler redisHandler;
     private final HeartBeatHandler heartBeatHandler;
@@ -45,32 +44,23 @@ public class IslandPublishRequest {
 
                 if (shouldComplete) {
                     this.unsubscribe();
-                    if (responses.containsValue("Error")) {
-                        future.completeExceptionally(new IllegalStateException("Error received from server: " + responderID + " for request: " + requestID + " for operation: " + operation));
-                    } else {
-                        future.complete(responses);
-                    }
+                    future.complete(responses);
                 }
             }
         };
 
+        // Subscribe to the specific response channel
         redisHandler.subscribe(responseSubscriber, "newsky-response-channel-" + requestID);
         String requestMessage = requestID + ":" + serverID + ":" + targetServer + ":" + operation;
 
+        // Publish the request to the request channel
         redisHandler.publish("newsky-request-channel", requestMessage);
         plugin.debug("Sending request: " + requestID + " to server: " + targetServer + " for operation: " + operation);
 
-        scheduleTimeoutTask(future, requestID, responseSubscriber);
+        future.orTimeout(30, TimeUnit.SECONDS).whenComplete((result, error) -> {
+            responseSubscriber.unsubscribe();
+        });
 
         return future;
-    }
-
-    private void scheduleTimeoutTask(CompletableFuture<ConcurrentHashMap<String, String>> future, String requestID, JedisPubSub responseSubscriber) {
-        plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-            if (!future.isDone()) {
-                responseSubscriber.unsubscribe();
-                future.completeExceptionally(new TimeoutException("Timeout waiting for response to request: " + requestID));
-            }
-        }, TIMEOUT_SECONDS * 20);
     }
 }

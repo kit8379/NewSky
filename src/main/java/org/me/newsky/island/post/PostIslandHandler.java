@@ -16,18 +16,19 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class IslandOperation {
+public class PostIslandHandler {
 
     private final NewSky plugin;
     private final WorldHandler worldHandler;
     private final TeleportManager teleportManager;
 
-    public IslandOperation(NewSky plugin, WorldHandler worldHandler, TeleportManager teleportManager) {
+    public PostIslandHandler(NewSky plugin, WorldHandler worldHandler, TeleportManager teleportManager) {
         this.plugin = plugin;
         this.worldHandler = worldHandler;
         this.teleportManager = teleportManager;
     }
 
+    // TODO: Optimize this method
     public CompletableFuture<String> updateWorldList() {
         CompletableFuture<String> future = new CompletableFuture<>();
         // Add loaded worlds that start with "island-"

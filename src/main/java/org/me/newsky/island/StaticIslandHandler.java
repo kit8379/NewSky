@@ -26,7 +26,7 @@ public class StaticIslandHandler extends IslandHandler {
             if (serverId.isPresent()) {
                 String targetServer = serverId.get();
                 if (targetServer.equals(serverID)) {
-                    return islandOperation.loadWorld(islandName);
+                    return postIslandHandler.loadWorld(islandName);
                 } else {
                     return islandPublishRequest.sendRequest(targetServer, "loadIsland:" + islandName).thenApply(responses -> null);
                 }

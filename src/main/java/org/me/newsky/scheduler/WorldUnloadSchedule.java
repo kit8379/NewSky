@@ -23,7 +23,7 @@ public class WorldUnloadSchedule {
     }
 
     public void startWorldUnloadTask() {
-        unloadTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::checkAndUnloadWorlds, 0L, 1200L); // 1200L ticks = 1 minute
+        unloadTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::checkAndUnloadWorlds, 0L, 1200L);
     }
 
     public void stopWorldUnloadTask() {
@@ -39,8 +39,11 @@ public class WorldUnloadSchedule {
             if (world.getName().startsWith("island-") && world.getPlayers().isEmpty()) {
                 long inactiveTime = inactiveWorlds.getOrDefault(world.getName(), currentTime);
                 if (currentTime - inactiveTime > MAX_INACTIVE_TIME) {
-                    worldHandler.unloadWorld(world.getName()).thenRun(() -> plugin.info("Unloaded inactive island world: " + world.getName()));
-                    inactiveWorlds.remove(world.getName());
+                    worldHandler.unloadWorld(world.getName()).thenRun(() -> {
+                        plugin.info("Unloaded inactive island world: " + world.getName());
+                        inactiveWorlds.remove(world.getName());
+                        plugin.debug("Removed inactive world from tracking: " + world.getName());
+                    });
                 } else {
                     inactiveWorlds.put(world.getName(), currentTime);
                 }

@@ -12,12 +12,10 @@ import java.util.concurrent.TimeUnit;
 
 public class HeartBeatHandler {
 
-
     private final NewSky plugin;
     private final ConfigHandler config;
     private final RedisHandler redisHandler;
     private final String serverID;
-    private final boolean lobby;
     private final long heartbeatRateMs;
     private final ConcurrentHashMap<String, Long> serverLastHeartbeat = new ConcurrentHashMap<>();
     private JedisPubSub heartBeatSubscriber;
@@ -28,14 +26,13 @@ public class HeartBeatHandler {
         this.config = config;
         this.redisHandler = redisHandler;
         this.serverID = serverID;
-        this.lobby = config.isLobby();
         this.heartbeatRateMs = TimeUnit.SECONDS.toMillis(config.getHeartbeatInterval());
     }
 
     public void startHeartBeat() {
         listenForHeartBeats();
-        if (!lobby) {
-            combinedTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::sendHeartBeats, 0L, heartbeatRateMs / 50); // Convert to server ticks
+        if (!config.isLobby()) {
+            combinedTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::sendHeartBeats, 0L, heartbeatRateMs / 50);
         }
     }
 
@@ -46,10 +43,12 @@ public class HeartBeatHandler {
         if (combinedTask != null) {
             combinedTask.cancel();
         }
+        // Send a message indicating that the server is stopping
+        redisHandler.publish("newsky-heartbeat-channel", serverID + ":offline");
     }
 
     private void sendHeartBeats() {
-        redisHandler.publish("newsky-heartbeat-channel", serverID);
+        redisHandler.publish("newsky-heartbeat-channel", serverID + ":online");
         serverLastHeartbeat.put(serverID, System.currentTimeMillis());
         checkServerTimeouts();
     }
@@ -58,7 +57,16 @@ public class HeartBeatHandler {
         heartBeatSubscriber = new JedisPubSub() {
             @Override
             public void onMessage(String channel, String message) {
-                serverLastHeartbeat.put(message, System.currentTimeMillis());
+                String[] parts = message.split(":");
+                if (parts.length == 2) {
+                    String server = parts[0];
+                    String status = parts[1];
+                    if (status.equals("online")) {
+                        serverLastHeartbeat.put(server, System.currentTimeMillis());
+                    } else if (status.equals("offline")) {
+                        serverLastHeartbeat.remove(server);
+                    }
+                }
             }
         };
         redisHandler.subscribe(heartBeatSubscriber, "newsky-heartbeat-channel");
@@ -66,10 +74,7 @@ public class HeartBeatHandler {
 
     private void checkServerTimeouts() {
         long now = System.currentTimeMillis();
-        serverLastHeartbeat.entrySet().removeIf(entry -> {
-            plugin.debug("Server " + entry.getKey() + " has timed out");
-            return now - entry.getValue() > heartbeatRateMs;
-        });
+        serverLastHeartbeat.entrySet().removeIf(entry -> now - entry.getValue() > heartbeatRateMs);
     }
 
     public Set<String> getActiveServers() {

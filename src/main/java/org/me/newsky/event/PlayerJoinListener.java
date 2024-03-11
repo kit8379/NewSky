@@ -11,12 +11,12 @@ import org.me.newsky.teleport.TeleportManager;
 
 import java.util.UUID;
 
-public class PlayerJoinEventListener implements Listener {
+public class PlayerJoinListener implements Listener {
 
     private final NewSky plugin;
     private final TeleportManager teleportManager;
 
-    public PlayerJoinEventListener(NewSky plugin, TeleportManager teleportManager) {
+    public PlayerJoinListener(NewSky plugin, TeleportManager teleportManager) {
         this.plugin = plugin;
         this.teleportManager = teleportManager;
     }
