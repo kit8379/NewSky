@@ -1,138 +1,49 @@
 package org.me.newsky.command.player;
 
-import org.bukkit.command.Command;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabCompleter;
-import org.jetbrains.annotations.NotNull;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.command.BaseCommand;
+import org.me.newsky.command.BaseCommandExecutor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
+import org.bukkit.command.CommandSender;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.HashMap;
+import java.util.Map;
 
-
-public class IslandCommandExecutor implements CommandExecutor, TabCompleter {
-
-    private final ConfigHandler config;
-    private final IslandAddMemberCommand addMemberCommand;
-    private final IslandRemoveMemberCommand removeMemberCommand;
-    private final IslandCreateCommand createCommand;
-    private final IslandDeleteCommand deleteCommand;
-    private final IslandHomeCommand homeCommand;
-    private final IslandSetHomeCommand setHomeCommand;
-    private final IslandDelHomeCommand delHomeCommand;
-    private final IslandWarpCommand warpCommand;
-    private final IslandSetWarpCommand setWarpCommand;
-    private final IslandDelWarpCommand delWarpCommand;
-    private final IslandInfoCommand infoCommand;
-    private final IslandLockCommand lockCommand;
-    private final IslandPvpCommand pvpCommand;
-    private final IslandSetOwnerCommand setOwnerCommand;
-    private final IslandLeaveCommand leaveCommand;
-    private final List<String> subCommands = Arrays.asList("addmember", "removemember", "create", "delete", "home", "sethome", "delhome", "warp", "setwarp", "delwarp", "info", "lock", "pvp", "setowner", "leave");
+public class IslandCommandExecutor extends BaseCommandExecutor {
 
     public IslandCommandExecutor(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
-        this.config = config;
-        this.addMemberCommand = new IslandAddMemberCommand(config, cacheHandler);
-        this.removeMemberCommand = new IslandRemoveMemberCommand(config, cacheHandler);
-        this.createCommand = new IslandCreateCommand(config, cacheHandler, islandHandler);
-        this.deleteCommand = new IslandDeleteCommand(config, cacheHandler, islandHandler);
-        this.homeCommand = new IslandHomeCommand(config, cacheHandler, islandHandler);
-        this.setHomeCommand = new IslandSetHomeCommand(config, cacheHandler);
-        this.delHomeCommand = new IslandDelHomeCommand(config, cacheHandler);
-        this.warpCommand = new IslandWarpCommand(config, cacheHandler, islandHandler);
-        this.setWarpCommand = new IslandSetWarpCommand(config, cacheHandler);
-        this.delWarpCommand = new IslandDelWarpCommand(config, cacheHandler);
-        this.infoCommand = new IslandInfoCommand(config, cacheHandler);
-        this.lockCommand = new IslandLockCommand(config, cacheHandler);
-        this.pvpCommand = new IslandPvpCommand(config, cacheHandler);
-        this.setOwnerCommand = new IslandSetOwnerCommand(config, cacheHandler);
-        this.leaveCommand = new IslandLeaveCommand(config, cacheHandler);
+        super(config, createCommands(config, cacheHandler, islandHandler));
+    }
+
+    private static Map<String, BaseCommand> createCommands(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
+        Map<String, BaseCommand> commands = new HashMap<>();
+        commands.put("addmember", new IslandAddMemberCommand(config, cacheHandler));
+        commands.put("removemember", new IslandRemoveMemberCommand(config, cacheHandler));
+        commands.put("create", new IslandCreateCommand(config, cacheHandler, islandHandler));
+        commands.put("delete", new IslandDeleteCommand(config, cacheHandler, islandHandler));
+        commands.put("home", new IslandHomeCommand(config, cacheHandler, islandHandler));
+        commands.put("sethome", new IslandSetHomeCommand(config, cacheHandler));
+        commands.put("delhome", new IslandDelHomeCommand(config, cacheHandler));
+        commands.put("warp", new IslandWarpCommand(config, cacheHandler, islandHandler));
+        commands.put("setwarp", new IslandSetWarpCommand(config, cacheHandler));
+        commands.put("delwarp", new IslandDelWarpCommand(config, cacheHandler));
+        commands.put("info", new IslandInfoCommand(config, cacheHandler));
+        commands.put("lock", new IslandLockCommand(config, cacheHandler));
+        commands.put("pvp", new IslandPvpCommand(config, cacheHandler));
+        commands.put("setowner", new IslandSetOwnerCommand(config, cacheHandler));
+        commands.put("leave", new IslandLeaveCommand(config, cacheHandler));
+        return commands;
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command cmd, @NotNull String label, String[] args) {
-        if (args.length == 0) {
-            sender.sendMessage(config.getPlayerCommandHelpMessage());
-            sender.sendMessage(config.getPlayerAddMemberUsageMessage());
-            sender.sendMessage(config.getPlayerRemoveMemberUsageMessage());
-            sender.sendMessage(config.getPlayerCreateUsageMessage());
-            sender.sendMessage(config.getPlayerDeleteUsageMessage());
-            sender.sendMessage(config.getPlayerHomeUsageMessage());
-            sender.sendMessage(config.getPlayerSetHomeUsageMessage());
-            sender.sendMessage(config.getPlayerDelHomeUsageMessage());
-            sender.sendMessage(config.getPlayerWarpUsageMessage());
-            sender.sendMessage(config.getPlayerSetWarpUsageMessage());
-            sender.sendMessage(config.getPlayerDelWarpUsageMessage());
-            sender.sendMessage(config.getPlayerInfoUsageMessage());
-            sender.sendMessage(config.getPlayerLockUsageMessage());
-            sender.sendMessage(config.getPlayerPvpUsageMessage());
-            sender.sendMessage(config.getPlayerSetOwnerUsageMessage());
-            sender.sendMessage(config.getPlayerLeaveUsageMessage());
-            return true;
-        }
-
-        String subCommand = args[0].toLowerCase();
-
-        switch (subCommand) {
-            case "addmember":
-                return addMemberCommand.execute(sender, args);
-            case "removemember":
-                return removeMemberCommand.execute(sender, args);
-            case "create":
-                return createCommand.execute(sender, args);
-            case "delete":
-                return deleteCommand.execute(sender, args);
-            case "home":
-                return homeCommand.execute(sender, args);
-            case "sethome":
-                return setHomeCommand.execute(sender, args);
-            case "delhome":
-                return delHomeCommand.execute(sender, args);
-            case "warp":
-                return warpCommand.execute(sender, args);
-            case "setwarp":
-                return setWarpCommand.execute(sender, args);
-            case "delwarp":
-                return delWarpCommand.execute(sender, args);
-            case "info":
-                return infoCommand.execute(sender, args);
-            case "lock":
-                return lockCommand.execute(sender, args);
-            case "pvp":
-                return pvpCommand.execute(sender, args);
-            case "setowner":
-                return setOwnerCommand.execute(sender, args);
-            case "leave":
-                return leaveCommand.execute(sender);
-            default:
-                sender.sendMessage(config.getPlayerUnknownSubCommandMessage(subCommand));
-                return true;
-        }
+    protected void displayHelp(CommandSender sender) {
+        sender.sendMessage(config.getPlayerCommandHelpMessage());
+        subCommands.forEach(subCommand -> sender.sendMessage(config.getPlayerCommandHelpMessage()));
     }
 
     @Override
-    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, String[] args) {
-        if (args.length == 1) {
-            return subCommands.stream().filter(sub -> sub.startsWith(args[0].toLowerCase())).collect(Collectors.toList());
-        } else if (args.length > 1) {
-            String subCommand = args[0].toLowerCase();
-            switch (subCommand) {
-                case "home":
-                    return homeCommand.onTabComplete(sender, args);
-                case "delhome":
-                    return delHomeCommand.onTabComplete(sender, args);
-                case "warp":
-                    return warpCommand.onTabComplete(sender, args);
-                case "delwarp":
-                    return delWarpCommand.onTabComplete(sender, args);
-                default:
-                    break;
-            }
-        }
-        return null;
+    protected String getUnknownSubCommandMessage(String subCommand) {
+        return config.getPlayerUnknownSubCommandMessage(subCommand);
     }
 }

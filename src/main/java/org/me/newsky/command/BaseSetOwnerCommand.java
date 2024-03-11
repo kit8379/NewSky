@@ -9,7 +9,7 @@ import org.me.newsky.config.ConfigHandler;
 import java.util.Optional;
 import java.util.UUID;
 
-public abstract class BaseSetOwnerCommand {
+public abstract class BaseSetOwnerCommand implements BaseCommand {
 
     protected final ConfigHandler config;
 
