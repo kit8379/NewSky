@@ -15,12 +15,13 @@ public class WorldInitListener implements Listener {
         this.plugin = plugin;
     }
 
-    @EventHandler
-    public void worldInit(WorldInitEvent e) {
+    @EventHandler(priority=EventPriority.HIGHEST)
+    public void worldInit(WorldInitEvent event) {
         // Check if the world is an island
-        World world = e.getWorld();
+        World world = event.getWorld();
         String worldName = world.getName();
         if (worldName.startsWith("island-")) {
+            // Set the world to not keep spawn in memory
             world.setKeepSpawnInMemory(false);
             plugin.debug("Island world " + worldName + " set to not keep spawn in memory.");
         }

@@ -80,7 +80,6 @@ public abstract class NormalWorldHandler extends WorldHandler {
     }
 
 
-
     public CompletableFuture<Void> createWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 

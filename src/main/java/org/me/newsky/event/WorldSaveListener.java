@@ -1,6 +1,8 @@
 package org.me.newsky.event;
 
+import org.bukkit.World;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldSaveEvent;
 import org.me.newsky.NewSky;
@@ -15,9 +17,15 @@ public class WorldSaveListener implements Listener {
         this.worldHandler = worldHandler;
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onWorldSave(WorldSaveEvent event) {
-        plugin.debug("World save event triggered.");
-        worldHandler.saveWorld(event.getWorld());
+        // Check if the world is an island
+        World world = event.getWorld();
+        String worldName = world.getName();
+        if (worldName.startsWith("island-")) {
+            // Save the world
+            worldHandler.saveWorld(event.getWorld());
+            plugin.debug("Saving world " + event.getWorld().getName());
+        }
     }
 }
