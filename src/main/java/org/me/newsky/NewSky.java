@@ -36,9 +36,13 @@ public class NewSky extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        // Calculate the time it takes to initialize the plugin
+        long startTime = System.currentTimeMillis();
         info("Plugin enabling...");
         initalize();
         info("Plugin enabled!");
+        long endTime = System.currentTimeMillis();
+        info("Plugin initialization time: " + (endTime - startTime) + "ms");
     }
 
     private void initalize() {

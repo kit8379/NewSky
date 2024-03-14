@@ -39,6 +39,7 @@ public class IslandMoveListener implements Listener {
             return;
         }
 
+        // Check if the island is locked
         UUID islandUuid = UUID.fromString(to.getWorld().getName().substring(7));
         if (cacheHandler.getIslandLock(islandUuid) && cacheHandler.getIslandMembers(islandUuid).contains(event.getPlayer().getUniqueId())) {
             event.setCancelled(true);
@@ -46,6 +47,7 @@ public class IslandMoveListener implements Listener {
             return;
         }
 
+        // Check if the player is within the island boundary
         int minX = centerX - (islandSize / 2) - bufferSize;
         int maxX = centerX + (islandSize / 2) + bufferSize;
         int minZ = centerZ - (islandSize / 2) - bufferSize;
