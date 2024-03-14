@@ -48,6 +48,7 @@ public class PostIslandHandler {
             cacheHandler.createIsland(islandUuid);
             cacheHandler.addOrUpdateIslandPlayer(playerUuid, islandUuid, "owner");
             cacheHandler.addOrUpdateHomePoint(playerUuid, islandUuid, "default", spawnLocation);
+            plugin.debug("Created island " + islandName + " in the cache");
 
             future.complete(null);
         });
@@ -71,6 +72,7 @@ public class PostIslandHandler {
 
             // Delete the island from the cache
             cacheHandler.deleteIsland(islandUuid);
+            plugin.debug("Deleted island " + islandName + " from the cache");
 
             future.complete(null);
         });
