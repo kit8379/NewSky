@@ -40,13 +40,14 @@ public class HeartBeatHandler {
         redisHandler.publish("newsky-heartbeat-channel", serverID + ":offline");
         plugin.debug("Sent offline message to Redis");
 
-        if (heartBeatSubscriber != null) {
-            heartBeatSubscriber.unsubscribe();
-        }
         if (heartbeatTask != null) {
             heartbeatTask.cancel(true);
         }
         scheduler.shutdown();
+
+        if (heartBeatSubscriber != null) {
+            heartBeatSubscriber.unsubscribe();
+        }
     }
 
     private void sendHeartBeats() {
