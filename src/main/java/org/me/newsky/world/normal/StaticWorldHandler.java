@@ -33,7 +33,7 @@ public class StaticWorldHandler extends NormalWorldHandler {
     public CompletableFuture<Void> unloadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
+        unloadWorldFromBukkit(worldName, true).thenRunAsync(() -> {
             future.complete(null);
         }).exceptionally(e -> {
             future.completeExceptionally(e);
@@ -47,7 +47,7 @@ public class StaticWorldHandler extends NormalWorldHandler {
     public CompletableFuture<Void> deleteWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
+        unloadWorldFromBukkit(worldName, false).thenRunAsync(() -> {
             Path worldPath = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
             if (Files.exists(worldPath)) {
                 try {

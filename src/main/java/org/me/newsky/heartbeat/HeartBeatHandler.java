@@ -68,8 +68,10 @@ public class HeartBeatHandler {
                     String status = parts[1];
                     if (status.equals("online")) {
                         serverLastHeartbeat.put(server, System.currentTimeMillis());
+                        plugin.debug("Received online message from " + server);
                     } else if (status.equals("offline")) {
                         serverLastHeartbeat.remove(server);
+                        plugin.debug("Received offline message from " + server);
                     }
                 }
             }
@@ -83,6 +85,7 @@ public class HeartBeatHandler {
         plugin.debug("Checking for server timeouts...");
         long now = System.currentTimeMillis();
         serverLastHeartbeat.entrySet().removeIf(entry -> now - entry.getValue() > heartbeatRateMs);
+        plugin.debug("Active servers: " + serverLastHeartbeat.keySet());
         plugin.debug("Finished checking for server timeouts");
     }
 

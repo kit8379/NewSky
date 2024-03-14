@@ -48,7 +48,7 @@ public class DynamicWorldHandler extends NormalWorldHandler {
     public CompletableFuture<Void> unloadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
+        unloadWorldFromBukkit(worldName, true).thenRunAsync(() -> {
             Path worldPath = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
             Path targetPath = storagePath.resolve(worldName);
 
@@ -73,7 +73,7 @@ public class DynamicWorldHandler extends NormalWorldHandler {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
         // First, ensure the world is unloaded properly
-        unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
+        unloadWorldFromBukkit(worldName, false).thenRunAsync(() -> {
             Path worldPath = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
             Path targetPath = storagePath.resolve(worldName);
 
@@ -102,19 +102,19 @@ public class DynamicWorldHandler extends NormalWorldHandler {
     }
 
     @Override
-    public void saveWorld(World world) {
+    public void saveWorld(String worldName) {
         // Copy the world to the storage directory in async
         CompletableFuture.runAsync(() -> {
-            plugin.info("Saving world " + world.getName() + " to storage directory.");
-            Path worldPath = plugin.getServer().getWorldContainer().toPath().resolve(world.getName());
-            Path targetPath = storagePath.resolve(world.getName());
+            plugin.info("Saving world " + worldName + " to storage directory.");
+            Path worldPath = plugin.getServer().getWorldContainer().toPath().resolve(worldName);
+            Path targetPath = storagePath.resolve(worldName);
 
             if (Files.exists(worldPath)) {
                 try {
                     copyDirectory(worldPath, targetPath);
-                    plugin.info("World " + world.getName() + " saved to storage directory.");
+                    plugin.info("World " + worldName + " saved to storage directory.");
                 } catch (IOException e) {
-                    plugin.info("Failed to save world " + world.getName() + " to storage directory.");
+                    plugin.info("Failed to save world " + worldName + " to storage directory.");
                     e.printStackTrace();
                 }
             }

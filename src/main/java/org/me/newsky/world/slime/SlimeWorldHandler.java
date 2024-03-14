@@ -90,7 +90,7 @@ public class SlimeWorldHandler extends WorldHandler {
     public CompletableFuture<Void> unloadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
+        unloadWorldFromBukkit(worldName, true).thenRunAsync(() -> {
             future.complete(null);
         }).exceptionally(e -> {
             future.completeExceptionally(e);
@@ -104,7 +104,7 @@ public class SlimeWorldHandler extends WorldHandler {
     public CompletableFuture<Void> deleteWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
+        unloadWorldFromBukkit(worldName, false).thenRunAsync(() -> {
             try {
                 slimeLoader.deleteWorld(worldName);
                 future.complete(null);

@@ -26,7 +26,7 @@ public abstract class WorldHandler {
 
     public abstract CompletableFuture<Void> unloadWorld(String worldName);
 
-    public void saveWorld(World world) {
+    public void saveWorld(String worldName) {
     }
 
     protected boolean isWorldLoaded(String worldName) {
@@ -40,7 +40,7 @@ public abstract class WorldHandler {
         }
     }
 
-    protected CompletableFuture<Void> unloadWorldFromBukkit(String worldName) {
+    protected CompletableFuture<Void> unloadWorldFromBukkit(String worldName, boolean save) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
         if (!isWorldLoaded(worldName)) {
@@ -52,7 +52,7 @@ public abstract class WorldHandler {
             World world = Bukkit.getWorld(worldName);
             if (world != null) {
                 removePlayersFromWorld(world);
-                Bukkit.unloadWorld(world, true);
+                Bukkit.unloadWorld(world, save);
                 future.complete(null);
             } else {
                 future.completeExceptionally(new IllegalStateException(config.getIslandNotLoadedMessage()));
