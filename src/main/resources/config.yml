@@ -1,6 +1,6 @@
 # The settings for the plugin.
 # The plugin uses MySQL to store the island data.
-DB:
+MySQL:
   host: "localhost"
   port: 3306
   database: "newsky"
@@ -36,31 +36,9 @@ server:
   # The interval that the server send heartbeat to the each other server.
   # Usually no need to change this value. The default value is 5 seconds.
   heartbeat-interval: 5
-
-  # Below are the settings for the world-loading mode.
-  # The world-loading-mode is used to determine how the plugin should load and unload islands.
-  # The plugin supports two modes: "normal" and "slime".
-  world-loading-mode:
-    type: "normal"
-
-    # The settings for the normal world-loading mode.
-    # This mode uses the bukkit world management system to load and unload islands.
-    # Only required to be set if the world-loading-mode is set to "normal".
-    normal:
-      # Options: "static", "dynamic"
-      # Static mode will load all islands at startup and keep them loaded in the same server
-      # Dynamic mode will load and unload islands from the shared storage directory
-      mode: "dynamic"
-      # Path to the directory where the islands are stored
-      # This path must be accessible by all servers in the network
-      # Only required to be set if the above mode is set to "dynamic"
-      storage-path: "/path/to/storage"
-
-    # The settings for the slime world-loading mode.
-    # This mode uses the AdvancedSlimeWorldManager to load and unload islands.
-    # Only required to be set if the world-loading-mode is set to "slime".
-    slime:
-      data-source: "mysql" # Options: "mysql" or "mongodb"
+  # The interval that the server check and unload the inactive islands.
+  # The default value is 60 seconds.
+  world-unload-interval: 60
 
 # The settings for the island.
 island:

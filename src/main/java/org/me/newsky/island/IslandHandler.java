@@ -21,7 +21,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
-public abstract class IslandHandler {
+public class IslandHandler {
 
     protected NewSky plugin;
 
@@ -145,6 +145,48 @@ public abstract class IslandHandler {
         }
     }
 
+    public CompletableFuture<Void> loadIsland(UUID islandUuid) {
+        String islandName = "island-" + islandUuid.toString();
+        return fetchWorldList().thenCompose(worldListResponses -> {
+            Optional<String> serverId = findServerByWorldName(islandName, worldListResponses);
+            if (serverId.isPresent()) {
+                String targetServer = serverId.get();
+                if (targetServer.equals(serverID)) {
+                    return postIslandHandler.loadWorld(islandName);
+                } else {
+                    return islandPublishRequest.sendRequest(targetServer, "loadIsland:" + islandName).thenApply(responses -> null);
+                }
+            } else {
+                Optional<String> leastLoadedServer = findServerWithLeastWorld(worldListResponses);
+                if (leastLoadedServer.isPresent()) {
+                    String targetServer = leastLoadedServer.get();
+                    return islandPublishRequest.sendRequest(targetServer, "loadIsland:" + islandName).thenApply(responses -> null);
+                } else {
+                    return CompletableFuture.failedFuture(new IllegalStateException(config.getNoActiveServerMessage()));
+                }
+            }
+        });
+    }
+
+    public CompletableFuture<Void> teleportToIsland(UUID islandUuid, Player player, String locationString) {
+        String islandName = "island-" + islandUuid.toString();
+        return fetchWorldList().thenCompose(worldListResponses -> {
+            Optional<String> serverId = findServerByWorldName(islandName, worldListResponses);
+            if (serverId.isPresent()) {
+                String targetServer = serverId.get();
+                return proceedWithTeleportation(islandName, player, locationString, targetServer);
+            } else {
+                Optional<String> leastLoadedServer = findServerWithLeastWorld(worldListResponses);
+                if (leastLoadedServer.isPresent()) {
+                    String targetServer = leastLoadedServer.get();
+                    return proceedWithTeleportation(islandName, player, locationString, targetServer);
+                } else {
+                    return CompletableFuture.failedFuture(new IllegalStateException(config.getNoActiveServerMessage()));
+                }
+            }
+        });
+    }
+
     public void subscribeToRequests() {
         islandSubscribeRequest.subscribeToRequests();
     }
@@ -152,9 +194,4 @@ public abstract class IslandHandler {
     public void unsubscribeFromRequests() {
         islandSubscribeRequest.unsubscribeFromRequests();
     }
-
-    public abstract CompletableFuture<Void> loadIsland(UUID islandUuid);
-
-    public abstract CompletableFuture<Void> teleportToIsland(UUID islandUuid, Player player, String locationString);
-
 }

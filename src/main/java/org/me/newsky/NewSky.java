@@ -8,16 +8,11 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.event.*;
 import org.me.newsky.heartbeat.HeartBeatHandler;
-import org.me.newsky.island.DynamicIslandHandler;
 import org.me.newsky.island.IslandHandler;
-import org.me.newsky.island.StaticIslandHandler;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.scheduler.WorldUnloadSchedule;
 import org.me.newsky.teleport.TeleportManager;
 import org.me.newsky.world.WorldHandler;
-import org.me.newsky.world.normal.DynamicWorldHandler;
-import org.me.newsky.world.normal.StaticWorldHandler;
-import org.me.newsky.world.slime.SlimeWorldHandler;
 
 import java.util.Objects;
 
@@ -88,30 +83,7 @@ public class NewSky extends JavaPlugin {
     private void initializeWorldHandler() {
         info("Starting WorldHandler");
         try {
-            String worldLoadingType = config.getWorldLoadingType();
-            switch (worldLoadingType) {
-                case "normal":
-                    String normalMode = config.getNormalMode();
-                    switch (normalMode) {
-                        case "static":
-                            info("Using static normal world mode.");
-                            worldHandler = new StaticWorldHandler(this, config);
-                            break;
-                        case "dynamic":
-                            info("Using dynamic normal world mode. World storage path: " + config.getStoragePath() + " .");
-                            worldHandler = new DynamicWorldHandler(this, config);
-                            break;
-                        default:
-                            throw new IllegalStateException("Invalid normal mode: " + normalMode);
-                    }
-                    break;
-                case "slime":
-                    info("Using SlimeWorldManager for world handling. Data source: " + config.getSlimeDataSource() + " .");
-                    worldHandler = new SlimeWorldHandler(this, config);
-                    break;
-                default:
-                    throw new IllegalStateException("Invalid world loading type: " + worldLoadingType);
-            }
+            worldHandler = new WorldHandler(this, config);
             info("WorldHandler loaded");
         } catch (Exception e) {
             e.printStackTrace();
@@ -180,7 +152,7 @@ public class NewSky extends JavaPlugin {
     private void initalizeWorldUnloadSchedule() {
         info("Starting world unload handler");
         try {
-            worldUnloadSchedule = new WorldUnloadSchedule(this, worldHandler);
+            worldUnloadSchedule = new WorldUnloadSchedule(this, config, worldHandler);
             worldUnloadSchedule.startWorldUnloadTask();
             info("World unload handler loaded");
         } catch (Exception e) {
@@ -203,25 +175,7 @@ public class NewSky extends JavaPlugin {
     private void initializeIslandHandler() {
         info("Starting island handler");
         try {
-            String worldLoadingType = config.getWorldLoadingType();
-            switch (worldLoadingType) {
-                case "normal":
-                    String normalMode = config.getNormalMode();
-                    if (normalMode.equals("static")) {
-                        islandHandler = new StaticIslandHandler(this, config, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
-                    } else if (normalMode.equals("dynamic")) {
-                        islandHandler = new DynamicIslandHandler(this, config, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
-                    } else {
-                        throw new IllegalStateException("Invalid normal mode for island handler: " + normalMode);
-                    }
-                    break;
-                case "slime":
-                    islandHandler = new DynamicIslandHandler(this, config, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
-                    break;
-                default:
-                    throw new IllegalStateException("Invalid world loading type for island handler: " + worldLoadingType);
-            }
-
+            islandHandler = new IslandHandler(this, config, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
             islandHandler.subscribeToRequests();
             info("Island handler loaded");
         } catch (Exception e) {

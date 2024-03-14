@@ -10,48 +10,48 @@ public class ConfigHandler {
         this.config = config;
     }
 
-    public String getDBHost() {
-        return config.getString("DB.host");
+    public String getMySQLHost() {
+        return config.getString("MySQL.host");
     }
 
-    public int getDBPort() {
-        return config.getInt("DB.port");
+    public int getMySQLPort() {
+        return config.getInt("MySQL.port");
     }
 
-    public String getDBName() {
-        return config.getString("DB.database");
+    public String getMySQLName() {
+        return config.getString("MySQL.database");
     }
 
-    public String getDBUsername() {
-        return config.getString("DB.username");
+    public String getMySQLUsername() {
+        return config.getString("MySQL.username");
     }
 
-    public String getDBPassword() {
-        return config.getString("DB.password");
+    public String getMySQLPassword() {
+        return config.getString("MySQL.password");
     }
 
-    public String getDBProperties() {
-        return config.getString("DB.properties");
+    public String getMySQLProperties() {
+        return config.getString("MySQL.properties");
     }
 
-    public int getDBMaxPoolSize() {
-        return config.getInt("DB.max-pool-size");
+    public int getMySQLMaxPoolSize() {
+        return config.getInt("MySQL.max-pool-size");
     }
 
-    public int getDBConnectionTimeout() {
-        return config.getInt("DB.connection-timeout");
+    public int getMySQLConnectionTimeout() {
+        return config.getInt("MySQL.connection-timeout");
     }
 
-    public String getDBCachePrepStmts() {
-        return config.getString("DB.cache-prep-statements");
+    public String getMySQLCachePrepStmts() {
+        return config.getString("MySQL.cache-prep-statements");
     }
 
-    public String getDBPrepStmtCacheSize() {
-        return config.getString("DB.prep-stmt-cache-size");
+    public String getMySQLPrepStmtCacheSize() {
+        return config.getString("MySQL.prep-stmt-cache-size");
     }
 
-    public String getDBPrepStmtCacheSqlLimit() {
-        return config.getString("DB.prep-stmt-cache-sql-limit");
+    public String getMySQLPrepStmtCacheSqlLimit() {
+        return config.getString("MySQL.prep-stmt-cache-sql-limit");
     }
 
     public String getRedisHost() {
@@ -78,24 +78,12 @@ public class ConfigHandler {
         return config.getInt("server.heartbeat-interval");
     }
 
+    public int getWorldUnloadInterval() {
+        return config.getInt("server.world-unload-interval");
+    }
+
     public boolean isLobby() {
         return config.getBoolean("server.lobby");
-    }
-
-    public String getWorldLoadingType() {
-        return config.getString("server.world-loading-mode.type");
-    }
-
-    public String getNormalMode() {
-        return config.getString("server.world-loading-mode.normal.mode");
-    }
-
-    public String getStoragePath() {
-        return config.getString("server.world-loading-mode.normal.storage-path");
-    }
-
-    public String getSlimeDataSource() {
-        return config.getString("server.world-loading-mode.slime.data-source");
     }
 
     public String getTemplateWorldName() {

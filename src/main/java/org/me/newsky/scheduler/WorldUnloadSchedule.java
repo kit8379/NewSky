@@ -1,6 +1,7 @@
 package org.me.newsky.scheduler;
 
 import org.me.newsky.NewSky;
+import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.world.WorldHandler;
 
 import java.util.HashMap;
@@ -17,10 +18,10 @@ public class WorldUnloadSchedule {
     private final Map<String, Long> inactiveWorlds = new HashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
-    public WorldUnloadSchedule(NewSky plugin, WorldHandler worldHandler) {
+    public WorldUnloadSchedule(NewSky plugin, ConfigHandler config, WorldHandler worldHandler) {
         this.plugin = plugin;
         this.worldHandler = worldHandler;
-        this.worldUnloadInterval = TimeUnit.SECONDS.toMillis(120);
+        this.worldUnloadInterval = TimeUnit.SECONDS.toMillis(config.getWorldUnloadInterval());
     }
 
     public void startWorldUnloadTask() {

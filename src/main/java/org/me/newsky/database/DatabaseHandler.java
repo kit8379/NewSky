@@ -16,17 +16,17 @@ public class DatabaseHandler {
     private final HikariDataSource dataSource;
 
     public DatabaseHandler(ConfigHandler config) {
-        String host = config.getDBHost();
-        int port = config.getDBPort();
-        String database = config.getDBName();
-        String username = config.getDBUsername();
-        String password = config.getDBPassword();
-        String properties = config.getDBProperties();
-        int maxPoolSize = config.getDBMaxPoolSize();
-        int connectionTimeout = config.getDBConnectionTimeout();
-        String cachePrepStmts = config.getDBCachePrepStmts();
-        String prepStmtCacheSize = config.getDBPrepStmtCacheSize();
-        String prepStmtCacheSqlLimit = config.getDBPrepStmtCacheSqlLimit();
+        String host = config.getMySQLHost();
+        int port = config.getMySQLPort();
+        String database = config.getMySQLName();
+        String username = config.getMySQLUsername();
+        String password = config.getMySQLPassword();
+        String properties = config.getMySQLProperties();
+        int maxPoolSize = config.getMySQLMaxPoolSize();
+        int connectionTimeout = config.getMySQLConnectionTimeout();
+        String cachePrepStmts = config.getMySQLCachePrepStmts();
+        String prepStmtCacheSize = config.getMySQLPrepStmtCacheSize();
+        String prepStmtCacheSqlLimit = config.getMySQLPrepStmtCacheSqlLimit();
 
         // HikariCP config
         HikariConfig hikariConfig = new HikariConfig();
