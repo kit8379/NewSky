@@ -154,17 +154,6 @@ public class NewSky extends JavaPlugin {
         }
     }
 
-    private void initializeTeleportManager() {
-        info("Starting teleport manager");
-        try {
-            teleportManager = new TeleportManager(this);
-            info("Teleport manager loaded");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException("Teleport manager load fail! Plugin will be disabled!");
-        }
-    }
-
     private void initalizeheartBeatHandler() {
         info("Start connecting to Heart Beat system now...");
         try {
@@ -174,6 +163,17 @@ public class NewSky extends JavaPlugin {
         } catch (Exception e) {
             e.printStackTrace();
             throw new IllegalStateException("Redis Heart Beat Fail! Plugin will be disabled!");
+        }
+    }
+
+    private void initializeTeleportManager() {
+        info("Starting teleport manager");
+        try {
+            teleportManager = new TeleportManager(this);
+            info("Teleport manager loaded");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IllegalStateException("Teleport manager load fail! Plugin will be disabled!");
         }
     }
 

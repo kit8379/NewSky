@@ -6,7 +6,10 @@ import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.JedisPubSub;
 
 import java.util.Set;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class HeartBeatHandler {
 
@@ -16,7 +19,8 @@ public class HeartBeatHandler {
     private final String serverID;
     private final long heartbeatRateMs;
     private final ConcurrentHashMap<String, Long> serverLastHeartbeat = new ConcurrentHashMap<>();
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService sendScheduler = Executors.newSingleThreadScheduledExecutor();
+    private final ScheduledExecutorService checkScheduler = Executors.newSingleThreadScheduledExecutor();
     private JedisPubSub heartBeatSubscriber;
 
     public HeartBeatHandler(NewSky plugin, ConfigHandler config, RedisHandler redisHandler, String serverID) {
@@ -28,9 +32,15 @@ public class HeartBeatHandler {
     }
 
     public void startHeartBeat() {
+        // Listen for heartbeats from other servers
         listenForHeartBeats();
+
+        // Check for server timeouts
+        checkScheduler.scheduleWithFixedDelay(this::checkServerTimeouts, 0, heartbeatRateMs, TimeUnit.MILLISECONDS);
+
+        // Only send heartbeats if the server is not a lobby
         if (!config.isLobby()) {
-            scheduler.scheduleAtFixedRate(this::sendHeartBeats, 0, heartbeatRateMs, TimeUnit.MILLISECONDS);
+            sendScheduler.scheduleWithFixedDelay(this::sendHeartBeats, 0, heartbeatRateMs, TimeUnit.MILLISECONDS);
         }
     }
 
@@ -39,8 +49,10 @@ public class HeartBeatHandler {
         redisHandler.publish("newsky-heartbeat-channel", serverID + ":offline");
         plugin.debug("Sent offline message to Redis");
 
-        // Shutdown the scheduler and unsubscribe from the heartbeat channel
-        scheduler.shutdown();
+        // Shutdown the schedulers
+        sendScheduler.shutdown();
+        checkScheduler.shutdown();
+
         plugin.debug("Shutting down the heartbeat scheduler");
 
         if (heartBeatSubscriber != null) {
