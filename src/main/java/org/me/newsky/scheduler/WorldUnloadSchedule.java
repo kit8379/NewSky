@@ -1,44 +1,43 @@
 package org.me.newsky.scheduler;
 
-import org.bukkit.Bukkit;
-import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
 import org.me.newsky.world.WorldHandler;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class WorldUnloadSchedule {
 
-    private static final long MAX_INACTIVE_TIME = TimeUnit.MINUTES.toMillis(5);
     private final NewSky plugin;
     private final WorldHandler worldHandler;
+    private final long worldUnloadInterval;
     private final Map<String, Long> inactiveWorlds = new HashMap<>();
-    private BukkitTask unloadTask;
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     public WorldUnloadSchedule(NewSky plugin, WorldHandler worldHandler) {
         this.plugin = plugin;
         this.worldHandler = worldHandler;
+        this.worldUnloadInterval = TimeUnit.SECONDS.toMillis(120);
     }
 
     public void startWorldUnloadTask() {
-        unloadTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::checkAndUnloadWorlds, 0L, 1200L);
+        scheduler.scheduleWithFixedDelay(this::checkAndUnloadWorlds, 0, worldUnloadInterval, TimeUnit.MILLISECONDS);
     }
 
     public void stopWorldUnloadTask() {
-        if (unloadTask != null) {
-            unloadTask.cancel();
-        }
+        scheduler.shutdown();
     }
 
     private void checkAndUnloadWorlds() {
         plugin.info("Checking for inactive island worlds...");
         long currentTime = System.currentTimeMillis();
-        Bukkit.getWorlds().forEach(world -> {
+        plugin.getServer().getWorlds().forEach(world -> {
             if (world.getName().startsWith("island-") && world.getPlayers().isEmpty()) {
                 long inactiveTime = inactiveWorlds.getOrDefault(world.getName(), currentTime);
-                if (currentTime - inactiveTime > MAX_INACTIVE_TIME) {
+                if (currentTime - inactiveTime > worldUnloadInterval) {
                     worldHandler.unloadWorld(world.getName()).thenRun(() -> {
                         plugin.info("Unloaded inactive island world: " + world.getName());
                         inactiveWorlds.remove(world.getName());
