@@ -16,8 +16,8 @@ public class PlayerDelWarpCommand extends BaseDelWarpCommand {
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
-        if (args.length != 2) {
-            sender.sendMessage(config.getPlayerDelWarpUsageMessage());
+        if (args.length < 2) {
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
         return true;
@@ -46,5 +46,10 @@ public class PlayerDelWarpCommand extends BaseDelWarpCommand {
     @Override
     protected String getDelWarpSuccessMessage(String[] args) {
         return config.getPlayerDelWarpSuccessMessage(args[1]);
+    }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getPlayerDelWarpUsageMessage();
     }
 }

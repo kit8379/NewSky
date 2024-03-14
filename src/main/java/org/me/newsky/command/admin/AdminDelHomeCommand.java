@@ -17,7 +17,7 @@ public class AdminDelHomeCommand extends BaseDelHomeCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length != 3) {
-            sender.sendMessage(config.getAdminDelHomeUsageMessage());
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
         return true;
@@ -51,5 +51,10 @@ public class AdminDelHomeCommand extends BaseDelHomeCommand {
     @Override
     protected String getDelHomeSuccessMessage(String[] args) {
         return config.getAdminDelHomeSuccessMessage(args[1], args[2]);
+    }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getAdminDelHomeUsageMessage();
     }
 }

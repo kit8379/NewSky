@@ -42,7 +42,7 @@ public class AdminCommandExecutor extends BaseCommandExecutor {
     @Override
     protected void displayHelp(CommandSender sender) {
         sender.sendMessage(config.getAdminCommandHelpMessage());
-        subCommands.forEach(subCommand -> sender.sendMessage(config.getAdminCommandHelpMessage()));
+        commands.forEach((commandName, subCommand) -> sender.sendMessage(subCommand.getUsageCommandMessage()));
     }
 
     @Override

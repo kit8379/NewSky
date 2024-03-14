@@ -9,4 +9,9 @@ public class PlayerLeaveCommand extends BaseLeaveCommand {
     public PlayerLeaveCommand(ConfigHandler config, CacheHandler cacheHandler) {
         super(config, cacheHandler);
     }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getPlayerLeaveUsageMessage();
+    }
 }

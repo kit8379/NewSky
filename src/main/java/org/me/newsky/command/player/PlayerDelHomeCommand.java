@@ -16,8 +16,8 @@ public class PlayerDelHomeCommand extends BaseDelHomeCommand {
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
-        if (args.length != 2) {
-            sender.sendMessage(config.getPlayerDelHomeUsageMessage());
+        if (args.length < 2) {
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
         return true;
@@ -51,5 +51,10 @@ public class PlayerDelHomeCommand extends BaseDelHomeCommand {
     @Override
     protected String getDelHomeSuccessMessage(String[] args) {
         return config.getPlayerDelHomeSuccessMessage(args[1]);
+    }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getPlayerDelHomeUsageMessage();
     }
 }

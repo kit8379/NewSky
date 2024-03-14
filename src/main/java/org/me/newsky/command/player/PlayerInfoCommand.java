@@ -23,4 +23,9 @@ public class PlayerInfoCommand extends BaseInfoCommand {
             return ((Player) sender).getUniqueId();
         }
     }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getPlayerInfoUsageMessage();
+    }
 }

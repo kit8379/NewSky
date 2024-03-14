@@ -17,7 +17,7 @@ public class AdminPvpCommand extends BasePvpCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(config.getAdminPvpUsageMessage());
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
         return true;
@@ -41,5 +41,10 @@ public class AdminPvpCommand extends BasePvpCommand {
     @Override
     protected String getIslandPvPDisableSuccessMessage(String[] args) {
         return config.getAdminPvpDisableSuccessMessage(args[1]);
+    }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getAdminPvpUsageMessage();
     }
 }

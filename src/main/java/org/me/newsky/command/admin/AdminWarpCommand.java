@@ -17,8 +17,8 @@ public class AdminWarpCommand extends BaseWarpCommand {
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
-        if (args.length < 2 || args.length > 3) {
-            sender.sendMessage(config.getAdminWarpUsageMessage());
+        if (args.length < 2) {
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
         return true;
@@ -32,5 +32,10 @@ public class AdminWarpCommand extends BaseWarpCommand {
     @Override
     protected int getTargetWarpArgIndex() {
         return 2;
+    }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getAdminWarpUsageMessage();
     }
 }

@@ -11,4 +11,6 @@ public interface BaseCommand {
     default List<String> onTabComplete(@NotNull CommandSender sender, @NotNull String[] args) {
         return null;
     }
+
+    String getUsageCommandMessage();
 }

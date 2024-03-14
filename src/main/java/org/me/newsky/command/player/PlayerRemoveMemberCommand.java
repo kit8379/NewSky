@@ -17,7 +17,7 @@ public class PlayerRemoveMemberCommand extends BaseRemoveMemberCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(config.getPlayerRemoveMemberUsageMessage());
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
         return true;
@@ -50,5 +50,10 @@ public class PlayerRemoveMemberCommand extends BaseRemoveMemberCommand {
     @Override
     protected String getIslandRemoveMemberSuccessMessage(String[] args) {
         return config.getPlayerRemoveMemberSuccessMessage(args[1]);
+    }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getPlayerRemoveMemberUsageMessage();
     }
 }

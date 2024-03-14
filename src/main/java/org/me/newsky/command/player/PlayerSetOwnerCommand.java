@@ -18,7 +18,7 @@ public class PlayerSetOwnerCommand extends BaseSetOwnerCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(config.getPlayerSetOwnerUsageMessage());
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
         return true;
@@ -58,5 +58,10 @@ public class PlayerSetOwnerCommand extends BaseSetOwnerCommand {
     @Override
     protected String getSetOwnerSuccessMessage(String[] args) {
         return config.getPlayerSetOwnerSuccessMessage(args[1]);
+    }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getPlayerSetOwnerUsageMessage();
     }
 }

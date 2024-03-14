@@ -39,7 +39,7 @@ public class PlayerCommandExecutor extends BaseCommandExecutor {
     @Override
     protected void displayHelp(CommandSender sender) {
         sender.sendMessage(config.getPlayerCommandHelpMessage());
-        subCommands.forEach(subCommand -> sender.sendMessage(config.getPlayerCommandHelpMessage()));
+        commands.forEach((commandName, subCommand) -> sender.sendMessage(subCommand.getUsageCommandMessage()));
     }
 
     @Override

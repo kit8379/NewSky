@@ -18,7 +18,7 @@ public class AdminHomeCommand extends BaseHomeCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2 || args.length > 3) {
-            sender.sendMessage(config.getAdminHomeUsageMessage());
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
         return true;
@@ -47,5 +47,10 @@ public class AdminHomeCommand extends BaseHomeCommand {
     @Override
     protected String getIslandHomeSuccessMessage(String homeName) {
         return config.getAdminHomeSuccessMessage(homeName);
+    }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getAdminHomeUsageMessage();
     }
 }

@@ -16,8 +16,8 @@ public class AdminSetWarpCommand extends BaseSetWarpCommand {
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
-        if (args.length < 2 || args.length > 3) {
-            sender.sendMessage(config.getAdminSetWarpUsageMessage());
+        if (args.length < 2) {
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
         return true;
@@ -46,5 +46,10 @@ public class AdminSetWarpCommand extends BaseSetWarpCommand {
     @Override
     protected String getSetWarpSuccessMessage(String[] args, String warpName) {
         return config.getAdminSetWarpSuccessMessage(args[1], warpName);
+    }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getAdminSetWarpUsageMessage();
     }
 }

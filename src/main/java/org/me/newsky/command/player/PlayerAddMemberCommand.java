@@ -17,7 +17,7 @@ public class PlayerAddMemberCommand extends BaseAddMemberCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(config.getPlayerAddMemberUsageMessage());
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
         return true;
@@ -41,5 +41,10 @@ public class PlayerAddMemberCommand extends BaseAddMemberCommand {
     @Override
     protected String getIslandAddMemberSuccessMessage(String[] args) {
         return config.getPlayerAddMemberSuccessMessage(args[1]);
+    }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getPlayerAddMemberUsageMessage();
     }
 }

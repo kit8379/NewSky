@@ -16,4 +16,9 @@ public class AdminUnloadCommand extends BaseUnloadCommand {
     protected boolean validateArgs(CommandSender sender, String[] args) {
         return true;
     }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getAdminUnloadUsageMessage();
+    }
 }

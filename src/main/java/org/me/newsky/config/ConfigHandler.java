@@ -122,6 +122,10 @@ public class ConfigHandler {
         return Utils.colorize(config.getString("messages.debug-prefix"));
     }
 
+    public String getUsagePrefix() {
+        return Utils.colorize(config.getString("messages.usage-prefix"));
+    }
+
     public String getCannotLeaveIslandBoundaryMessage() {
         return Utils.colorize(config.getString("messages.cannot-leave-island-boundary"));
     }

@@ -17,7 +17,7 @@ public class AdminAddMemberCommand extends BaseAddMemberCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage(config.getAdminAddMemberUsageMessage());
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
         return true;
@@ -41,5 +41,10 @@ public class AdminAddMemberCommand extends BaseAddMemberCommand {
     @Override
     protected String getIslandAddMemberSuccessMessage(String[] args) {
         return config.getAdminAddMemberSuccessMessage(args[1], args[2]);
+    }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getAdminAddMemberUsageMessage();
     }
 }

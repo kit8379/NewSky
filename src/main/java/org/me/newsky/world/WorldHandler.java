@@ -36,6 +36,8 @@ public class WorldHandler {
         properties.setInt(SlimeProperties.SPAWN_X, config.getIslandSpawnX());
         properties.setInt(SlimeProperties.SPAWN_Y, config.getIslandSpawnY());
         properties.setInt(SlimeProperties.SPAWN_Z, config.getIslandSpawnZ());
+        properties.setValue(SlimeProperties.DIFFICULTY, "normal");
+        properties.setValue(SlimeProperties.DEFAULT_BIOME, "plains");
     }
 
     public CompletableFuture<Void> createWorld(String worldName) {

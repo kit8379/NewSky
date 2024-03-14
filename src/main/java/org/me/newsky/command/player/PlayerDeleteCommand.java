@@ -51,4 +51,9 @@ public class PlayerDeleteCommand extends BaseDeleteCommand {
     protected String getIslandDeleteSuccessMessage(String[] args) {
         return config.getPlayerDeleteSuccessMessage();
     }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getPlayerDeleteUsageMessage();
+    }
 }

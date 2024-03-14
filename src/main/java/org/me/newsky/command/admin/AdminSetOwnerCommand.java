@@ -17,7 +17,7 @@ public class AdminSetOwnerCommand extends BaseSetOwnerCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage(config.getAdminSetOwnerUsageMessage());
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
         return true;
@@ -51,5 +51,10 @@ public class AdminSetOwnerCommand extends BaseSetOwnerCommand {
     @Override
     protected String getSetOwnerSuccessMessage(String[] args) {
         return config.getAdminSetOwnerSuccessMessage(args[1], args[2]);
+    }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getAdminSetOwnerUsageMessage();
     }
 }

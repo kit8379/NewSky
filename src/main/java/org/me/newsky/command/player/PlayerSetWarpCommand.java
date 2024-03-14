@@ -16,8 +16,8 @@ public class PlayerSetWarpCommand extends BaseSetWarpCommand {
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
-        if (args.length < 1 || args.length > 2) {
-            sender.sendMessage(config.getPlayerSetWarpUsageMessage());
+        if (args.length < 1) {
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
         return true;
@@ -46,5 +46,10 @@ public class PlayerSetWarpCommand extends BaseSetWarpCommand {
     @Override
     protected String getSetWarpSuccessMessage(String[] args, String warpName) {
         return config.getPlayerSetWarpSuccessMessage(warpName);
+    }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getPlayerSetWarpUsageMessage();
     }
 }

@@ -38,4 +38,9 @@ public class PlayerPvpCommand extends BasePvpCommand {
     protected String getIslandPvPDisableSuccessMessage(String[] args) {
         return config.getPlayerPvpDisableSuccessMessage();
     }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getPlayerPvpUsageMessage();
+    }
 }

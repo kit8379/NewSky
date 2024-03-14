@@ -18,7 +18,7 @@ public class AdminDeleteCommand extends BaseDeleteCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(config.getAdminDeleteUsageMessage());
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
         return true;
@@ -34,8 +34,6 @@ public class AdminDeleteCommand extends BaseDeleteCommand {
         return Bukkit.getOfflinePlayer(args[1]).getUniqueId();
     }
 
-
-
     @Override
     protected String getNoIslandMessage(String[] args) {
         return config.getAdminNoIslandMessage(args[1]);
@@ -49,5 +47,10 @@ public class AdminDeleteCommand extends BaseDeleteCommand {
     @Override
     protected String getIslandDeleteSuccessMessage(String[] args) {
         return config.getAdminDeleteSuccessMessage(args[1]);
+    }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getAdminDeleteUsageMessage();
     }
 }

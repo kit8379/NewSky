@@ -17,7 +17,7 @@ public class AdminLockCommand extends BaseLockCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(config.getAdminLockUsageMessage());
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
         return true;
@@ -41,5 +41,10 @@ public class AdminLockCommand extends BaseLockCommand {
     @Override
     protected String getIslandLockSuccessMessage(String[] args) {
         return config.getAdminLockSuccessMessage(args[1]);
+    }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getAdminLockUsageMessage();
     }
 }

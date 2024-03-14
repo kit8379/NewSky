@@ -17,7 +17,7 @@ public class AdminRemoveMemberCommand extends BaseRemoveMemberCommand {
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 3) {
-            sender.sendMessage(config.getAdminRemoveMemberUsageMessage());
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
         return true;
@@ -46,5 +46,10 @@ public class AdminRemoveMemberCommand extends BaseRemoveMemberCommand {
     @Override
     protected String getIslandRemoveMemberSuccessMessage(String[] args) {
         return config.getAdminRemoveMemberSuccessMessage(args[1], args[2]);
+    }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getAdminRemoveMemberUsageMessage();
     }
 }

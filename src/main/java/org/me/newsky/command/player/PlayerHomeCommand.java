@@ -17,8 +17,8 @@ public class PlayerHomeCommand extends BaseHomeCommand {
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
-        if (args.length < 1 || args.length > 2) {
-            sender.sendMessage(config.getPlayerHomeUsageMessage());
+        if (args.length < 1) {
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
         return true;
@@ -47,5 +47,10 @@ public class PlayerHomeCommand extends BaseHomeCommand {
     @Override
     protected String getIslandHomeSuccessMessage(String homeName) {
         return config.getPlayerHomeSuccessMessage(homeName);
+    }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getPlayerHomeUsageMessage();
     }
 }

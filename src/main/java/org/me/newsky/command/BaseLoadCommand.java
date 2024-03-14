@@ -25,7 +25,7 @@ public abstract class BaseLoadCommand implements BaseCommand {
     public boolean execute(CommandSender sender, String[] args) {
         // Check if the command arguments are valid
         if (args.length < 2) {
-            sender.sendMessage(config.getAdminLoadUsageMessage());
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
 

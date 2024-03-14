@@ -15,10 +15,11 @@ public class AdminCreateCommand extends BaseCreateCommand {
         super(config, cacheHandler, islandHandler);
     }
 
+
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(config.getAdminCreateUsageMessage());
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
         return true;
@@ -42,5 +43,10 @@ public class AdminCreateCommand extends BaseCreateCommand {
     @Override
     protected void performPostCreationActions(CommandSender sender, UUID targetUuid, UUID islandUuid, String locationString) {
         // Do nothing
+    }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getAdminCreateUsageMessage();
     }
 }

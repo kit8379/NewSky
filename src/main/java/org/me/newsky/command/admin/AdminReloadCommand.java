@@ -15,4 +15,9 @@ public class AdminReloadCommand extends BaseReloadCommand {
     protected boolean validateArgs(CommandSender sender, String[] args) {
         return true;
     }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getAdminReloadUsageMessage();
+    }
 }

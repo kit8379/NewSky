@@ -16,8 +16,8 @@ public class PlayerSetHomeCommand extends BaseSetHomeCommand {
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
-        if(args.length < 1 || args.length > 2) {
-            sender.sendMessage(config.getPlayerSetHomeUsageMessage());
+        if (args.length < 1) {
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
         return true;
@@ -46,5 +46,10 @@ public class PlayerSetHomeCommand extends BaseSetHomeCommand {
     @Override
     protected String getSetHomeSuccessMessage(String[] args, String homeName) {
         return config.getPlayerSetHomeSuccessMessage(homeName);
+    }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getPlayerSetHomeUsageMessage();
     }
 }

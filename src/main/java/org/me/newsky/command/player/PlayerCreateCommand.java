@@ -47,4 +47,9 @@ public class PlayerCreateCommand extends BaseCreateCommand {
             return null;
         });
     }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getPlayerCreateUsageMessage();
+    }
 }

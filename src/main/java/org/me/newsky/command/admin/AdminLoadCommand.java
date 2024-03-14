@@ -10,4 +10,9 @@ public class AdminLoadCommand extends BaseLoadCommand {
     public AdminLoadCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
         super(config, cacheHandler, islandHandler);
     }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getAdminLoadUsageMessage();
+    }
 }

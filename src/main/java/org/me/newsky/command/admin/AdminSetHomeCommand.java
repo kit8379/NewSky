@@ -16,7 +16,11 @@ public class AdminSetHomeCommand extends BaseSetHomeCommand {
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
-        return args.length == 3;
+        if (args.length < 3) {
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
+            return false;
+        }
+        return true;
     }
 
     @Override
@@ -42,5 +46,10 @@ public class AdminSetHomeCommand extends BaseSetHomeCommand {
     @Override
     protected String getSetHomeSuccessMessage(String[] args, String homeName) {
         return config.getAdminSetHomeSuccessMessage(args[1], homeName);
+    }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getAdminSetHomeUsageMessage();
     }
 }

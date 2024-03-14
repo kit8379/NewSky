@@ -66,6 +66,7 @@ island:
 
 messages:
   debug-prefix: '[Debug] '
+  usage-prefix: '&cUsage: '
   cannot-leave-island-boundary: '&cYou cannot leave the island boundary!'
   island-not-found-in-server: '&cIsland not found in this server.'
   no-active-server: '&cNo active server available.'

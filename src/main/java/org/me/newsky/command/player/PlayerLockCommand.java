@@ -38,4 +38,9 @@ public class PlayerLockCommand extends BaseLockCommand {
     protected String getIslandLockSuccessMessage(String[] args) {
         return config.getPlayerLockSuccessMessage();
     }
+
+    @Override
+    public String getUsageCommandMessage() {
+        return config.getPlayerLockUsageMessage();
+    }
 }

@@ -24,21 +24,16 @@ public abstract class BaseDeleteCommand implements BaseCommand {
     }
 
     public boolean execute(CommandSender sender, String[] args) {
-        if (!(sender instanceof Player)) {
-            sender.sendMessage("Only players can use this command.");
-            return true;
-        }
-
-        Player player = (Player) sender;
-        UUID playerUuid = player.getUniqueId();
-
         // Check if the command arguments are valid
         if (!validateArgs(sender, args)) {
             return true;
         }
 
+        // Get the target player's UUID
+        UUID targetUuid = getTargetUuid(sender, args);
+
         // Get the target player's island UUID
-        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(playerUuid);
+        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
         if (islandUuidOpt.isEmpty()) {
             sender.sendMessage(getNoIslandMessage(args));
             return true;
@@ -52,13 +47,13 @@ public abstract class BaseDeleteCommand implements BaseCommand {
 
         // Double confirmation check
         String commandName = "delete"; // Use a constant or a method to get the command name
-        if (commandName.equals(confirmations.getIfPresent(playerUuid))) {
-            confirmations.invalidate(playerUuid);
+        if (commandName.equals(confirmations.getIfPresent(targetUuid))) {
+            confirmations.invalidate(targetUuid);
             // Run the island deletion future
             CompletableFuture<Void> deleteIslandFuture = islandHandler.deleteIsland(islandUuid);
             handleIslandDeletionFuture(deleteIslandFuture, sender, args);
         } else {
-            confirmations.put(playerUuid, commandName);
+            confirmations.put(targetUuid, commandName);
             sender.sendMessage(getIslandDeleteWarningMessage(args));
         }
 
