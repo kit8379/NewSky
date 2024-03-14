@@ -3,21 +3,21 @@ package org.me.newsky.command.player;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.command.BaseSetWarpCommand;
+import org.me.newsky.command.BaseSetHomeCommand;
 import org.me.newsky.config.ConfigHandler;
 
 import java.util.UUID;
 
-public class IslandSetWarpCommand extends BaseSetWarpCommand {
+public class PlayerSetHomeCommand extends BaseSetHomeCommand {
 
-    public IslandSetWarpCommand(ConfigHandler config, CacheHandler cacheHandler) {
+    public PlayerSetHomeCommand(ConfigHandler config, CacheHandler cacheHandler) {
         super(config, cacheHandler);
     }
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
-        if (args.length < 1 || args.length > 2) {
-            sender.sendMessage(config.getPlayerSetWarpUsageMessage());
+        if(args.length < 1 || args.length > 2) {
+            sender.sendMessage(config.getPlayerSetHomeUsageMessage());
             return false;
         }
         return true;
@@ -29,7 +29,7 @@ public class IslandSetWarpCommand extends BaseSetWarpCommand {
     }
 
     @Override
-    protected int getTargetWarpArgIndex() {
+    protected int getTargetHomeArgIndex() {
         return 1;
     }
 
@@ -40,11 +40,11 @@ public class IslandSetWarpCommand extends BaseSetWarpCommand {
 
     @Override
     protected String getMustInIslandMessage(String[] args) {
-        return config.getPlayerMustInIslandSetWarpMessage();
+        return config.getPlayerMustInIslandSetHomeMessage();
     }
 
     @Override
-    protected String getSetWarpSuccessMessage(String[] args, String warpName) {
-        return config.getPlayerSetWarpSuccessMessage(warpName);
+    protected String getSetHomeSuccessMessage(String[] args, String homeName) {
+        return config.getPlayerSetHomeSuccessMessage(homeName);
     }
 }

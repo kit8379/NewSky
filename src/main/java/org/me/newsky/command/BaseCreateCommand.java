@@ -48,36 +48,21 @@ public abstract class BaseCreateCommand implements BaseCommand {
         float spawnPitch = config.getIslandSpawnPitch();
         String spawnLocation = spawnX + "," + spawnY + "," + spawnZ + "," + spawnYaw + "," + spawnPitch;
 
-        // Set the owner role
-        String role = "owner";
-
         // Run the island creation future
-        CompletableFuture<Void> createIslandFuture = islandHandler.createIsland(islandUuid);
-        handleIslandCreationFuture(createIslandFuture, sender, targetUuid, islandUuid, spawnLocation, role, args);
+        CompletableFuture<Void> createIslandFuture = islandHandler.createIsland(islandUuid, targetUuid, spawnLocation);
+        handleIslandCreationFuture(createIslandFuture, sender, targetUuid, islandUuid, spawnLocation, args);
 
         return true;
     }
 
-    protected void handleIslandCreationFuture(CompletableFuture<Void> future, CommandSender sender, UUID targetUuid, UUID islandUuid, String spawnLocation, String role, String[] args) {
+    protected void handleIslandCreationFuture(CompletableFuture<Void> future, CommandSender sender, UUID targetUuid, UUID islandUuid, String spawnLocation, String[] args) {
         future.thenRun(() -> {
-            // Add the island to the cache
-            cacheHandler.createIsland(islandUuid);
-            // Add the player as the owner to the island in the cache
-            cacheHandler.addOrUpdateIslandPlayer(targetUuid, islandUuid, role);
-            // Add the player default spawn
-            cacheHandler.addOrUpdateHomePoint(targetUuid, islandUuid, "default", spawnLocation);
             // Send the success message
             sender.sendMessage(getIslandCreateSuccessMessage(args));
             // Teleport the player to the island
             performPostCreationActions(sender, targetUuid, islandUuid, spawnLocation);
         }).exceptionally(ex -> {
-            // Send the error message
-            if (ex instanceof IllegalStateException) {
-                sender.sendMessage(ex.getMessage());
-            } else {
-                ex.printStackTrace();
-                sender.sendMessage("There was an error creating the island.");
-            }
+            sender.sendMessage("There was an error creating the island.");
             return null;
         });
     }

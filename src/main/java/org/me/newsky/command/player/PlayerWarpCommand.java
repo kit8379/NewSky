@@ -9,9 +9,9 @@ import org.me.newsky.island.IslandHandler;
 
 import java.util.UUID;
 
-public class IslandWarpCommand extends BaseWarpCommand {
+public class PlayerWarpCommand extends BaseWarpCommand {
 
-    public IslandWarpCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
+    public PlayerWarpCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
         super(config, cacheHandler, islandHandler);
     }
 

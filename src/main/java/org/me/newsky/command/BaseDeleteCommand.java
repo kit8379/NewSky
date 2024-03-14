@@ -56,7 +56,7 @@ public abstract class BaseDeleteCommand implements BaseCommand {
             confirmations.invalidate(playerUuid);
             // Run the island deletion future
             CompletableFuture<Void> deleteIslandFuture = islandHandler.deleteIsland(islandUuid);
-            handleIslandDeletionFuture(deleteIslandFuture, sender, islandUuid, args);
+            handleIslandDeletionFuture(deleteIslandFuture, sender, args);
         } else {
             confirmations.put(playerUuid, commandName);
             sender.sendMessage(getIslandDeleteWarningMessage(args));
@@ -66,20 +66,13 @@ public abstract class BaseDeleteCommand implements BaseCommand {
         return true;
     }
 
-    protected void handleIslandDeletionFuture(CompletableFuture<Void> future, CommandSender sender, UUID islandUuid, String[] args) {
+    protected void handleIslandDeletionFuture(CompletableFuture<Void> future, CommandSender sender, String[] args) {
         future.thenRun(() -> {
-            // Delete the island from the cache
-            cacheHandler.deleteIsland(islandUuid);
             // Send the success message
             sender.sendMessage(getIslandDeleteSuccessMessage(args));
         }).exceptionally(ex -> {
             // Send the error message
-            if (ex instanceof IllegalStateException) {
-                sender.sendMessage(ex.getMessage());
-            } else {
-                ex.printStackTrace();
-                sender.sendMessage("There was an error deleting the island.");
-            }
+            sender.sendMessage("There was an error creating the island.");
             return null;
         });
     }

@@ -9,9 +9,9 @@ import org.me.newsky.config.ConfigHandler;
 
 import java.util.UUID;
 
-public class IslandInfoCommand extends BaseInfoCommand {
+public class PlayerInfoCommand extends BaseInfoCommand {
 
-    public IslandInfoCommand(ConfigHandler config, CacheHandler cacheHandler) {
+    public PlayerInfoCommand(ConfigHandler config, CacheHandler cacheHandler) {
         super(config, cacheHandler);
     }
 

@@ -8,9 +8,9 @@ import org.me.newsky.config.ConfigHandler;
 
 import java.util.UUID;
 
-public class IslandPvpCommand extends BasePvpCommand {
+public class PlayerPvpCommand extends BasePvpCommand {
 
-    public IslandPvpCommand(ConfigHandler config, CacheHandler cacheHandler) {
+    public PlayerPvpCommand(ConfigHandler config, CacheHandler cacheHandler) {
         super(config, cacheHandler);
     }
 

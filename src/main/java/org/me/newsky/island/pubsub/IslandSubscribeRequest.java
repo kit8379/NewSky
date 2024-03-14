@@ -61,34 +61,36 @@ public class IslandSubscribeRequest {
                 });
 
             case "createIsland":
-                String worldNameForCreate = parts[4];
-                return postIslandHandler.createWorld(worldNameForCreate).thenApply(v -> {
+                String islandNameForCreate = parts[4];
+                String playerNameForCreate = parts[5];
+                String spawnLocation = parts[6];
+                return postIslandHandler.createIsland(islandNameForCreate, playerNameForCreate, spawnLocation).thenApply(v -> {
                     return "Created";
                 });
 
+            case "deleteIsland":
+                String islandNameForDelete = parts[4];
+                return postIslandHandler.deleteIsland(islandNameForDelete).thenApply(v -> {
+                    return "Deleted";
+                });
+
             case "loadIsland":
-                String worldNameForLoad = parts[4];
-                return postIslandHandler.loadWorld(worldNameForLoad).thenApply(v -> {
+                String islandNameForLoad = parts[4];
+                return postIslandHandler.loadIsland(islandNameForLoad).thenApply(v -> {
                     return "Loaded";
                 });
 
             case "unloadIsland":
-                String worldNameForUnload = parts[4];
-                return postIslandHandler.unloadWorld(worldNameForUnload).thenApply(v -> {
+                String islandNameForUnload = parts[4];
+                return postIslandHandler.unloadIsland(islandNameForUnload).thenApply(v -> {
                     return "Unloaded";
-                });
-
-            case "deleteIsland":
-                String worldNameForDelete = parts[4];
-                return postIslandHandler.deleteWorld(worldNameForDelete).thenApply(v -> {
-                    return "Deleted";
                 });
 
             case "teleportToIsland":
                 String worldNameForTeleport = parts[4];
-                String playerName = parts[5];
-                String locationString = parts[6];
-                return postIslandHandler.teleportToWorld(worldNameForTeleport, playerName, locationString).thenApply(v -> {
+                String playerNameForTeleport = parts[5];
+                String teleportLocation = parts[6];
+                return postIslandHandler.teleportToIsland(worldNameForTeleport, playerNameForTeleport, teleportLocation).thenApply(v -> {
                     return "Teleported";
                 });
 

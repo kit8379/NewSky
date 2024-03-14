@@ -9,9 +9,9 @@ import org.me.newsky.island.IslandHandler;
 
 import java.util.UUID;
 
-public class IslandHomeCommand extends BaseHomeCommand {
+public class PlayerHomeCommand extends BaseHomeCommand {
 
-    public IslandHomeCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
+    public PlayerHomeCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
         super(config, cacheHandler, islandHandler);
     }
 

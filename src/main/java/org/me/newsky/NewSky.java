@@ -3,7 +3,7 @@ package org.me.newsky;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.admin.AdminCommandExecutor;
-import org.me.newsky.command.player.IslandCommandExecutor;
+import org.me.newsky.command.player.PlayerCommandExecutor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.event.*;
@@ -175,7 +175,7 @@ public class NewSky extends JavaPlugin {
     private void initializeIslandHandler() {
         info("Starting island handler");
         try {
-            islandHandler = new IslandHandler(this, config, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
+            islandHandler = new IslandHandler(this, config, cacheHandler, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
             islandHandler.subscribeToRequests();
             info("Island handler loaded");
         } catch (Exception e) {
@@ -195,7 +195,7 @@ public class NewSky extends JavaPlugin {
 
     private void registerCommands() {
         Objects.requireNonNull(this.getCommand("islandadmin")).setExecutor(new AdminCommandExecutor(this, config, cacheHandler, islandHandler));
-        Objects.requireNonNull(this.getCommand("island")).setExecutor(new IslandCommandExecutor(config, cacheHandler, islandHandler));
+        Objects.requireNonNull(this.getCommand("island")).setExecutor(new PlayerCommandExecutor(config, cacheHandler, islandHandler));
     }
 
     @Override

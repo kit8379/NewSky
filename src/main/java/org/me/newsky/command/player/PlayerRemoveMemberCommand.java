@@ -3,28 +3,37 @@ package org.me.newsky.command.player;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.command.BaseAddMemberCommand;
+import org.me.newsky.command.BaseRemoveMemberCommand;
 import org.me.newsky.config.ConfigHandler;
 
 import java.util.UUID;
 
-public class IslandAddMemberCommand extends BaseAddMemberCommand {
+public class PlayerRemoveMemberCommand extends BaseRemoveMemberCommand {
 
-    public IslandAddMemberCommand(ConfigHandler config, CacheHandler cacheHandler) {
+    public PlayerRemoveMemberCommand(ConfigHandler config, CacheHandler cacheHandler) {
         super(config, cacheHandler);
     }
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
-            sender.sendMessage(config.getPlayerAddMemberUsageMessage());
+            sender.sendMessage(config.getPlayerRemoveMemberUsageMessage());
             return false;
         }
         return true;
     }
 
     @Override
-    protected int getTargetAddArgIndex() {
+    protected boolean isNotSelf(CommandSender sender, String[] args) {
+        if (args[1].equals(sender.getName())) {
+            sender.sendMessage(config.getPlayerRemoveMemberCannotRemoveSelfMessage());
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    protected int getTargetRemoveArgIndex() {
         return 1;
     }
 
@@ -39,7 +48,7 @@ public class IslandAddMemberCommand extends BaseAddMemberCommand {
     }
 
     @Override
-    protected String getIslandAddMemberSuccessMessage(String[] args) {
-        return config.getPlayerAddMemberSuccessMessage(args[1]);
+    protected String getIslandRemoveMemberSuccessMessage(String[] args) {
+        return config.getPlayerRemoveMemberSuccessMessage(args[1]);
     }
 }

@@ -10,9 +10,9 @@ import org.me.newsky.island.IslandHandler;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-public class IslandCreateCommand extends BaseCreateCommand {
+public class PlayerCreateCommand extends BaseCreateCommand {
 
-    public IslandCreateCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
+    public PlayerCreateCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
         super(config, cacheHandler, islandHandler);
     }
 

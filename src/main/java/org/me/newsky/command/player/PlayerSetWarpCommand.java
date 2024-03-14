@@ -3,21 +3,21 @@ package org.me.newsky.command.player;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.command.BaseDelHomeCommand;
+import org.me.newsky.command.BaseSetWarpCommand;
 import org.me.newsky.config.ConfigHandler;
 
 import java.util.UUID;
 
-public class IslandDelHomeCommand extends BaseDelHomeCommand {
+public class PlayerSetWarpCommand extends BaseSetWarpCommand {
 
-    public IslandDelHomeCommand(ConfigHandler config, CacheHandler cacheHandler) {
+    public PlayerSetWarpCommand(ConfigHandler config, CacheHandler cacheHandler) {
         super(config, cacheHandler);
     }
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
-        if (args.length != 2) {
-            sender.sendMessage(config.getPlayerDelHomeUsageMessage());
+        if (args.length < 1 || args.length > 2) {
+            sender.sendMessage(config.getPlayerSetWarpUsageMessage());
             return false;
         }
         return true;
@@ -29,7 +29,7 @@ public class IslandDelHomeCommand extends BaseDelHomeCommand {
     }
 
     @Override
-    protected int getTargetHomeArgIndex() {
+    protected int getTargetWarpArgIndex() {
         return 1;
     }
 
@@ -39,17 +39,12 @@ public class IslandDelHomeCommand extends BaseDelHomeCommand {
     }
 
     @Override
-    protected String getCannotDeleteDefaultHomeMessage(String[] args) {
-        return config.getPlayerCannotDeleteDefaultHomeMessage();
+    protected String getMustInIslandMessage(String[] args) {
+        return config.getPlayerMustInIslandSetWarpMessage();
     }
 
     @Override
-    protected String getNoHomeMessage(String[] args) {
-        return config.getPlayerNoHomeMessage(args[1]);
-    }
-
-    @Override
-    protected String getDelHomeSuccessMessage(String[] args) {
-        return config.getPlayerDelHomeSuccessMessage(args[1]);
+    protected String getSetWarpSuccessMessage(String[] args, String warpName) {
+        return config.getPlayerSetWarpSuccessMessage(warpName);
     }
 }

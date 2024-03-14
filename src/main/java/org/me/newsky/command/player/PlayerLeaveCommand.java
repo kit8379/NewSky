@@ -4,9 +4,9 @@ import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.BaseLeaveCommand;
 import org.me.newsky.config.ConfigHandler;
 
-public class IslandLeaveCommand extends BaseLeaveCommand {
+public class PlayerLeaveCommand extends BaseLeaveCommand {
 
-    public IslandLeaveCommand(ConfigHandler config, CacheHandler cacheHandler) {
+    public PlayerLeaveCommand(ConfigHandler config, CacheHandler cacheHandler) {
         super(config, cacheHandler);
     }
 }

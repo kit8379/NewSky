@@ -3,21 +3,24 @@ package org.me.newsky.command.player;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.command.BaseDeleteCommand;
+import org.me.newsky.command.BaseSetOwnerCommand;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.island.IslandHandler;
 
 import java.util.Optional;
 import java.util.UUID;
 
-public class IslandDeleteCommand extends BaseDeleteCommand {
+public class PlayerSetOwnerCommand extends BaseSetOwnerCommand {
 
-    public IslandDeleteCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
-        super(config, cacheHandler, islandHandler);
+    public PlayerSetOwnerCommand(ConfigHandler config, CacheHandler cacheHandler) {
+        super(config, cacheHandler);
     }
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(config.getPlayerSetOwnerUsageMessage());
+            return false;
+        }
         return true;
     }
 
@@ -33,8 +36,13 @@ public class IslandDeleteCommand extends BaseDeleteCommand {
     }
 
     @Override
-    protected UUID getTargetUuid(CommandSender sender, String[] args) {
+    protected UUID getIslandOwnerUuid(CommandSender sender, String[] args) {
         return ((Player) sender).getUniqueId();
+    }
+
+    @Override
+    protected int getTargetOwnerArgIndex() {
+        return 1;
     }
 
     @Override
@@ -43,12 +51,12 @@ public class IslandDeleteCommand extends BaseDeleteCommand {
     }
 
     @Override
-    protected String getIslandDeleteWarningMessage(String[] args) {
-        return config.getPlayerDeleteWarningMessage();
+    protected String getAlreadyOwnerMessage(String[] args) {
+        return config.getPlayerAlreadyOwnerMessage(args[1]);
     }
 
     @Override
-    protected String getIslandDeleteSuccessMessage(String[] args) {
-        return config.getPlayerDeleteSuccessMessage();
+    protected String getSetOwnerSuccessMessage(String[] args) {
+        return config.getPlayerSetOwnerSuccessMessage(args[1]);
     }
 }
