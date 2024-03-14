@@ -47,7 +47,14 @@ public class PostIslandHandler {
 
 
     public CompletableFuture<Void> createWorld(String worldName) {
-        return worldHandler.createWorld(worldName);
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
+        worldHandler.createWorld(worldName).thenAcceptAsync(aVoid -> {
+            // Do something here in the future
+            future.complete(null);
+        });
+
+        return future;
     }
 
     public CompletableFuture<Void> loadWorld(String worldName) {
@@ -59,13 +66,20 @@ public class PostIslandHandler {
     }
 
     public CompletableFuture<Void> deleteWorld(String worldName) {
-        return worldHandler.deleteWorld(worldName);
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
+        worldHandler.deleteWorld(worldName).thenAcceptAsync(aVoid -> {
+            // Do something here in the future
+            future.complete(null);
+        });
+
+        return future;
     }
 
     public CompletableFuture<Void> teleportToWorld(String worldName, String playerName, String locationString) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        worldHandler.loadWorld(worldName).thenAccept(aVoid -> {
+        worldHandler.loadWorld(worldName).thenAcceptAsync(aVoid -> {
             UUID playerUuid = UUID.fromString(playerName);
             String[] parts = locationString.split(",");
             double x = Double.parseDouble(parts[0]);
