@@ -66,10 +66,6 @@ public class ConfigHandler {
         return config.getString("redis.password");
     }
 
-    public int getRedisDatabase() {
-        return config.getInt("redis.database");
-    }
-
     public boolean isDebug() {
         return config.getBoolean("debug");
     }

@@ -16,18 +16,19 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
-public class IslandOperation {
+public class PostIslandHandler {
 
     private final NewSky plugin;
     private final WorldHandler worldHandler;
     private final TeleportManager teleportManager;
 
-    public IslandOperation(NewSky plugin, WorldHandler worldHandler, TeleportManager teleportManager) {
+    public PostIslandHandler(NewSky plugin, WorldHandler worldHandler, TeleportManager teleportManager) {
         this.plugin = plugin;
         this.worldHandler = worldHandler;
         this.teleportManager = teleportManager;
     }
 
+    // TODO: Optimize this method
     public CompletableFuture<String> updateWorldList() {
         CompletableFuture<String> future = new CompletableFuture<>();
         // Add loaded worlds that start with "island-"
@@ -46,7 +47,14 @@ public class IslandOperation {
 
 
     public CompletableFuture<Void> createWorld(String worldName) {
-        return worldHandler.createWorld(worldName);
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
+        worldHandler.createWorld(worldName).thenAcceptAsync(aVoid -> {
+            // Do something here in the future
+            future.complete(null);
+        });
+
+        return future;
     }
 
     public CompletableFuture<Void> loadWorld(String worldName) {
@@ -58,13 +66,20 @@ public class IslandOperation {
     }
 
     public CompletableFuture<Void> deleteWorld(String worldName) {
-        return worldHandler.deleteWorld(worldName);
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
+        worldHandler.deleteWorld(worldName).thenAcceptAsync(aVoid -> {
+            // Do something here in the future
+            future.complete(null);
+        });
+
+        return future;
     }
 
     public CompletableFuture<Void> teleportToWorld(String worldName, String playerName, String locationString) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        worldHandler.loadWorld(worldName).thenAccept(aVoid -> {
+        worldHandler.loadWorld(worldName).thenAcceptAsync(aVoid -> {
             UUID playerUuid = UUID.fromString(playerName);
             String[] parts = locationString.split(",");
             double x = Double.parseDouble(parts[0]);

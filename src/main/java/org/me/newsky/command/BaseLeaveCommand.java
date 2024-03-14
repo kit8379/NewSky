@@ -8,7 +8,7 @@ import org.me.newsky.config.ConfigHandler;
 import java.util.Optional;
 import java.util.UUID;
 
-public abstract class BaseLeaveCommand {
+public abstract class BaseLeaveCommand implements BaseCommand {
 
     protected final ConfigHandler config;
     protected final CacheHandler cacheHandler;
@@ -18,7 +18,7 @@ public abstract class BaseLeaveCommand {
         this.cacheHandler = cacheHandler;
     }
 
-    public boolean execute(CommandSender sender) {
+    public boolean execute(CommandSender sender, String[] args) {
         // Check if the sender is a player
         if (!(sender instanceof Player)) {
             sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());

@@ -36,9 +36,13 @@ public class NewSky extends JavaPlugin {
 
     @Override
     public void onEnable() {
+        // Calculate the time it takes to initialize the plugin
+        long startTime = System.currentTimeMillis();
         info("Plugin enabling...");
         initalize();
         info("Plugin enabled!");
+        long endTime = System.currentTimeMillis();
+        info("Plugin initialization time: " + (endTime - startTime) + "ms");
     }
 
     private void initalize() {
@@ -228,12 +232,11 @@ public class NewSky extends JavaPlugin {
 
 
     private void registerListeners() {
-        getServer().getPluginManager().registerEvents(new WorldEventListener(this), this);
-        getServer().getPluginManager().registerEvents(new PlayerJoinEventListener(this, teleportManager), this);
+        getServer().getPluginManager().registerEvents(new WorldInitListener(this), this);
+        getServer().getPluginManager().registerEvents(new PlayerJoinListener(this, teleportManager), this);
         getServer().getPluginManager().registerEvents(new IslandProtectionListener(config, cacheHandler), this);
-        getServer().getPluginManager().registerEvents(new IslandBoundaryListener(config), this);
+        getServer().getPluginManager().registerEvents(new IslandMoveListener(config, cacheHandler), this);
         getServer().getPluginManager().registerEvents(new IslandPvPListener(config, cacheHandler), this);
-        getServer().getPluginManager().registerEvents(new IslandLockListener(config, cacheHandler), this);
     }
 
     private void registerCommands() {

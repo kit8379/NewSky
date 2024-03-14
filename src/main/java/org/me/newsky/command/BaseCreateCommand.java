@@ -9,7 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-public abstract class BaseCreateCommand {
+public abstract class BaseCreateCommand implements BaseCommand {
 
     protected final ConfigHandler config;
     protected final CacheHandler cacheHandler;

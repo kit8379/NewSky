@@ -1,4 +1,4 @@
-package org.me.newsky.island.post;
+package org.me.newsky.island.pubsub;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.heartbeat.HeartBeatHandler;
@@ -45,11 +45,7 @@ public class IslandPublishRequest {
 
                 if (shouldComplete) {
                     this.unsubscribe();
-                    if (responses.containsValue("Error")) {
-                        future.completeExceptionally(new IllegalStateException("Error received from server: " + responderID + " for request: " + requestID + " for operation: " + operation));
-                    } else {
-                        future.complete(responses);
-                    }
+                    future.complete(responses);
                 }
             }
         };

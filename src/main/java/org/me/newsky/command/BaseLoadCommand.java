@@ -10,7 +10,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-public abstract class BaseLoadCommand {
+public abstract class BaseLoadCommand implements BaseCommand {
 
     protected final ConfigHandler config;
     protected final CacheHandler cacheHandler;

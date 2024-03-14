@@ -5,17 +5,22 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.cache.CacheHandler;
 
-public class IslandBoundaryListener implements Listener {
+import java.util.UUID;
+
+public class IslandMoveListener implements Listener {
 
     private final ConfigHandler config;
+    private final CacheHandler cacheHandler;
     private final int islandSize;
     private final int bufferSize;
     private final int centerX;
     private final int centerZ;
 
-    public IslandBoundaryListener(ConfigHandler config) {
+    public IslandMoveListener(ConfigHandler config, CacheHandler cacheHandler) {
         this.config = config;
+        this.cacheHandler = cacheHandler;
         this.islandSize = config.getIslandSize();
         this.bufferSize = config.getBufferSize();
         this.centerX = 0;
@@ -34,6 +39,15 @@ public class IslandBoundaryListener implements Listener {
             return;
         }
 
+        // Check if the island is locked
+        UUID islandUuid = UUID.fromString(to.getWorld().getName().substring(7));
+        if (cacheHandler.getIslandLock(islandUuid) && cacheHandler.getIslandMembers(islandUuid).contains(event.getPlayer().getUniqueId())) {
+            event.setCancelled(true);
+            event.getPlayer().sendMessage(config.getIslandLockedMessage());
+            return;
+        }
+
+        // Check if the player is within the island boundary
         int minX = centerX - (islandSize / 2) - bufferSize;
         int maxX = centerX + (islandSize / 2) + bufferSize;
         int minZ = centerZ - (islandSize / 2) - bufferSize;

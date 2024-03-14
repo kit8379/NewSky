@@ -4,7 +4,7 @@ import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 
-public abstract class BaseReloadCommand {
+public abstract class BaseReloadCommand implements BaseCommand {
 
     protected final NewSky plugin;
     protected final ConfigHandler config;

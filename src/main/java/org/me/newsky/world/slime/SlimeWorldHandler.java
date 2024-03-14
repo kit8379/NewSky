@@ -6,12 +6,11 @@ import com.infernalsuite.aswm.api.world.SlimeWorld;
 import com.infernalsuite.aswm.api.world.properties.SlimeProperties;
 import com.infernalsuite.aswm.api.world.properties.SlimePropertyMap;
 import org.bukkit.Bukkit;
-import org.bukkit.World;
-import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.world.WorldHandler;
 
+import java.io.File;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
@@ -39,7 +38,9 @@ public class SlimeWorldHandler extends WorldHandler {
 
         CompletableFuture.runAsync(() -> {
             try {
-                SlimeWorld world = slimePlugin.createEmptyWorld(slimeLoader, worldName, false, properties);
+                File templateWorld = plugin.getDataFolder().toPath().resolve("template/" + config.getTemplateWorldName()).toFile();
+                slimePlugin.importWorld(templateWorld, worldName, slimeLoader);
+                SlimeWorld world = slimePlugin.loadWorld(slimeLoader, worldName, false, properties);
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     try {
                         slimePlugin.loadWorld(world);
@@ -89,7 +90,7 @@ public class SlimeWorldHandler extends WorldHandler {
     public CompletableFuture<Void> unloadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
+        unloadWorldFromBukkit(worldName, true).thenRunAsync(() -> {
             future.complete(null);
         }).exceptionally(e -> {
             future.completeExceptionally(e);
@@ -103,7 +104,7 @@ public class SlimeWorldHandler extends WorldHandler {
     public CompletableFuture<Void> deleteWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
+        unloadWorldFromBukkit(worldName, false).thenRunAsync(() -> {
             try {
                 slimeLoader.deleteWorld(worldName);
                 future.complete(null);
@@ -113,39 +114,6 @@ public class SlimeWorldHandler extends WorldHandler {
         }).exceptionally(e -> {
             future.completeExceptionally(e);
             return null;
-        });
-
-        return future;
-    }
-
-    protected boolean isWorldLoaded(String worldName) {
-        return Bukkit.getWorld(worldName) != null;
-    }
-
-    protected void removePlayersFromWorld(World world) {
-        World safeWorld = Bukkit.getServer().getWorlds().get(0);
-        for (Player player : world.getPlayers()) {
-            player.teleport(safeWorld.getSpawnLocation());
-        }
-    }
-
-    protected CompletableFuture<Void> unloadWorldFromBukkit(String worldName) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-
-        if (!isWorldLoaded(worldName)) {
-            future.complete(null);
-            return future;
-        }
-
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            World world = Bukkit.getWorld(worldName);
-            if (world != null) {
-                removePlayersFromWorld(world);
-                Bukkit.unloadWorld(world, true);
-                future.complete(null);
-            } else {
-                future.completeExceptionally(new IllegalStateException(config.getIslandNotLoadedMessage()));
-            }
         });
 
         return future;
