@@ -37,9 +37,6 @@ public class IslandSubscribeRequest {
                     processRequest(parts).thenAccept((String responseData) -> {
                         redisHandler.publish("newsky-response-channel-" + requestID, serverID + ":" + responseData);
                         plugin.debug("Sent response to server: " + sourceServer + " for request: " + requestID + " for operation: " + operation + " with data: " + responseData);
-                    }).exceptionally((Throwable e) -> {
-                        e.printStackTrace();
-                        return null;
                     });
                 }
             }
@@ -64,9 +61,8 @@ public class IslandSubscribeRequest {
                 });
 
             case "createIsland":
-                String islandUuidForCreate = parts[4];
-                String islandOwnerUuidForCreate = parts[5];
-                return postIslandHandler.createWorld(islandUuidForCreate, islandOwnerUuidForCreate).thenApply(v -> {
+                String worldNameForCreate = parts[4];
+                return postIslandHandler.createWorld(worldNameForCreate).thenApply(v -> {
                     return "Created";
                 });
 
