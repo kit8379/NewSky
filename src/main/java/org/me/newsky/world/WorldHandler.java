@@ -27,7 +27,6 @@ public abstract class WorldHandler {
     public abstract CompletableFuture<Void> unloadWorld(String worldName);
 
     public void saveWorld(World world) {
-        world.save();
     }
 
     protected boolean isWorldLoaded(String worldName) {
@@ -62,6 +61,4 @@ public abstract class WorldHandler {
 
         return future;
     }
-
-
 }

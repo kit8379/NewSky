@@ -103,11 +103,9 @@ public class DynamicWorldHandler extends NormalWorldHandler {
 
     @Override
     public void saveWorld(World world) {
-        // Save the world
-        world.save();
-
         // Copy the world to the storage directory in async
         CompletableFuture.runAsync(() -> {
+            plugin.info("Saving world " + world.getName() + " to storage directory.");
             Path worldPath = plugin.getServer().getWorldContainer().toPath().resolve(world.getName());
             Path targetPath = storagePath.resolve(world.getName());
 

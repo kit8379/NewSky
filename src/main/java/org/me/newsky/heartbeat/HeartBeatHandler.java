@@ -1,14 +1,12 @@
 package org.me.newsky.heartbeat;
 
-import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.JedisPubSub;
 
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class HeartBeatHandler {
 
@@ -18,8 +16,9 @@ public class HeartBeatHandler {
     private final String serverID;
     private final long heartbeatRateMs;
     private final ConcurrentHashMap<String, Long> serverLastHeartbeat = new ConcurrentHashMap<>();
+    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private JedisPubSub heartBeatSubscriber;
-    private BukkitTask combinedTask;
+    private ScheduledFuture<?> heartbeatTask;
 
     public HeartBeatHandler(NewSky plugin, ConfigHandler config, RedisHandler redisHandler, String serverID) {
         this.plugin = plugin;
@@ -32,24 +31,30 @@ public class HeartBeatHandler {
     public void startHeartBeat() {
         listenForHeartBeats();
         if (!config.isLobby()) {
-            combinedTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::sendHeartBeats, 0L, heartbeatRateMs / 50);
+            heartbeatTask = scheduler.scheduleAtFixedRate(this::sendHeartBeats, 0, heartbeatRateMs, TimeUnit.MILLISECONDS);
         }
     }
 
     public void stopHeartBeat() {
+        // Send a message indicating that the server is stopping
+        redisHandler.publish("newsky-heartbeat-channel", serverID + ":offline");
+        plugin.debug("Sent offline message to Redis");
+
         if (heartBeatSubscriber != null) {
             heartBeatSubscriber.unsubscribe();
         }
-        if (combinedTask != null) {
-            combinedTask.cancel();
+        if (heartbeatTask != null) {
+            heartbeatTask.cancel(true);
         }
-        // Send a message indicating that the server is stopping
-        redisHandler.publish("newsky-heartbeat-channel", serverID + ":offline");
+        scheduler.shutdown();
     }
 
     private void sendHeartBeats() {
+        // Send a message indicating that the server is online
         redisHandler.publish("newsky-heartbeat-channel", serverID + ":online");
-        serverLastHeartbeat.put(serverID, System.currentTimeMillis());
+        plugin.debug("Sent online message to Redis");
+
+        // Check for server timeouts
         checkServerTimeouts();
     }
 

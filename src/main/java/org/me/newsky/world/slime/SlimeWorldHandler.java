@@ -1,10 +1,6 @@
 package org.me.newsky.world.slime;
 
 import com.infernalsuite.aswm.api.SlimePlugin;
-import com.infernalsuite.aswm.api.exceptions.InvalidWorldException;
-import com.infernalsuite.aswm.api.exceptions.WorldAlreadyExistsException;
-import com.infernalsuite.aswm.api.exceptions.WorldLoadedException;
-import com.infernalsuite.aswm.api.exceptions.WorldTooBigException;
 import com.infernalsuite.aswm.api.loaders.SlimeLoader;
 import com.infernalsuite.aswm.api.world.SlimeWorld;
 import com.infernalsuite.aswm.api.world.properties.SlimeProperties;
@@ -15,7 +11,6 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.world.WorldHandler;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
@@ -35,18 +30,6 @@ public class SlimeWorldHandler extends WorldHandler {
         properties.setInt(SlimeProperties.SPAWN_X, config.getIslandSpawnX());
         properties.setInt(SlimeProperties.SPAWN_Y, config.getIslandSpawnY());
         properties.setInt(SlimeProperties.SPAWN_Z, config.getIslandSpawnZ());
-
-        // Import template world to the database if it doesn't exist
-        SlimeWorld world = slimePlugin.getWorld(config.getTemplateWorldName());
-        if (world == null) {
-            File templateWorld= plugin.getDataFolder().toPath().resolve("template/" + config.getTemplateWorldName()).toFile();
-            try {
-                slimePlugin.importWorld(templateWorld, config.getTemplateWorldName(), slimeLoader);
-            } catch (WorldAlreadyExistsException | InvalidWorldException | WorldLoadedException | WorldTooBigException |
-                     IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
     }
 
     @Override
@@ -55,7 +38,9 @@ public class SlimeWorldHandler extends WorldHandler {
 
         CompletableFuture.runAsync(() -> {
             try {
-                SlimeWorld world = slimePlugin.loadWorld(slimeLoader, "skyblock", false, properties).clone(worldName, slimeLoader);
+                File templateWorld = plugin.getDataFolder().toPath().resolve("template/" + config.getTemplateWorldName()).toFile();
+                slimePlugin.importWorld(templateWorld, worldName, slimeLoader);
+                SlimeWorld world = slimePlugin.loadWorld(slimeLoader, worldName, false, properties);
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     try {
                         slimePlugin.loadWorld(world);
