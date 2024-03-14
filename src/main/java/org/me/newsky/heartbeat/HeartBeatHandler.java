@@ -18,7 +18,6 @@ public class HeartBeatHandler {
     private final ConcurrentHashMap<String, Long> serverLastHeartbeat = new ConcurrentHashMap<>();
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
     private JedisPubSub heartBeatSubscriber;
-    private ScheduledFuture<?> heartbeatTask;
 
     public HeartBeatHandler(NewSky plugin, ConfigHandler config, RedisHandler redisHandler, String serverID) {
         this.plugin = plugin;
@@ -31,7 +30,7 @@ public class HeartBeatHandler {
     public void startHeartBeat() {
         listenForHeartBeats();
         if (!config.isLobby()) {
-            heartbeatTask = scheduler.scheduleAtFixedRate(this::sendHeartBeats, 0, heartbeatRateMs, TimeUnit.MILLISECONDS);
+            scheduler.scheduleAtFixedRate(this::sendHeartBeats, 0, heartbeatRateMs, TimeUnit.MILLISECONDS);
         }
     }
 
@@ -40,13 +39,13 @@ public class HeartBeatHandler {
         redisHandler.publish("newsky-heartbeat-channel", serverID + ":offline");
         plugin.debug("Sent offline message to Redis");
 
-        if (heartbeatTask != null) {
-            heartbeatTask.cancel(true);
-        }
+        // Shutdown the scheduler and unsubscribe from the heartbeat channel
         scheduler.shutdown();
+        plugin.debug("Shutting down the heartbeat scheduler");
 
         if (heartBeatSubscriber != null) {
             heartBeatSubscriber.unsubscribe();
+            plugin.debug("Unsubscribed from the heartbeat channel");
         }
     }
 
@@ -75,12 +74,16 @@ public class HeartBeatHandler {
                 }
             }
         };
+
         redisHandler.subscribe(heartBeatSubscriber, "newsky-heartbeat-channel");
+        plugin.debug("Subscribed to the heartbeat channel");
     }
 
     private void checkServerTimeouts() {
+        plugin.debug("Checking for server timeouts...");
         long now = System.currentTimeMillis();
         serverLastHeartbeat.entrySet().removeIf(entry -> now - entry.getValue() > heartbeatRateMs);
+        plugin.debug("Finished checking for server timeouts");
     }
 
     public Set<String> getActiveServers() {
