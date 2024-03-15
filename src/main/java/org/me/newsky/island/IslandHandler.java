@@ -68,6 +68,47 @@ public class IslandHandler {
         });
     }
 
+    public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
+        String islandName = "island-" + islandUuid.toString();
+
+        return fetchWorldList().thenCompose(worldListResponses -> {
+            Optional<String> serverId = findServerByWorldName(islandName, worldListResponses);
+            if (serverId.isPresent()) {
+                String targetServer = serverId.get();
+                if (targetServer.equals(serverID)) {
+                    return postIslandHandler.deleteIsland(islandName);
+                } else {
+                    return islandPublishRequest.sendRequest(targetServer, "deleteIsland:" + islandName).thenApply(responses -> null);
+                }
+            } else {
+                return postIslandHandler.deleteIsland(islandName);
+            }
+        });
+    }
+
+    public CompletableFuture<Void> loadIsland(UUID islandUuid) {
+        String islandName = "island-" + islandUuid.toString();
+        return fetchWorldList().thenCompose(worldListResponses -> {
+            Optional<String> serverId = findServerByWorldName(islandName, worldListResponses);
+            if (serverId.isPresent()) {
+                String targetServer = serverId.get();
+                if (targetServer.equals(serverID)) {
+                    return postIslandHandler.loadIsland(islandName);
+                } else {
+                    return islandPublishRequest.sendRequest(targetServer, "loadIsland:" + islandName).thenApply(responses -> null);
+                }
+            } else {
+                Optional<String> leastLoadedServer = findServerWithLeastWorld(worldListResponses);
+                if (leastLoadedServer.isPresent()) {
+                    String targetServer = leastLoadedServer.get();
+                    return islandPublishRequest.sendRequest(targetServer, "loadIsland:" + islandName).thenApply(responses -> null);
+                } else {
+                    return CompletableFuture.failedFuture(new IllegalStateException(config.getNoActiveServerMessage()));
+                }
+            }
+        });
+    }
+
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
         String islandName = "island-" + islandUuid.toString();
 
@@ -86,23 +127,42 @@ public class IslandHandler {
         });
     }
 
-    public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
+    public CompletableFuture<Void> teleportToIsland(UUID islandUuid, Player player, String teleportLocation) {
         String islandName = "island-" + islandUuid.toString();
+        return fetchWorldList().thenCompose(worldListResponses -> {
+            Optional<String> serverId = findServerByWorldName(islandName, worldListResponses);
+            if (serverId.isPresent()) {
+                String targetServer = serverId.get();
+                return proceedWithTeleportation(islandName, player, teleportLocation, targetServer);
+            } else {
+                Optional<String> leastLoadedServer = findServerWithLeastWorld(worldListResponses);
+                if (leastLoadedServer.isPresent()) {
+                    String targetServer = leastLoadedServer.get();
+                    return proceedWithTeleportation(islandName, player, teleportLocation, targetServer);
+                } else {
+                    return CompletableFuture.failedFuture(new IllegalStateException(config.getNoActiveServerMessage()));
+                }
+            }
+        });
+    }
 
+    public CompletableFuture<Void> lockIsland(UUID islandUuid) {
+        String islandName = "island-" + islandUuid.toString();
         return fetchWorldList().thenCompose(worldListResponses -> {
             Optional<String> serverId = findServerByWorldName(islandName, worldListResponses);
             if (serverId.isPresent()) {
                 String targetServer = serverId.get();
                 if (targetServer.equals(serverID)) {
-                    return postIslandHandler.deleteIsland(islandName);
+                    return postIslandHandler.lockIsland(islandName);
                 } else {
-                    return islandPublishRequest.sendRequest(targetServer, "deleteIsland:" + islandName).thenApply(responses -> null);
+                    return islandPublishRequest.sendRequest(targetServer, "lockIsland:" + islandName).thenApply(responses -> null);
                 }
             } else {
-                return postIslandHandler.deleteIsland(islandName);
+                return CompletableFuture.completedFuture(null);
             }
         });
     }
+
 
     public CompletableFuture<ConcurrentHashMap<String, String>> fetchWorldList() {
         return islandPublishRequest.sendRequest("all", "updateWorldList");
@@ -148,48 +208,6 @@ public class IslandHandler {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    public CompletableFuture<Void> loadIsland(UUID islandUuid) {
-        String islandName = "island-" + islandUuid.toString();
-        return fetchWorldList().thenCompose(worldListResponses -> {
-            Optional<String> serverId = findServerByWorldName(islandName, worldListResponses);
-            if (serverId.isPresent()) {
-                String targetServer = serverId.get();
-                if (targetServer.equals(serverID)) {
-                    return postIslandHandler.loadIsland(islandName);
-                } else {
-                    return islandPublishRequest.sendRequest(targetServer, "loadIsland:" + islandName).thenApply(responses -> null);
-                }
-            } else {
-                Optional<String> leastLoadedServer = findServerWithLeastWorld(worldListResponses);
-                if (leastLoadedServer.isPresent()) {
-                    String targetServer = leastLoadedServer.get();
-                    return islandPublishRequest.sendRequest(targetServer, "loadIsland:" + islandName).thenApply(responses -> null);
-                } else {
-                    return CompletableFuture.failedFuture(new IllegalStateException(config.getNoActiveServerMessage()));
-                }
-            }
-        });
-    }
-
-    public CompletableFuture<Void> teleportToIsland(UUID islandUuid, Player player, String teleportLocation) {
-        String islandName = "island-" + islandUuid.toString();
-        return fetchWorldList().thenCompose(worldListResponses -> {
-            Optional<String> serverId = findServerByWorldName(islandName, worldListResponses);
-            if (serverId.isPresent()) {
-                String targetServer = serverId.get();
-                return proceedWithTeleportation(islandName, player, teleportLocation, targetServer);
-            } else {
-                Optional<String> leastLoadedServer = findServerWithLeastWorld(worldListResponses);
-                if (leastLoadedServer.isPresent()) {
-                    String targetServer = leastLoadedServer.get();
-                    return proceedWithTeleportation(islandName, player, teleportLocation, targetServer);
-                } else {
-                    return CompletableFuture.failedFuture(new IllegalStateException(config.getNoActiveServerMessage()));
-                }
-            }
-        });
     }
 
     public void subscribeToRequests() {

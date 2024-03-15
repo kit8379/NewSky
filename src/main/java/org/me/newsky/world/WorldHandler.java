@@ -17,9 +17,9 @@ import java.util.concurrent.CompletableFuture;
 
 public class WorldHandler {
 
-    protected final NewSky plugin;
+    public final NewSky plugin;
 
-    protected final ConfigHandler config;
+    public final ConfigHandler config;
     private final SlimePlugin slimePlugin;
     private final SlimeLoader slimeLoader;
     private final SlimePropertyMap properties;
@@ -122,18 +122,18 @@ public class WorldHandler {
         return future;
     }
 
-    protected boolean isWorldLoaded(String worldName) {
+    public boolean isWorldLoaded(String worldName) {
         return Bukkit.getWorld(worldName) != null;
     }
 
-    protected void removePlayersFromWorld(World world) {
+    public void removePlayersFromWorld(World world) {
         World safeWorld = Bukkit.getServer().getWorlds().get(0);
         for (Player player : world.getPlayers()) {
             player.teleport(safeWorld.getSpawnLocation());
         }
     }
 
-    protected CompletableFuture<Void> unloadWorldFromBukkit(String worldName, boolean save) {
+    public CompletableFuture<Void> unloadWorldFromBukkit(String worldName, boolean save) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
         if (!isWorldLoaded(worldName)) {
@@ -150,6 +150,20 @@ public class WorldHandler {
             } else {
                 future.completeExceptionally(new IllegalStateException(config.getIslandNotLoadedMessage()));
             }
+        });
+
+        return future;
+    }
+
+    public CompletableFuture<Void> lockWorld(String worldName) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            World world = Bukkit.getWorld(worldName);
+            if (world != null) {
+                removePlayersFromWorld(world);
+            }
+            future.complete(null);
         });
 
         return future;

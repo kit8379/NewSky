@@ -56,14 +56,6 @@ public class PostIslandHandler {
         return future;
     }
 
-    public CompletableFuture<Void> loadIsland(String islandName) {
-        return worldHandler.loadWorld(islandName);
-    }
-
-    public CompletableFuture<Void> unloadIsland(String islandName) {
-        return worldHandler.unloadWorld(islandName);
-    }
-
     public CompletableFuture<Void> deleteIsland(String islandName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
@@ -79,6 +71,16 @@ public class PostIslandHandler {
 
         return future;
     }
+
+    public CompletableFuture<Void> loadIsland(String islandName) {
+        return worldHandler.loadWorld(islandName);
+    }
+
+    public CompletableFuture<Void> unloadIsland(String islandName) {
+        return worldHandler.unloadWorld(islandName);
+    }
+
+
 
     public CompletableFuture<Void> teleportToIsland(String islandName, String playerName, String teleportLocation) {
         CompletableFuture<Void> future = new CompletableFuture<>();
@@ -107,5 +109,9 @@ public class PostIslandHandler {
         });
 
         return future;
+    }
+
+    public CompletableFuture<Void> lockIsland(String islandName) {
+        return worldHandler.lockWorld(islandName);
     }
 }
