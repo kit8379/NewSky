@@ -40,11 +40,6 @@ public class AdminHomeCommand extends BaseHomeCommand {
     }
 
     @Override
-    protected String getNoHomeMessage(String[] args, String homeName) {
-        return config.getAdminNoHomeMessage(args[1], homeName);
-    }
-
-    @Override
     protected String getIslandHomeSuccessMessage(String homeName) {
         return config.getAdminHomeSuccessMessage(homeName);
     }

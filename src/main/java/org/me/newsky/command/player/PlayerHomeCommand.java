@@ -40,11 +40,6 @@ public class PlayerHomeCommand extends BaseHomeCommand {
     }
 
     @Override
-    protected String getNoHomeMessage(String[] args, String homeName) {
-        return config.getPlayerNoHomeMessage(homeName);
-    }
-
-    @Override
     protected String getIslandHomeSuccessMessage(String homeName) {
         return config.getPlayerHomeSuccessMessage(homeName);
     }

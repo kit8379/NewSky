@@ -115,7 +115,7 @@ public class DatabaseHandler {
         }, "INSERT INTO islands (island_uuid) VALUES (?)");
     }
 
-    public void addOrUpdateIslandPlayer(UUID playerUuid, UUID islandUuid, String role) {
+    public void updateIslandPlayer(UUID playerUuid, UUID islandUuid, String role) {
         executeUpdate(statement -> {
             statement.setString(1, playerUuid.toString());
             statement.setString(2, islandUuid.toString());
@@ -124,18 +124,7 @@ public class DatabaseHandler {
         }, "INSERT INTO island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE role = ?;");
     }
 
-
-    public void addOrUpdateWarpPoint(UUID playerUuid, UUID islandUuid, String warpName, String warpLocation) {
-        executeUpdate(statement -> {
-            statement.setString(1, playerUuid.toString());
-            statement.setString(2, islandUuid.toString());
-            statement.setString(3, warpName);
-            statement.setString(4, warpLocation);
-            statement.setString(5, warpLocation);
-        }, "INSERT INTO island_warps (player_uuid, island_uuid, warp_name, warp_location) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE warp_location = ?;");
-    }
-
-    public void addOrUpdateHomePoint(UUID playerUuid, UUID islandUuid, String homeName, String homeLocation) {
+    public void updateHomePoint(UUID playerUuid, UUID islandUuid, String homeName, String homeLocation) {
         executeUpdate(statement -> {
             statement.setString(1, playerUuid.toString());
             statement.setString(2, islandUuid.toString());
@@ -143,6 +132,16 @@ public class DatabaseHandler {
             statement.setString(4, homeLocation);
             statement.setString(5, homeLocation);
         }, "INSERT INTO island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE home_location = ?;");
+    }
+
+    public void updateWarpPoint(UUID playerUuid, UUID islandUuid, String warpName, String warpLocation) {
+        executeUpdate(statement -> {
+            statement.setString(1, playerUuid.toString());
+            statement.setString(2, islandUuid.toString());
+            statement.setString(3, warpName);
+            statement.setString(4, warpLocation);
+            statement.setString(5, warpLocation);
+        }, "INSERT INTO island_warps (player_uuid, island_uuid, warp_name, warp_location) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE warp_location = ?;");
     }
 
 
@@ -191,20 +190,20 @@ public class DatabaseHandler {
         }, "DELETE FROM island_players WHERE player_uuid = ? AND island_uuid = ?;"));
     }
 
-    public void deleteWarpPoint(UUID islandUuid, UUID playerUuid, String warpName) {
-        executeUpdate(statement -> {
-            statement.setString(1, islandUuid.toString());
-            statement.setString(2, playerUuid.toString());
-            statement.setString(3, warpName);
-        }, "DELETE FROM island_warps WHERE island_uuid = ? AND player_uuid = ? AND warp_name = ?;");
-    }
-
     public void deleteHomePoint(UUID islandUuid, UUID playerUuid, String homeName) {
         executeUpdate(statement -> {
             statement.setString(1, islandUuid.toString());
             statement.setString(2, playerUuid.toString());
             statement.setString(3, homeName);
         }, "DELETE FROM island_homes WHERE island_uuid = ? AND player_uuid = ? AND home_name = ?;");
+    }
+
+    public void deleteWarpPoint(UUID islandUuid, UUID playerUuid, String warpName) {
+        executeUpdate(statement -> {
+            statement.setString(1, islandUuid.toString());
+            statement.setString(2, playerUuid.toString());
+            statement.setString(3, warpName);
+        }, "DELETE FROM island_warps WHERE island_uuid = ? AND player_uuid = ? AND warp_name = ?;");
     }
 
     @FunctionalInterface

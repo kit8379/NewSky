@@ -25,11 +25,6 @@ public class AdminDeleteCommand extends BaseDeleteCommand {
     }
 
     @Override
-    protected boolean isOwner(CommandSender sender, UUID islandUuid) {
-        return true;
-    }
-
-    @Override
     protected UUID getTargetUuid(CommandSender sender, String[] args) {
         return Bukkit.getOfflinePlayer(args[1]).getUniqueId();
     }

@@ -41,11 +41,6 @@ public abstract class BaseDeleteCommand implements BaseCommand {
         }
         UUID islandUuid = islandUuidOpt.get();
 
-        // Check if the sender is the owner of the island
-        if (!isOwner(sender, islandUuid)) {
-            return true;
-        }
-
         // Double confirmation check
         String commandName = "delete"; // Use a constant or a method to get the command name
         if (commandName.equals(confirmations.getIfPresent(targetUuid))) {
@@ -76,8 +71,6 @@ public abstract class BaseDeleteCommand implements BaseCommand {
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
 
     protected abstract UUID getTargetUuid(CommandSender sender, String[] args);
-
-    protected abstract boolean isOwner(CommandSender sender, UUID islandUuid);
 
     protected abstract String getNoIslandMessage(String[] args);
 

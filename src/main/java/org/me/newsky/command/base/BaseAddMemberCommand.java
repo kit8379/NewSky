@@ -59,9 +59,9 @@ public abstract class BaseAddMemberCommand implements BaseCommand {
         String role = "member";
 
         // Add the target player to the island
-        cacheHandler.addOrUpdateIslandPlayer(targetUuid, islandUuid, role);
+        cacheHandler.updateIslandPlayer(targetUuid, islandUuid, role);
         // Add the player default spawn
-        cacheHandler.addOrUpdateHomePoint(targetUuid, islandUuid, "default", spawnLocation);
+        cacheHandler.updateHomePoint(targetUuid, islandUuid, "default", spawnLocation);
         // Send the success message
         sender.sendMessage(getIslandAddMemberSuccessMessage(args));
 

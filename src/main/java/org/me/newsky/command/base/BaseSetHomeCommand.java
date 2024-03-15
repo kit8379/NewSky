@@ -49,7 +49,7 @@ public abstract class BaseSetHomeCommand implements BaseCommand {
         Location loc = player.getLocation();
         String homeLocation = String.format("%.1f,%.1f,%.1f,%.1f,%.1f", loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
 
-        cacheHandler.addOrUpdateHomePoint(targetUuid, islandUuid, homeName, homeLocation);
+        cacheHandler.updateHomePoint(targetUuid, islandUuid, homeName, homeLocation);
         sender.sendMessage(getSetHomeSuccessMessage(args, homeName));
 
         return true;

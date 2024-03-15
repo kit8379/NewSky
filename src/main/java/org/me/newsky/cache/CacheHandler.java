@@ -107,44 +107,30 @@ public class CacheHandler {
         databaseHandler.addIslandData(islandUuid);
     }
 
-    public void addOrUpdateIslandPlayer(UUID playerUuid, UUID islandUuid, String role) {
+    public void updateIslandPlayer(UUID playerUuid, UUID islandUuid, String role) {
         try (Jedis jedis = redisHandler.getJedis()) {
             Map<String, String> playerData = new HashMap<>();
             playerData.put("role", role);
 
             jedis.hmset("island_players:" + islandUuid + ":" + playerUuid, playerData);
         }
-        databaseHandler.addOrUpdateIslandPlayer(playerUuid, islandUuid, role);
+        databaseHandler.updateIslandPlayer(playerUuid, islandUuid, role);
     }
 
-    public void addOrUpdateWarpPoint(UUID playerUuid, UUID islandUuid, String warpName, String warpLocation) {
-        try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.hset("island_warps:" + islandUuid + ":" + playerUuid, warpName, warpLocation);
-        }
-        // Update database call to include islandUuid
-        databaseHandler.addOrUpdateWarpPoint(playerUuid, islandUuid, warpName, warpLocation);
-    }
-
-    public void addOrUpdateHomePoint(UUID playerUuid, UUID islandUuid, String homeName, String homeLocation) {
+    public void updateHomePoint(UUID playerUuid, UUID islandUuid, String homeName, String homeLocation) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset("island_homes:" + islandUuid + ":" + playerUuid, homeName, homeLocation);
         }
         // Update database call to include islandUuid
-        databaseHandler.addOrUpdateHomePoint(playerUuid, islandUuid, homeName, homeLocation);
+        databaseHandler.updateHomePoint(playerUuid, islandUuid, homeName, homeLocation);
     }
 
-    public void updateIslandLock(UUID islandUuid, boolean lock) {
+    public void updateWarpPoint(UUID playerUuid, UUID islandUuid, String warpName, String warpLocation) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.hset("island_data:" + islandUuid.toString(), "lock", String.valueOf(lock));
+            jedis.hset("island_warps:" + islandUuid + ":" + playerUuid, warpName, warpLocation);
         }
-        databaseHandler.updateIslandLock(islandUuid, lock);
-    }
-
-    public void updateIslandPvp(UUID islandUuid, boolean pvp) {
-        try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.hset("island_data:" + islandUuid.toString(), "pvp", String.valueOf(pvp));
-        }
-        databaseHandler.updateIslandPvp(islandUuid, pvp);
+        // Update database call to include islandUuid
+        databaseHandler.updateWarpPoint(playerUuid, islandUuid, warpName, warpLocation);
     }
 
     public void updateIslandOwner(UUID playerUuid, UUID islandUuid) {
@@ -160,6 +146,20 @@ public class CacheHandler {
         }
 
         databaseHandler.updateIslandOwner(playerUuid, islandUuid);
+    }
+
+    public void updateIslandLock(UUID islandUuid, boolean lock) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.hset("island_data:" + islandUuid.toString(), "lock", String.valueOf(lock));
+        }
+        databaseHandler.updateIslandLock(islandUuid, lock);
+    }
+
+    public void updateIslandPvp(UUID islandUuid, boolean pvp) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.hset("island_data:" + islandUuid.toString(), "pvp", String.valueOf(pvp));
+        }
+        databaseHandler.updateIslandPvp(islandUuid, pvp);
     }
 
     public void deleteIsland(UUID islandUuid) {
@@ -181,13 +181,6 @@ public class CacheHandler {
         databaseHandler.deleteIslandPlayer(playerUuid, islandUuid);
     }
 
-    public void deleteWarpPoint(UUID playerUuid, UUID islandUuid, String warpName) {
-        try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.hdel("island_warps:" + islandUuid + ":" + playerUuid, warpName);
-        }
-        databaseHandler.deleteWarpPoint(playerUuid, islandUuid, warpName);
-    }
-
     public void deleteHomePoint(UUID playerUuid, UUID islandUuid, String homeName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hdel("island_homes:" + islandUuid + ":" + playerUuid, homeName);
@@ -195,6 +188,12 @@ public class CacheHandler {
         databaseHandler.deleteHomePoint(playerUuid, islandUuid, homeName);
     }
 
+    public void deleteWarpPoint(UUID playerUuid, UUID islandUuid, String warpName) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.hdel("island_warps:" + islandUuid + ":" + playerUuid, warpName);
+        }
+        databaseHandler.deleteWarpPoint(playerUuid, islandUuid, warpName);
+    }
 
     public boolean getIslandLock(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
@@ -216,29 +215,6 @@ public class CacheHandler {
         }
     }
 
-    public Optional<String> getWarpLocation(UUID islandUuid, UUID playerUuid, String warpName) {
-        try (Jedis jedis = redisHandler.getJedis()) {
-            String key = "island_warps:" + islandUuid + ":" + playerUuid;
-            if (!jedis.exists(key)) {
-                return Optional.empty();
-            }
-            return Optional.ofNullable(jedis.hget(key, warpName));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return Optional.empty();
-        }
-    }
-
-    public Set<String> getWarpNames(UUID islandUuid, UUID playerUuid) {
-        try (Jedis jedis = redisHandler.getJedis()) {
-            String key = "island_warps:" + islandUuid + ":" + playerUuid;
-            return jedis.hkeys(key);
-        } catch (Exception e) {
-            e.printStackTrace();
-            return Collections.emptySet();
-        }
-    }
-
     public Optional<String> getHomeLocation(UUID islandUuid, UUID playerUuid, String homeName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             String key = "island_homes:" + islandUuid + ":" + playerUuid;
@@ -255,6 +231,29 @@ public class CacheHandler {
     public Set<String> getHomeNames(UUID islandUuid, UUID playerUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             String key = "island_homes:" + islandUuid + ":" + playerUuid;
+            return jedis.hkeys(key);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Collections.emptySet();
+        }
+    }
+
+    public Optional<String> getWarpLocation(UUID islandUuid, UUID playerUuid, String warpName) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            String key = "island_warps:" + islandUuid + ":" + playerUuid;
+            if (!jedis.exists(key)) {
+                return Optional.empty();
+            }
+            return Optional.ofNullable(jedis.hget(key, warpName));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return Optional.empty();
+        }
+    }
+
+    public Set<String> getWarpNames(UUID islandUuid, UUID playerUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            String key = "island_warps:" + islandUuid + ":" + playerUuid;
             return jedis.hkeys(key);
         } catch (Exception e) {
             e.printStackTrace();
