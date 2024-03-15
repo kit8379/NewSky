@@ -2,8 +2,8 @@ package org.me.newsky;
 
 import org.bukkit.plugin.java.JavaPlugin;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.command.admin.AdminCommandExecutor;
-import org.me.newsky.command.player.PlayerCommandExecutor;
+import org.me.newsky.command.AdminCommandExecutor;
+import org.me.newsky.command.PlayerCommandExecutor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.event.*;
@@ -60,7 +60,7 @@ public class NewSky extends JavaPlugin {
         info("Start loading configuration now...");
         try {
             saveDefaultConfig();
-            config = new ConfigHandler(getConfig());
+            config = new ConfigHandler(this);
             info("Config load success!");
         } catch (Exception e) {
             e.printStackTrace();

@@ -3,15 +3,16 @@ package org.me.newsky.command.player;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.command.BaseLockCommand;
+import org.me.newsky.command.base.BaseLockCommand;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.island.IslandHandler;
 
 import java.util.UUID;
 
 public class PlayerLockCommand extends BaseLockCommand {
 
-    public PlayerLockCommand(ConfigHandler config, CacheHandler cacheHandler) {
-        super(config, cacheHandler);
+    public PlayerLockCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
+        super(config, cacheHandler, islandHandler);
     }
 
     @Override

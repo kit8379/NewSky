@@ -1,9 +1,10 @@
-package org.me.newsky.command;
+package org.me.newsky.command.base;
 
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
 
 import java.util.Optional;

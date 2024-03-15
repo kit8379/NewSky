@@ -2,7 +2,7 @@ package org.me.newsky.command.admin;
 
 import org.bukkit.command.CommandSender;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.command.BaseUnloadCommand;
+import org.me.newsky.command.base.BaseUnloadCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 

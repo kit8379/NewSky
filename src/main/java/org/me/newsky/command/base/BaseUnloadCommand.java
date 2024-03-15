@@ -1,8 +1,9 @@
-package org.me.newsky.command;
+package org.me.newsky.command.base;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 
@@ -10,13 +11,13 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-public abstract class BaseLoadCommand implements BaseCommand {
+public abstract class BaseUnloadCommand implements BaseCommand {
 
     protected final ConfigHandler config;
     protected final CacheHandler cacheHandler;
     protected final IslandHandler islandHandler;
 
-    public BaseLoadCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
+    public BaseUnloadCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
         this.config = config;
         this.cacheHandler = cacheHandler;
         this.islandHandler = islandHandler;
@@ -40,17 +41,17 @@ public abstract class BaseLoadCommand implements BaseCommand {
         }
         UUID islandUuid = islandUuidOpt.get();
 
-        // Run the island load future
-        CompletableFuture<Void> loadIslandFuture = islandHandler.loadIsland(islandUuid);
-        handleIslandLoadFuture(loadIslandFuture, sender, args);
+        // Run the island unload future
+        CompletableFuture<Void> unloadIslandFuture = islandHandler.unloadIsland(islandUuid);
+        handleIslandUnloadFuture(unloadIslandFuture, sender, args);
 
         return true;
     }
 
-    protected void handleIslandLoadFuture(CompletableFuture<Void> future, CommandSender sender, String[] args) {
+    protected void handleIslandUnloadFuture(CompletableFuture<Void> future, CommandSender sender, String[] args) {
         future.thenRun(() -> {
             // Send the success message
-            sender.sendMessage(config.getIslandLoadSuccessMessage(args[1]));
+            sender.sendMessage(config.getIslandUnloadSuccessMessage(args[1]));
         }).exceptionally(ex -> {
             if (ex instanceof IllegalStateException) {
                 sender.sendMessage(ex.getMessage());
@@ -61,4 +62,6 @@ public abstract class BaseLoadCommand implements BaseCommand {
             return null;
         });
     }
+
+    protected abstract boolean validateArgs(CommandSender sender, String[] args);
 }

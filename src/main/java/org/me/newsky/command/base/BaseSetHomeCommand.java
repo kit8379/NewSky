@@ -1,20 +1,21 @@
-package org.me.newsky.command;
+package org.me.newsky.command.base;
 
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
 
 import java.util.Optional;
 import java.util.UUID;
 
-public abstract class BaseSetWarpCommand implements BaseCommand {
+public abstract class BaseSetHomeCommand implements BaseCommand {
 
     protected final ConfigHandler config;
     protected final CacheHandler cacheHandler;
 
-    public BaseSetWarpCommand(ConfigHandler config, CacheHandler cacheHandler) {
+    public BaseSetHomeCommand(ConfigHandler config, CacheHandler cacheHandler) {
         this.config = config;
         this.cacheHandler = cacheHandler;
     }
@@ -44,12 +45,12 @@ public abstract class BaseSetWarpCommand implements BaseCommand {
             return true;
         }
 
-        String warpName = args.length > getTargetWarpArgIndex() ? args[getTargetWarpArgIndex()] : "default";
+        String homeName = args.length > getTargetHomeArgIndex() ? args[getTargetHomeArgIndex()] : "default";
         Location loc = player.getLocation();
-        String warpLocation = String.format("%.1f,%.1f,%.1f,%.1f,%.1f", loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
+        String homeLocation = String.format("%.1f,%.1f,%.1f,%.1f,%.1f", loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
 
-        cacheHandler.addOrUpdateWarpPoint(targetUuid, islandUuid, warpName, warpLocation);
-        sender.sendMessage(getSetWarpSuccessMessage(args, warpName));
+        cacheHandler.addOrUpdateHomePoint(targetUuid, islandUuid, homeName, homeLocation);
+        sender.sendMessage(getSetHomeSuccessMessage(args, homeName));
 
         return true;
     }
@@ -58,11 +59,11 @@ public abstract class BaseSetWarpCommand implements BaseCommand {
 
     protected abstract UUID getTargetUuid(CommandSender sender, String[] args);
 
-    protected abstract int getTargetWarpArgIndex();
+    protected abstract int getTargetHomeArgIndex();
 
     protected abstract String getNoIslandMessage(String[] args);
 
     protected abstract String getMustInIslandMessage(String[] args);
 
-    protected abstract String getSetWarpSuccessMessage(String[] args, String warpName);
+    protected abstract String getSetHomeSuccessMessage(String[] args, String homeName);
 }

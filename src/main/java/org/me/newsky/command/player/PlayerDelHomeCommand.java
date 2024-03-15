@@ -3,7 +3,7 @@ package org.me.newsky.command.player;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.command.BaseDelHomeCommand;
+import org.me.newsky.command.base.BaseDelHomeCommand;
 import org.me.newsky.config.ConfigHandler;
 
 import java.util.UUID;

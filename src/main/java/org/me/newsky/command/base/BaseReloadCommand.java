@@ -1,7 +1,8 @@
-package org.me.newsky.command;
+package org.me.newsky.command.base;
 
 import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
+import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
 
 public abstract class BaseReloadCommand implements BaseCommand {

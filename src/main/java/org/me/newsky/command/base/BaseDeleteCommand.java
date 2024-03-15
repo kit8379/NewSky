@@ -1,8 +1,9 @@
-package org.me.newsky.command;
+package org.me.newsky.command.base;
 
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.Player;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.command.BaseCommand;
+import org.me.newsky.command.Confirmation;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 

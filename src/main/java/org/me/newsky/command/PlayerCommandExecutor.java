@@ -1,8 +1,7 @@
-package org.me.newsky.command.player;
+package org.me.newsky.command;
 
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.command.BaseCommand;
-import org.me.newsky.command.BaseCommandExecutor;
+import org.me.newsky.command.player.*;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
 import org.bukkit.command.CommandSender;
@@ -29,7 +28,7 @@ public class PlayerCommandExecutor extends BaseCommandExecutor {
         commands.put("setwarp", new PlayerSetWarpCommand(config, cacheHandler));
         commands.put("delwarp", new PlayerDelWarpCommand(config, cacheHandler));
         commands.put("info", new PlayerInfoCommand(config, cacheHandler));
-        commands.put("lock", new PlayerLockCommand(config, cacheHandler));
+        commands.put("lock", new PlayerLockCommand(config, cacheHandler, islandHandler));
         commands.put("pvp", new PlayerPvpCommand(config, cacheHandler));
         commands.put("setowner", new PlayerSetOwnerCommand(config, cacheHandler));
         commands.put("leave", new PlayerLeaveCommand(config, cacheHandler));

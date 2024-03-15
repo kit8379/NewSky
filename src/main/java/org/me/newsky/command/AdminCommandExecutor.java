@@ -1,12 +1,11 @@
-package org.me.newsky.command.admin;
+package org.me.newsky.command;
 
+import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.command.BaseCommand;
-import org.me.newsky.command.BaseCommandExecutor;
+import org.me.newsky.command.admin.*;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.IslandHandler;
-import org.bukkit.command.CommandSender;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,7 +29,7 @@ public class AdminCommandExecutor extends BaseCommandExecutor {
         commands.put("warp", new AdminWarpCommand(config, cacheHandler, islandHandler));
         commands.put("setwarp", new AdminSetWarpCommand(config, cacheHandler));
         commands.put("delwarp", new AdminDelWarpCommand(config, cacheHandler));
-        commands.put("lock", new AdminLockCommand(config, cacheHandler));
+        commands.put("lock", new AdminLockCommand(config, cacheHandler, islandHandler));
         commands.put("pvp", new AdminPvpCommand(config, cacheHandler));
         commands.put("setowner", new AdminSetOwnerCommand(config, cacheHandler));
         commands.put("load", new AdminLoadCommand(config, cacheHandler, islandHandler));

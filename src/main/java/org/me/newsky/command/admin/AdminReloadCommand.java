@@ -2,7 +2,7 @@ package org.me.newsky.command.admin;
 
 import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
-import org.me.newsky.command.BaseReloadCommand;
+import org.me.newsky.command.base.BaseReloadCommand;
 import org.me.newsky.config.ConfigHandler;
 
 public class AdminReloadCommand extends BaseReloadCommand {
