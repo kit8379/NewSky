@@ -25,8 +25,6 @@ public abstract class BaseAddMemberCommand implements BaseCommand {
             return true;
         }
 
-
-
         // Get the island owner's UUID
         UUID islandOwnerId = getIslandOwnerUuid(sender, args);
 
@@ -62,7 +60,7 @@ public abstract class BaseAddMemberCommand implements BaseCommand {
         // Add the target player to the island
         cacheHandler.addOrUpdateIslandPlayer(targetUuid, islandUuid, role);
         // Add the player default spawn
-        cacheHandler.addOrUpdateHomePoint(targetUuid, islandUuid,"default", spawnLocation);
+        cacheHandler.addOrUpdateHomePoint(targetUuid, islandUuid, "default", spawnLocation);
         // Send the success message
         sender.sendMessage(getIslandAddMemberSuccessMessage(args));
 
