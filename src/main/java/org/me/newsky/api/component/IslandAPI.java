@@ -5,7 +5,6 @@ import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.island.IslandHandler;
 
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -24,7 +23,7 @@ public class IslandAPI {
             return cacheHandler.getIslandUuidByPlayerUuid(playerUuid);
         }).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isPresent()) {
-                throw new IslandAlreadyExistException("Player already has an island.");
+                throw new IslandAlreadyExistException();
             }
             UUID islandUuid = UUID.randomUUID();
             // Set the island spawn location based on your plugin's configuration
@@ -39,7 +38,7 @@ public class IslandAPI {
             return cacheHandler.getIslandUuidByPlayerUuid(playerUuid);
         }).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException("Player does not have an island.");
+                throw new IslandDoesNotExistException();
             }
             UUID islandUuid = islandUuidOpt.get();
             islandHandler.deleteIsland(islandUuid);
@@ -52,7 +51,7 @@ public class IslandAPI {
             return cacheHandler.getIslandUuidByPlayerUuid(playerUuid);
         }).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException("Player does not have an island.");
+                throw new IslandDoesNotExistException();
             }
             UUID islandUuid = islandUuidOpt.get();
             islandHandler.loadIsland(islandUuid);
@@ -65,7 +64,7 @@ public class IslandAPI {
             return cacheHandler.getIslandUuidByPlayerUuid(playerUuid);
         }).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException("Player does not have an island.");
+                throw new IslandDoesNotExistException();
             }
             UUID islandUuid = islandUuidOpt.get();
             islandHandler.unloadIsland(islandUuid);

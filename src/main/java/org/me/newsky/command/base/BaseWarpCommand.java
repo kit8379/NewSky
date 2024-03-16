@@ -51,9 +51,7 @@ public abstract class BaseWarpCommand implements BaseCommand {
             UUID targetUuid = ((Player) sender).getUniqueId();
             try {
                 Set<String> warpNames = api.warpAPI.getWarpNames(targetUuid).get();
-                return warpNames.stream()
-                        .filter(name -> name.toLowerCase().startsWith(args[getTargetWarpArgIndex()].toLowerCase()))
-                        .collect(Collectors.toList());
+                return warpNames.stream().filter(name -> name.toLowerCase().startsWith(args[getTargetWarpArgIndex()].toLowerCase())).collect(Collectors.toList());
             } catch (Exception e) {
                 e.printStackTrace();
             }

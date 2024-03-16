@@ -41,11 +41,6 @@ public class AdminCreateCommand extends BaseCreateCommand {
     }
 
     @Override
-    protected void performPostCreationActions(CommandSender sender, UUID targetUuid, UUID islandUuid, String locationString) {
-        // Do nothing
-    }
-
-    @Override
     public String getUsageCommandMessage() {
         return config.getAdminCreateUsageMessage();
     }

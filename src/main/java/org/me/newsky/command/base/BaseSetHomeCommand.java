@@ -3,21 +3,21 @@ package org.me.newsky.command.base;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.IslandDoesNotExistException;
 
-import java.util.Optional;
 import java.util.UUID;
 
 public abstract class BaseSetHomeCommand implements BaseCommand {
 
     protected final ConfigHandler config;
-    protected final CacheHandler cacheHandler;
+    protected final NewSkyAPI api;
 
-    public BaseSetHomeCommand(ConfigHandler config, CacheHandler cacheHandler) {
+    public BaseSetHomeCommand(ConfigHandler config, NewSkyAPI api) {
         this.config = config;
-        this.cacheHandler = cacheHandler;
+        this.api = api;
     }
 
     public boolean execute(CommandSender sender, String[] args) {
@@ -33,24 +33,20 @@ public abstract class BaseSetHomeCommand implements BaseCommand {
         Player player = (Player) sender;
         UUID targetUuid = getTargetUuid(sender, args);
 
-        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
-        if (islandUuidOpt.isEmpty()) {
-            sender.sendMessage(getNoIslandMessage(args));
-            return true;
-        }
-        UUID islandUuid = islandUuidOpt.get();
-
-        if (!player.getWorld().getName().equals("island-" + islandUuid)) {
-            sender.sendMessage(getMustInIslandMessage(args));
-            return true;
-        }
-
         String homeName = args.length > getTargetHomeArgIndex() ? args[getTargetHomeArgIndex()] : "default";
         Location loc = player.getLocation();
-        String homeLocation = String.format("%.1f,%.1f,%.1f,%.1f,%.1f", loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
 
-        cacheHandler.updateHomePoint(targetUuid, islandUuid, homeName, homeLocation);
-        sender.sendMessage(getSetHomeSuccessMessage(args, homeName));
+        api.homeAPI.setHome(targetUuid, homeName, loc).thenRun(() -> {
+            sender.sendMessage(getSetHomeSuccessMessage(args, homeName));
+        }).exceptionally(ex -> {
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                sender.sendMessage(getNoIslandMessage(args));
+            } else {
+                sender.sendMessage("There was an error setting the home");
+                ex.printStackTrace();
+            }
+            return null;
+        });
 
         return true;
     }

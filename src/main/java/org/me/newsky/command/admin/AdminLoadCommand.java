@@ -1,5 +1,6 @@
 package org.me.newsky.command.admin;
 
+import org.bukkit.command.CommandSender;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.base.BaseLoadCommand;
 import org.me.newsky.config.ConfigHandler;
@@ -12,7 +13,16 @@ public class AdminLoadCommand extends BaseLoadCommand {
     }
 
     @Override
-    public String getUsageCommandMessage() {
+    protected boolean validateArgs(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    protected String getUsageCommandMessage() {
         return config.getAdminLoadUsageMessage();
     }
 }

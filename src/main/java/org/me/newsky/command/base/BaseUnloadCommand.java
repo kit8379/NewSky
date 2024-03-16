@@ -2,25 +2,21 @@ package org.me.newsky.command.base;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
-import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.island.IslandHandler;
+import org.me.newsky.exceptions.IslandDoesNotExistException;
 
-import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 public abstract class BaseUnloadCommand implements BaseCommand {
 
     protected final ConfigHandler config;
-    protected final CacheHandler cacheHandler;
-    protected final IslandHandler islandHandler;
+    protected final NewSkyAPI api;
 
-    public BaseUnloadCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
+    public BaseUnloadCommand(ConfigHandler config, NewSkyAPI api) {
         this.config = config;
-        this.cacheHandler = cacheHandler;
-        this.islandHandler = islandHandler;
+        this.api = api;
     }
 
     public boolean execute(CommandSender sender, String[] args) {
@@ -33,35 +29,23 @@ public abstract class BaseUnloadCommand implements BaseCommand {
         // Get the target player's UUID
         UUID targetUuid = Bukkit.getOfflinePlayer(args[1]).getUniqueId();
 
-        // Get the target player's island UUID
-        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
-        if (islandUuidOpt.isEmpty()) {
-            sender.sendMessage(config.getNoIslandMessage(args[1]));
-            return true;
-        }
-        UUID islandUuid = islandUuidOpt.get();
-
-        // Run the island unload future
-        CompletableFuture<Void> unloadIslandFuture = islandHandler.unloadIsland(islandUuid);
-        handleIslandUnloadFuture(unloadIslandFuture, sender, args);
+        // Unload the island
+        api.islandAPI.unloadIsland(targetUuid).thenRun(() -> {
+            sender.sendMessage(config.getIslandUnloadSuccessMessage(args[1]));
+        }).exceptionally(ex -> {
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                sender.sendMessage(config.getNoIslandMessage(args[1]));
+            } else {
+                sender.sendMessage("There was an error unloading the island");
+                ex.printStackTrace();
+            }
+            return null;
+        });
 
         return true;
     }
 
-    protected void handleIslandUnloadFuture(CompletableFuture<Void> future, CommandSender sender, String[] args) {
-        future.thenRun(() -> {
-            // Send the success message
-            sender.sendMessage(config.getIslandUnloadSuccessMessage(args[1]));
-        }).exceptionally(ex -> {
-            if (ex instanceof IllegalStateException) {
-                sender.sendMessage(ex.getMessage());
-            } else {
-                ex.printStackTrace();
-                sender.sendMessage("There was an error creating the island.");
-            }
-            return null;
-        });
-    }
-
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
+
+    public abstract String getUsageCommandMessage();
 }

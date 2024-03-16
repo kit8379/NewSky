@@ -22,17 +22,6 @@ public class PlayerDeleteCommand extends BaseDeleteCommand {
     }
 
     @Override
-    protected boolean isOwner(CommandSender sender, UUID islandUuid) {
-        Player player = (Player) sender;
-        Optional<UUID> islandOwnerOpt = cacheHandler.getIslandOwner(islandUuid);
-        if (islandOwnerOpt.isEmpty() || !islandOwnerOpt.get().equals(player.getUniqueId())) {
-            sender.sendMessage(config.getPlayerNotOwnerMessage());
-            return false;
-        }
-        return true;
-    }
-
-    @Override
     protected UUID getTargetUuid(CommandSender sender, String[] args) {
         return ((Player) sender).getUniqueId();
     }

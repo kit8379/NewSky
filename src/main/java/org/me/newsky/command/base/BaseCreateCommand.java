@@ -1,25 +1,21 @@
 package org.me.newsky.command.base;
 
 import org.bukkit.command.CommandSender;
-import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.island.IslandHandler;
+import org.me.newsky.exceptions.IslandAlreadyExistException;
 
-import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 public abstract class BaseCreateCommand implements BaseCommand {
 
     protected final ConfigHandler config;
-    protected final CacheHandler cacheHandler;
-    protected final IslandHandler islandHandler;
+    protected final NewSkyAPI api;
 
-    public BaseCreateCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
+    public BaseCreateCommand(ConfigHandler config, NewSkyAPI api) {
         this.config = config;
-        this.cacheHandler = cacheHandler;
-        this.islandHandler = islandHandler;
+        this.api = api;
     }
 
     public boolean execute(CommandSender sender, String[] args) {
@@ -31,41 +27,20 @@ public abstract class BaseCreateCommand implements BaseCommand {
         // Get the target player's UUID
         UUID targetUuid = getTargetUuid(sender, args);
 
-        // Get the target player's island UUID
-        Optional<UUID> existingIslandUuid = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
-        if (existingIslandUuid.isPresent()) {
-            sender.sendMessage(getExistingIslandMessage(args));
-            return true;
-        }
-
-        // Generate a new island UUID
-        UUID islandUuid = UUID.randomUUID();
-
-        // Set the island spawn location
-        int spawnX = config.getIslandSpawnX();
-        int spawnY = config.getIslandSpawnY();
-        int spawnZ = config.getIslandSpawnZ();
-        float spawnYaw = config.getIslandSpawnYaw();
-        float spawnPitch = config.getIslandSpawnPitch();
-        String spawnLocation = spawnX + "," + spawnY + "," + spawnZ + "," + spawnYaw + "," + spawnPitch;
-
-        // Run the island creation future
-        CompletableFuture<Void> createIslandFuture = islandHandler.createIsland(islandUuid, targetUuid, spawnLocation);
-        handleIslandCreationFuture(createIslandFuture, sender, targetUuid, islandUuid, spawnLocation, args);
-
-        return true;
-    }
-
-    protected void handleIslandCreationFuture(CompletableFuture<Void> future, CommandSender sender, UUID targetUuid, UUID islandUuid, String spawnLocation, String[] args) {
-        future.thenRun(() -> {
-            // Send the success message
+        // Create the island
+        api.islandAPI.createIsland(targetUuid).thenRun(() -> {
             sender.sendMessage(getIslandCreateSuccessMessage(args));
-            // Teleport the player to the island
-            performPostCreationActions(sender, targetUuid, islandUuid, spawnLocation);
         }).exceptionally(ex -> {
-            sender.sendMessage("There was an error creating the island.");
+            if (ex.getCause() instanceof IslandAlreadyExistException) {
+                sender.sendMessage(getExistingIslandMessage(args));
+            } else {
+                sender.sendMessage("There was an error creating the island");
+                ex.printStackTrace();
+            }
             return null;
         });
+
+        return true;
     }
 
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
@@ -75,6 +50,4 @@ public abstract class BaseCreateCommand implements BaseCommand {
     protected abstract String getExistingIslandMessage(String[] args);
 
     protected abstract String getIslandCreateSuccessMessage(String[] args);
-
-    protected abstract void performPostCreationActions(CommandSender sender, UUID targetUuid, UUID islandUuid, String spawnLocation);
 }
