@@ -1,6 +1,7 @@
 package org.me.newsky.api.component;
 
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.island.IslandHandler;
@@ -11,10 +12,13 @@ import java.util.concurrent.CompletableFuture;
 
 public class IslandAPI {
 
+
+    private final ConfigHandler config;
     private final CacheHandler cacheHandler;
     private final IslandHandler islandHandler;
 
-    public IslandAPI(CacheHandler cacheHandler, IslandHandler islandHandler) {
+    public IslandAPI(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
+        this.config = config;
         this.cacheHandler = cacheHandler;
         this.islandHandler = islandHandler;
     }
@@ -31,8 +35,7 @@ public class IslandAPI {
 
             // Create a new island using a random UUID
             UUID islandUuid = UUID.randomUUID();
-            // Set the island spawn location based on your plugin's configuration
-            String spawnLocation = "x,y,z,yaw,pitch"; // Example format
+            String spawnLocation = config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch();
 
             islandHandler.createIsland(islandUuid, playerUuid, spawnLocation);
             return CompletableFuture.completedFuture(null);

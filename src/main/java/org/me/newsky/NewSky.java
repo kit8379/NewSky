@@ -189,7 +189,7 @@ public class NewSky extends JavaPlugin {
     private void initalizeAPI() {
         info("Starting API");
         try {
-            api = new NewSkyAPI(cacheHandler, islandHandler);
+            api = new NewSkyAPI(config, cacheHandler, islandHandler);
             info("API loaded");
         } catch (Exception e) {
             e.printStackTrace();

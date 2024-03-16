@@ -1,5 +1,6 @@
 package org.me.newsky.island;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
@@ -15,10 +16,7 @@ import org.me.newsky.world.WorldHandler;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.Comparator;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -127,18 +125,18 @@ public class IslandHandler {
         });
     }
 
-    public CompletableFuture<Void> teleportToIsland(UUID islandUuid, Player player, String teleportLocation) {
+    public CompletableFuture<Void> teleportToIsland(UUID islandUuid, UUID playerUuid, String teleportLocation) {
         String islandName = "island-" + islandUuid.toString();
         return fetchWorldList().thenCompose(worldListResponses -> {
             Optional<String> serverId = findServerByWorldName(islandName, worldListResponses);
             if (serverId.isPresent()) {
                 String targetServer = serverId.get();
-                return proceedWithTeleportation(islandName, player, teleportLocation, targetServer);
+                return proceedWithTeleportation(islandName, playerUuid.toString(), teleportLocation, targetServer);
             } else {
                 Optional<String> leastLoadedServer = findServerWithLeastWorld(worldListResponses);
                 if (leastLoadedServer.isPresent()) {
                     String targetServer = leastLoadedServer.get();
-                    return proceedWithTeleportation(islandName, player, teleportLocation, targetServer);
+                    return proceedWithTeleportation(islandName, playerUuid.toString(), teleportLocation, targetServer);
                 } else {
                     return CompletableFuture.failedFuture(new IllegalStateException(config.getNoActiveServerMessage()));
                 }
@@ -188,12 +186,12 @@ public class IslandHandler {
     }
 
 
-    protected CompletableFuture<Void> proceedWithTeleportation(String islandName, Player player, String teleportLocation, String targetServer) {
+    protected CompletableFuture<Void> proceedWithTeleportation(String islandName, String playerUuid, String teleportLocation, String targetServer) {
         if (targetServer.equals(serverID)) {
-            return postIslandHandler.teleportToIsland(islandName, player.getUniqueId().toString(), teleportLocation);
+            return postIslandHandler.teleportToIsland(islandName, playerUuid, teleportLocation);
         } else {
-            return islandPublishRequest.sendRequest(targetServer, "teleportToIsland:" + islandName + ":" + player.getUniqueId() + ":" + teleportLocation).thenRun(() -> {
-                connectToServer(player, targetServer);
+            return islandPublishRequest.sendRequest(targetServer, "teleportToIsland:" + islandName + ":" + playerUuid + ":" + teleportLocation).thenRun(() -> {
+                connectToServer(Objects.requireNonNull(Bukkit.getPlayer(UUID.fromString(playerUuid))), targetServer);
             });
         }
     }
