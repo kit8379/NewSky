@@ -4,7 +4,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.api.NewSkyAPI;
-import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.base.BaseInfoCommand;
 import org.me.newsky.config.ConfigHandler;
 

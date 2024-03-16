@@ -3,7 +3,6 @@ package org.me.newsky.command.admin;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.api.NewSkyAPI;
-import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.base.BaseAddMemberCommand;
 import org.me.newsky.config.ConfigHandler;
 

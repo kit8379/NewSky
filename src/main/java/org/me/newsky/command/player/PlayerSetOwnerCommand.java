@@ -3,11 +3,9 @@ package org.me.newsky.command.player;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.api.NewSkyAPI;
-import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.base.BaseSetOwnerCommand;
 import org.me.newsky.config.ConfigHandler;
 
-import java.util.Optional;
 import java.util.UUID;
 
 public class PlayerSetOwnerCommand extends BaseSetOwnerCommand {

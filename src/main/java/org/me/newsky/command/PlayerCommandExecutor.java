@@ -1,10 +1,9 @@
 package org.me.newsky.command;
 
+import org.bukkit.command.CommandSender;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.player.*;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.island.IslandHandler;
-import org.bukkit.command.CommandSender;
 
 import java.util.HashMap;
 import java.util.Map;
