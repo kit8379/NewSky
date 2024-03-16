@@ -111,7 +111,4 @@ public class PostIslandHandler {
         return future;
     }
 
-    public CompletableFuture<Void> lockIsland(String islandName) {
-        return worldHandler.lockWorld(islandName);
-    }
 }

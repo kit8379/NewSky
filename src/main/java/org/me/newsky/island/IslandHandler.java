@@ -144,24 +144,6 @@ public class IslandHandler {
         });
     }
 
-    public CompletableFuture<Void> lockIsland(UUID islandUuid) {
-        String islandName = "island-" + islandUuid.toString();
-        return fetchWorldList().thenCompose(worldListResponses -> {
-            Optional<String> serverId = findServerByWorldName(islandName, worldListResponses);
-            if (serverId.isPresent()) {
-                String targetServer = serverId.get();
-                if (targetServer.equals(serverID)) {
-                    return postIslandHandler.lockIsland(islandName);
-                } else {
-                    return islandPublishRequest.sendRequest(targetServer, "lockIsland:" + islandName).thenApply(responses -> null);
-                }
-            } else {
-                return CompletableFuture.completedFuture(null);
-            }
-        });
-    }
-
-
     public CompletableFuture<ConcurrentHashMap<String, String>> fetchWorldList() {
         return islandPublishRequest.sendRequest("all", "updateWorldList");
     }
