@@ -1,6 +1,7 @@
 package org.me.newsky;
 
 import org.bukkit.plugin.java.JavaPlugin;
+import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.AdminCommandExecutor;
 import org.me.newsky.command.PlayerCommandExecutor;
@@ -28,6 +29,7 @@ public class NewSky extends JavaPlugin {
     private HeartBeatHandler heartBeatHandler;
     private WorldUnloadSchedule worldUnloadSchedule;
     private IslandHandler islandHandler;
+    private NewSkyAPI api;
 
     @Override
     public void onEnable() {
@@ -184,6 +186,16 @@ public class NewSky extends JavaPlugin {
         }
     }
 
+    private void initalizeAPI() {
+        info("Starting API");
+        try {
+            api = new NewSkyAPI(cacheHandler, islandHandler);
+            info("API loaded");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IllegalStateException("API load fail! Plugin will be disabled!");
+        }
+    }
 
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(new WorldInitListener(this), this);
@@ -194,8 +206,8 @@ public class NewSky extends JavaPlugin {
     }
 
     private void registerCommands() {
-        Objects.requireNonNull(this.getCommand("islandadmin")).setExecutor(new AdminCommandExecutor(this, config, cacheHandler, islandHandler));
-        Objects.requireNonNull(this.getCommand("island")).setExecutor(new PlayerCommandExecutor(config, cacheHandler, islandHandler));
+        Objects.requireNonNull(this.getCommand("islandadmin")).setExecutor(new AdminCommandExecutor(this, config, api));
+        Objects.requireNonNull(this.getCommand("island")).setExecutor(new PlayerCommandExecutor(config, api));
     }
 
     @Override

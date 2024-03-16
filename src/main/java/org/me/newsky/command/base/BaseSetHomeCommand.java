@@ -7,6 +7,7 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.exceptions.LocationNotInIslandException;
 
 import java.util.UUID;
 
@@ -39,7 +40,9 @@ public abstract class BaseSetHomeCommand implements BaseCommand {
         api.homeAPI.setHome(targetUuid, homeName, loc).thenRun(() -> {
             sender.sendMessage(getSetHomeSuccessMessage(args, homeName));
         }).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
+            if (ex.getCause() instanceof LocationNotInIslandException) {
+                sender.sendMessage(getMustInIslandMessage(args));
+            } else if (ex.getCause() instanceof IslandDoesNotExistException) {
                 sender.sendMessage(getNoIslandMessage(args));
             } else {
                 sender.sendMessage("There was an error setting the home");

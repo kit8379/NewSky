@@ -7,6 +7,7 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.exceptions.LocationNotInIslandException;
 
 import java.util.UUID;
 
@@ -36,8 +37,12 @@ public abstract class BaseSetWarpCommand implements BaseCommand {
         String warpName = args.length > getTargetWarpArgIndex() ? args[getTargetWarpArgIndex()] : "default";
         Location loc = player.getLocation();
 
-        api.warpAPI.setWarp(targetUuid, warpName, loc).thenRun(() -> sender.sendMessage(getSetWarpSuccessMessage(args, warpName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
+        api.warpAPI.setWarp(targetUuid, warpName, loc).thenRun(() -> {
+            sender.sendMessage(getSetWarpSuccessMessage(args, warpName));
+        }).exceptionally(ex -> {
+            if (ex.getCause() instanceof LocationNotInIslandException) {
+                sender.sendMessage(getMustInIslandMessage(args));
+            } else if (ex.getCause() instanceof IslandDoesNotExistException) {
                 sender.sendMessage(getNoIslandMessage(args));
             } else {
                 sender.sendMessage("There was an error setting the warp");

@@ -2,6 +2,7 @@ package org.me.newsky.command.admin;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
+import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.base.BaseCreateCommand;
 import org.me.newsky.config.ConfigHandler;
@@ -11,8 +12,8 @@ import java.util.UUID;
 
 public class AdminCreateCommand extends BaseCreateCommand {
 
-    public AdminCreateCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
-        super(config, cacheHandler, islandHandler);
+    public AdminCreateCommand(ConfigHandler config, NewSkyAPI api) {
+        super(config, api);
     }
 
 

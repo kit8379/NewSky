@@ -2,25 +2,21 @@ package org.me.newsky.command.base;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.island.IslandHandler;
+import org.me.newsky.exceptions.IslandDoesNotExistException;
 
-import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 public abstract class BaseLockCommand implements BaseCommand {
 
     protected final ConfigHandler config;
-    protected final CacheHandler cacheHandler;
-    protected final IslandHandler islandHandler;
+    protected final NewSkyAPI api;
 
-    public BaseLockCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
+    public BaseLockCommand(ConfigHandler config, NewSkyAPI api) {
         this.config = config;
-        this.cacheHandler = cacheHandler;
-        this.islandHandler = islandHandler;
+        this.api = api;
     }
 
     public boolean execute(CommandSender sender, String[] args) {
@@ -34,25 +30,22 @@ public abstract class BaseLockCommand implements BaseCommand {
         // Get the target UUID
         UUID targetUuid = player.getUniqueId();
 
-        // Check if the player has an island and get the island UUID
-        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
-        if (islandUuidOpt.isEmpty()) {
-            sender.sendMessage(getNoIslandMessage(args));
-            return true;
-        }
-        UUID islandUuid = islandUuidOpt.get();
-
-        // Check if the island is locked and update the lock status
-        if (cacheHandler.getIslandLock(islandUuid)) {
-            cacheHandler.updateIslandLock(islandUuid, false);
-            sender.sendMessage(getIslandUnLockSuccessMessage(args));
-        } else {
-            cacheHandler.updateIslandLock(islandUuid, true);
-            CompletableFuture<Void> future = islandHandler.lockIsland(islandUuid);
-            future.thenRun(() -> {
+        // Toggle the lock status of the island
+        api.islandAPI.toggleIslandLock(targetUuid).thenAccept(isLocked -> {
+            if (isLocked) {
                 sender.sendMessage(getIslandLockSuccessMessage(args));
-            });
-        }
+            } else {
+                sender.sendMessage(getIslandUnLockSuccessMessage(args));
+            }
+        }).exceptionally(ex -> {
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                sender.sendMessage(getNoIslandMessage(args));
+            } else {
+                sender.sendMessage("There was an error toggling the island lock status");
+                ex.printStackTrace();
+            }
+            return null;
+        });
 
         return true;
     }

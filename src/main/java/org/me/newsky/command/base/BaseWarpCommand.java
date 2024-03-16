@@ -23,20 +23,22 @@ public abstract class BaseWarpCommand implements BaseCommand {
     }
 
     public boolean execute(CommandSender sender, String[] args) {
+        // Check if the sender is a player
         if (!(sender instanceof Player)) {
             sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
             return true;
         }
 
+        // Validate the command arguments
         if (!validateArgs(sender, args)) {
             return true;
         }
 
-        Player player = (Player) sender;
-        UUID playerUuid = player.getUniqueId();
-        String warpName = args.length > getTargetWarpArgIndex() ? args[getTargetWarpArgIndex()] : "default";
+        // Get the target UUID
+        UUID targetUuid = getTargetUuid(sender, args);
 
-        api.warpAPI.warp(playerUuid, warpName).thenRun(() -> {
+        String warpName = args.length > getTargetWarpArgIndex() ? args[getTargetWarpArgIndex()] : "default";
+        api.warpAPI.warp(targetUuid, warpName).thenRun(() -> {
             sender.sendMessage(config.getWarpSuccessMessage(warpName));
         }).exceptionally(ex -> {
             sender.sendMessage(ex.getMessage());
@@ -61,5 +63,8 @@ public abstract class BaseWarpCommand implements BaseCommand {
 
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
 
+    protected abstract UUID getTargetUuid(CommandSender sender, String[] args);
+
     protected abstract int getTargetWarpArgIndex();
+
 }

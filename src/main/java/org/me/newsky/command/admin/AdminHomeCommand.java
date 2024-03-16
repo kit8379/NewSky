@@ -2,6 +2,7 @@ package org.me.newsky.command.admin;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
+import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.base.BaseHomeCommand;
 import org.me.newsky.config.ConfigHandler;
@@ -11,8 +12,8 @@ import java.util.UUID;
 
 public class AdminHomeCommand extends BaseHomeCommand {
 
-    public AdminHomeCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
-        super(config, cacheHandler, islandHandler);
+    public AdminHomeCommand(ConfigHandler config, NewSkyAPI api) {
+        super(config, api);
     }
 
     @Override

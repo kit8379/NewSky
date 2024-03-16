@@ -3,6 +3,7 @@ package org.me.newsky.command.player;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.base.BaseInfoCommand;
 import org.me.newsky.config.ConfigHandler;
@@ -11,8 +12,8 @@ import java.util.UUID;
 
 public class PlayerInfoCommand extends BaseInfoCommand {
 
-    public PlayerInfoCommand(ConfigHandler config, CacheHandler cacheHandler) {
-        super(config, cacheHandler);
+    public PlayerInfoCommand(ConfigHandler config, NewSkyAPI api) {
+        super(config, api);
     }
 
     @Override

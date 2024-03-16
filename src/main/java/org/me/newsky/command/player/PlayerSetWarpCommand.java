@@ -2,6 +2,7 @@ package org.me.newsky.command.player;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.base.BaseSetWarpCommand;
 import org.me.newsky.config.ConfigHandler;
@@ -10,8 +11,8 @@ import java.util.UUID;
 
 public class PlayerSetWarpCommand extends BaseSetWarpCommand {
 
-    public PlayerSetWarpCommand(ConfigHandler config, CacheHandler cacheHandler) {
-        super(config, cacheHandler);
+    public PlayerSetWarpCommand(ConfigHandler config, NewSkyAPI api) {
+        super(config, api);
     }
 
     @Override

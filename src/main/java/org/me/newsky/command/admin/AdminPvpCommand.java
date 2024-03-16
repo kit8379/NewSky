@@ -2,6 +2,7 @@ package org.me.newsky.command.admin;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
+import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.base.BasePvpCommand;
 import org.me.newsky.config.ConfigHandler;
@@ -10,8 +11,8 @@ import java.util.UUID;
 
 public class AdminPvpCommand extends BasePvpCommand {
 
-    public AdminPvpCommand(ConfigHandler config, CacheHandler cacheHandler) {
-        super(config, cacheHandler);
+    public AdminPvpCommand(ConfigHandler config, NewSkyAPI api) {
+        super(config, api);
     }
 
     @Override

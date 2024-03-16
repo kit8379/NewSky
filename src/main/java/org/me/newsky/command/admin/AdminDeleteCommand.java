@@ -2,6 +2,7 @@ package org.me.newsky.command.admin;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
+import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.base.BaseDeleteCommand;
 import org.me.newsky.config.ConfigHandler;
@@ -11,8 +12,8 @@ import java.util.UUID;
 
 public class AdminDeleteCommand extends BaseDeleteCommand {
 
-    public AdminDeleteCommand(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
-        super(config, cacheHandler, islandHandler);
+    public AdminDeleteCommand(ConfigHandler config, NewSkyAPI api) {
+        super(config, api);
     }
 
     @Override

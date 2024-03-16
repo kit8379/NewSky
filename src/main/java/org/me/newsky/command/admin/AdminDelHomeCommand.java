@@ -12,8 +12,8 @@ import java.util.UUID;
 
 public class AdminDelHomeCommand extends BaseDelHomeCommand {
 
-    public AdminDelHomeCommand(ConfigHandler config, CacheHandler cacheHandler) {
-        super(config, cacheHandler);
+    public AdminDelHomeCommand(ConfigHandler config, NewSkyAPI api) {
+        super(config, api);
     }
 
     @Override

@@ -2,6 +2,7 @@ package org.me.newsky.command.player;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.base.BaseRemoveMemberCommand;
 import org.me.newsky.config.ConfigHandler;
@@ -10,23 +11,14 @@ import java.util.UUID;
 
 public class PlayerRemoveMemberCommand extends BaseRemoveMemberCommand {
 
-    public PlayerRemoveMemberCommand(ConfigHandler config, CacheHandler cacheHandler) {
-        super(config, cacheHandler);
+    public PlayerRemoveMemberCommand(ConfigHandler config, NewSkyAPI api) {
+        super(config, api);
     }
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         if (args.length < 2) {
             sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    protected boolean isNotSelf(CommandSender sender, String[] args) {
-        if (args[1].equals(sender.getName())) {
-            sender.sendMessage(config.getPlayerRemoveMemberCannotRemoveSelfMessage());
             return false;
         }
         return true;

@@ -2,6 +2,7 @@ package org.me.newsky.command.admin;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
+import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.base.BaseRemoveMemberCommand;
 import org.me.newsky.config.ConfigHandler;
@@ -10,8 +11,8 @@ import java.util.UUID;
 
 public class AdminRemoveMemberCommand extends BaseRemoveMemberCommand {
 
-    public AdminRemoveMemberCommand(ConfigHandler config, CacheHandler cacheHandler) {
-        super(config, cacheHandler);
+    public AdminRemoveMemberCommand(ConfigHandler config, NewSkyAPI api) {
+        super(config, api);
     }
 
     @Override
@@ -20,11 +21,6 @@ public class AdminRemoveMemberCommand extends BaseRemoveMemberCommand {
             sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
-        return true;
-    }
-
-    @Override
-    protected boolean isNotSelf(CommandSender sender, String[] args) {
         return true;
     }
 

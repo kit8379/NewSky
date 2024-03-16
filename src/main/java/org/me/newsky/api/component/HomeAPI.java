@@ -4,6 +4,7 @@ import org.bukkit.Location;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.exceptions.HomeDoesNotExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.exceptions.LocationNotInIslandException;
 import org.me.newsky.util.LocationUtils;
 
 import java.util.Optional;
@@ -27,6 +28,9 @@ public class HomeAPI {
                 throw new IslandDoesNotExistException();
             }
             UUID islandUuid = islandUuidOpt.get();
+            if (location.getWorld() == null || !location.getWorld().getName().equals("island-" + islandUuid)) {
+                throw new LocationNotInIslandException();
+            }
             String homeLocation = LocationUtils.locationToString(location);
             cacheHandler.updateHomePoint(playerUuid, islandUuid, homeName, homeLocation);
             return CompletableFuture.completedFuture(null);

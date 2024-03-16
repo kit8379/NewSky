@@ -1,21 +1,20 @@
 package org.me.newsky.command.base;
 
 import org.bukkit.command.CommandSender;
-import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
 
-import java.util.Optional;
 import java.util.UUID;
 
 public abstract class BasePvpCommand implements BaseCommand {
 
     protected final ConfigHandler config;
-    protected final CacheHandler cacheHandler;
+    protected final NewSkyAPI api;
 
-    public BasePvpCommand(ConfigHandler config, CacheHandler cacheHandler) {
+    public BasePvpCommand(ConfigHandler config, NewSkyAPI api) {
         this.config = config;
-        this.cacheHandler = cacheHandler;
+        this.api = api;
     }
 
     public boolean execute(CommandSender sender, String[] args) {
@@ -26,22 +25,18 @@ public abstract class BasePvpCommand implements BaseCommand {
         // Get the target UUID
         UUID targetUuid = getTargetUuid(sender, args);
 
-        // Check if the player is a member of an island
-        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(targetUuid);
-        if (islandUuidOpt.isEmpty()) {
-            sender.sendMessage(getNoIslandMessage(args));
-            return true;
-        }
-        UUID islandUuid = islandUuidOpt.get();
-
-        // Check if the island is locked and update the lock status
-        if (cacheHandler.getIslandPvp(islandUuid)) {
-            cacheHandler.updateIslandPvp(islandUuid, false);
-            sender.sendMessage(getIslandPvPDisableSuccessMessage(args));
-        } else {
-            cacheHandler.updateIslandPvp(islandUuid, true);
-            sender.sendMessage(getIslandPvpEnableSuccessMessage(args));
-        }
+        // Toggle the island PvP status
+        api.islandAPI.toggleIslandPvp(targetUuid).thenAccept(isPvpEnabled -> {
+            if (isPvpEnabled) {
+                sender.sendMessage(getIslandPvpEnableSuccessMessage(args));
+            } else {
+                sender.sendMessage(getIslandPvPDisableSuccessMessage(args));
+            }
+        }).exceptionally(ex -> {
+            sender.sendMessage("There was an error toggling the PvP status");
+            ex.printStackTrace();
+            return null;
+        });
 
         return true;
     }

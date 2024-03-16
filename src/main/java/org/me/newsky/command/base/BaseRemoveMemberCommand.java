@@ -3,21 +3,20 @@ package org.me.newsky.command.base;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
-import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
 
-import java.util.Optional;
 import java.util.UUID;
 
 public abstract class BaseRemoveMemberCommand implements BaseCommand {
 
     protected final ConfigHandler config;
-    protected final CacheHandler cacheHandler;
+    protected final NewSkyAPI api;
 
-    public BaseRemoveMemberCommand(ConfigHandler config, CacheHandler cacheHandler) {
+    public BaseRemoveMemberCommand(ConfigHandler config, NewSkyAPI api) {
         this.config = config;
-        this.cacheHandler = cacheHandler;
+        this.api = api;
     }
 
     public boolean execute(CommandSender sender, String[] args) {
@@ -26,49 +25,26 @@ public abstract class BaseRemoveMemberCommand implements BaseCommand {
             return true;
         }
 
-        if (!isNotSelf(sender, args)) {
-            return true;
-        }
-
         // Get the island owner's UUID
         UUID islandOwnerId = getIslandOwnerUuid(sender, args);
-
-        // Check if the island owner has an island
-        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(islandOwnerId);
-        if (islandUuidOpt.isEmpty()) {
-            sender.sendMessage(getNoIslandMessage(args));
-            return true;
-        }
-        UUID islandUuid = islandUuidOpt.get();
 
         // Get the target player's UUID
         OfflinePlayer targetRemove = Bukkit.getOfflinePlayer(args[getTargetRemoveArgIndex()]);
         UUID targetUuid = targetRemove.getUniqueId();
 
-        // Check if the target player is a member of the island
-        if (!cacheHandler.getIslandMembers(islandUuid).contains(targetUuid)) {
-            sender.sendMessage(config.getNotIslandMemberMessage(targetRemove.getName()));
-            return true;
-        }
-
-        // Check if the target player is the island owner
-        if (targetRemove.getUniqueId().equals(islandOwnerId)) {
-            sender.sendMessage("You cannot remove the island owner.");
-            return true;
-        }
-
         // Remove the target player from the island
-        cacheHandler.deleteIslandPlayer(targetUuid, islandUuid);
-
-        // Send the success message
-        sender.sendMessage(getIslandRemoveMemberSuccessMessage(args));
+        api.playerAPI.removeMember(islandOwnerId, targetUuid).thenRun(() -> {
+            sender.sendMessage(getIslandRemoveMemberSuccessMessage(args));
+        }).exceptionally(ex -> {
+            sender.sendMessage("There was an error removing the member");
+            ex.printStackTrace();
+            return null;
+        });
 
         return true;
     }
 
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
-
-    protected abstract boolean isNotSelf(CommandSender sender, String[] args);
 
     protected abstract int getTargetRemoveArgIndex();
 

@@ -2,21 +2,23 @@ package org.me.newsky.command.base;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.CannotRemoveOwnerException;
+import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.exceptions.MemberDoesNotExistException;
 
-import java.util.Optional;
 import java.util.UUID;
 
 public abstract class BaseLeaveCommand implements BaseCommand {
 
     protected final ConfigHandler config;
-    protected final CacheHandler cacheHandler;
+    protected final NewSkyAPI api;
 
-    public BaseLeaveCommand(ConfigHandler config, CacheHandler cacheHandler) {
+    public BaseLeaveCommand(ConfigHandler config, NewSkyAPI api) {
         this.config = config;
-        this.cacheHandler = cacheHandler;
+        this.api = api;
     }
 
     public boolean execute(CommandSender sender, String[] args) {
@@ -29,26 +31,22 @@ public abstract class BaseLeaveCommand implements BaseCommand {
         Player player = (Player) sender;
         UUID playerUuid = player.getUniqueId();
 
-        // Check if the player is a member of an island
-        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(playerUuid);
-        if (islandUuidOpt.isEmpty()) {
-            sender.sendMessage(config.getPlayerNoIslandMessage());
-            return true;
-        }
-        UUID islandUuid = islandUuidOpt.get();
-
-        // Check if the player is the island owner
-        Optional<UUID> ownerUuidOpt = cacheHandler.getIslandOwner(islandUuid);
-        if (ownerUuidOpt.isPresent() && ownerUuidOpt.get().equals(playerUuid)) {
-            sender.sendMessage(config.getPlayerCannotLeaveAsOwnerMessage());
-            return true;
-        }
-
         // Remove the player from the island
-        cacheHandler.deleteIslandPlayer(playerUuid, islandUuid);
-
-        // Send the success message
-        sender.sendMessage(config.getPlayerLeaveSuccessMessage());
+        api.playerAPI.removeMember(playerUuid, playerUuid).thenRun(() -> {
+            sender.sendMessage(config.getPlayerLeaveSuccessMessage());
+        }).exceptionally(ex -> {
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                sender.sendMessage(config.getPlayerNoIslandMessage());
+            } else if (ex.getCause() instanceof CannotRemoveOwnerException) {
+                sender.sendMessage(config.getPlayerCannotLeaveAsOwnerMessage());
+            } else if (ex.getCause() instanceof MemberDoesNotExistException) {
+                sender.sendMessage(config.getPlayerNoIslandMessage());
+            } else {
+                sender.sendMessage("There was an error leaving the island");
+                ex.printStackTrace();
+            }
+            return null;
+        });
 
         return true;
     }

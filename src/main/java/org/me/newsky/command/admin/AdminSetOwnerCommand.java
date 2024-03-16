@@ -2,6 +2,7 @@ package org.me.newsky.command.admin;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
+import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.base.BaseSetOwnerCommand;
 import org.me.newsky.config.ConfigHandler;
@@ -10,8 +11,8 @@ import java.util.UUID;
 
 public class AdminSetOwnerCommand extends BaseSetOwnerCommand {
 
-    public AdminSetOwnerCommand(ConfigHandler config, CacheHandler cacheHandler) {
-        super(config, cacheHandler);
+    public AdminSetOwnerCommand(ConfigHandler config, NewSkyAPI api) {
+        super(config, api);
     }
 
     @Override
@@ -20,11 +21,6 @@ public class AdminSetOwnerCommand extends BaseSetOwnerCommand {
             sender.sendMessage(config.getUsagePrefix() + getUsageCommandMessage());
             return false;
         }
-        return true;
-    }
-
-    @Override
-    protected boolean isOwner(CommandSender sender, UUID islandUuid) {
         return true;
     }
 
