@@ -25,7 +25,7 @@ public class IslandAPI {
 
     public CompletableFuture<Void> createIsland(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getIslandUuidByPlayerUuid(playerUuid);
+            return cacheHandler.getIslandUuid(playerUuid);
         }).thenCompose(islandUuidOpt -> {
 
             // Check if the player already has an island
@@ -44,7 +44,7 @@ public class IslandAPI {
 
     public CompletableFuture<Void> deleteIsland(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getIslandUuidByPlayerUuid(playerUuid);
+            return cacheHandler.getIslandUuid(playerUuid);
         }).thenCompose(islandUuidOpt -> {
 
             // Check if the player has an island
@@ -60,7 +60,7 @@ public class IslandAPI {
 
     public CompletableFuture<Void> loadIsland(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getIslandUuidByPlayerUuid(playerUuid);
+            return cacheHandler.getIslandUuid(playerUuid);
         }).thenCompose(islandUuidOpt -> {
 
             // Check if the player has an island
@@ -76,7 +76,7 @@ public class IslandAPI {
 
     public CompletableFuture<Void> unloadIsland(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getIslandUuidByPlayerUuid(playerUuid);
+            return cacheHandler.getIslandUuid(playerUuid);
         }).thenCompose(islandUuidOpt -> {
 
             // Check if the player has an island
@@ -92,7 +92,7 @@ public class IslandAPI {
 
     public CompletableFuture<Boolean> toggleIslandLock(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(playerUuid);
+            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(playerUuid);
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
@@ -106,7 +106,7 @@ public class IslandAPI {
 
     public CompletableFuture<Boolean> toggleIslandPvp(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(playerUuid);
+            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(playerUuid);
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }

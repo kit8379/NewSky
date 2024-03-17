@@ -287,7 +287,7 @@ public class CacheHandler {
         return members;
     }
 
-    public Optional<UUID> getIslandUuidByPlayerUuid(UUID playerUuid) {
+    public Optional<UUID> getIslandUuid(UUID playerUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             Set<String> keys = jedis.keys("island_players:*:" + playerUuid.toString());
             if (keys.isEmpty()) {

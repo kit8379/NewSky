@@ -25,7 +25,7 @@ public class HomeAPI {
 
     public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, Location location) {
         return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getIslandUuidByPlayerUuid(playerUuid);
+            return cacheHandler.getIslandUuid(playerUuid);
         }).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
@@ -42,7 +42,7 @@ public class HomeAPI {
 
     public CompletableFuture<Void> delHome(UUID playerUuid, String homeName) {
         return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getIslandUuidByPlayerUuid(playerUuid);
+            return cacheHandler.getIslandUuid(playerUuid);
         }).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
@@ -58,7 +58,7 @@ public class HomeAPI {
 
     public CompletableFuture<Void> home(UUID playerUuid, String homeName) {
         return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getIslandUuidByPlayerUuid(playerUuid);
+            return cacheHandler.getIslandUuid(playerUuid);
         }).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
@@ -71,14 +71,13 @@ public class HomeAPI {
             String homeLocation = homeLocationOpt.get();
             // Teleport the player to the home location
             islandHandler.teleportToIsland(islandUuid, playerUuid, homeLocation);
-
             return CompletableFuture.completedFuture(null);
         });
     }
 
     public CompletableFuture<Set<String>> getHomeNames(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getIslandUuidByPlayerUuid(playerUuid);
+            return cacheHandler.getIslandUuid(playerUuid);
         }).thenApply(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();

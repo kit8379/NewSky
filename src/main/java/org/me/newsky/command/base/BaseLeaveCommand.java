@@ -7,7 +7,7 @@ import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.CannotRemoveOwnerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
-import org.me.newsky.exceptions.MemberDoesNotExistException;
+import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
 
 import java.util.UUID;
 
@@ -39,7 +39,7 @@ public abstract class BaseLeaveCommand implements BaseCommand {
                 sender.sendMessage(config.getPlayerNoIslandMessage());
             } else if (ex.getCause() instanceof CannotRemoveOwnerException) {
                 sender.sendMessage(config.getPlayerCannotLeaveAsOwnerMessage());
-            } else if (ex.getCause() instanceof MemberDoesNotExistException) {
+            } else if (ex.getCause() instanceof IslandPlayerDoesNotExistException) {
                 sender.sendMessage(config.getPlayerNoIslandMessage());
             } else {
                 sender.sendMessage("There was an error leaving the island");

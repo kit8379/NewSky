@@ -25,7 +25,7 @@ public class WarpAPI {
 
     public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, Location location) {
         return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getIslandUuidByPlayerUuid(playerUuid);
+            return cacheHandler.getIslandUuid(playerUuid);
         }).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
@@ -42,7 +42,7 @@ public class WarpAPI {
 
     public CompletableFuture<Void> delWarp(UUID playerUuid, String warpName) {
         return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getIslandUuidByPlayerUuid(playerUuid);
+            return cacheHandler.getIslandUuid(playerUuid);
         }).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
@@ -58,7 +58,7 @@ public class WarpAPI {
 
     public CompletableFuture<Void> warp(UUID playerUuid, String warpName) {
         return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getIslandUuidByPlayerUuid(playerUuid);
+            return cacheHandler.getIslandUuid(playerUuid);
         }).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
@@ -71,14 +71,13 @@ public class WarpAPI {
             String warpLocation = warpLocationOpt.get();
             // Teleport the player to the warp location
             islandHandler.teleportToIsland(islandUuid, playerUuid, warpLocation);
-            // Teleport the player to the warp location
             return CompletableFuture.completedFuture(null);
         });
     }
 
     public CompletableFuture<Set<String>> getWarpNames(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getIslandUuidByPlayerUuid(playerUuid);
+            return cacheHandler.getIslandUuid(playerUuid);
         }).thenApply(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();

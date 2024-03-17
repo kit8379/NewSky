@@ -3,8 +3,8 @@ package org.me.newsky.api.component;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.exceptions.CannotRemoveOwnerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
-import org.me.newsky.exceptions.MemberAlreadyExistsException;
-import org.me.newsky.exceptions.MemberDoesNotExistException;
+import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
+import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
 
 import java.util.Optional;
 import java.util.Set;
@@ -21,7 +21,7 @@ public class PlayerAPI {
 
     public CompletableFuture<Void> addMember(UUID islandOwnerId, UUID playerUuid, String role) {
         return CompletableFuture.runAsync(() -> {
-            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(islandOwnerId);
+            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(islandOwnerId);
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
@@ -29,7 +29,7 @@ public class PlayerAPI {
 
             Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
             if (members.contains(playerUuid)) {
-                throw new MemberAlreadyExistsException();
+                throw new IslandPlayerAlreadyExistsException();
             }
 
             cacheHandler.updateIslandPlayer(islandUuid, playerUuid, role);
@@ -38,7 +38,7 @@ public class PlayerAPI {
 
     public CompletableFuture<Void> removeMember(UUID islandOwnerId, UUID playerUuid) {
         return CompletableFuture.runAsync(() -> {
-            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(islandOwnerId);
+            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(islandOwnerId);
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
@@ -50,7 +50,7 @@ public class PlayerAPI {
 
             Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
             if (!members.contains(playerUuid)) {
-                throw new MemberDoesNotExistException();
+                throw new IslandPlayerDoesNotExistException();
             }
 
             cacheHandler.deleteIslandPlayer(islandUuid, playerUuid);
@@ -59,7 +59,7 @@ public class PlayerAPI {
 
     public CompletableFuture<Void> setOwner(UUID islandOwnerId, UUID newOwnerId) {
         return CompletableFuture.runAsync(() -> {
-            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(islandOwnerId);
+            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(islandOwnerId);
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
@@ -67,7 +67,7 @@ public class PlayerAPI {
 
             Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
             if (!members.contains(newOwnerId)) {
-                throw new MemberDoesNotExistException();
+                throw new IslandPlayerDoesNotExistException();
             }
 
             cacheHandler.updateIslandOwner(islandUuid, newOwnerId);

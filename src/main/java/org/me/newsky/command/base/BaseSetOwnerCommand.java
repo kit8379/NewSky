@@ -6,6 +6,7 @@ import org.bukkit.command.CommandSender;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.IslandDoesNotExistException;
 
 import java.util.UUID;
 
@@ -35,11 +36,14 @@ public abstract class BaseSetOwnerCommand implements BaseCommand {
         api.playerAPI.setOwner(islandOwnerId, targetUuid).thenRun(() -> {
             sender.sendMessage(getSetOwnerSuccessMessage(args));
         }).exceptionally(ex -> {
-            sender.sendMessage("There was an error setting the new owner");
-            ex.printStackTrace();
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                sender.sendMessage(getNoIslandMessage(args));
+            } else {
+                sender.sendMessage("There was an error setting the owner");
+                ex.printStackTrace();
+            }
             return null;
         });
-
         return true;
     }
 

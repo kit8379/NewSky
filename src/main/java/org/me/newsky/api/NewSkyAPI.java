@@ -20,5 +20,4 @@ public class NewSkyAPI {
         this.homeAPI = new HomeAPI(cacheHandler, islandHandler);
         this.warpAPI = new WarpAPI(cacheHandler, islandHandler);
     }
-
 }
