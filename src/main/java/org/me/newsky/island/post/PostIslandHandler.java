@@ -46,8 +46,8 @@ public class PostIslandHandler {
 
             // Create the island into the cache
             cacheHandler.createIsland(islandUuid);
-            cacheHandler.updateIslandPlayer(playerUuid, islandUuid, "owner");
-            cacheHandler.updateHomePoint(playerUuid, islandUuid, "default", spawnLocation);
+            cacheHandler.updateIslandPlayer(islandUuid, playerUuid, "owner");
+            cacheHandler.updateHomePoint(islandUuid, playerUuid, "default", spawnLocation);
             plugin.debug("Created island " + islandName + " in the cache");
 
             future.complete(null);

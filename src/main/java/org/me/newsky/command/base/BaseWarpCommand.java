@@ -6,6 +6,8 @@ import org.jetbrains.annotations.NotNull;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.exceptions.WarpDoesNotExistException;
 
 import java.util.List;
 import java.util.Set;
@@ -41,7 +43,14 @@ public abstract class BaseWarpCommand implements BaseCommand {
         api.warpAPI.warp(targetUuid, warpName).thenRun(() -> {
             sender.sendMessage(config.getWarpSuccessMessage(warpName));
         }).exceptionally(ex -> {
-            sender.sendMessage(ex.getMessage());
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                sender.sendMessage(config.getNoIslandMessage(args[1]));
+            } else if (ex.getCause() instanceof WarpDoesNotExistException) {
+                sender.sendMessage(config.getNoWarpMessage(args[1], warpName));
+            } else {
+                sender.sendMessage("There was an error teleporting to the home.");
+                ex.printStackTrace();
+            }
             return null;
         });
 

@@ -71,6 +71,6 @@ public class IslandProtectionListener implements Listener {
         }
 
         // Assuming members is a cached HashSet for quick lookup
-        return cacheHandler.getIslandMembers(islandUuid).contains(player.getUniqueId());
+        return cacheHandler.getIslandPlayers(islandUuid).contains(player.getUniqueId());
     }
 }

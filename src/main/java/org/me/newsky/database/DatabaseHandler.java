@@ -115,7 +115,7 @@ public class DatabaseHandler {
         }, "INSERT INTO islands (island_uuid) VALUES (?)");
     }
 
-    public void updateIslandPlayer(UUID playerUuid, UUID islandUuid, String role) {
+    public void updateIslandPlayer(UUID islandUuid, UUID playerUuid, String role) {
         executeUpdate(statement -> {
             statement.setString(1, playerUuid.toString());
             statement.setString(2, islandUuid.toString());
@@ -124,7 +124,7 @@ public class DatabaseHandler {
         }, "INSERT INTO island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE role = ?;");
     }
 
-    public void updateHomePoint(UUID playerUuid, UUID islandUuid, String homeName, String homeLocation) {
+    public void updateHomePoint(UUID islandUuid, UUID playerUuid, String homeName, String homeLocation) {
         executeUpdate(statement -> {
             statement.setString(1, playerUuid.toString());
             statement.setString(2, islandUuid.toString());
@@ -134,7 +134,7 @@ public class DatabaseHandler {
         }, "INSERT INTO island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE home_location = ?;");
     }
 
-    public void updateWarpPoint(UUID playerUuid, UUID islandUuid, String warpName, String warpLocation) {
+    public void updateWarpPoint(UUID islandUuid, UUID playerUuid, String warpName, String warpLocation) {
         executeUpdate(statement -> {
             statement.setString(1, playerUuid.toString());
             statement.setString(2, islandUuid.toString());
@@ -159,7 +159,7 @@ public class DatabaseHandler {
         }, "UPDATE islands SET pvp = ? WHERE island_uuid = ?;");
     }
 
-    public void updateIslandOwner(UUID playerUuid, UUID islandUuid) {
+    public void updateIslandOwner(UUID islandUuid, UUID playerUuid) {
         executeUpdate(statement -> {
             statement.setString(1, playerUuid.toString());
             statement.setString(2, islandUuid.toString());
@@ -179,7 +179,7 @@ public class DatabaseHandler {
     }
 
 
-    public void deleteIslandPlayer(UUID playerUuid, UUID islandUuid) {
+    public void deleteIslandPlayer(UUID islandUuid, UUID playerUuid) {
         executeUpdate(statement -> {
             statement.setString(1, playerUuid.toString());
         }, "DELETE FROM island_warps WHERE player_uuid = ?;").thenCompose(v -> executeUpdate(statement -> {

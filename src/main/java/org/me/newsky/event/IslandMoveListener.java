@@ -41,7 +41,7 @@ public class IslandMoveListener implements Listener {
 
         // Check if the island is locked
         UUID islandUuid = UUID.fromString(to.getWorld().getName().substring(7));
-        if (cacheHandler.getIslandLock(islandUuid) && cacheHandler.getIslandMembers(islandUuid).contains(event.getPlayer().getUniqueId())) {
+        if (cacheHandler.getIslandLock(islandUuid) && cacheHandler.getIslandPlayers(islandUuid).contains(event.getPlayer().getUniqueId())) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(config.getIslandLockedMessage());
             return;

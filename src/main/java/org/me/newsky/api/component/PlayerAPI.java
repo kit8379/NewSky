@@ -19,7 +19,7 @@ public class PlayerAPI {
         this.cacheHandler = cacheHandler;
     }
 
-    public CompletableFuture<Void> addMember(UUID islandOwnerId, UUID targetUuid, String role) {
+    public CompletableFuture<Void> addMember(UUID islandOwnerId, UUID playerUuid, String role) {
         return CompletableFuture.runAsync(() -> {
             Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(islandOwnerId);
             if (islandUuidOpt.isEmpty()) {
@@ -27,16 +27,16 @@ public class PlayerAPI {
             }
             UUID islandUuid = islandUuidOpt.get();
 
-            Set<UUID> members = cacheHandler.getIslandMembers(islandUuid);
-            if (members.contains(targetUuid)) {
+            Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
+            if (members.contains(playerUuid)) {
                 throw new MemberAlreadyExistsException();
             }
 
-            cacheHandler.updateIslandPlayer(targetUuid, islandUuid, role);
+            cacheHandler.updateIslandPlayer(islandUuid, playerUuid, role);
         });
     }
 
-    public CompletableFuture<Void> removeMember(UUID islandOwnerId, UUID targetUuid) {
+    public CompletableFuture<Void> removeMember(UUID islandOwnerId, UUID playerUuid) {
         return CompletableFuture.runAsync(() -> {
             Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuidByPlayerUuid(islandOwnerId);
             if (islandUuidOpt.isEmpty()) {
@@ -44,16 +44,16 @@ public class PlayerAPI {
             }
             UUID islandUuid = islandUuidOpt.get();
 
-            if (islandOwnerId.equals(targetUuid)) {
+            if (islandOwnerId.equals(playerUuid)) {
                 throw new CannotRemoveOwnerException();
             }
 
-            Set<UUID> members = cacheHandler.getIslandMembers(islandUuid);
-            if (!members.contains(targetUuid)) {
+            Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
+            if (!members.contains(playerUuid)) {
                 throw new MemberDoesNotExistException();
             }
 
-            cacheHandler.deleteIslandPlayer(targetUuid, islandUuid);
+            cacheHandler.deleteIslandPlayer(islandUuid, playerUuid);
         });
     }
 
@@ -65,12 +65,12 @@ public class PlayerAPI {
             }
             UUID islandUuid = islandUuidOpt.get();
 
-            Set<UUID> members = cacheHandler.getIslandMembers(islandUuid);
+            Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
             if (!members.contains(newOwnerId)) {
                 throw new MemberDoesNotExistException();
             }
 
-            cacheHandler.updateIslandOwner(newOwnerId, islandUuid);
+            cacheHandler.updateIslandOwner(islandUuid, newOwnerId);
         });
     }
 }

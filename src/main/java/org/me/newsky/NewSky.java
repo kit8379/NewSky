@@ -54,6 +54,7 @@ public class NewSky extends JavaPlugin {
         initalizeWorldUnloadSchedule();
         initalizePluginMessaging();
         initializeIslandHandler();
+        initalizeAPI();
         registerListeners();
         registerCommands();
     }

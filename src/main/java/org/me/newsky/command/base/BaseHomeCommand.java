@@ -6,6 +6,8 @@ import org.jetbrains.annotations.NotNull;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.HomeDoesNotExistException;
+import org.me.newsky.exceptions.IslandDoesNotExistException;
 
 import java.util.List;
 import java.util.Set;
@@ -39,8 +41,17 @@ public abstract class BaseHomeCommand implements BaseCommand {
 
         // Teleport the player to the home location
         String homeName = args.length > getTargetHomeArgIndex() ? args[getTargetHomeArgIndex()] : "default";
-        api.homeAPI.home(targetUuid, homeName).thenRun(() -> sender.sendMessage(getIslandHomeSuccessMessage(homeName))).exceptionally(ex -> {
-            sender.sendMessage(ex.getMessage());
+        api.homeAPI.home(targetUuid, homeName).thenRun(() -> {
+            sender.sendMessage(getIslandHomeSuccessMessage(homeName));
+        }).exceptionally(ex -> {
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                sender.sendMessage(getNoIslandMessage(args));
+            } else if (ex.getCause() instanceof HomeDoesNotExistException) {
+                sender.sendMessage(getNoHomeMessage(args));
+            } else {
+                sender.sendMessage("There was an error teleporting to the home.");
+                ex.printStackTrace();
+            }
             return null;
         });
 
@@ -68,6 +79,8 @@ public abstract class BaseHomeCommand implements BaseCommand {
     protected abstract int getTargetHomeArgIndex();
 
     protected abstract String getNoIslandMessage(String[] args);
+
+    protected abstract String getNoHomeMessage(String[] args);
 
     protected abstract String getIslandHomeSuccessMessage(String homeName);
 }

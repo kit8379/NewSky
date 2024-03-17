@@ -35,7 +35,7 @@ public class HomeAPI {
                 throw new LocationNotInIslandException();
             }
             String homeLocation = LocationUtils.locationToString(location);
-            cacheHandler.updateHomePoint(playerUuid, islandUuid, homeName, homeLocation);
+            cacheHandler.updateHomePoint(islandUuid, playerUuid, homeName, homeLocation);
             return CompletableFuture.completedFuture(null);
         });
     }
@@ -51,7 +51,7 @@ public class HomeAPI {
             if (cacheHandler.getHomeLocation(islandUuid, playerUuid, homeName).isEmpty()) {
                 throw new HomeDoesNotExistException();
             }
-            cacheHandler.deleteHomePoint(playerUuid, islandUuid, homeName);
+            cacheHandler.deleteHomePoint(islandUuid, playerUuid, homeName);
             return CompletableFuture.completedFuture(null);
         });
     }
