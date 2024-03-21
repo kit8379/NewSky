@@ -301,4 +301,25 @@ public class CacheHandler {
             return Optional.of(UUID.fromString(segments[1]));
         }
     }
+
+    // Island Loaded Server cache
+    // Only stored in Redis
+
+    public String getIslandLoadedServer(UUID islandUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            return jedis.get("island_loaded_server:" + islandUuid);
+        }
+    }
+
+    public void setIslandLoadedServer(UUID islandUuid, String server) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.set("island_loaded_server:" + islandUuid, server);
+        }
+    }
+
+    public void deleteIslandLoadedServer(UUID islandUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.del("island_loaded_server:" + islandUuid);
+        }
+    }
 }

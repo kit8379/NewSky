@@ -4,7 +4,7 @@ import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
-import org.me.newsky.island.IslandHandler;
+import org.me.newsky.island.PreIslandHandler;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -15,12 +15,12 @@ public class IslandAPI {
 
     private final ConfigHandler config;
     private final CacheHandler cacheHandler;
-    private final IslandHandler islandHandler;
+    private final PreIslandHandler preIslandHandler;
 
-    public IslandAPI(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
+    public IslandAPI(ConfigHandler config, CacheHandler cacheHandler, PreIslandHandler preIslandHandler) {
         this.config = config;
         this.cacheHandler = cacheHandler;
-        this.islandHandler = islandHandler;
+        this.preIslandHandler = preIslandHandler;
     }
 
     public CompletableFuture<Void> createIsland(UUID playerUuid) {
@@ -37,7 +37,7 @@ public class IslandAPI {
             UUID islandUuid = UUID.randomUUID();
             String spawnLocation = config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch();
 
-            islandHandler.createIsland(islandUuid, playerUuid, spawnLocation);
+            preIslandHandler.createIsland(islandUuid, playerUuid, spawnLocation);
             return CompletableFuture.completedFuture(null);
         });
     }
@@ -53,7 +53,7 @@ public class IslandAPI {
             }
             UUID islandUuid = islandUuidOpt.get();
 
-            islandHandler.deleteIsland(islandUuid);
+            preIslandHandler.deleteIsland(islandUuid);
             return CompletableFuture.completedFuture(null);
         });
     }
@@ -69,7 +69,7 @@ public class IslandAPI {
             }
             UUID islandUuid = islandUuidOpt.get();
 
-            islandHandler.loadIsland(islandUuid);
+            preIslandHandler.loadIsland(islandUuid);
             return CompletableFuture.completedFuture(null);
         });
     }
@@ -85,7 +85,7 @@ public class IslandAPI {
             }
             UUID islandUuid = islandUuidOpt.get();
 
-            islandHandler.unloadIsland(islandUuid);
+            preIslandHandler.unloadIsland(islandUuid);
             return CompletableFuture.completedFuture(null);
         });
     }
@@ -99,6 +99,9 @@ public class IslandAPI {
             UUID islandUuid = islandUuidOpt.get();
 
             boolean isLocked = cacheHandler.getIslandLock(islandUuid);
+            if (!isLocked) {
+                preIslandHandler.lockIsland(islandUuid);
+            }
             cacheHandler.updateIslandLock(islandUuid, !isLocked);
             return !isLocked;
         });

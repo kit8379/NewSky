@@ -5,7 +5,7 @@ import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
 import org.me.newsky.exceptions.WarpDoesNotExistException;
-import org.me.newsky.island.IslandHandler;
+import org.me.newsky.island.PreIslandHandler;
 import org.me.newsky.util.LocationUtils;
 
 import java.util.Optional;
@@ -16,11 +16,11 @@ import java.util.concurrent.CompletableFuture;
 public class WarpAPI {
 
     private final CacheHandler cacheHandler;
-    private final IslandHandler islandHandler;
+    private final PreIslandHandler preIslandHandler;
 
-    public WarpAPI(CacheHandler cacheHandler, IslandHandler islandHandler) {
+    public WarpAPI(CacheHandler cacheHandler, PreIslandHandler preIslandHandler) {
         this.cacheHandler = cacheHandler;
-        this.islandHandler = islandHandler;
+        this.preIslandHandler = preIslandHandler;
     }
 
     public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, Location location) {
@@ -70,7 +70,7 @@ public class WarpAPI {
             }
             String warpLocation = warpLocationOpt.get();
             // Teleport the player to the warp location
-            islandHandler.teleportToIsland(islandUuid, playerUuid, warpLocation);
+            preIslandHandler.teleportIsland(islandUuid, playerUuid, warpLocation);
             return CompletableFuture.completedFuture(null);
         });
     }

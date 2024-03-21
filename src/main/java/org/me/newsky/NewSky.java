@@ -9,7 +9,9 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.event.*;
 import org.me.newsky.heartbeat.HeartBeatHandler;
-import org.me.newsky.island.IslandHandler;
+import org.me.newsky.island.PostIslandHandler;
+import org.me.newsky.island.PreIslandHandler;
+import org.me.newsky.redis.RedisBroker;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.scheduler.WorldUnloadSchedule;
 import org.me.newsky.teleport.TeleportManager;
@@ -28,7 +30,9 @@ public class NewSky extends JavaPlugin {
     private TeleportManager teleportManager;
     private HeartBeatHandler heartBeatHandler;
     private WorldUnloadSchedule worldUnloadSchedule;
-    private IslandHandler islandHandler;
+    private PreIslandHandler preIslandHandler;
+    private PostIslandHandler postIslandHandler;
+    private RedisBroker broker;
     private NewSkyAPI api;
 
     @Override
@@ -53,7 +57,9 @@ public class NewSky extends JavaPlugin {
         initalizeheartBeatHandler();
         initalizeWorldUnloadSchedule();
         initalizePluginMessaging();
-        initializeIslandHandler();
+        initializePostIslandHandler();
+        initalizeBroker();
+        initializePreIslandHandler();
         initalizeAPI();
         registerListeners();
         registerCommands();
@@ -132,8 +138,7 @@ public class NewSky extends JavaPlugin {
     private void initalizeheartBeatHandler() {
         info("Start connecting to Heart Beat system now...");
         try {
-            heartBeatHandler = new HeartBeatHandler(this, config, redisHandler, serverID);
-            heartBeatHandler.startHeartBeat();
+            heartBeatHandler = new HeartBeatHandler(this, config, serverID);
             info("Heart Beat started!");
         } catch (Exception e) {
             e.printStackTrace();
@@ -156,7 +161,6 @@ public class NewSky extends JavaPlugin {
         info("Starting world unload handler");
         try {
             worldUnloadSchedule = new WorldUnloadSchedule(this, config, worldHandler);
-            worldUnloadSchedule.startWorldUnloadTask();
             info("World unload handler loaded");
         } catch (Exception e) {
             e.printStackTrace();
@@ -175,22 +179,45 @@ public class NewSky extends JavaPlugin {
         }
     }
 
-    private void initializeIslandHandler() {
+    private void initializePostIslandHandler() {
         info("Starting island handler");
         try {
-            islandHandler = new IslandHandler(this, config, cacheHandler, worldHandler, redisHandler, heartBeatHandler, teleportManager, serverID);
-            islandHandler.subscribeToRequests();
-            info("Island handler loaded");
+            postIslandHandler = new PostIslandHandler(this, cacheHandler, worldHandler, teleportManager);
+            info("Post island handler loaded");
         } catch (Exception e) {
             e.printStackTrace();
-            throw new IllegalStateException("Islands load fail! Plugin will be disabled!");
+            throw new IllegalStateException("Post island handler load fail! Plugin will be disabled!");
         }
     }
+
+    private void initalizeBroker() {
+        info("Starting broker");
+        try {
+            broker = new RedisBroker(this, config, redisHandler, postIslandHandler);
+            broker.subscribe();
+            info("Broker loaded");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IllegalStateException("Broker load fail! Plugin will be disabled!");
+        }
+    }
+
+    private void initializePreIslandHandler() {
+        info("Starting pre island handler");
+        try {
+            preIslandHandler = new PreIslandHandler(this, broker, postIslandHandler, serverID);
+            info("Pre island handler loaded");
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new IllegalStateException("Pre island handler load fail! Plugin will be disabled!");
+        }
+    }
+
 
     private void initalizeAPI() {
         info("Starting API");
         try {
-            api = new NewSkyAPI(config, cacheHandler, islandHandler);
+            api = new NewSkyAPI(config, cacheHandler, preIslandHandler);
             info("API loaded");
         } catch (Exception e) {
             e.printStackTrace();
@@ -219,9 +246,7 @@ public class NewSky extends JavaPlugin {
     }
 
     public void shutdown() {
-        islandHandler.unsubscribeFromRequests();
-        heartBeatHandler.stopHeartBeat();
-        worldUnloadSchedule.stopWorldUnloadTask();
+        broker.unsubscribe();
         redisHandler.disconnect();
         databaseHandler.close();
     }

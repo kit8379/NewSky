@@ -13,44 +13,24 @@ import java.util.concurrent.TimeUnit;
 public class WorldUnloadSchedule {
 
     private final NewSky plugin;
+    private final ConfigHandler config;
     private final WorldHandler worldHandler;
-    private final long worldUnloadInterval;
-    private final Map<String, Long> inactiveWorlds = new HashMap<>();
-    private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+    private final int unloadInterval;
 
     public WorldUnloadSchedule(NewSky plugin, ConfigHandler config, WorldHandler worldHandler) {
         this.plugin = plugin;
+        this.config = config;
         this.worldHandler = worldHandler;
-        this.worldUnloadInterval = TimeUnit.SECONDS.toMillis(config.getWorldUnloadInterval());
+        this.unloadInterval = config.getWorldUnloadInterval();
     }
 
-    public void startWorldUnloadTask() {
-        scheduler.scheduleWithFixedDelay(this::checkAndUnloadWorlds, 0, worldUnloadInterval, TimeUnit.MILLISECONDS);
+    public void start() {
+        // Start the world unload schedule
     }
 
-    public void stopWorldUnloadTask() {
-        scheduler.shutdown();
+    public void stop() {
+        // Stop the world unload schedule
     }
 
-    private void checkAndUnloadWorlds() {
-        plugin.debug("Checking for inactive island worlds...");
-        long currentTime = System.currentTimeMillis();
-        plugin.getServer().getWorlds().forEach(world -> {
-            if (world.getName().startsWith("island-") && world.getPlayers().isEmpty()) {
-                long inactiveTime = inactiveWorlds.getOrDefault(world.getName(), currentTime);
-                if (currentTime - inactiveTime > worldUnloadInterval) {
-                    worldHandler.unloadWorld(world.getName()).thenRun(() -> {
-                        plugin.debug("Unloaded inactive island world: " + world.getName());
-                        inactiveWorlds.remove(world.getName());
-                        plugin.debug("Removed inactive world from tracking: " + world.getName());
-                    });
-                } else {
-                    inactiveWorlds.put(world.getName(), currentTime);
-                }
-            } else {
-                inactiveWorlds.remove(world.getName());
-            }
-        });
-        plugin.debug("Finished checking for inactive island worlds.");
-    }
+    // TODO: Implement the world unload logic
 }

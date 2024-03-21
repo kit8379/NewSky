@@ -5,7 +5,7 @@ import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.exceptions.HomeDoesNotExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
-import org.me.newsky.island.IslandHandler;
+import org.me.newsky.island.PreIslandHandler;
 import org.me.newsky.util.LocationUtils;
 
 import java.util.Optional;
@@ -16,11 +16,11 @@ import java.util.concurrent.CompletableFuture;
 public class HomeAPI {
 
     private final CacheHandler cacheHandler;
-    private final IslandHandler islandHandler;
+    private final PreIslandHandler preIslandHandler;
 
-    public HomeAPI(CacheHandler cacheHandler, IslandHandler islandHandler) {
+    public HomeAPI(CacheHandler cacheHandler, PreIslandHandler preIslandHandler) {
         this.cacheHandler = cacheHandler;
-        this.islandHandler = islandHandler;
+        this.preIslandHandler = preIslandHandler;
     }
 
     public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, Location location) {
@@ -70,7 +70,7 @@ public class HomeAPI {
             }
             String homeLocation = homeLocationOpt.get();
             // Teleport the player to the home location
-            islandHandler.teleportToIsland(islandUuid, playerUuid, homeLocation);
+            preIslandHandler.teleportIsland(islandUuid, playerUuid, homeLocation);
             return CompletableFuture.completedFuture(null);
         });
     }

@@ -6,7 +6,7 @@ import org.me.newsky.api.component.PlayerAPI;
 import org.me.newsky.api.component.WarpAPI;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.island.IslandHandler;
+import org.me.newsky.island.PreIslandHandler;
 
 public class NewSkyAPI {
     public final IslandAPI islandAPI;
@@ -14,10 +14,10 @@ public class NewSkyAPI {
     public final HomeAPI homeAPI;
     public final WarpAPI warpAPI;
 
-    public NewSkyAPI(ConfigHandler config, CacheHandler cacheHandler, IslandHandler islandHandler) {
-        this.islandAPI = new IslandAPI(config, cacheHandler, islandHandler);
+    public NewSkyAPI(ConfigHandler config, CacheHandler cacheHandler, PreIslandHandler preIslandHandler) {
+        this.islandAPI = new IslandAPI(config, cacheHandler, preIslandHandler);
         this.playerAPI = new PlayerAPI(cacheHandler);
-        this.homeAPI = new HomeAPI(cacheHandler, islandHandler);
-        this.warpAPI = new WarpAPI(cacheHandler, islandHandler);
+        this.homeAPI = new HomeAPI(cacheHandler, preIslandHandler);
+        this.warpAPI = new WarpAPI(cacheHandler, preIslandHandler);
     }
 }
