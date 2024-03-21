@@ -3,7 +3,7 @@ package org.me.newsky.command;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
-import org.me.newsky.command.admin.*;
+import org.me.newsky.command.sub.admin.*;
 import org.me.newsky.config.ConfigHandler;
 
 import java.util.HashMap;

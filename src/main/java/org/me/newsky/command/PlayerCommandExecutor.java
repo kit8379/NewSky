@@ -2,7 +2,7 @@ package org.me.newsky.command;
 
 import org.bukkit.command.CommandSender;
 import org.me.newsky.api.NewSkyAPI;
-import org.me.newsky.command.player.*;
+import org.me.newsky.command.sub.player.*;
 import org.me.newsky.config.ConfigHandler;
 
 import java.util.HashMap;
