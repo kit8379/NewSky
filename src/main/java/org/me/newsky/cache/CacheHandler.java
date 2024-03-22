@@ -313,6 +313,14 @@ public class CacheHandler {
     public void removeActiveServer(String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hdel("server_heartbeats", serverName);
+
+            // Remove island server association
+            Map<String, String> islandServerMap = jedis.hgetAll("island_server");
+            for (Map.Entry<String, String> entry : islandServerMap.entrySet()) {
+                if (entry.getValue().equals(serverName)) {
+                    jedis.hdel("island_server", entry.getKey());
+                }
+            }
         }
     }
 
@@ -337,17 +345,6 @@ public class CacheHandler {
     public String getIslandLoadedServer(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             return jedis.hget("island_server", islandUuid.toString());
-        }
-    }
-
-    public void removeIslandServer(String serverName) {
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Map<String, String> islandServerMap = jedis.hgetAll("island_server");
-            for (Map.Entry<String, String> entry : islandServerMap.entrySet()) {
-                if (entry.getValue().equals(serverName)) {
-                    jedis.hdel("island_server", entry.getKey());
-                }
-            }
         }
     }
 }

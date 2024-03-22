@@ -28,17 +28,20 @@ public class HeartBeatHandler {
             // Update the server's heartbeat in the cache
             if (!config.isLobby()) {
                 cacheHandler.updateActiveServer(serverID);
+                plugin.debug("Updated server heartbeat");
             }
 
             // Check for inactive servers and remove them from the active list
+            plugin.debug("Active servers before checking: " + cacheHandler.getActiveServers().keySet());
             cacheHandler.getActiveServers().forEach((server, lastHeartbeat) -> {
                 if (System.currentTimeMillis() - Long.parseLong(lastHeartbeat) > heartbeatInterval * 1000L * 2) {
                     cacheHandler.removeActiveServer(server);
-                    cacheHandler.removeIslandServer(server);
+                    plugin.debug("Removed inactive server from active list: " + server);
                 }
             });
         }, 0, heartbeatInterval * 20L);
     }
+
 
     public void stop() {
         // Stop the heartbeat
@@ -48,6 +51,6 @@ public class HeartBeatHandler {
 
         // Remove the server's heartbeat from the cache
         cacheHandler.removeActiveServer(serverID);
-        cacheHandler.removeIslandServer(serverID);
+        plugin.debug("Removed server from active list");
     }
 }

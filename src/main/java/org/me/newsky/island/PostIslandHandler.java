@@ -5,6 +5,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.teleport.TeleportManager;
 import org.me.newsky.util.IslandUUIDUtils;
 import org.me.newsky.world.WorldHandler;
@@ -14,12 +15,14 @@ import java.util.UUID;
 public class PostIslandHandler {
 
     private final NewSky plugin;
+    private final ConfigHandler config;
     private final CacheHandler cacheHandler;
     private final WorldHandler worldHandler;
     private final TeleportManager teleportManager;
 
-    public PostIslandHandler(NewSky plugin, CacheHandler cacheHandler, WorldHandler worldHandler, TeleportManager teleportManager) {
+    public PostIslandHandler(NewSky plugin, ConfigHandler configHandler, CacheHandler cacheHandler, WorldHandler worldHandler, TeleportManager teleportManager) {
         this.plugin = plugin;
+        this.config = configHandler;
         this.cacheHandler = cacheHandler;
         this.worldHandler = worldHandler;
         this.teleportManager = teleportManager;
@@ -32,6 +35,7 @@ public class PostIslandHandler {
             cacheHandler.createIsland(islandUuid);
             cacheHandler.updateIslandPlayer(islandUuid, playerUuid, "owner");
             cacheHandler.updateHomePoint(islandUuid, playerUuid, "default", spawnLocation);
+            cacheHandler.updateIslandLoadedServer(islandUuid, config.getServerName());
             plugin.debug("Created island " + islandUuid + " in the cache");
         });
     }
@@ -41,6 +45,7 @@ public class PostIslandHandler {
 
         worldHandler.deleteWorld(islandName).thenRun(() -> {
             cacheHandler.deleteIsland(islandUuid);
+            cacheHandler.removeIslandLoadedServer(islandUuid);
             plugin.debug("Deleted island " + islandName + " from the cache");
         });
     }
@@ -49,6 +54,7 @@ public class PostIslandHandler {
         String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
 
         worldHandler.loadWorld(islandName).thenRun(() -> {
+            cacheHandler.updateIslandLoadedServer(islandUuid, config.getServerName());
             plugin.debug("Loaded island " + islandName);
         });
     }
@@ -57,6 +63,7 @@ public class PostIslandHandler {
         String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
 
         worldHandler.unloadWorld(islandName).thenRun(() -> {
+            cacheHandler.removeIslandLoadedServer(islandUuid);
             plugin.debug("Unloaded island " + islandName);
         });
     }
@@ -65,6 +72,8 @@ public class PostIslandHandler {
         String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
 
         worldHandler.loadWorld(islandName).thenRun(() -> {
+            cacheHandler.updateIslandLoadedServer(islandUuid, config.getServerName());
+
             String[] parts = teleportLocation.split(",");
             double x = Double.parseDouble(parts[0]);
             double y = Double.parseDouble(parts[1]);
