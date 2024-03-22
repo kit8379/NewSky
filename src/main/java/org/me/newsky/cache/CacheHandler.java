@@ -302,24 +302,52 @@ public class CacheHandler {
         }
     }
 
-    // Island Loaded Server cache
-    // Only stored in Redis
+    // The cache in below section only stored in Redis
+
+    public void updateActiveServer(String serverName) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.hset("server_heartbeats", serverName, String.valueOf(System.currentTimeMillis()));
+        }
+    }
+
+    public void removeActiveServer(String serverName) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.hdel("server_heartbeats", serverName);
+        }
+    }
+
+    public Map<String, String> getActiveServers() {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            return jedis.hgetAll("server_heartbeats");
+        }
+    }
+
+    public void updateIslandLoadedServer(UUID islandUuid, String serverName) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.hset("island_server", islandUuid.toString(), serverName);
+        }
+    }
+
+    public void removeIslandLoadedServer(UUID islandUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.hdel("island_server", islandUuid.toString());
+        }
+    }
 
     public String getIslandLoadedServer(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            return jedis.get("island_loaded_server:" + islandUuid);
+            return jedis.hget("island_server", islandUuid.toString());
         }
     }
 
-    public void setIslandLoadedServer(UUID islandUuid, String server) {
+    public void removeIslandServer(String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.set("island_loaded_server:" + islandUuid, server);
-        }
-    }
-
-    public void deleteIslandLoadedServer(UUID islandUuid) {
-        try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.del("island_loaded_server:" + islandUuid);
+            Map<String, String> islandServerMap = jedis.hgetAll("island_server");
+            for (Map.Entry<String, String> entry : islandServerMap.entrySet()) {
+                if (entry.getValue().equals(serverName)) {
+                    jedis.hdel("island_server", entry.getKey());
+                }
+            }
         }
     }
 }

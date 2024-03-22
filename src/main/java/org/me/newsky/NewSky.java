@@ -13,7 +13,6 @@ import org.me.newsky.island.PostIslandHandler;
 import org.me.newsky.island.PreIslandHandler;
 import org.me.newsky.redis.RedisBroker;
 import org.me.newsky.redis.RedisHandler;
-import org.me.newsky.scheduler.WorldUnloadSchedule;
 import org.me.newsky.teleport.TeleportManager;
 import org.me.newsky.world.WorldHandler;
 
@@ -21,17 +20,12 @@ import java.util.Objects;
 
 public class NewSky extends JavaPlugin {
 
-    private String serverID;
     private ConfigHandler config;
-    private WorldHandler worldHandler;
     private RedisHandler redisHandler;
     private DatabaseHandler databaseHandler;
     private CacheHandler cacheHandler;
     private TeleportManager teleportManager;
     private HeartBeatHandler heartBeatHandler;
-    private WorldUnloadSchedule worldUnloadSchedule;
-    private PreIslandHandler preIslandHandler;
-    private PostIslandHandler postIslandHandler;
     private RedisBroker broker;
     private NewSkyAPI api;
 
@@ -40,188 +34,77 @@ public class NewSky extends JavaPlugin {
         // Calculate the time it takes to initialize the plugin
         long startTime = System.currentTimeMillis();
         info("Plugin enabling...");
-        initalize();
+        initialize();
         info("Plugin enabled!");
         long endTime = System.currentTimeMillis();
         info("Plugin initialization time: " + (endTime - startTime) + "ms");
     }
 
-    private void initalize() {
-        initializeConfig();
-        initalizeServerID();
-        initializeWorldHandler();
-        initializeRedis();
-        initializeDatabase();
-        initializeCache();
-        initializeTeleportManager();
-        initalizeheartBeatHandler();
-        initalizeWorldUnloadSchedule();
-        initalizePluginMessaging();
-        initializePostIslandHandler();
-        initalizeBroker();
-        initializePreIslandHandler();
-        initalizeAPI();
-        registerListeners();
-        registerCommands();
-    }
-
-    private void initializeConfig() {
-        info("Start loading configuration now...");
+    private void initialize() {
         try {
+            info("Start loading configuration now...");
             saveDefaultConfig();
             config = new ConfigHandler(this);
             info("Config load success!");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException("Config load fail! Plugin will be disabled!");
-        }
-    }
 
-    private void initalizeServerID() {
-        info("Start loading server ID now...");
-        try {
-            serverID = config.getServerName();
+            info("Start loading server ID now...");
+            String serverID = config.getServerName();
             info("Server ID load success!");
             info("This Server ID: " + serverID);
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException("Server ID load fail! Plugin will be disabled!");
-        }
-    }
 
-    private void initializeWorldHandler() {
-        info("Starting WorldHandler");
-        try {
-            worldHandler = new WorldHandler(this, config);
+            info("Starting WorldHandler");
+            WorldHandler worldHandler = new WorldHandler(this, config);
             info("WorldHandler loaded");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException("WorldHandler load fail! Plugin will be disabled!");
-        }
-    }
 
-    private void initializeRedis() {
-        info("Start connecting to Redis now...");
-        try {
+            info("Start connecting to Redis now...");
             redisHandler = new RedisHandler(this, config);
             info("Redis connection success!");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException("Redis Fail! Plugin will be disabled!");
-        }
-    }
 
-    private void initializeDatabase() {
-        info("Start connecting to Database now...");
-        try {
+            info("Start connecting to Database now...");
             databaseHandler = new DatabaseHandler(config);
-            databaseHandler.createTables();
+
             info("Database connection success!");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException("Database connection fail! Plugin will be disabled!");
-        }
-    }
 
-    private void initializeCache() {
-        info("Starting to cache into Redis");
-        try {
+            info("Starting cache handler");
             cacheHandler = new CacheHandler(redisHandler, databaseHandler);
-            cacheHandler.cacheAllDataToRedis();
             info("Cache to Redis success");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException("Cache to Redis fail! Plugin will be disabled!");
-        }
-    }
 
-    private void initalizeheartBeatHandler() {
-        info("Start connecting to Heart Beat system now...");
-        try {
-            heartBeatHandler = new HeartBeatHandler(this, config, serverID);
-            info("Heart Beat started!");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException("Redis Heart Beat Fail! Plugin will be disabled!");
-        }
-    }
-
-    private void initializeTeleportManager() {
-        info("Starting teleport manager");
-        try {
+            info("Starting teleport manager");
             teleportManager = new TeleportManager(this);
             info("Teleport manager loaded");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException("Teleport manager load fail! Plugin will be disabled!");
-        }
-    }
 
-    private void initalizeWorldUnloadSchedule() {
-        info("Starting world unload handler");
-        try {
-            worldUnloadSchedule = new WorldUnloadSchedule(this, config, worldHandler);
-            info("World unload handler loaded");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException("World unload schedule load fail! Plugin will be disabled!");
-        }
-    }
+            info("Start connecting to Heart Beat system now...");
+            heartBeatHandler = new HeartBeatHandler(this, config, cacheHandler, serverID);
+            info("Heart Beat started!");
 
-    private void initalizePluginMessaging() {
-        info("Starting plugin messaging");
-        try {
-            getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
-            info("Plugin messaging loaded");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException("Plugin messaging load fail! Plugin will be disabled!");
-        }
-    }
-
-    private void initializePostIslandHandler() {
-        info("Starting island handler");
-        try {
-            postIslandHandler = new PostIslandHandler(this, cacheHandler, worldHandler, teleportManager);
+            info("Starting island handler");
+            PostIslandHandler postIslandHandler = new PostIslandHandler(this, cacheHandler, worldHandler, teleportManager);
             info("Post island handler loaded");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException("Post island handler load fail! Plugin will be disabled!");
-        }
-    }
 
-    private void initalizeBroker() {
-        info("Starting broker");
-        try {
+            info("Starting broker");
             broker = new RedisBroker(this, config, redisHandler, postIslandHandler);
-            broker.subscribe();
             info("Broker loaded");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException("Broker load fail! Plugin will be disabled!");
-        }
-    }
 
-    private void initializePreIslandHandler() {
-        info("Starting pre island handler");
-        try {
-            preIslandHandler = new PreIslandHandler(this, broker, postIslandHandler, serverID);
+            info("Starting pre island handler");
+            PreIslandHandler preIslandHandler = new PreIslandHandler(this, cacheHandler, broker, postIslandHandler, serverID);
             info("Pre island handler loaded");
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw new IllegalStateException("Pre island handler load fail! Plugin will be disabled!");
-        }
-    }
 
-
-    private void initalizeAPI() {
-        info("Starting API");
-        try {
+            info("Starting API");
             api = new NewSkyAPI(config, cacheHandler, preIslandHandler);
             info("API loaded");
+
+            registerListeners();
+            registerCommands();
+
+            databaseHandler.createTables();
+            cacheHandler.cacheAllDataToRedis();
+            broker.subscribe();
+            heartBeatHandler.start();
+
         } catch (Exception e) {
             e.printStackTrace();
-            throw new IllegalStateException("API load fail! Plugin will be disabled!");
+            info("Plugin initialization failed!");
+            shutdown();
         }
     }
 
@@ -246,6 +129,7 @@ public class NewSky extends JavaPlugin {
     }
 
     public void shutdown() {
+        heartBeatHandler.stop();
         broker.unsubscribe();
         redisHandler.disconnect();
         databaseHandler.close();
@@ -254,17 +138,17 @@ public class NewSky extends JavaPlugin {
     public void reload() {
         info("Plugin reloading...");
         shutdown();
-        initalize();
+        initialize();
         info("Plugin reloaded!");
-    }
-
-    public void info(String message) {
-        getLogger().info(message);
     }
 
     public void debug(String message) {
         if (config.isDebug()) {
-            getLogger().info(config.getDebugPrefix() + message);
+            info(config.getDebugPrefix() + message);
         }
+    }
+
+    public void info(String message) {
+        getLogger().info(message);
     }
 }

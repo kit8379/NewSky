@@ -155,17 +155,12 @@ public class WorldHandler {
         return future;
     }
 
-    public CompletableFuture<Void> lockWorld(String worldName) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-
+    public void lockWorld(String worldName) {
         Bukkit.getScheduler().runTask(plugin, () -> {
             World world = Bukkit.getWorld(worldName);
             if (world != null) {
                 removePlayersFromWorld(world);
             }
-            future.complete(null);
         });
-
-        return future;
     }
 }

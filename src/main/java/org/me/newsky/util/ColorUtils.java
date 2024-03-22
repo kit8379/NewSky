@@ -9,6 +9,12 @@ public class ColorUtils {
 
     private static final Pattern hexPattern = Pattern.compile("<#([A-Fa-f0-9]){6}>");
 
+    /**
+     * Colorizes a string with hex colors.
+     *
+     * @param message the message to colorize
+     * @return the colorized message
+     */
     public static String colorize(String message) {
         Matcher matcher = hexPattern.matcher(message);
         while (matcher.find()) {

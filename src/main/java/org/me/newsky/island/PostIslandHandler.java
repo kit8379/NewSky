@@ -6,6 +6,7 @@ import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.teleport.TeleportManager;
+import org.me.newsky.util.IslandUUIDUtils;
 import org.me.newsky.world.WorldHandler;
 
 import java.util.UUID;
@@ -25,7 +26,7 @@ public class PostIslandHandler {
     }
 
     public void createIsland(UUID islandUuid, UUID playerUuid, String spawnLocation) {
-        String islandName = "island-" + islandUuid.toString();
+        String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
 
         worldHandler.createWorld(islandName).thenRun(() -> {
             cacheHandler.createIsland(islandUuid);
@@ -36,7 +37,7 @@ public class PostIslandHandler {
     }
 
     public void deleteIsland(UUID islandUuid) {
-        String islandName = "island-" + islandUuid.toString();
+        String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
 
         worldHandler.deleteWorld(islandName).thenRun(() -> {
             cacheHandler.deleteIsland(islandUuid);
@@ -45,7 +46,7 @@ public class PostIslandHandler {
     }
 
     public void loadIsland(UUID islandUuid) {
-        String islandName = "island-" + islandUuid.toString();
+        String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
 
         worldHandler.loadWorld(islandName).thenRun(() -> {
             plugin.debug("Loaded island " + islandName);
@@ -53,7 +54,7 @@ public class PostIslandHandler {
     }
 
     public void unloadIsland(UUID islandUuid) {
-        String islandName = "island-" + islandUuid.toString();
+        String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
 
         worldHandler.unloadWorld(islandName).thenRun(() -> {
             plugin.debug("Unloaded island " + islandName);
@@ -61,7 +62,7 @@ public class PostIslandHandler {
     }
 
     public void teleportIsland(UUID islandUuid, UUID playerUuid, String teleportLocation) {
-        String islandName = "island-" + islandUuid.toString();
+        String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
 
         worldHandler.loadWorld(islandName).thenRun(() -> {
             String[] parts = teleportLocation.split(",");
@@ -85,8 +86,7 @@ public class PostIslandHandler {
     }
 
     public void lockIsland(UUID islandUuid) {
-        String islandName = "island-" + islandUuid.toString();
-        worldHandler.lockWorld(islandName).thenRun(() -> {
-        });
+        String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
+        worldHandler.lockWorld(islandName);
     }
 }
