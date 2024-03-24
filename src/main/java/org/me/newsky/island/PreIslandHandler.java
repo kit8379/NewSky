@@ -2,10 +2,14 @@ package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.exceptions.NoActiveServerException;
 import org.me.newsky.network.BasePublishRequest;
 
+import java.util.Map;
+import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+
 
 /**
  * Handles pre-island operations such as creating, deleting, loading, unloading, and locking islands.
@@ -30,83 +34,148 @@ public class PreIslandHandler {
 
     public CompletableFuture<Void> createIsland(UUID islandUuid, UUID playerUuid, String spawnLocation) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-
-        publishRequest.sendRequest(getRandomServer(), "create", islandUuid.toString(), playerUuid.toString(), spawnLocation).thenAccept(result -> {
-            future.complete(null);
-            plugin.debug("Created island " + islandUuid + " on server " + serverID);
-        });
-
+        String targetServer = getRandomServer();
+        if (targetServer == null) {
+            future.completeExceptionally(new NoActiveServerException());
+        } else {
+            if (targetServer.equals(serverID)) {
+                postIslandHandler.createIsland(islandUuid, playerUuid, spawnLocation).thenAccept(result -> {
+                    future.complete(null);
+                    plugin.debug("Created island " + islandUuid + " on the current server");
+                });
+            } else {
+                publishRequest.sendRequest(targetServer, "create", islandUuid.toString(), playerUuid.toString(), spawnLocation).thenAccept(result -> {
+                    future.complete(null);
+                    plugin.debug("Created island " + islandUuid + " on server " + targetServer);
+                });
+            }
+        }
         return future;
     }
 
 
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-
-        publishRequest.sendRequest(getServerByIsland(islandUuid.toString()), "delete", islandUuid.toString()).thenAccept(result -> {
-            future.complete(null);
-            plugin.debug("Deleted island " + islandUuid + " on server " + serverID);
-        });
-
+        String targetServer = getServerByIsland(islandUuid.toString());
+        if (targetServer == null) {
+            future.completeExceptionally(new NoActiveServerException());
+        } else {
+            if (targetServer.equals(serverID)) {
+                postIslandHandler.deleteIsland(islandUuid).thenAccept(result -> {
+                    future.complete(null);
+                    plugin.debug("Deleted island " + islandUuid + " on the current server");
+                });
+            } else {
+                publishRequest.sendRequest(targetServer, "delete", islandUuid.toString()).thenAccept(result -> {
+                    future.complete(null);
+                    plugin.debug("Deleted island " + islandUuid + " on server " + targetServer);
+                });
+            }
+        }
         return future;
     }
-
 
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-
-        publishRequest.sendRequest(getServerByIsland(islandUuid.toString()), "load", islandUuid.toString()).thenAccept(result -> {
-            future.complete(null);
-            plugin.debug("Loaded island " + islandUuid + " on server " + serverID);
-        });
-
+        String targetServer = getServerByIsland(islandUuid.toString());
+        if (targetServer == null) {
+            future.completeExceptionally(new NoActiveServerException());
+        } else {
+            if (targetServer.equals(serverID)) {
+                postIslandHandler.loadIsland(islandUuid).thenAccept(result -> {
+                    future.complete(null);
+                    plugin.debug("Loaded island " + islandUuid + " on the current server");
+                });
+            } else {
+                publishRequest.sendRequest(targetServer, "load", islandUuid.toString()).thenAccept(result -> {
+                    future.complete(null);
+                    plugin.debug("Loaded island " + islandUuid + " on server " + targetServer);
+                });
+            }
+        }
         return future;
     }
-
 
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-
-        publishRequest.sendRequest(getServerByIsland(islandUuid.toString()), "unload", islandUuid.toString()).thenAccept(result -> {
-            future.complete(null);
-            plugin.debug("Unloaded island " + islandUuid + " on server " + serverID);
-        });
-
+        String targetServer = getServerByIsland(islandUuid.toString());
+        if (targetServer == null) {
+            future.completeExceptionally(new NoActiveServerException());
+        } else {
+            if (targetServer.equals(serverID)) {
+                postIslandHandler.unloadIsland(islandUuid).thenAccept(result -> {
+                    future.complete(null);
+                    plugin.debug("Unloaded island " + islandUuid + " on the current server");
+                });
+            } else {
+                publishRequest.sendRequest(targetServer, "unload", islandUuid.toString()).thenAccept(result -> {
+                    future.complete(null);
+                    plugin.debug("Unloaded island " + islandUuid + " on server " + targetServer);
+                });
+            }
+        }
         return future;
     }
 
-
     public CompletableFuture<Void> lockIsland(UUID islandUuid) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-
-        publishRequest.sendRequest(getServerByIsland(islandUuid.toString()), "lock", islandUuid.toString()).thenAccept(result -> {
-            future.complete(null);
-            plugin.debug("Locked island " + islandUuid + " on server " + serverID);
-        });
-
+        String targetServer = getServerByIsland(islandUuid.toString());
+        if (targetServer == null) {
+            future.completeExceptionally(new NoActiveServerException());
+        } else {
+            if (targetServer.equals(serverID)) {
+                postIslandHandler.lockIsland(islandUuid).thenAccept(result -> {
+                    future.complete(null);
+                    plugin.debug("Locked island " + islandUuid + " on the current server");
+                });
+            } else {
+                publishRequest.sendRequest(targetServer, "lock", islandUuid.toString()).thenAccept(result -> {
+                    future.complete(null);
+                    plugin.debug("Locked island " + islandUuid + " on server " + targetServer);
+                });
+            }
+        }
         return future;
     }
 
 
     public CompletableFuture<Void> teleportToIsland(UUID playerUuid, UUID islandUuid, String teleportLocation) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-
-        publishRequest.sendRequest(getServerByIsland(islandUuid.toString()), "teleport", islandUuid.toString(), playerUuid.toString(), teleportLocation).thenAccept(result -> {
-            future.complete(null);
-            plugin.debug("Teleported player " + playerUuid + " to island " + islandUuid + " on server " + serverID);
-        });
-
+        String targetServer = getServerByIsland(islandUuid.toString());
+        if (targetServer == null) {
+            future.completeExceptionally(new NoActiveServerException());
+        } else {
+            if (targetServer.equals(serverID)) {
+                postIslandHandler.teleportToIsland(islandUuid, playerUuid, teleportLocation).thenAccept(result -> {
+                    future.complete(null);
+                    plugin.debug("Teleported player " + playerUuid + " to island " + islandUuid + " on the current server");
+                });
+            } else {
+                publishRequest.sendRequest(targetServer, "teleport", islandUuid.toString(), playerUuid.toString(), teleportLocation).thenAccept(result -> {
+                    future.complete(null);
+                    plugin.debug("Teleported player " + playerUuid + " to island " + islandUuid + " on server " + targetServer);
+                });
+            }
+        }
         return future;
     }
 
 
     private String getRandomServer() {
-        // Implement logic to choose a random or specific server
-        return "skymain";
+        Map<String, String> activeServers = cacheHandler.getActiveServers();
+        if (activeServers.isEmpty()) {
+            return null; // Or handle this case appropriately
+        }
+        String[] serverNames = activeServers.keySet().toArray(new String[0]);
+        int randomIndex = new Random().nextInt(serverNames.length);
+        return serverNames[randomIndex];
     }
 
     private String getServerByIsland(String islandUuid) {
-        // Implement logic to choose the server where the island is loaded
-        return "skymain";
+        String serverName = cacheHandler.getIslandLoadedServer(UUID.fromString(islandUuid));
+        if (serverName == null || serverName.isEmpty()) {
+            return getRandomServer();
+        }
+        return serverName;
     }
 }
