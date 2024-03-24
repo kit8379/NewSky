@@ -15,6 +15,18 @@ public class PlayerCreateCommand extends BaseCreateCommand {
     }
 
     @Override
+    protected void postCreateIsland(CommandSender sender, String[] args) {
+        Player player = (Player) sender;
+        api.home(player.getUniqueId(), "default").thenRun(() -> {
+            sender.sendMessage(config.getPlayerHomeSuccessMessage("default"));
+        }).exceptionally(ex -> {
+            sender.sendMessage("There was an error teleporting you to your island home");
+            ex.printStackTrace();
+            return null;
+        });
+    }
+
+    @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
         return true;
     }

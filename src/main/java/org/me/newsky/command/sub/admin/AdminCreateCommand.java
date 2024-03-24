@@ -25,6 +25,11 @@ public class AdminCreateCommand extends BaseCreateCommand {
     }
 
     @Override
+    protected void postCreateIsland(CommandSender sender, String[] args) {
+        // Do Nothing
+    }
+
+    @Override
     protected UUID getTargetUuid(CommandSender sender, String[] args) {
         return Bukkit.getOfflinePlayer(args[1]).getUniqueId();
     }

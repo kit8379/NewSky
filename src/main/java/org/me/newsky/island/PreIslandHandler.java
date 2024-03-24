@@ -91,7 +91,7 @@ public class PreIslandHandler {
     public CompletableFuture<Void> teleportToIsland(UUID playerUuid, UUID islandUuid, String teleportLocation) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        publishRequest.sendRequest(getServerByIsland(islandUuid.toString()), "teleport", playerUuid.toString(), islandUuid.toString(), teleportLocation).thenAccept(result -> {
+        publishRequest.sendRequest(getServerByIsland(islandUuid.toString()), "teleport", islandUuid.toString(), playerUuid.toString(), teleportLocation).thenAccept(result -> {
             future.complete(null);
             plugin.debug("Teleported player " + playerUuid + " to island " + islandUuid + " on server " + serverID);
         });

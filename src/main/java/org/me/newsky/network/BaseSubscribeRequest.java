@@ -58,9 +58,9 @@ public abstract class BaseSubscribeRequest {
                 return postIslandHandler.unloadIsland(UUID.fromString(islandUuidForUnload));
             case "teleport":
                 String islandUuidForTeleport = args[0];
-                String playerUuid = args[1];
+                String playerUuidForTeleport = args[1];
                 String locationStringForTeleport = args[2];
-                return postIslandHandler.teleportToIsland(UUID.fromString(islandUuidForTeleport), UUID.fromString(playerUuid), locationStringForTeleport);
+                return postIslandHandler.teleportToIsland(UUID.fromString(islandUuidForTeleport), UUID.fromString(playerUuidForTeleport), locationStringForTeleport);
             case "lock":
                 String islandUuidForLock = args[0];
                 return postIslandHandler.lockIsland(UUID.fromString(islandUuidForLock));

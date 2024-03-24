@@ -44,6 +44,7 @@ public class PostIslandHandler {
             cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
             plugin.debug("Created island " + islandUuid + " in the cache");
             future.complete(null);
+            plugin.debug("createIsland completed successfully");
         });
 
         return future;
@@ -59,6 +60,7 @@ public class PostIslandHandler {
             cacheHandler.removeIslandLoadedServer(islandUuid);
             plugin.debug("Deleted island " + islandName + " from the cache");
             future.complete(null);
+            plugin.debug("deleteIsland completed successfully");
         });
 
         return future;
@@ -73,6 +75,7 @@ public class PostIslandHandler {
             cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
             plugin.debug("Loaded island " + islandName);
             future.complete(null);
+            plugin.debug("loadIsland completed successfully");
         });
 
         return future;
@@ -87,6 +90,7 @@ public class PostIslandHandler {
             cacheHandler.removeIslandLoadedServer(islandUuid);
             plugin.debug("Unloaded island " + islandName);
             future.complete(null);
+            plugin.debug("unloadIsland completed successfully");
         });
 
         return future;
@@ -99,6 +103,7 @@ public class PostIslandHandler {
 
         worldHandler.loadWorld(islandName).thenRun(() -> {
             cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
+            plugin.debug("Cached island " + islandName + " as loaded on this server");
 
             String[] parts = teleportLocation.split(",");
             double x = Double.parseDouble(parts[0]);
@@ -112,10 +117,14 @@ public class PostIslandHandler {
                 Player player = Bukkit.getPlayer(playerUuid);
                 if (player != null) {
                     player.teleport(location);
+                    plugin.debug("Player " + playerUuid + " is online, teleporting to " + location);
                 } else {
                     teleportManager.addPendingTeleport(playerUuid, location);
+                    plugin.debug("Player " + playerUuid + " is not online, adding pending teleport to " + location);
                 }
+
                 future.complete(null);
+                plugin.debug("teleportToIsland completed successfully");
             });
         });
 
@@ -127,8 +136,10 @@ public class PostIslandHandler {
 
         String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
         worldHandler.lockWorld(islandName);
-        future.complete(null);
 
+        future.complete(null);
+        plugin.debug("lockIsland completed successfully");
+        
         return future;
     }
 }

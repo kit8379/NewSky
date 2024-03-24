@@ -50,7 +50,9 @@ public class HeartBeatHandler {
         }
 
         // Remove the server's heartbeat from the cache
-        cacheHandler.removeActiveServer(serverID);
-        plugin.debug("Removed server from active list");
+        if (!config.isLobby()) {
+            cacheHandler.removeActiveServer(serverID);
+            plugin.debug("Removed server from active list");
+        }
     }
 }

@@ -54,10 +54,12 @@ public class WorldHandler {
                         future.complete(null);
                     } catch (Exception e) {
                         future.completeExceptionally(e);
+                        e.printStackTrace();
                     }
                 });
             } catch (Exception e) {
                 future.completeExceptionally(e);
+                e.printStackTrace();
             }
         });
 
@@ -81,10 +83,12 @@ public class WorldHandler {
                         future.complete(null);
                     } catch (Exception e) {
                         future.completeExceptionally(e);
+                        e.printStackTrace();
                     }
                 });
             } catch (Exception e) {
                 future.completeExceptionally(e);
+                e.printStackTrace();
             }
         });
 
@@ -98,6 +102,7 @@ public class WorldHandler {
             future.complete(null);
         }).exceptionally(e -> {
             future.completeExceptionally(e);
+            e.printStackTrace();
             return null;
         });
 
@@ -116,6 +121,7 @@ public class WorldHandler {
             }
         }).exceptionally(e -> {
             future.completeExceptionally(e);
+            e.printStackTrace();
             return null;
         });
 

@@ -1,5 +1,6 @@
 package org.me.newsky.api;
 
+import org.bukkit.Location;
 import org.me.newsky.island.IslandHandler;
 
 import java.util.Set;
@@ -16,8 +17,10 @@ public class NewSkyAPI {
 
 
     // Island Operation API methods
+
     /**
      * Create an island for the specified player
+     *
      * @param playerUuid The UUID of the player
      * @return A CompletableFuture that completes when the island is created
      */
@@ -28,6 +31,7 @@ public class NewSkyAPI {
 
     /**
      * Delete an island for the specified player
+     *
      * @param playerUuid The UUID of the player
      * @return A CompletableFuture that completes when the island is deleted
      */
@@ -38,6 +42,7 @@ public class NewSkyAPI {
 
     /**
      * Load an island for the specified player
+     *
      * @param playerUuid The UUID of the player
      * @return A CompletableFuture that completes when the island is loaded
      */
@@ -48,6 +53,7 @@ public class NewSkyAPI {
 
     /**
      * Unload an island for the specified player
+     *
      * @param playerUuid The UUID of the player
      * @return A CompletableFuture that completes when the island is unloaded
      */
@@ -58,6 +64,7 @@ public class NewSkyAPI {
 
     /**
      * Toggle the lock status of the island for the specified player
+     *
      * @param playerUuid The UUID of the player
      * @return A CompletableFuture that completes with the new lock status
      */
@@ -68,6 +75,7 @@ public class NewSkyAPI {
 
     /**
      * Toggle the PvP status of the island for the specified player
+     *
      * @param playerUuid The UUID of the player
      * @return A CompletableFuture that completes with the new PvP status
      */
@@ -76,8 +84,10 @@ public class NewSkyAPI {
     }
 
     // Island Player API methods
+
     /**
      * Get the owner of the island for the specified player
+     *
      * @param playerUuid The UUID of the player
      * @return A CompletableFuture that completes with the UUID of the island owner
      */
@@ -88,8 +98,9 @@ public class NewSkyAPI {
 
     /**
      * Add a member to the island for the specified player
+     *
      * @param islandOwnerId The UUID of the island owner
-     * @param playerUuid The UUID of the player to add
+     * @param playerUuid    The UUID of the player to add
      * @return A CompletableFuture that completes when the player is added
      */
     public CompletableFuture<Void> removeMember(UUID islandOwnerId, UUID playerUuid) {
@@ -99,8 +110,9 @@ public class NewSkyAPI {
 
     /**
      * Set the owner of the island for the specified player
+     *
      * @param islandOwnerId The UUID of the current island owner
-     * @param newOwnerId The UUID of the new island owner
+     * @param newOwnerId    The UUID of the new island owner
      * @return A CompletableFuture that completes when the owner is set
      */
     public CompletableFuture<Void> setOwner(UUID islandOwnerId, UUID newOwnerId) {
@@ -109,22 +121,25 @@ public class NewSkyAPI {
 
 
     // Home API methods
+
     /**
      * Set a home for the specified player
+     *
      * @param playerUuid The UUID of the player
-     * @param homeName The name of the home
-     * @param location The location of the home
+     * @param homeName   The name of the home
+     * @param location   The location of the home
      * @return A CompletableFuture that completes when the home is set
      */
-    public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, org.bukkit.Location location) {
+    public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, Location location) {
         return islandHandler.setHome(playerUuid, homeName, location);
     }
 
 
     /**
      * Delete a home for the specified player
+     *
      * @param playerUuid The UUID of the player
-     * @param homeName The name of the home
+     * @param homeName   The name of the home
      * @return A CompletableFuture that completes when the home is deleted
      */
     public CompletableFuture<Void> delHome(UUID playerUuid, String homeName) {
@@ -134,8 +149,9 @@ public class NewSkyAPI {
 
     /**
      * Teleport to a home for the specified player
+     *
      * @param playerUuid The UUID of the player
-     * @param homeName The name of the home
+     * @param homeName   The name of the home
      * @return A CompletableFuture that completes when the player is teleported
      */
     public CompletableFuture<Void> home(UUID playerUuid, String homeName) {
@@ -145,6 +161,7 @@ public class NewSkyAPI {
 
     /**
      * Get the names of the homes for the specified player
+     *
      * @param playerUuid The UUID of the player
      * @return A CompletableFuture that completes with the set of home names
      */
@@ -154,22 +171,25 @@ public class NewSkyAPI {
 
 
     // Warp API methods
+
     /**
      * Set a warp for the specified player
+     *
      * @param playerUuid The UUID of the player
-     * @param warpName The name of the warp
-     * @param location The location of the warp
+     * @param warpName   The name of the warp
+     * @param location   The location of the warp
      * @return A CompletableFuture that completes when the warp is set
      */
-    public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, org.bukkit.Location location) {
+    public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, Location location) {
         return islandHandler.setWarp(playerUuid, warpName, location);
     }
 
 
     /**
      * Delete a warp for the specified player
+     *
      * @param playerUuid The UUID of the player
-     * @param warpName The name of the warp
+     * @param warpName   The name of the warp
      * @return A CompletableFuture that completes when the warp is deleted
      */
     public CompletableFuture<Void> delWarp(UUID playerUuid, String warpName) {
@@ -179,8 +199,9 @@ public class NewSkyAPI {
 
     /**
      * Teleport to a warp for the specified player
+     *
      * @param playerUuid The UUID of the player
-     * @param warpName The name of the warp
+     * @param warpName   The name of the warp
      * @return A CompletableFuture that completes when the player is teleported
      */
     public CompletableFuture<Void> warp(UUID playerUuid, String warpName) {
@@ -190,6 +211,7 @@ public class NewSkyAPI {
 
     /**
      * Get the names of the warps for the specified player
+     *
      * @param playerUuid The UUID of the player
      * @return A CompletableFuture that completes with the set of warp names
      */

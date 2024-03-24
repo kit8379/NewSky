@@ -30,6 +30,7 @@ public abstract class BaseCreateCommand implements BaseCommand {
         // Create the island
         api.createIsland(targetUuid).thenRun(() -> {
             sender.sendMessage(getIslandCreateSuccessMessage(args));
+            postCreateIsland(sender, args);
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandAlreadyExistException) {
                 sender.sendMessage(getExistingIslandMessage(args));
@@ -43,6 +44,7 @@ public abstract class BaseCreateCommand implements BaseCommand {
         return true;
     }
 
+
     protected abstract boolean validateArgs(CommandSender sender, String[] args);
 
     protected abstract UUID getTargetUuid(CommandSender sender, String[] args);
@@ -50,4 +52,6 @@ public abstract class BaseCreateCommand implements BaseCommand {
     protected abstract String getExistingIslandMessage(String[] args);
 
     protected abstract String getIslandCreateSuccessMessage(String[] args);
+
+    protected abstract void postCreateIsland(CommandSender sender, String[] args);
 }
