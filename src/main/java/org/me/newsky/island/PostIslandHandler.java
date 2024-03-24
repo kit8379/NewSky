@@ -4,6 +4,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
+import org.me.newsky.api.event.IslandCreateEvent;
+import org.me.newsky.api.event.IslandDeleteEvent;
+import org.me.newsky.api.event.IslandLoadEvent;
+import org.me.newsky.api.event.IslandUnloadEvent;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.teleport.TeleportManager;
 import org.me.newsky.util.IslandUUIDUtils;
@@ -43,6 +47,8 @@ public class PostIslandHandler {
             cacheHandler.updateHomePoint(islandUuid, playerUuid, "default", spawnLocation);
             cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
             plugin.debug("Created island " + islandUuid + " in the cache");
+            Bukkit.getServer().getPluginManager().callEvent(new IslandCreateEvent(islandUuid, playerUuid));
+            plugin.debug("Called IslandCreateEvent for island " + islandUuid);
             future.complete(null);
             plugin.debug("createIsland completed successfully");
         });
@@ -59,6 +65,8 @@ public class PostIslandHandler {
             cacheHandler.deleteIsland(islandUuid);
             cacheHandler.removeIslandLoadedServer(islandUuid);
             plugin.debug("Deleted island " + islandName + " from the cache");
+            Bukkit.getServer().getPluginManager().callEvent(new IslandDeleteEvent(islandUuid));
+            plugin.debug("Called IslandDeleteEvent for island " + islandUuid);
             future.complete(null);
             plugin.debug("deleteIsland completed successfully");
         });
@@ -74,6 +82,8 @@ public class PostIslandHandler {
         worldHandler.loadWorld(islandName).thenRun(() -> {
             cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
             plugin.debug("Loaded island " + islandName);
+            Bukkit.getServer().getPluginManager().callEvent(new IslandLoadEvent(islandUuid));
+            plugin.debug("Called IslandLoadEvent for island " + islandUuid);
             future.complete(null);
             plugin.debug("loadIsland completed successfully");
         });
@@ -89,6 +99,8 @@ public class PostIslandHandler {
         worldHandler.unloadWorld(islandName).thenRun(() -> {
             cacheHandler.removeIslandLoadedServer(islandUuid);
             plugin.debug("Unloaded island " + islandName);
+            Bukkit.getServer().getPluginManager().callEvent(new IslandUnloadEvent(islandUuid));
+            plugin.debug("Called IslandUnloadEvent for island " + islandUuid);
             future.complete(null);
             plugin.debug("unloadIsland completed successfully");
         });
@@ -139,7 +151,7 @@ public class PostIslandHandler {
 
         future.complete(null);
         plugin.debug("lockIsland completed successfully");
-        
+
         return future;
     }
 }
