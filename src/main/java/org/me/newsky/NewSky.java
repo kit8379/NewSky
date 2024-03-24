@@ -9,9 +9,13 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.event.*;
 import org.me.newsky.heartbeat.HeartBeatHandler;
+import org.me.newsky.island.IslandHandler;
 import org.me.newsky.island.PostIslandHandler;
 import org.me.newsky.island.PreIslandHandler;
-import org.me.newsky.redis.RedisBroker;
+import org.me.newsky.network.BasePublishRequest;
+import org.me.newsky.network.BaseSubscribeRequest;
+import org.me.newsky.network.redis.RedisPublishRequest;
+import org.me.newsky.network.redis.RedisSubscribeRequest;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.teleport.TeleportManager;
 import org.me.newsky.world.WorldHandler;
@@ -26,7 +30,8 @@ public class NewSky extends JavaPlugin {
     private CacheHandler cacheHandler;
     private TeleportManager teleportManager;
     private HeartBeatHandler heartBeatHandler;
-    private RedisBroker broker;
+    private BasePublishRequest brokerRequestPublish;
+    private BaseSubscribeRequest brokerRequestSubscribe;
     private NewSkyAPI api;
 
     @Override
@@ -77,20 +82,33 @@ public class NewSky extends JavaPlugin {
             heartBeatHandler = new HeartBeatHandler(this, config, cacheHandler, serverID);
             info("Heart Beat started!");
 
-            info("Starting island handler");
-            PostIslandHandler postIslandHandler = new PostIslandHandler(this, cacheHandler, worldHandler, teleportManager);
+            // 1
+            info("Starting publish request broker class");
+            brokerRequestPublish = new RedisPublishRequest(this, redisHandler, serverID);
+            info("Request broker loaded");
+
+            // 2
+            info("Starting post island handler");
+            PostIslandHandler postIslandHandler = new PostIslandHandler(this, cacheHandler, worldHandler, teleportManager, serverID);
             info("Post island handler loaded");
 
-            info("Starting broker");
-            broker = new RedisBroker(this, config, redisHandler, postIslandHandler);
-            info("Broker loaded");
+
+            // 3
+            info("Starting pre island handler");
+            PreIslandHandler preIslandHandler = new PreIslandHandler(this, cacheHandler, brokerRequestPublish, postIslandHandler, serverID);
+            info("Pre island handler loaded");
+
+            // 4
+            info("Starting subscribe request broker class");
+            brokerRequestSubscribe = new RedisSubscribeRequest(this, redisHandler, serverID, postIslandHandler);
+            info("Request broker loaded");
 
             info("Starting pre island handler");
-            PreIslandHandler preIslandHandler = new PreIslandHandler(this, cacheHandler, broker, postIslandHandler, serverID);
+            IslandHandler islandHandler = new IslandHandler(config, cacheHandler, preIslandHandler);
             info("Pre island handler loaded");
 
             info("Starting API");
-            api = new NewSkyAPI(config, cacheHandler, preIslandHandler);
+            api = new NewSkyAPI(islandHandler);
             info("API loaded");
 
             registerListeners();
@@ -98,8 +116,9 @@ public class NewSky extends JavaPlugin {
 
             databaseHandler.createTables();
             cacheHandler.cacheAllDataToRedis();
-            broker.subscribe();
             heartBeatHandler.start();
+            brokerRequestPublish.subscribeToResponseChannel();
+            brokerRequestSubscribe.subscribeToRequestChannel();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -129,8 +148,9 @@ public class NewSky extends JavaPlugin {
     }
 
     public void shutdown() {
+        brokerRequestSubscribe.unsubscribeFromRequestChannel();
+        brokerRequestPublish.unsubscribeFromResponseChannel();
         heartBeatHandler.stop();
-        broker.unsubscribe();
         redisHandler.disconnect();
         databaseHandler.close();
     }

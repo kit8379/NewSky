@@ -26,7 +26,7 @@ public abstract class BasePvpCommand implements BaseCommand {
         UUID targetUuid = getTargetUuid(sender, args);
 
         // Toggle the island PvP status
-        api.islandAPI.toggleIslandPvp(targetUuid).thenAccept(isPvpEnabled -> {
+        api.toggleIslandPvp(targetUuid).thenAccept(isPvpEnabled -> {
             if (isPvpEnabled) {
                 sender.sendMessage(getIslandPvpEnableSuccessMessage(args));
             } else {

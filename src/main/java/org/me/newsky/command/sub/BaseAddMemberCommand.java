@@ -36,7 +36,7 @@ public abstract class BaseAddMemberCommand implements BaseCommand {
         String role = "member";
 
         // Add the target player to the island
-        api.playerAPI.addMember(islandOwnerId, targetUuid, role).thenRun(() -> {
+        api.addMember(islandOwnerId, targetUuid, role).thenRun(() -> {
             sender.sendMessage(getIslandAddMemberSuccessMessage(args));
         }).exceptionally(ex -> {
             sender.sendMessage("There was an error adding the member");

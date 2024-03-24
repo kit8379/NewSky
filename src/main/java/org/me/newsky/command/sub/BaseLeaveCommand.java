@@ -32,7 +32,7 @@ public abstract class BaseLeaveCommand implements BaseCommand {
         UUID playerUuid = player.getUniqueId();
 
         // Remove the player from the island
-        api.playerAPI.removeMember(playerUuid, playerUuid).thenRun(() -> {
+        api.removeMember(playerUuid, playerUuid).thenRun(() -> {
             sender.sendMessage(config.getPlayerLeaveSuccessMessage());
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {

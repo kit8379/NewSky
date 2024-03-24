@@ -30,7 +30,7 @@ public abstract class BaseLoadCommand implements BaseCommand {
         UUID targetUuid = Bukkit.getOfflinePlayer(args[1]).getUniqueId();
 
         // Load the island
-        api.islandAPI.loadIsland(targetUuid).thenRun(() -> {
+        api.loadIsland(targetUuid).thenRun(() -> {
             sender.sendMessage(config.getIslandLoadSuccessMessage(args[1]));
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {

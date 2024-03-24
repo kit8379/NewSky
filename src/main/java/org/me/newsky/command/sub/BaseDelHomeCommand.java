@@ -42,7 +42,7 @@ public abstract class BaseDelHomeCommand implements BaseCommand {
         }
 
         // Delete the home point
-        api.homeAPI.delHome(targetUuid, homeName).thenRun(() -> sender.sendMessage(getDelHomeSuccessMessage(args))).exceptionally(ex -> {
+        api.delHome(targetUuid, homeName).thenRun(() -> sender.sendMessage(getDelHomeSuccessMessage(args))).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
                 sender.sendMessage(getNoIslandMessage(args));
             } else if (ex.getCause() instanceof HomeDoesNotExistException) {
@@ -60,7 +60,7 @@ public abstract class BaseDelHomeCommand implements BaseCommand {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull String[] args) {
         if (args.length == getTargetHomeArgIndex() + 1) {
             UUID targetUuid = getTargetUuid(sender, args);
-            CompletableFuture<Set<String>> homeNamesFuture = api.homeAPI.getHomeNames(targetUuid);
+            CompletableFuture<Set<String>> homeNamesFuture = api.getHomeNames(targetUuid);
             try {
                 Set<String> homeNames = homeNamesFuture.get();
                 return homeNames.stream().filter(name -> name.toLowerCase().startsWith(args[getTargetHomeArgIndex()].toLowerCase())).collect(Collectors.toList());

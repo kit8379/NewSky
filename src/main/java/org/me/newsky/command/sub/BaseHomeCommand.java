@@ -41,7 +41,7 @@ public abstract class BaseHomeCommand implements BaseCommand {
 
         // Teleport the player to the home location
         String homeName = args.length > getTargetHomeArgIndex() ? args[getTargetHomeArgIndex()] : "default";
-        api.homeAPI.home(targetUuid, homeName).thenRun(() -> {
+        api.home(targetUuid, homeName).thenRun(() -> {
             sender.sendMessage(getIslandHomeSuccessMessage(homeName));
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
@@ -62,7 +62,7 @@ public abstract class BaseHomeCommand implements BaseCommand {
         if (args.length == getTargetHomeArgIndex() + 1 && sender instanceof Player) {
             UUID targetUuid = ((Player) sender).getUniqueId();
             try {
-                Set<String> homeNames = api.homeAPI.getHomeNames(targetUuid).get();
+                Set<String> homeNames = api.getHomeNames(targetUuid).get();
                 return homeNames.stream().filter(name -> name.toLowerCase().startsWith(args[getTargetHomeArgIndex()].toLowerCase())).collect(Collectors.toList());
             } catch (Exception e) {
                 e.printStackTrace();

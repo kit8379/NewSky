@@ -28,7 +28,7 @@ public abstract class BaseCreateCommand implements BaseCommand {
         UUID targetUuid = getTargetUuid(sender, args);
 
         // Create the island
-        api.islandAPI.createIsland(targetUuid).thenRun(() -> {
+        api.createIsland(targetUuid).thenRun(() -> {
             sender.sendMessage(getIslandCreateSuccessMessage(args));
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandAlreadyExistException) {

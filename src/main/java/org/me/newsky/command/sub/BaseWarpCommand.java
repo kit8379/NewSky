@@ -40,7 +40,7 @@ public abstract class BaseWarpCommand implements BaseCommand {
         UUID targetUuid = getTargetUuid(sender, args);
 
         String warpName = args.length > getTargetWarpArgIndex() ? args[getTargetWarpArgIndex()] : "default";
-        api.warpAPI.warp(targetUuid, warpName).thenRun(() -> {
+        api.warp(targetUuid, warpName).thenRun(() -> {
             sender.sendMessage(config.getWarpSuccessMessage(warpName));
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
@@ -61,7 +61,7 @@ public abstract class BaseWarpCommand implements BaseCommand {
         if (args.length == getTargetWarpArgIndex() + 1 && sender instanceof Player) {
             UUID targetUuid = ((Player) sender).getUniqueId();
             try {
-                Set<String> warpNames = api.warpAPI.getWarpNames(targetUuid).get();
+                Set<String> warpNames = api.getWarpNames(targetUuid).get();
                 return warpNames.stream().filter(name -> name.toLowerCase().startsWith(args[getTargetWarpArgIndex()].toLowerCase())).collect(Collectors.toList());
             } catch (Exception e) {
                 e.printStackTrace();

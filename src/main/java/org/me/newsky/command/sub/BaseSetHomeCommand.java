@@ -37,7 +37,7 @@ public abstract class BaseSetHomeCommand implements BaseCommand {
         String homeName = args.length > getTargetHomeArgIndex() ? args[getTargetHomeArgIndex()] : "default";
         Location loc = player.getLocation();
 
-        api.homeAPI.setHome(targetUuid, homeName, loc).thenRun(() -> {
+        api.setHome(targetUuid, homeName, loc).thenRun(() -> {
             sender.sendMessage(getSetHomeSuccessMessage(args, homeName));
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof LocationNotInIslandException) {

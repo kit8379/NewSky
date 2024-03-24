@@ -37,7 +37,7 @@ public abstract class BaseSetWarpCommand implements BaseCommand {
         String warpName = args.length > getTargetWarpArgIndex() ? args[getTargetWarpArgIndex()] : "default";
         Location loc = player.getLocation();
 
-        api.warpAPI.setWarp(targetUuid, warpName, loc).thenRun(() -> {
+        api.setWarp(targetUuid, warpName, loc).thenRun(() -> {
             sender.sendMessage(getSetWarpSuccessMessage(args, warpName));
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof LocationNotInIslandException) {

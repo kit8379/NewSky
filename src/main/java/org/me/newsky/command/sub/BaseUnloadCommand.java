@@ -30,7 +30,7 @@ public abstract class BaseUnloadCommand implements BaseCommand {
         UUID targetUuid = Bukkit.getOfflinePlayer(args[1]).getUniqueId();
 
         // Unload the island
-        api.islandAPI.unloadIsland(targetUuid).thenRun(() -> {
+        api.unloadIsland(targetUuid).thenRun(() -> {
             sender.sendMessage(config.getIslandUnloadSuccessMessage(args[1]));
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {

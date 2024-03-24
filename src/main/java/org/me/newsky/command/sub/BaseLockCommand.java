@@ -31,7 +31,7 @@ public abstract class BaseLockCommand implements BaseCommand {
         UUID targetUuid = player.getUniqueId();
 
         // Toggle the lock status of the island
-        api.islandAPI.toggleIslandLock(targetUuid).thenAccept(isLocked -> {
+        api.toggleIslandLock(targetUuid).thenAccept(isLocked -> {
             if (isLocked) {
                 sender.sendMessage(getIslandLockSuccessMessage(args));
             } else {

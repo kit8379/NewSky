@@ -5,74 +5,100 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.teleport.TeleportManager;
 import org.me.newsky.util.IslandUUIDUtils;
 import org.me.newsky.world.WorldHandler;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
+/**
+ * Handles post-island operations such as creating, deleting, loading, unloading, and locking islands.
+ * This class is responsible for performing these operations on the server where the actual operation is to be performed.
+ */
 public class PostIslandHandler {
 
     private final NewSky plugin;
-    private final ConfigHandler config;
     private final CacheHandler cacheHandler;
     private final WorldHandler worldHandler;
     private final TeleportManager teleportManager;
+    private final String serverID;
 
-    public PostIslandHandler(NewSky plugin, ConfigHandler configHandler, CacheHandler cacheHandler, WorldHandler worldHandler, TeleportManager teleportManager) {
+    public PostIslandHandler(NewSky plugin, CacheHandler cacheHandler, WorldHandler worldHandler, TeleportManager teleportManager, String serverID) {
         this.plugin = plugin;
-        this.config = configHandler;
         this.cacheHandler = cacheHandler;
         this.worldHandler = worldHandler;
         this.teleportManager = teleportManager;
+        this.serverID = serverID;
     }
 
-    public void createIsland(UUID islandUuid, UUID playerUuid, String spawnLocation) {
+    public CompletableFuture<Void> createIsland(UUID islandUuid, UUID playerUuid, String spawnLocation) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
         String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
 
         worldHandler.createWorld(islandName).thenRun(() -> {
             cacheHandler.createIsland(islandUuid);
             cacheHandler.updateIslandPlayer(islandUuid, playerUuid, "owner");
             cacheHandler.updateHomePoint(islandUuid, playerUuid, "default", spawnLocation);
-            cacheHandler.updateIslandLoadedServer(islandUuid, config.getServerName());
+            cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
             plugin.debug("Created island " + islandUuid + " in the cache");
+            future.complete(null);
         });
+
+        return future;
     }
 
-    public void deleteIsland(UUID islandUuid) {
+    public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
         String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
 
         worldHandler.deleteWorld(islandName).thenRun(() -> {
             cacheHandler.deleteIsland(islandUuid);
             cacheHandler.removeIslandLoadedServer(islandUuid);
             plugin.debug("Deleted island " + islandName + " from the cache");
+            future.complete(null);
         });
+
+        return future;
     }
 
-    public void loadIsland(UUID islandUuid) {
+    public CompletableFuture<Void> loadIsland(UUID islandUuid) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
         String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
 
         worldHandler.loadWorld(islandName).thenRun(() -> {
-            cacheHandler.updateIslandLoadedServer(islandUuid, config.getServerName());
+            cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
             plugin.debug("Loaded island " + islandName);
+            future.complete(null);
         });
+
+        return future;
     }
 
-    public void unloadIsland(UUID islandUuid) {
+    public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
         String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
 
         worldHandler.unloadWorld(islandName).thenRun(() -> {
             cacheHandler.removeIslandLoadedServer(islandUuid);
             plugin.debug("Unloaded island " + islandName);
+            future.complete(null);
         });
+
+        return future;
     }
 
-    public void teleportIsland(UUID islandUuid, UUID playerUuid, String teleportLocation) {
+    public CompletableFuture<Void> teleportToIsland(UUID islandUuid, UUID playerUuid, String teleportLocation) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
         String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
 
         worldHandler.loadWorld(islandName).thenRun(() -> {
-            cacheHandler.updateIslandLoadedServer(islandUuid, config.getServerName());
+            cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
 
             String[] parts = teleportLocation.split(",");
             double x = Double.parseDouble(parts[0]);
@@ -88,14 +114,21 @@ public class PostIslandHandler {
                     player.teleport(location);
                 } else {
                     teleportManager.addPendingTeleport(playerUuid, location);
-                    // TODO: Send a broker message to send the player to this server
                 }
+                future.complete(null);
             });
         });
+
+        return future;
     }
 
-    public void lockIsland(UUID islandUuid) {
+    public CompletableFuture<Void> lockIsland(UUID islandUuid) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
         String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
         worldHandler.lockWorld(islandName);
+        future.complete(null);
+
+        return future;
     }
 }

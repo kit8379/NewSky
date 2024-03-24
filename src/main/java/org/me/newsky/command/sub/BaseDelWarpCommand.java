@@ -32,7 +32,7 @@ public abstract class BaseDelWarpCommand implements BaseCommand {
         UUID targetUuid = getTargetUuid(sender, args);
         String warpName = args[getTargetWarpArgIndex()];
 
-        api.warpAPI.delWarp(targetUuid, warpName).thenRun(() -> sender.sendMessage(getDelWarpSuccessMessage(args))).exceptionally(ex -> {
+        api.delWarp(targetUuid, warpName).thenRun(() -> sender.sendMessage(getDelWarpSuccessMessage(args))).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
                 sender.sendMessage(getNoIslandMessage(args));
             } else if (ex.getCause() instanceof WarpDoesNotExistException) {
@@ -50,7 +50,7 @@ public abstract class BaseDelWarpCommand implements BaseCommand {
     public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull String[] args) {
         if (args.length == getTargetWarpArgIndex() + 1) {
             UUID targetUuid = getTargetUuid(sender, args);
-            CompletableFuture<Set<String>> warpNamesFuture = api.warpAPI.getWarpNames(targetUuid);
+            CompletableFuture<Set<String>> warpNamesFuture = api.getWarpNames(targetUuid);
             try {
                 Set<String> warpNames = warpNamesFuture.get();
                 return warpNames.stream().filter(name -> name.toLowerCase().startsWith(args[getTargetWarpArgIndex()].toLowerCase())).collect(Collectors.toList());

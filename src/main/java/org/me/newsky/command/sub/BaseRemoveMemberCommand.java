@@ -33,7 +33,7 @@ public abstract class BaseRemoveMemberCommand implements BaseCommand {
         UUID targetUuid = targetRemove.getUniqueId();
 
         // Remove the target player from the island
-        api.playerAPI.removeMember(islandOwnerId, targetUuid).thenRun(() -> {
+        api.removeMember(islandOwnerId, targetUuid).thenRun(() -> {
             sender.sendMessage(getIslandRemoveMemberSuccessMessage(args));
         }).exceptionally(ex -> {
             sender.sendMessage("There was an error removing the member");

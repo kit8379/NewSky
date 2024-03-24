@@ -34,7 +34,7 @@ public abstract class BaseDeleteCommand implements BaseCommand {
         if (commandName.equals(confirmations.getIfPresent(targetUuid))) {
             confirmations.invalidate(targetUuid);
             // Delete the island
-            api.islandAPI.deleteIsland(targetUuid).thenRun(() -> {
+            api.deleteIsland(targetUuid).thenRun(() -> {
                 sender.sendMessage(getIslandDeleteSuccessMessage(args));
             }).exceptionally(ex -> {
                 if (ex.getCause() instanceof IslandDoesNotExistException) {

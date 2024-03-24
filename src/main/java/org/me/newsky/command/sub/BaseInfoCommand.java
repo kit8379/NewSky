@@ -18,7 +18,6 @@ public abstract class BaseInfoCommand implements BaseCommand {
     }
 
     public boolean execute(CommandSender sender, String[] args) {
-
         return true;
     }
 
