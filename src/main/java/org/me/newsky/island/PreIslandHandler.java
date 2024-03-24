@@ -161,16 +161,28 @@ public class PreIslandHandler {
     }
 
 
+    /**
+     * Get a random server from the list of active servers
+     *
+     * @return A random server name
+     */
     private String getRandomServer() {
         Map<String, String> activeServers = cacheHandler.getActiveServers();
         if (activeServers.isEmpty()) {
-            return null; // Or handle this case appropriately
+            return null;
         }
         String[] serverNames = activeServers.keySet().toArray(new String[0]);
         int randomIndex = new Random().nextInt(serverNames.length);
         return serverNames[randomIndex];
     }
 
+
+    /**
+     * Get the server that is currently loaded with the specified island
+     *
+     * @param islandUuid The UUID of the island
+     * @return The server name that is currently loaded with the island
+     */
     private String getServerByIsland(String islandUuid) {
         String serverName = cacheHandler.getIslandLoadedServer(UUID.fromString(islandUuid));
         if (serverName == null || serverName.isEmpty()) {
