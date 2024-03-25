@@ -2,10 +2,13 @@ name: NewSky
 main: org.me.newsky.NewSky
 version: '${project.version}'
 api-version: 1.20
-authors: [ TonyPak ]
+folia-supported: false
+authors: [ kit8379 ]
 depend:
-  - VoidGen
-  - Multiverse-Core
+  - 'SlimeWorldManager'
+softdepend:
+  - 'Vault'
+  - 'PlaceholderAPI'
 libraries:
   - 'com.mysql:mysql-connector-j:8.3.0'
   - 'redis.clients:jedis:5.1.0'

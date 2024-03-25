@@ -1,4 +1,4 @@
-package org.me.newsky.event;
+package org.me.newsky.listener;
 
 import org.bukkit.World;
 import org.bukkit.event.EventHandler;

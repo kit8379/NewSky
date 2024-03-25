@@ -64,7 +64,7 @@ public class RedisPublishRequest extends BasePublishRequest {
         redisHandler.publish("newsky-request-channel", requestMessage.toString());
         plugin.debug("Sent request to " + targetServer + " for " + operation + " with request ID " + requestID);
 
-        // Set a timeout of 30 seconds
+        // Set a future timeout of 30 seconds
         future.orTimeout(30, TimeUnit.SECONDS).whenComplete((result, error) -> {
             if (error instanceof TimeoutException) {
                 plugin.debug("Request timed out for request ID " + requestID);

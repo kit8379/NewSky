@@ -4,10 +4,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
-import org.me.newsky.api.event.IslandCreateEvent;
-import org.me.newsky.api.event.IslandDeleteEvent;
-import org.me.newsky.api.event.IslandLoadEvent;
-import org.me.newsky.api.event.IslandUnloadEvent;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.teleport.TeleportManager;
 import org.me.newsky.util.IslandUUIDUtils;
@@ -47,8 +43,6 @@ public class PostIslandHandler {
             cacheHandler.updateHomePoint(islandUuid, playerUuid, "default", spawnLocation);
             cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
             plugin.debug("Created island " + islandUuid + " in the cache");
-            Bukkit.getServer().getPluginManager().callEvent(new IslandCreateEvent(islandUuid, playerUuid));
-            plugin.debug("Called IslandCreateEvent for island " + islandUuid);
             future.complete(null);
             plugin.debug("createIsland completed successfully");
         });
@@ -65,8 +59,6 @@ public class PostIslandHandler {
             cacheHandler.deleteIsland(islandUuid);
             cacheHandler.removeIslandLoadedServer(islandUuid);
             plugin.debug("Deleted island " + islandName + " from the cache");
-            Bukkit.getServer().getPluginManager().callEvent(new IslandDeleteEvent(islandUuid));
-            plugin.debug("Called IslandDeleteEvent for island " + islandUuid);
             future.complete(null);
             plugin.debug("deleteIsland completed successfully");
         });
@@ -82,8 +74,6 @@ public class PostIslandHandler {
         worldHandler.loadWorld(islandName).thenRun(() -> {
             cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
             plugin.debug("Loaded island " + islandName);
-            Bukkit.getServer().getPluginManager().callEvent(new IslandLoadEvent(islandUuid));
-            plugin.debug("Called IslandLoadEvent for island " + islandUuid);
             future.complete(null);
             plugin.debug("loadIsland completed successfully");
         });
@@ -94,13 +84,12 @@ public class PostIslandHandler {
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
+
         String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
 
         worldHandler.unloadWorld(islandName).thenRun(() -> {
             cacheHandler.removeIslandLoadedServer(islandUuid);
             plugin.debug("Unloaded island " + islandName);
-            Bukkit.getServer().getPluginManager().callEvent(new IslandUnloadEvent(islandUuid));
-            plugin.debug("Called IslandUnloadEvent for island " + islandUuid);
             future.complete(null);
             plugin.debug("unloadIsland completed successfully");
         });
@@ -113,10 +102,7 @@ public class PostIslandHandler {
 
         String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
 
-        worldHandler.loadWorld(islandName).thenRun(() -> {
-            cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
-            plugin.debug("Cached island " + islandName + " as loaded on this server");
-
+        loadIsland(islandUuid).thenRun(() -> {
             String[] parts = teleportLocation.split(",");
             double x = Double.parseDouble(parts[0]);
             double y = Double.parseDouble(parts[1]);
@@ -124,20 +110,17 @@ public class PostIslandHandler {
             float yaw = Float.parseFloat(parts[3]);
             float pitch = Float.parseFloat(parts[4]);
 
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                Location location = new Location(Bukkit.getWorld(islandName), x, y, z, yaw, pitch);
-                Player player = Bukkit.getPlayer(playerUuid);
-                if (player != null) {
-                    player.teleport(location);
-                    plugin.debug("Player " + playerUuid + " is online, teleporting to " + location);
-                } else {
-                    teleportManager.addPendingTeleport(playerUuid, location);
-                    plugin.debug("Player " + playerUuid + " is not online, adding pending teleport to " + location);
-                }
-
-                future.complete(null);
-                plugin.debug("teleportToIsland completed successfully");
-            });
+            Location location = new Location(Bukkit.getWorld(islandName), x, y, z, yaw, pitch);
+            Player player = Bukkit.getPlayer(playerUuid);
+            if (player != null) {
+                player.teleportAsync(location);
+                plugin.debug("Player " + playerUuid + " is online, teleporting to " + location);
+            } else {
+                teleportManager.addPendingTeleport(playerUuid, location);
+                plugin.debug("Player " + playerUuid + " is not online, adding pending teleport to " + location);
+            }
+            future.complete(null);
+            plugin.debug("teleportToIsland completed successfully");
         });
 
         return future;

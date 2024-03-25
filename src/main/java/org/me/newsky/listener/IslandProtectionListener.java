@@ -1,4 +1,4 @@
-package org.me.newsky.event;
+package org.me.newsky.listener;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;

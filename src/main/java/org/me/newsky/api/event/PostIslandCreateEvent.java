@@ -8,24 +8,26 @@ import java.util.UUID;
 
 
 /**
- * Event called when an island is deleted
- * Only called in the server that the island is deleted on
+ * Event called when an island is created
+ * Only called in the server that the island is created on
  */
-public class IslandUnloadEvent extends Event {
+public class PostIslandCreateEvent extends Event {
 
     private static final HandlerList handlers = new HandlerList();
     private final UUID islandUuid;
+    private final UUID playerUuid;
 
 
     /**
-     * Create a new IslandUnloadEvent
+     * Create a new PostIslandCreateEvent
      *
-     * @param islandUuid The UUID of the island that was unloaded
+     * @param islandUuid The UUID of the island that was created
+     * @param playerUuid The UUID of the player that the island was created for
      */
-    public IslandUnloadEvent(UUID islandUuid) {
+    public PostIslandCreateEvent(UUID islandUuid, UUID playerUuid) {
         this.islandUuid = islandUuid;
+        this.playerUuid = playerUuid;
     }
-
 
     /**
      * Get the HandlerList for this event
@@ -39,13 +41,24 @@ public class IslandUnloadEvent extends Event {
 
 
     /**
-     * Get the UUID of the island that was unloaded
+     * Get the UUID of the island that was created
      *
      * @return The UUID of the island
      */
     @SuppressWarnings("unused")
     public UUID getIslandUuid() {
         return islandUuid;
+    }
+
+
+    /**
+     * Get the UUID of the player that the island was created for
+     *
+     * @return The UUID of the player
+     */
+    @SuppressWarnings("unused")
+    public UUID getPlayerUuid() {
+        return playerUuid;
     }
 
 

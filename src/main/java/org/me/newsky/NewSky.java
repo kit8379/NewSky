@@ -7,12 +7,11 @@ import org.me.newsky.command.AdminCommandExecutor;
 import org.me.newsky.command.PlayerCommandExecutor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
-import org.me.newsky.event.*;
+import org.me.newsky.listener.*;
 import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.island.IslandHandler;
 import org.me.newsky.island.PostIslandHandler;
 import org.me.newsky.island.PreIslandHandler;
-import org.me.newsky.module.NewSkyModule;
 import org.me.newsky.network.BasePublishRequest;
 import org.me.newsky.network.BaseSubscribeRequest;
 import org.me.newsky.network.redis.RedisPublishRequest;
@@ -21,10 +20,7 @@ import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.teleport.TeleportManager;
 import org.me.newsky.world.WorldHandler;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
-import java.util.ServiceLoader;
 
 public class NewSky extends JavaPlugin {
 
@@ -37,7 +33,6 @@ public class NewSky extends JavaPlugin {
     private BasePublishRequest brokerRequestPublish;
     private BaseSubscribeRequest brokerRequestSubscribe;
     private NewSkyAPI api;
-    private List<NewSkyModule> modules = new ArrayList<>();
 
     @Override
     public void onEnable() {
@@ -143,21 +138,6 @@ public class NewSky extends JavaPlugin {
     private void registerCommands() {
         Objects.requireNonNull(this.getCommand("islandadmin")).setExecutor(new AdminCommandExecutor(this, config, api));
         Objects.requireNonNull(this.getCommand("island")).setExecutor(new PlayerCommandExecutor(config, api));
-    }
-
-    private void loadModules() {
-        ServiceLoader<NewSkyModule> loader = ServiceLoader.load(NewSkyModule.class);
-        for (NewSkyModule module : loader) {
-            module.onEnable(this);
-            modules.add(module);
-        }
-    }
-
-    private void unloadModules() {
-        for (NewSkyModule module : modules) {
-            module.onDisable();
-        }
-        modules.clear();
     }
 
     @Override

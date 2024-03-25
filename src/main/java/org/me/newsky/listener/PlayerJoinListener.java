@@ -1,4 +1,4 @@
-package org.me.newsky.event;
+package org.me.newsky.listener;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -21,7 +21,7 @@ public class PlayerJoinListener implements Listener {
         this.teleportManager = teleportManager;
     }
 
-    @EventHandler(priority= EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
         // Check if the player has a pending teleport
         Player player = event.getPlayer();
@@ -29,8 +29,9 @@ public class PlayerJoinListener implements Listener {
         Location pendingLocation = teleportManager.getPendingTeleport(playerUuid);
         plugin.debug("Pending location for " + playerUuid + " is " + pendingLocation);
         if (pendingLocation != null) {
-            player.teleport(pendingLocation);
+            player.teleportAsync(pendingLocation);
             teleportManager.removePendingTeleport(playerUuid);
+            plugin.debug("Removed pending teleport for " + playerUuid);
         }
     }
 }

@@ -8,21 +8,21 @@ import java.util.UUID;
 
 
 /**
- * Event called when an island is loaded
- * Only called in the server that the island is loaded on
+ * Event called when an island is going to be loaded
+ * Only called in the server that the island is unloaded on
  */
-public class IslandLoadEvent extends Event {
+public class PreIslandUnloadEvent extends Event {
 
     private static final HandlerList handlers = new HandlerList();
     private final UUID islandUuid;
 
 
     /**
-     * Create a new IslandLoadEvent
+     * Create a new PostIslandUnloadEvent
      *
-     * @param islandUuid The UUID of the island that was loaded
+     * @param islandUuid The UUID of the island that was unloaded
      */
-    public IslandLoadEvent(UUID islandUuid) {
+    public PreIslandUnloadEvent(UUID islandUuid) {
         this.islandUuid = islandUuid;
     }
 
@@ -39,7 +39,7 @@ public class IslandLoadEvent extends Event {
 
 
     /**
-     * Get the UUID of the island that was loaded
+     * Get the UUID of the island that was unloaded
      *
      * @return The UUID of the island
      */
