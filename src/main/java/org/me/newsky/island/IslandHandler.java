@@ -32,86 +32,64 @@ public class IslandHandler {
      */
     public CompletableFuture<Void> createIsland(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            String lockKey = playerUuid.toString();
-            if (!cacheHandler.acquireLock(lockKey, 30)) {
-                throw new IslandOperationRunningException();
+            return cacheHandler.getIslandUuid(playerUuid);
+        }).thenCompose(islandUuidOpt -> {
+
+            // Check if the player already has an island
+            if (islandUuidOpt.isPresent()) {
+                throw new IslandAlreadyExistException();
             }
-            return lockKey;
-        }).thenCompose(lockKey -> {
-            try {
-                Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(playerUuid);
-                if (islandUuidOpt.isPresent()) {
-                    throw new IslandAlreadyExistException();
-                }
-                UUID islandUuid = UUID.randomUUID();
-                String spawnLocation = config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch();
-                return preIslandHandler.createIsland(islandUuid, playerUuid, spawnLocation);
-            } finally {
-                cacheHandler.releaseLock(lockKey);
-            }
+
+            // Create a new island using a random UUID
+            UUID islandUuid = UUID.randomUUID();
+            String spawnLocation = config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch();
+
+            return preIslandHandler.createIsland(islandUuid, playerUuid, spawnLocation);
         });
     }
 
     public CompletableFuture<Void> deleteIsland(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            String lockKey = playerUuid.toString();
-            if (!cacheHandler.acquireLock(lockKey, 30)) {
-                throw new IslandOperationRunningException();
+            return cacheHandler.getIslandUuid(playerUuid);
+        }).thenCompose(islandUuidOpt -> {
+
+            // Check if the player has an island
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
             }
-            return lockKey;
-        }).thenCompose(lockKey -> {
-            try {
-                Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(playerUuid);
-                if (islandUuidOpt.isEmpty()) {
-                    throw new IslandDoesNotExistException();
-                }
-                UUID islandUuid = islandUuidOpt.get();
-                return preIslandHandler.deleteIsland(islandUuid);
-            } finally {
-                cacheHandler.releaseLock(lockKey);
-            }
+            UUID islandUuid = islandUuidOpt.get();
+
+            return preIslandHandler.deleteIsland(islandUuid);
         });
     }
 
     public CompletableFuture<Void> loadIsland(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            String lockKey = playerUuid.toString();
-            if (!cacheHandler.acquireLock(lockKey, 30)) {
-                throw new IslandOperationRunningException();
+            return cacheHandler.getIslandUuid(playerUuid);
+        }).thenCompose(islandUuidOpt -> {
+
+            // Check if the player has an island
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
             }
-            return lockKey;
-        }).thenCompose(lockKey -> {
-            try {
-                Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(playerUuid);
-                if (islandUuidOpt.isEmpty()) {
-                    throw new IslandDoesNotExistException();
-                }
-                UUID islandUuid = islandUuidOpt.get();
-                return preIslandHandler.loadIsland(islandUuid);
-            } finally {
-                cacheHandler.releaseLock(lockKey);
-            }
+            UUID islandUuid = islandUuidOpt.get();
+
+            return preIslandHandler.loadIsland(islandUuid);
         });
     }
 
     public CompletableFuture<Void> unloadIsland(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            String lockKey = playerUuid.toString();
-            if (!cacheHandler.acquireLock(lockKey, 30)) {
-                throw new IslandOperationRunningException();
+            return cacheHandler.getIslandUuid(playerUuid);
+        }).thenCompose(islandUuidOpt -> {
+
+            // Check if the player has an island
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
             }
-            return lockKey;
-        }).thenCompose(lockKey -> {
-            try {
-                Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(playerUuid);
-                if (islandUuidOpt.isEmpty()) {
-                    throw new IslandDoesNotExistException();
-                }
-                UUID islandUuid = islandUuidOpt.get();
-                return preIslandHandler.unloadIsland(islandUuid);
-            } finally {
-                cacheHandler.releaseLock(lockKey);
-            }
+            UUID islandUuid = islandUuidOpt.get();
+
+            return preIslandHandler.unloadIsland(islandUuid);
         });
     }
 
