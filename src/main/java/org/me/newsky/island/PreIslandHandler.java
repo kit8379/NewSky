@@ -61,7 +61,7 @@ public class PreIslandHandler {
 
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-        String targetServer = getServerByIsland(islandUuid.toString());
+        String targetServer = getServerByIsland(islandUuid);
         if (targetServer == null) {
             future.completeExceptionally(new NoActiveServerException());
         } else {
@@ -82,7 +82,7 @@ public class PreIslandHandler {
 
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-        String targetServer = getServerByIsland(islandUuid.toString());
+        String targetServer = getServerByIsland(islandUuid);
         if (targetServer == null) {
             future.completeExceptionally(new NoActiveServerException());
         } else {
@@ -103,7 +103,7 @@ public class PreIslandHandler {
 
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-        String targetServer = getServerByIsland(islandUuid.toString());
+        String targetServer = getServerByIsland(islandUuid);
         if (targetServer == null) {
             future.completeExceptionally(new NoActiveServerException());
         } else {
@@ -124,7 +124,7 @@ public class PreIslandHandler {
 
     public CompletableFuture<Void> lockIsland(UUID islandUuid) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-        String targetServer = getServerByIsland(islandUuid.toString());
+        String targetServer = getServerByIsland(islandUuid);
         if (targetServer == null) {
             future.completeExceptionally(new NoActiveServerException());
         } else {
@@ -146,7 +146,7 @@ public class PreIslandHandler {
 
     public CompletableFuture<Void> teleportToIsland(UUID playerUuid, UUID islandUuid, String teleportLocation) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-        String targetServer = getServerByIsland(islandUuid.toString());
+        String targetServer = getServerByIsland(islandUuid);
         if (targetServer == null) {
             future.completeExceptionally(new NoActiveServerException());
         } else {
@@ -189,8 +189,8 @@ public class PreIslandHandler {
      * @param islandUuid The UUID of the island
      * @return The server name that is currently loaded with the island
      */
-    private String getServerByIsland(String islandUuid) {
-        String serverName = cacheHandler.getIslandLoadedServer(UUID.fromString(islandUuid));
+    private String getServerByIsland(UUID islandUuid) {
+        String serverName = cacheHandler.getIslandLoadedServer(islandUuid);
         if (serverName == null || serverName.isEmpty()) {
             return getRandomServer();
         }

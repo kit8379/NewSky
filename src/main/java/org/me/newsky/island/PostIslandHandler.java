@@ -86,7 +86,6 @@ public class PostIslandHandler {
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-
         String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
 
         worldHandler.unloadWorld(islandName).thenRun(() -> {

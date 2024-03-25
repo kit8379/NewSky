@@ -22,12 +22,9 @@ public class IslandPvPListener implements Listener {
 
     @EventHandler
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-        if (!(event.getEntity() instanceof Player) || !(event.getDamager() instanceof Player)) {
+        if (!(event.getEntity() instanceof Player victim) || !(event.getDamager() instanceof Player attacker)) {
             return;
         }
-
-        Player attacker = (Player) event.getDamager();
-        Player victim = (Player) event.getEntity();
 
         if (!victim.getWorld().getName().startsWith("island-")) {
             return;
