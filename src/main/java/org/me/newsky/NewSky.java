@@ -7,11 +7,11 @@ import org.me.newsky.command.AdminCommandExecutor;
 import org.me.newsky.command.PlayerCommandExecutor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
-import org.me.newsky.listener.*;
 import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.island.IslandHandler;
 import org.me.newsky.island.PostIslandHandler;
 import org.me.newsky.island.PreIslandHandler;
+import org.me.newsky.listener.*;
 import org.me.newsky.network.BasePublishRequest;
 import org.me.newsky.network.BaseSubscribeRequest;
 import org.me.newsky.network.redis.RedisPublishRequest;
@@ -106,6 +106,10 @@ public class NewSky extends JavaPlugin {
             info("Starting pre island handler");
             IslandHandler islandHandler = new IslandHandler(config, cacheHandler, preIslandHandler);
             info("Pre island handler loaded");
+
+            info("Starting plugin messaging");
+            getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
+            info("Plugin messaging loaded");
 
             info("Starting API");
             api = new NewSkyAPI(islandHandler);

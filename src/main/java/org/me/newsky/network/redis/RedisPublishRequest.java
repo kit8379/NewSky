@@ -26,9 +26,11 @@ public class RedisPublishRequest extends BasePublishRequest {
                 String[] parts = message.split(":");
                 String messageType = parts[0];
                 String requestID = parts[1];
+                String sourceServer = parts[2];
+                String targetServer = parts[3];
 
-                if (messageType.equals("response")) {
-                    plugin.debug("Received success response for request ID " + requestID);
+                if (messageType.equals("response") && targetServer.equals(serverID)) {
+                    plugin.debug("Received success response for request ID " + requestID + " from " + sourceServer);
                     CompletableFuture<Void> future = pendingRequests.get(requestID);
                     if (future != null) {
                         future.complete(null);

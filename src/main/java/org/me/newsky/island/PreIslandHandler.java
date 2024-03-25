@@ -1,10 +1,15 @@
 package org.me.newsky.island;
 
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.exceptions.NoActiveServerException;
 import org.me.newsky.network.BasePublishRequest;
 
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
@@ -152,6 +157,7 @@ public class PreIslandHandler {
                 });
             } else {
                 publishRequest.sendRequest(targetServer, "teleport", islandUuid.toString(), playerUuid.toString(), teleportLocation).thenAccept(result -> {
+                    connectToServer(playerUuid, targetServer);
                     future.complete(null);
                     plugin.debug("Teleported player " + playerUuid + " to island " + islandUuid + " on server " + targetServer);
                 });
@@ -189,5 +195,27 @@ public class PreIslandHandler {
             return getRandomServer();
         }
         return serverName;
+    }
+
+
+    /**
+     * Connect a player to a server
+     *
+     * @param playerUuid The UUID of the player
+     * @param serverName The name of the server
+     */
+    private void connectToServer(UUID playerUuid, String serverName) {
+        Player player = Bukkit.getPlayer(playerUuid);
+        if (player != null) {
+            ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
+            DataOutputStream out = new DataOutputStream(byteArray);
+            try {
+                out.writeUTF("Connect");
+                out.writeUTF(serverName);
+                player.sendPluginMessage(plugin, "BungeeCord", byteArray.toByteArray());
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

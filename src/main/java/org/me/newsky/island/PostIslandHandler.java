@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
+import org.me.newsky.api.event.*;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.teleport.TeleportManager;
 import org.me.newsky.util.IslandUUIDUtils;
@@ -119,6 +120,7 @@ public class PostIslandHandler {
                 teleportManager.addPendingTeleport(playerUuid, location);
                 plugin.debug("Player " + playerUuid + " is not online, adding pending teleport to " + location);
             }
+
             future.complete(null);
             plugin.debug("teleportToIsland completed successfully");
         });

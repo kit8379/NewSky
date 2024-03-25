@@ -32,7 +32,7 @@ public class RedisSubscribeRequest extends BaseSubscribeRequest {
                 if (messageType.equals("request") && targetServer.equals(serverID)) {
                     plugin.debug("Received request from " + sourceServer + " for " + operation + " with request ID " + requestID);
                     processRequest(operation, args).thenRun(() -> {
-                        String responseMessage = String.join(":", "response", requestID);
+                        String responseMessage = String.join(":", "response", requestID, serverID, sourceServer);
                         redisHandler.publish("newsky-response-channel", responseMessage);
                         plugin.debug("Sent success response back to " + sourceServer + " for request ID " + requestID);
                     });
