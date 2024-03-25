@@ -44,7 +44,11 @@ public class IslandHandler {
             UUID islandUuid = UUID.randomUUID();
             String spawnLocation = config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch();
 
-            return preIslandHandler.createIsland(islandUuid, playerUuid, spawnLocation);
+            cacheHandler.createIsland(islandUuid);
+            cacheHandler.updateIslandPlayer(islandUuid, playerUuid, "owner");
+            cacheHandler.updateHomePoint(islandUuid, playerUuid, "default", spawnLocation);
+
+            return preIslandHandler.createIsland(islandUuid);
         });
     }
 
@@ -58,6 +62,8 @@ public class IslandHandler {
                 throw new IslandDoesNotExistException();
             }
             UUID islandUuid = islandUuidOpt.get();
+
+            cacheHandler.deleteIsland(islandUuid);
 
             return preIslandHandler.deleteIsland(islandUuid);
         });

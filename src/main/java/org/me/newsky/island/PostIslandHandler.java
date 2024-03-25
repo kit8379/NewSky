@@ -34,17 +34,13 @@ public class PostIslandHandler {
         this.serverID = serverID;
     }
 
-    public CompletableFuture<Void> createIsland(UUID islandUuid, UUID playerUuid, String spawnLocation) {
+    public CompletableFuture<Void> createIsland(UUID islandUuid) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
         String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
 
         worldHandler.createWorld(islandName).thenRun(() -> {
-            cacheHandler.createIsland(islandUuid);
-            cacheHandler.updateIslandPlayer(islandUuid, playerUuid, "owner");
-            cacheHandler.updateHomePoint(islandUuid, playerUuid, "default", spawnLocation);
             cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
-            plugin.debug("Created island " + islandUuid + " in the cache");
             future.complete(null);
             plugin.debug("createIsland completed successfully");
         });
@@ -58,9 +54,7 @@ public class PostIslandHandler {
         String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
 
         worldHandler.deleteWorld(islandName).thenRun(() -> {
-            cacheHandler.deleteIsland(islandUuid);
             cacheHandler.removeIslandLoadedServer(islandUuid);
-            plugin.debug("Deleted island " + islandName + " from the cache");
             future.complete(null);
             plugin.debug("deleteIsland completed successfully");
         });

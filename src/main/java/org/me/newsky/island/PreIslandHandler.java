@@ -37,19 +37,19 @@ public class PreIslandHandler {
     }
 
 
-    public CompletableFuture<Void> createIsland(UUID islandUuid, UUID playerUuid, String spawnLocation) {
+    public CompletableFuture<Void> createIsland(UUID islandUuid) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         String targetServer = getRandomServer();
         if (targetServer == null) {
             future.completeExceptionally(new NoActiveServerException());
         } else {
             if (targetServer.equals(serverID)) {
-                postIslandHandler.createIsland(islandUuid, playerUuid, spawnLocation).thenAccept(result -> {
+                postIslandHandler.createIsland(islandUuid).thenAccept(result -> {
                     future.complete(null);
                     plugin.debug("Created island " + islandUuid + " on the current server");
                 });
             } else {
-                publishRequest.sendRequest(targetServer, "create", islandUuid.toString(), playerUuid.toString(), spawnLocation).thenAccept(result -> {
+                publishRequest.sendRequest(targetServer, "create", islandUuid.toString()).thenAccept(result -> {
                     future.complete(null);
                     plugin.debug("Created island " + islandUuid + " on server " + targetServer);
                 });
@@ -122,7 +122,7 @@ public class PreIslandHandler {
         return future;
     }
 
-    public CompletableFuture<Void> lockIsland(UUID islandUuid) {
+    public void lockIsland(UUID islandUuid) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         String targetServer = getServerByIsland(islandUuid);
         if (targetServer == null) {
@@ -140,7 +140,6 @@ public class PreIslandHandler {
                 });
             }
         }
-        return future;
     }
 
 

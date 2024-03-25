@@ -44,9 +44,7 @@ public abstract class BaseSubscribeRequest {
         switch (operation) {
             case "create":
                 String islandUuidForCreate = args[0];
-                String playerUuidForCreate = args[1];
-                String locationStringForCreate = args[2];
-                return postIslandHandler.createIsland(UUID.fromString(islandUuidForCreate), UUID.fromString(playerUuidForCreate), locationStringForCreate);
+                return postIslandHandler.createIsland(UUID.fromString(islandUuidForCreate));
             case "delete":
                 String islandUuidForDelete = args[0];
                 return postIslandHandler.deleteIsland(UUID.fromString(islandUuidForDelete));
