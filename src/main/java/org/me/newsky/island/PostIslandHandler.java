@@ -2,14 +2,15 @@ package org.me.newsky.island;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
-import org.me.newsky.api.event.*;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.teleport.TeleportManager;
 import org.me.newsky.util.IslandUUIDUtils;
 import org.me.newsky.world.WorldHandler;
 
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -131,12 +132,25 @@ public class PostIslandHandler {
     public CompletableFuture<Void> lockIsland(UUID islandUuid) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
-        worldHandler.lockWorld(islandName);
-
-        future.complete(null);
-        plugin.debug("lockIsland completed successfully");
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
+            World world = Bukkit.getWorld(islandName);
+            if (world != null) {
+                World safeWorld = Bukkit.getServer().getWorlds().get(0);
+                Set<UUID> islandPlayers = cacheHandler.getIslandPlayers(islandUuid);
+                for (Player player : world.getPlayers()) {
+                    UUID playerUuid = player.getUniqueId();
+                    if (!islandPlayers.contains(playerUuid)) {
+                        player.teleportAsync(safeWorld.getSpawnLocation());
+                        plugin.debug("Removed player " + playerUuid + " from island " + islandName + " because the island is locked");
+                    }
+                }
+            }
+            future.complete(null);
+            plugin.debug("lockIsland completed successfully");
+        });
 
         return future;
     }
+
 }

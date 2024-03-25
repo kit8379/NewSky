@@ -160,13 +160,4 @@ public class WorldHandler {
 
         return future;
     }
-
-    public void lockWorld(String worldName) {
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            World world = Bukkit.getWorld(worldName);
-            if (world != null) {
-                removePlayersFromWorld(world);
-            }
-        });
-    }
 }
