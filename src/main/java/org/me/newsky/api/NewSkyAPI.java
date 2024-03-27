@@ -15,30 +15,6 @@ public class NewSkyAPI {
         this.islandHandler = islandHandler;
     }
 
-    // Island Information API methods
-
-    /**
-     * Get the UUID of the island for the specified player
-     *
-     * @param playerUuid     The UUID of the player
-     * @param checkExistence Whether to check if the island exists
-     * @return A CompletableFuture that completes with the UUID of the island
-     */
-    public CompletableFuture<UUID> getIslandUuid(UUID playerUuid, boolean checkExistence) {
-        return islandHandler.getIslandUuid(playerUuid, checkExistence);
-    }
-
-    /**
-     * Get the UUID of the island for the specified player
-     *
-     * @param islandUuid The UUID of the island
-     * @return A CompletableFuture that completes with the UUID of the island
-     */
-    public CompletableFuture<Set<UUID>> getIslandPlayers(UUID islandUuid) {
-        return islandHandler.getIslandPlayers(islandUuid);
-    }
-
-
     // Island Operation API methods
 
     /**

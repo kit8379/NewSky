@@ -27,185 +27,327 @@ public class IslandHandler {
     }
 
     /**
-     * Utility Methods
-     */
-    public CompletableFuture<UUID> getIslandUuid(UUID playerUuid, boolean checkExistence) {
-        return CompletableFuture.supplyAsync(() -> cacheHandler.getIslandUuid(playerUuid)).thenApply(islandUuidOpt -> {
-            if (checkExistence && islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException();
-            }
-            return islandUuidOpt.orElseThrow(IslandAlreadyExistException::new);
-        });
-    }
-
-    public CompletableFuture<Set<UUID>> getIslandPlayers(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> cacheHandler.getIslandPlayers(islandUuid));
-    }
-
-
-    /**
      * Island Operation Related Methods
+     * <p>
      */
     public CompletableFuture<Void> createIsland(UUID playerUuid) {
-        return getIslandUuid(playerUuid, false).thenCompose(islandUuid -> {
-            UUID newIslandUuid = UUID.randomUUID();
+        return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getIslandUuid(playerUuid);
+        }).thenCompose(islandUuidOpt -> {
+
+            // Check if the player already has an island
+            if (islandUuidOpt.isPresent()) {
+                throw new IslandAlreadyExistException();
+            }
+
+            // Create a new island using a random UUID
+            UUID islandUuid = UUID.randomUUID();
             String spawnLocation = config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch();
 
-            cacheHandler.createIsland(newIslandUuid);
-            cacheHandler.updateIslandPlayer(newIslandUuid, playerUuid, "owner");
-            cacheHandler.updateHomePoint(newIslandUuid, playerUuid, "default", spawnLocation);
+            cacheHandler.createIsland(islandUuid);
+            cacheHandler.updateIslandPlayer(islandUuid, playerUuid, "owner");
+            cacheHandler.updateHomePoint(islandUuid, playerUuid, "default", spawnLocation);
 
-            return preIslandHandler.createIsland(newIslandUuid);
+            return preIslandHandler.createIsland(islandUuid);
         });
     }
 
     public CompletableFuture<Void> deleteIsland(UUID playerUuid) {
-        return getIslandUuid(playerUuid, true).thenCompose(islandUuid -> {
+        return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getIslandUuid(playerUuid);
+        }).thenCompose(islandUuidOpt -> {
+
+            // Check if the player has an island
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
+            }
+            UUID islandUuid = islandUuidOpt.get();
+
             cacheHandler.deleteIsland(islandUuid);
+
             return preIslandHandler.deleteIsland(islandUuid);
         });
     }
 
     public CompletableFuture<Void> loadIsland(UUID playerUuid) {
-        return getIslandUuid(playerUuid, true).thenCompose(preIslandHandler::loadIsland);
+        return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getIslandUuid(playerUuid);
+        }).thenCompose(islandUuidOpt -> {
+
+            // Check if the player has an island
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
+            }
+            UUID islandUuid = islandUuidOpt.get();
+
+            return preIslandHandler.loadIsland(islandUuid);
+        });
     }
 
     public CompletableFuture<Void> unloadIsland(UUID playerUuid) {
-        return getIslandUuid(playerUuid, true).thenCompose(preIslandHandler::unloadIsland);
+        return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getIslandUuid(playerUuid);
+        }).thenCompose(islandUuidOpt -> {
+
+            // Check if the player has an island
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
+            }
+            UUID islandUuid = islandUuidOpt.get();
+
+            return preIslandHandler.unloadIsland(islandUuid);
+        });
     }
 
     public CompletableFuture<Boolean> toggleIslandLock(UUID playerUuid) {
-        return getIslandUuid(playerUuid, true).thenCompose(islandUuid -> {
-            boolean isLocked = cacheHandler.getIslandLock(islandUuid);
-            cacheHandler.updateIslandLock(islandUuid, !isLocked);
-            if (!isLocked) {
-                preIslandHandler.lockIsland(islandUuid);
+        return CompletableFuture.supplyAsync(() -> {
+            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(playerUuid);
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
             }
-            return CompletableFuture.completedFuture(!isLocked);
+            UUID islandUuid = islandUuidOpt.get();
+
+            boolean isLocked = cacheHandler.getIslandLock(islandUuid);
+
+            if (!isLocked) {
+                cacheHandler.updateIslandLock(islandUuid, true);
+                preIslandHandler.lockIsland(islandUuid);
+            } else {
+                cacheHandler.updateIslandLock(islandUuid, false);
+            }
+
+            return !isLocked;
         });
     }
 
     public CompletableFuture<Boolean> toggleIslandPvp(UUID playerUuid) {
-        return getIslandUuid(playerUuid, true).thenCompose(islandUuid -> {
+        return CompletableFuture.supplyAsync(() -> {
+            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(playerUuid);
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
+            }
+            UUID islandUuid = islandUuidOpt.get();
+
             boolean isPvpEnabled = cacheHandler.getIslandPvp(islandUuid);
             cacheHandler.updateIslandPvp(islandUuid, !isPvpEnabled);
-            return CompletableFuture.completedFuture(!isPvpEnabled);
+            return !isPvpEnabled;
         });
     }
 
+
     /**
      * Island Player Related Methods
+     * <p>
      */
     public CompletableFuture<Void> addMember(UUID islandOwnerId, UUID playerUuid, String role) {
-        return getIslandUuid(islandOwnerId, true).thenCompose(islandUuid -> getIslandPlayers(islandUuid).thenAccept(members -> {
+        return CompletableFuture.runAsync(() -> {
+            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(islandOwnerId);
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
+            }
+            UUID islandUuid = islandUuidOpt.get();
+
+            Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
             if (members.contains(playerUuid)) {
                 throw new IslandPlayerAlreadyExistsException();
             }
+
             cacheHandler.updateIslandPlayer(islandUuid, playerUuid, role);
-        }));
+        });
     }
 
     public CompletableFuture<Void> removeMember(UUID islandOwnerId, UUID playerUuid) {
-        return getIslandUuid(islandOwnerId, true).thenCompose(islandUuid -> getIslandPlayers(islandUuid).thenAccept(members -> {
+        return CompletableFuture.runAsync(() -> {
+            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(islandOwnerId);
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
+            }
+            UUID islandUuid = islandUuidOpt.get();
+
             if (islandOwnerId.equals(playerUuid)) {
                 throw new CannotRemoveOwnerException();
             }
+
+            Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
             if (!members.contains(playerUuid)) {
                 throw new IslandPlayerDoesNotExistException();
             }
+
             cacheHandler.deleteIslandPlayer(islandUuid, playerUuid);
-        }));
+        });
     }
 
     public CompletableFuture<Void> setOwner(UUID islandOwnerId, UUID newOwnerId) {
-        return getIslandUuid(islandOwnerId, true).thenCompose(islandUuid -> getIslandPlayers(islandUuid).thenAccept(members -> {
+        return CompletableFuture.runAsync(() -> {
+            // Get the island UUID
+            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(islandOwnerId);
+
+            // Check if the island exists
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
+            }
+
+            // Get the island UUID
+            UUID islandUuid = islandUuidOpt.get();
+
+            // Get the owner UUID
             Optional<UUID> ownerUuidOpt = cacheHandler.getIslandOwner(islandUuid);
             if (ownerUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
             UUID ownerUuid = ownerUuidOpt.get();
+
+            // Check if the new owner is already the owner
             if (ownerUuid.equals(newOwnerId)) {
                 throw new AlreadyOwnerException();
             }
+
+            // Get the members of the island
+            Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
+
+            // Check if the new owner is a member of the island
             if (!members.contains(newOwnerId)) {
                 throw new IslandPlayerDoesNotExistException();
             }
+
+            // Set the new owner
             cacheHandler.updateIslandOwner(islandUuid, newOwnerId);
-        }));
+        });
     }
+
 
     /**
      * Home Related Methods
+     * <p>
      */
     public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, Location location) {
-        return getIslandUuid(playerUuid, true).thenAccept(islandUuid -> {
+        return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getIslandUuid(playerUuid);
+        }).thenCompose(islandUuidOpt -> {
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
+            }
+            UUID islandUuid = islandUuidOpt.get();
             if (location.getWorld() == null || !location.getWorld().getName().equals("island-" + islandUuid)) {
                 throw new LocationNotInIslandException();
             }
             String homeLocation = LocationUtils.locationToString(location);
             cacheHandler.updateHomePoint(islandUuid, playerUuid, homeName, homeLocation);
+            return CompletableFuture.completedFuture(null);
         });
     }
 
     public CompletableFuture<Void> delHome(UUID playerUuid, String homeName) {
-        return getIslandUuid(playerUuid, true).thenAccept(islandUuid -> {
+        return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getIslandUuid(playerUuid);
+        }).thenCompose(islandUuidOpt -> {
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
+            }
+            UUID islandUuid = islandUuidOpt.get();
             if (cacheHandler.getHomeLocation(islandUuid, playerUuid, homeName).isEmpty()) {
                 throw new HomeDoesNotExistException();
             }
             cacheHandler.deleteHomePoint(islandUuid, playerUuid, homeName);
+            return CompletableFuture.completedFuture(null);
         });
     }
 
     public CompletableFuture<Void> home(UUID playerUuid, String homeName) {
-        return getIslandUuid(playerUuid, true).thenCompose(islandUuid -> {
+        return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getIslandUuid(playerUuid);
+        }).thenCompose(islandUuidOpt -> {
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
+            }
+            UUID islandUuid = islandUuidOpt.get();
             Optional<String> homeLocationOpt = cacheHandler.getHomeLocation(islandUuid, playerUuid, homeName);
             if (homeLocationOpt.isEmpty()) {
                 throw new HomeDoesNotExistException();
             }
             String homeLocation = homeLocationOpt.get();
+            // Teleport the player to the home location
             return preIslandHandler.teleportToIsland(playerUuid, islandUuid, homeLocation);
         });
     }
 
     public CompletableFuture<Set<String>> getHomeNames(UUID playerUuid) {
-        return getIslandUuid(playerUuid, true).thenApply(islandUuid -> cacheHandler.getHomeNames(islandUuid, playerUuid));
+        return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getIslandUuid(playerUuid);
+        }).thenApply(islandUuidOpt -> {
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
+            }
+            UUID islandUuid = islandUuidOpt.get();
+            return cacheHandler.getHomeNames(islandUuid, playerUuid);
+        });
     }
+
 
     /**
      * Warp Related Methods
+     * <p>
      */
     public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, Location location) {
-        return getIslandUuid(playerUuid, true).thenAccept(islandUuid -> {
+        return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getIslandUuid(playerUuid);
+        }).thenCompose(islandUuidOpt -> {
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
+            }
+            UUID islandUuid = islandUuidOpt.get();
             if (location.getWorld() == null || !location.getWorld().getName().equals("island-" + islandUuid)) {
                 throw new LocationNotInIslandException();
             }
             String warpLocation = LocationUtils.locationToString(location);
             cacheHandler.updateWarpPoint(islandUuid, playerUuid, warpName, warpLocation);
+            return CompletableFuture.completedFuture(null);
         });
     }
 
     public CompletableFuture<Void> delWarp(UUID playerUuid, String warpName) {
-        return getIslandUuid(playerUuid, true).thenAccept(islandUuid -> {
+        return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getIslandUuid(playerUuid);
+        }).thenCompose(islandUuidOpt -> {
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
+            }
+            UUID islandUuid = islandUuidOpt.get();
             if (cacheHandler.getWarpLocation(islandUuid, playerUuid, warpName).isEmpty()) {
                 throw new WarpDoesNotExistException();
             }
             cacheHandler.deleteWarpPoint(islandUuid, playerUuid, warpName);
+            return CompletableFuture.completedFuture(null);
         });
     }
 
     public CompletableFuture<Void> warp(UUID playerUuid, String warpName) {
-        return getIslandUuid(playerUuid, true).thenCompose(islandUuid -> {
+        return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getIslandUuid(playerUuid);
+        }).thenCompose(islandUuidOpt -> {
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
+            }
+            UUID islandUuid = islandUuidOpt.get();
             Optional<String> warpLocationOpt = cacheHandler.getWarpLocation(islandUuid, playerUuid, warpName);
             if (warpLocationOpt.isEmpty()) {
                 throw new WarpDoesNotExistException();
             }
             String warpLocation = warpLocationOpt.get();
+            // Teleport the player to the warp location
             return preIslandHandler.teleportToIsland(playerUuid, islandUuid, warpLocation);
         });
     }
 
     public CompletableFuture<Set<String>> getWarpNames(UUID playerUuid) {
-        return getIslandUuid(playerUuid, true).thenApply(islandUuid -> cacheHandler.getWarpNames(islandUuid, playerUuid));
+        return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getIslandUuid(playerUuid);
+        }).thenApply(islandUuidOpt -> {
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
+            }
+            UUID islandUuid = islandUuidOpt.get();
+            return cacheHandler.getWarpNames(islandUuid, playerUuid);
+        });
     }
 }
-
