@@ -132,9 +132,6 @@ public class ConfigHandler {
         return config.getInt("server.heartbeat-interval");
     }
 
-    public int getWorldUnloadInterval() {
-        return config.getInt("server.world-unload-interval");
-    }
 
     public boolean isLobby() {
         return config.getBoolean("server.lobby");

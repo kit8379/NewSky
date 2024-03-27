@@ -60,8 +60,8 @@ island:
     x: 0
     y: 132
     z: 0
-    yaw: 100
-    pitch: 100
+    yaw: 180
+    pitch: 0
 
 
 
