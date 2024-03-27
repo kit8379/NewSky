@@ -347,23 +347,4 @@ public class CacheHandler {
             return jedis.hget("island_server", islandUuid.toString());
         }
     }
-
-    public boolean acquireLock(String key, long expiration) {
-        try (Jedis jedis = redisHandler.getJedis()) {
-            String lockKey = "lock:" + key;
-            long result = jedis.setnx(lockKey, "locked");
-            if (result == 1) {
-                jedis.expire(lockKey, expiration);
-                return true;
-            }
-            return false;
-        }
-    }
-
-    public void releaseLock(String key) {
-        try (Jedis jedis = redisHandler.getJedis()) {
-            String lockKey = "lock:" + key;
-            jedis.del(lockKey);
-        }
-    }
 }
