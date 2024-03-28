@@ -12,6 +12,7 @@ import org.me.newsky.island.IslandHandler;
 import org.me.newsky.island.PostIslandHandler;
 import org.me.newsky.island.PreIslandHandler;
 import org.me.newsky.listener.*;
+import org.me.newsky.module.LevelCalculation;
 import org.me.newsky.network.BasePublishRequest;
 import org.me.newsky.network.BaseSubscribeRequest;
 import org.me.newsky.network.redis.RedisPublishRequest;
@@ -104,7 +105,7 @@ public class NewSky extends JavaPlugin {
             info("Request broker loaded");
 
             info("Starting pre island handler");
-            IslandHandler islandHandler = new IslandHandler(config, cacheHandler, preIslandHandler);
+            IslandHandler islandHandler = new IslandHandler(config, cacheHandler, preIslandHandler, new LevelCalculation(config, cacheHandler));
             info("Pre island handler loaded");
 
             info("Starting plugin messaging");

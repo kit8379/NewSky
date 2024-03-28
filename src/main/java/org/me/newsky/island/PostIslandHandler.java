@@ -7,7 +7,7 @@ import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.teleport.TeleportManager;
-import org.me.newsky.util.IslandUUIDUtils;
+import org.me.newsky.util.IslandUtils;
 import org.me.newsky.world.WorldHandler;
 
 import java.util.Set;
@@ -37,7 +37,7 @@ public class PostIslandHandler {
     public CompletableFuture<Void> createIsland(UUID islandUuid) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
+        String islandName = IslandUtils.UUIDToName(islandUuid);
 
         worldHandler.createWorld(islandName).thenRun(() -> {
             cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
@@ -51,7 +51,7 @@ public class PostIslandHandler {
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
+        String islandName = IslandUtils.UUIDToName(islandUuid);
 
         worldHandler.deleteWorld(islandName).thenRun(() -> {
             cacheHandler.removeIslandLoadedServer(islandUuid);
@@ -65,7 +65,7 @@ public class PostIslandHandler {
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
+        String islandName = IslandUtils.UUIDToName(islandUuid);
 
         worldHandler.loadWorld(islandName).thenRun(() -> {
             cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
@@ -80,7 +80,7 @@ public class PostIslandHandler {
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
+        String islandName = IslandUtils.UUIDToName(islandUuid);
 
         worldHandler.unloadWorld(islandName).thenRun(() -> {
             cacheHandler.removeIslandLoadedServer(islandUuid);
@@ -95,7 +95,7 @@ public class PostIslandHandler {
     public CompletableFuture<Void> teleportToIsland(UUID islandUuid, UUID playerUuid, String teleportLocation) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
+        String islandName = IslandUtils.UUIDToName(islandUuid);
 
         loadIsland(islandUuid).thenRun(() -> {
             String[] parts = teleportLocation.split(",");
@@ -126,7 +126,7 @@ public class PostIslandHandler {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            String islandName = IslandUUIDUtils.UUIDToName(islandUuid);
+            String islandName = IslandUtils.UUIDToName(islandUuid);
             World world = Bukkit.getWorld(islandName);
             if (world != null) {
                 World safeWorld = Bukkit.getServer().getWorlds().get(0);

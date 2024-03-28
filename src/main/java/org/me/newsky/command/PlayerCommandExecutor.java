@@ -31,6 +31,7 @@ public class PlayerCommandExecutor extends BaseCommandExecutor {
         commands.put("pvp", new PlayerPvpCommand(config, api));
         commands.put("setowner", new PlayerSetOwnerCommand(config, api));
         commands.put("leave", new PlayerLeaveCommand(config, api));
+        commands.put("level", new PlayerLevelCommand(config, api));
         return commands;
     }
 

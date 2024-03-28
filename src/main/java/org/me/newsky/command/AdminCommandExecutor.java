@@ -34,6 +34,7 @@ public class AdminCommandExecutor extends BaseCommandExecutor {
         commands.put("load", new AdminLoadCommand(config, api));
         commands.put("unload", new AdminUnloadCommand(config, api));
         commands.put("reload", new AdminReloadCommand(plugin, config));
+        commands.put("level", new AdminLevelCommand(config, api));
         return commands;
     }
 

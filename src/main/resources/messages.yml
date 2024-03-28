@@ -109,3 +109,7 @@ messages:
   player-already-owner: '&c{name} is already the owner of the island.'
   player-cannot-leave-as-owner: '&cYou cannot leave the island as the owner. Please transfer ownership first.'
   player-leave-success: '&aSuccessfully left the island.'
+  admin-island-level: '&aThe island level is &e{level}&a.'
+  admin-level-usage: '&cUsage: /adminlevel <player>'
+  player-island-level: '&aYour island level is &e{level}&a.'
+  player-level-usage: '&cUsage: /level'

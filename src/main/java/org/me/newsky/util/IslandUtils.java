@@ -2,7 +2,7 @@ package org.me.newsky.util;
 
 import java.util.UUID;
 
-public class IslandUUIDUtils {
+public class IslandUtils {
 
     /**
      * Converts an island name to a UUID.

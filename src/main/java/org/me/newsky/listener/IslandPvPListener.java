@@ -6,7 +6,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.util.IslandUUIDUtils;
+import org.me.newsky.util.IslandUtils;
 
 import java.util.UUID;
 
@@ -30,7 +30,7 @@ public class IslandPvPListener implements Listener {
             return;
         }
 
-        UUID islandUuid = IslandUUIDUtils.nameToUUID(victim.getWorld().getName());
+        UUID islandUuid = IslandUtils.nameToUUID(victim.getWorld().getName());
 
         if (!cacheHandler.getIslandPvp(islandUuid)) {
             event.setCancelled(true);

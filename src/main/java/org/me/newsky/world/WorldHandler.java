@@ -69,6 +69,11 @@ public class WorldHandler {
     public CompletableFuture<Void> loadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
+        if (isWorldLoaded(worldName)) {
+            future.complete(null);
+            return future;
+        }
+
         CompletableFuture.runAsync(() -> {
             try {
                 SlimeWorld world = slimePlugin.loadWorld(slimeLoader, worldName, false, properties);
@@ -123,19 +128,34 @@ public class WorldHandler {
         return future;
     }
 
+    public boolean isWorldLoaded(String worldName) {
+        return Bukkit.getWorld(worldName) != null;
+    }
+
+    public void removePlayersFromWorld(World world) {
+        World safeWorld = Bukkit.getServer().getWorlds().get(0);
+        for (Player player : world.getPlayers()) {
+            player.teleport(safeWorld.getSpawnLocation());
+        }
+    }
+
     public CompletableFuture<Void> unloadWorldFromBukkit(String worldName, boolean save) {
         CompletableFuture<Void> future = new CompletableFuture<>();
+
+        if (!isWorldLoaded(worldName)) {
+            future.complete(null);
+            return future;
+        }
 
         Bukkit.getScheduler().runTask(plugin, () -> {
             World world = Bukkit.getWorld(worldName);
             if (world != null) {
-                World safeWorld = Bukkit.getServer().getWorlds().get(0);
-                for (Player player : world.getPlayers()) {
-                    player.teleport(safeWorld.getSpawnLocation());
-                }
+                removePlayersFromWorld(world);
                 Bukkit.unloadWorld(world, save);
+                future.complete(null);
+            } else {
+                future.completeExceptionally(new IllegalStateException(config.getIslandNotLoadedMessage()));
             }
-            future.complete(null);
         });
 
         return future;

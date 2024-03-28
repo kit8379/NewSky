@@ -6,7 +6,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.util.IslandUUIDUtils;
+import org.me.newsky.util.IslandUtils;
 
 import java.util.UUID;
 
@@ -41,7 +41,7 @@ public class IslandMoveListener implements Listener {
         }
 
         // Check if the island is locked
-        UUID islandUuid = IslandUUIDUtils.nameToUUID(to.getWorld().getName());
+        UUID islandUuid = IslandUtils.nameToUUID(to.getWorld().getName());
         if (cacheHandler.getIslandLock(islandUuid) && !cacheHandler.getIslandPlayers(islandUuid).contains(event.getPlayer().getUniqueId())) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(config.getIslandLockedMessage());

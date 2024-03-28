@@ -21,6 +21,7 @@ public class CacheHandler {
         cacheIslandPlayersToRedis();
         cacheIslandHomesToRedis();
         cacheIslandWarpsToRedis();
+        cacheIslandLevelsToRedis();
     }
 
     public void cacheIslandDataToRedis() {
@@ -96,6 +97,21 @@ public class CacheHandler {
         });
     }
 
+    private void cacheIslandLevelsToRedis() {
+        databaseHandler.selectAllIslandLevels(resultSet -> {
+            try (Jedis jedis = redisHandler.getJedis()) {
+                while (resultSet.next()) {
+                    String islandUuid = resultSet.getString("island_uuid");
+                    int level = resultSet.getInt("level");
+
+                    jedis.hset("island_levels", islandUuid, String.valueOf(level));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
     public void createIsland(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             Map<String, String> islandData = new HashMap<>();
@@ -160,6 +176,13 @@ public class CacheHandler {
             jedis.hset("island_data:" + islandUuid.toString(), "pvp", String.valueOf(pvp));
         }
         databaseHandler.updateIslandPvp(islandUuid, pvp);
+    }
+
+    public void updateIslandLevel(UUID islandUuid, int level) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.hset("island_levels", islandUuid.toString(), String.valueOf(level));
+        }
+        databaseHandler.updateIslandLevel(islandUuid, level);
     }
 
     public void deleteIsland(UUID islandUuid) {
@@ -275,6 +298,13 @@ public class CacheHandler {
         return Optional.empty();
     }
 
+    public int getIslandLevel(UUID islandUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            String level = jedis.hget("island_levels", islandUuid.toString());
+            return level != null ? Integer.parseInt(level) : 0;
+        }
+    }
+
     public Set<UUID> getIslandPlayers(UUID islandUuid) {
         Set<UUID> members = new HashSet<>();
         try (Jedis jedis = redisHandler.getJedis()) {
@@ -347,4 +377,6 @@ public class CacheHandler {
             return jedis.hget("island_server", islandUuid.toString());
         }
     }
+
+
 }

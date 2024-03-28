@@ -4,6 +4,7 @@ import org.bukkit.Location;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.*;
+import org.me.newsky.module.LevelCalculation;
 import org.me.newsky.util.LocationUtils;
 
 import java.util.Optional;
@@ -19,17 +20,15 @@ public class IslandHandler {
     private final ConfigHandler config;
     private final CacheHandler cacheHandler;
     private final PreIslandHandler preIslandHandler;
+    private final LevelCalculation levelCalculation;
 
-    public IslandHandler(ConfigHandler configHandler, CacheHandler cacheHandler, PreIslandHandler preIslandHandler) {
+    public IslandHandler(ConfigHandler configHandler, CacheHandler cacheHandler, PreIslandHandler preIslandHandler, LevelCalculation levelCalculation) {
         this.config = configHandler;
         this.cacheHandler = cacheHandler;
         this.preIslandHandler = preIslandHandler;
+        this.levelCalculation = levelCalculation;
     }
 
-    /**
-     * Island Operation Related Methods
-     * <p>
-     */
     public CompletableFuture<Void> createIsland(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {
             return cacheHandler.getIslandUuid(playerUuid);
@@ -134,11 +133,6 @@ public class IslandHandler {
         });
     }
 
-
-    /**
-     * Island Player Related Methods
-     * <p>
-     */
     public CompletableFuture<Void> addMember(UUID islandOwnerId, UUID playerUuid, String role) {
         return CompletableFuture.runAsync(() -> {
             Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(islandOwnerId);
@@ -283,11 +277,6 @@ public class IslandHandler {
         });
     }
 
-
-    /**
-     * Warp Related Methods
-     * <p>
-     */
     public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, Location location) {
         return CompletableFuture.supplyAsync(() -> {
             return cacheHandler.getIslandUuid(playerUuid);
@@ -349,5 +338,9 @@ public class IslandHandler {
             UUID islandUuid = islandUuidOpt.get();
             return cacheHandler.getWarpNames(islandUuid, playerUuid);
         });
+    }
+
+    public CompletableFuture<Integer> calculateIslandLevel(UUID islandUuid) {
+        return levelCalculation.calculateIslandLevel(islandUuid);
     }
 }

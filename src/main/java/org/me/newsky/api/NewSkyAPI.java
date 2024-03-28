@@ -217,4 +217,8 @@ public class NewSkyAPI {
     public CompletableFuture<Set<String>> getWarpNames(UUID playerUuid) {
         return islandHandler.getWarpNames(playerUuid);
     }
+
+    public CompletableFuture<Integer> calculateIslandLevel(UUID islandUuid) {
+        return islandHandler.calculateIslandLevel(islandUuid);
+    }
 }

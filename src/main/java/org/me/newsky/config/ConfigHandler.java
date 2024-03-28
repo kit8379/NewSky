@@ -14,6 +14,7 @@ public class ConfigHandler {
     private final NewSky plugin;
     private FileConfiguration config;
     private FileConfiguration messages;
+    private FileConfiguration levels;
 
     public ConfigHandler(NewSky plugin) {
         this.plugin = plugin;
@@ -24,6 +25,7 @@ public class ConfigHandler {
     private void loadConfigs() {
         config = loadConfig("config.yml");
         messages = loadConfig("messages.yml");
+        levels = loadConfig("levels.yml");
     }
 
     private FileConfiguration loadConfig(String fileName) {
@@ -37,6 +39,7 @@ public class ConfigHandler {
     private void updateConfigs() {
         updateConfig(config, "config.yml");
         updateConfig(messages, "messages.yml");
+        updateConfig(levels, "levels.yml");
     }
 
     private void updateConfig(FileConfiguration config, String fileName) {
@@ -131,7 +134,6 @@ public class ConfigHandler {
     public int getHeartbeatInterval() {
         return config.getInt("server.heartbeat-interval");
     }
-
 
     public boolean isLobby() {
         return config.getBoolean("server.lobby");
@@ -610,5 +612,25 @@ public class ConfigHandler {
 
     public String getPlayerLeaveSuccessMessage() {
         return ColorUtils.colorize(messages.getString("messages.player-leave-success"));
+    }
+
+    public String getAdminIslandLevelMessage(int level) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-island-level")).replace("{level}", String.valueOf(level)));
+    }
+
+    public String getAdminLevelUsageMessage() {
+        return ColorUtils.colorize(messages.getString("messages.admin-level-usage"));
+    }
+
+    public String getPlayerIslandLevelMessage(int level) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-island-level")).replace("{level}", String.valueOf(level)));
+    }
+
+    public String getPlayerLevelUsageMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-level-usage"));
+    }
+
+    public int getBlockLevel(String material) {
+        return levels.getInt("blocks." + material, 0);
     }
 }

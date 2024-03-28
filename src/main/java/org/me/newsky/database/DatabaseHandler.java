@@ -75,6 +75,7 @@ public class DatabaseHandler {
         createIslandPlayersTable();
         createIslandHomesTable();
         createIslandWarpsTable();
+        createIslandLevelsTable();
     }
 
     private void createIslandDataTable() {
@@ -93,6 +94,10 @@ public class DatabaseHandler {
         executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_warps (" + "player_uuid VARCHAR(56), " + "warp_name VARCHAR(56), " + "warp_location VARCHAR(256), " + "island_uuid VARCHAR(56), " + "PRIMARY KEY (player_uuid, warp_name), " + "FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid));").join();
     }
 
+    public void createIslandLevelsTable() {
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_levels (" + "island_uuid VARCHAR(36) PRIMARY KEY, " + "level INT NOT NULL);").join();
+    }
+
     public void selectAllIslandData(ResultProcessor processor) {
         executeQuery("SELECT * FROM islands", processor);
     }
@@ -107,6 +112,10 @@ public class DatabaseHandler {
 
     public void selectAllIslandHomes(ResultProcessor processor) {
         executeQuery("SELECT * FROM island_homes", processor);
+    }
+
+    public void selectAllIslandLevels(ResultProcessor processor) {
+        executeQuery("SELECT * FROM island_levels", processor);
     }
 
     public void addIslandData(UUID islandUuid) {
@@ -164,6 +173,15 @@ public class DatabaseHandler {
             statement.setString(1, playerUuid.toString());
             statement.setString(2, islandUuid.toString());
         }, "UPDATE island_players SET role = 'owner' WHERE player_uuid = ? AND island_uuid = ?;");
+    }
+
+
+    public void updateIslandLevel(UUID islandUuid, int level) {
+        executeUpdate(statement -> {
+            statement.setString(1, islandUuid.toString());
+            statement.setInt(2, level);
+            statement.setInt(3, level);
+        }, "INSERT INTO island_levels (island_uuid, level) VALUES (?, ?) ON DUPLICATE KEY UPDATE level = ?;");
     }
 
     public void deleteIsland(UUID islandUuid) {
