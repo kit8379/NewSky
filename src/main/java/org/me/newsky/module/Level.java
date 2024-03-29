@@ -13,11 +13,11 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-public class LevelCalculation {
+public class Level {
     private final ConfigHandler config;
     private final CacheHandler cacheHandler;
 
-    public LevelCalculation(ConfigHandler config, CacheHandler cacheHandler) {
+    public Level(ConfigHandler config, CacheHandler cacheHandler) {
         this.config = config;
         this.cacheHandler = cacheHandler;
     }
@@ -30,19 +30,21 @@ public class LevelCalculation {
 
             List<Chunk> chunks = getChunksForIsland(center, size);
 
-            int totalLevel = chunks.parallelStream().mapToInt(chunk -> {
-                int level = 0;
+            int totalPoints = chunks.parallelStream().mapToInt(chunk -> {
+                int points = 0;
                 for (int x = 0; x < 16; x++) {
                     for (int z = 0; z < 16; z++) {
                         for (int y = 0; y < chunk.getWorld().getMaxHeight(); y++) {
                             Block block = chunk.getBlock(x, y, z);
                             int value = config.getBlockLevel(block.getType().name());
-                            level += value;
+                            points += value;
                         }
                     }
                 }
-                return level;
+                return points;
             }).sum();
+
+            int totalLevel = (int) Math.round((double) totalPoints / 100);
 
             cacheHandler.updateIslandLevel(islandUuid, totalLevel);
         });
