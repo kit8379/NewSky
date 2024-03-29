@@ -35,7 +35,7 @@ public abstract class BaseLevelCommand implements BaseCommand {
         UUID targetUuid = getTargetUuid(sender, args);
 
         // Calculate the island level
-        api.calculateIslandLevel(targetUuid).thenAccept(level -> {
+        api.getIslandLevel(targetUuid).thenAccept(level -> {
             sender.sendMessage(getIslandLevelSuccessMessage(level));
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {

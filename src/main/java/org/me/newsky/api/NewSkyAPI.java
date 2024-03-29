@@ -218,7 +218,25 @@ public class NewSkyAPI {
         return islandHandler.getWarpNames(playerUuid);
     }
 
-    public CompletableFuture<Integer> calculateIslandLevel(UUID islandUuid) {
+
+    /**
+     * Calculate the level of the island
+     *
+     * @param islandUuid The UUID of the island
+     * @return A CompletableFuture that completes when the level is calculated
+     */
+    public CompletableFuture<Void> calculateIslandLevel(UUID islandUuid) {
         return islandHandler.calculateIslandLevel(islandUuid);
+    }
+
+
+    /**
+     * Get the level of the island
+     *
+     * @param islandUuid The UUID of the island
+     * @return A CompletableFuture that completes with the level of the island
+     */
+    public CompletableFuture<Integer> getIslandLevel(UUID islandUuid) {
+        return islandHandler.getIslandLevel(islandUuid);
     }
 }

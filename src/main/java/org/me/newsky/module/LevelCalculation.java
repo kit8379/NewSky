@@ -22,8 +22,8 @@ public class LevelCalculation {
         this.cacheHandler = cacheHandler;
     }
 
-    public CompletableFuture<Integer> calculateIslandLevel(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> {
+    public CompletableFuture<Void> calculateIslandLevel(UUID islandUuid) {
+        return CompletableFuture.runAsync(() -> {
             String islandName = IslandUtils.UUIDToName(islandUuid);
             Location center = LocationUtils.stringToLocation(islandName, config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch());
             int size = config.getIslandSize();
@@ -36,7 +36,6 @@ public class LevelCalculation {
                     for (int z = 0; z < 16; z++) {
                         for (int y = 0; y < chunk.getWorld().getMaxHeight(); y++) {
                             Block block = chunk.getBlock(x, y, z);
-                            // Use a default level value (e.g., 0) if the block is not defined in levels.yml
                             int value = config.getBlockLevel(block.getType().name());
                             level += value;
                         }
@@ -46,7 +45,6 @@ public class LevelCalculation {
             }).sum();
 
             cacheHandler.updateIslandLevel(islandUuid, totalLevel);
-            return totalLevel;
         });
     }
 

@@ -12,9 +12,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * Handles island operations
- */
 public class IslandHandler {
 
     private final ConfigHandler config;
@@ -209,11 +206,6 @@ public class IslandHandler {
         });
     }
 
-
-    /**
-     * Home Related Methods
-     * <p>
-     */
     public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, Location location) {
         return CompletableFuture.supplyAsync(() -> {
             return cacheHandler.getIslandUuid(playerUuid);
@@ -260,7 +252,6 @@ public class IslandHandler {
                 throw new HomeDoesNotExistException();
             }
             String homeLocation = homeLocationOpt.get();
-            // Teleport the player to the home location
             return preIslandHandler.teleportToIsland(playerUuid, islandUuid, homeLocation);
         });
     }
@@ -323,7 +314,6 @@ public class IslandHandler {
                 throw new WarpDoesNotExistException();
             }
             String warpLocation = warpLocationOpt.get();
-            // Teleport the player to the warp location
             return preIslandHandler.teleportToIsland(playerUuid, islandUuid, warpLocation);
         });
     }
@@ -340,7 +330,13 @@ public class IslandHandler {
         });
     }
 
-    public CompletableFuture<Integer> calculateIslandLevel(UUID islandUuid) {
+    public CompletableFuture<Void> calculateIslandLevel(UUID islandUuid) {
         return levelCalculation.calculateIslandLevel(islandUuid);
+    }
+
+    public CompletableFuture<Integer> getIslandLevel(UUID islandUuid) {
+        return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getIslandLevel(islandUuid);
+        });
     }
 }
