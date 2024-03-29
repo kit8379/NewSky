@@ -183,10 +183,6 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.cannot-leave-island-boundary"));
     }
 
-    public String getIslandNotFoundInServerMessage() {
-        return ColorUtils.colorize(messages.getString("messages.island-not-found-in-server"));
-    }
-
     public String getNoActiveServerMessage() {
         return ColorUtils.colorize(messages.getString("messages.no-active-server"));
     }
@@ -526,11 +522,6 @@ public class ConfigHandler {
 
     public String getPlayerDeleteSuccessMessage() {
         return ColorUtils.colorize(messages.getString("messages.player-delete-island-success"));
-    }
-
-
-    public String getPlayerTeleportToIslandSuccessMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-teleport-to-island-success"));
     }
 
     public String getPlayerSetHomeSuccessMessage(String home) {

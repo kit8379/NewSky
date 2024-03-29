@@ -222,21 +222,21 @@ public class NewSkyAPI {
     /**
      * Calculate the level of the island
      *
-     * @param islandUuid The UUID of the island
+     * @param playerUuid The UUID of the island
      * @return A CompletableFuture that completes when the level is calculated
      */
-    public CompletableFuture<Void> calculateIslandLevel(UUID islandUuid) {
-        return islandHandler.calculateIslandLevel(islandUuid);
+    public CompletableFuture<Void> calculateIslandLevel(UUID playerUuid) {
+        return islandHandler.calculateIslandLevel(playerUuid);
     }
 
 
     /**
      * Get the level of the island
      *
-     * @param islandUuid The UUID of the island
+     * @param playerUuid The UUID of the island
      * @return A CompletableFuture that completes with the level of the island
      */
-    public CompletableFuture<Integer> getIslandLevel(UUID islandUuid) {
-        return islandHandler.getIslandLevel(islandUuid);
+    public CompletableFuture<Integer> getIslandLevel(UUID playerUuid) {
+        return islandHandler.getIslandLevel(playerUuid);
     }
 }

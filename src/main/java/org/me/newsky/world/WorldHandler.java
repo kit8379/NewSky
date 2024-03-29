@@ -100,10 +100,6 @@ public class WorldHandler {
 
         unloadWorldFromBukkit(worldName, true).thenRunAsync(() -> {
             future.complete(null);
-        }).exceptionally(e -> {
-            future.completeExceptionally(e);
-            e.printStackTrace();
-            return null;
         });
 
         return future;
@@ -118,11 +114,8 @@ public class WorldHandler {
                 future.complete(null);
             } catch (Exception e) {
                 future.completeExceptionally(e);
+                e.printStackTrace();
             }
-        }).exceptionally(e -> {
-            future.completeExceptionally(e);
-            e.printStackTrace();
-            return null;
         });
 
         return future;
@@ -152,10 +145,8 @@ public class WorldHandler {
             if (world != null) {
                 removePlayersFromWorld(world);
                 Bukkit.unloadWorld(world, save);
-                future.complete(null);
-            } else {
-                future.completeExceptionally(new IllegalStateException(config.getIslandNotLoadedMessage()));
             }
+            future.complete(null);
         });
 
         return future;

@@ -5,6 +5,7 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
+import org.me.newsky.exceptions.NoActiveServerException;
 
 import java.util.UUID;
 
@@ -34,6 +35,8 @@ public abstract class BaseCreateCommand implements BaseCommand {
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandAlreadyExistException) {
                 sender.sendMessage(getExistingIslandMessage(args));
+            } else if (ex.getCause() instanceof NoActiveServerException) {
+                sender.sendMessage(config.getNoActiveServerMessage());
             } else {
                 sender.sendMessage("There was an error creating the island");
                 ex.printStackTrace();

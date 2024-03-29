@@ -8,6 +8,7 @@ import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.HomeDoesNotExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.exceptions.NoActiveServerException;
 
 import java.util.List;
 import java.util.Set;
@@ -48,6 +49,8 @@ public abstract class BaseHomeCommand implements BaseCommand {
                 sender.sendMessage(getNoIslandMessage(args));
             } else if (ex.getCause() instanceof HomeDoesNotExistException) {
                 sender.sendMessage(getNoHomeMessage(args));
+            } else if (ex.getCause() instanceof NoActiveServerException) {
+                sender.sendMessage(config.getNoActiveServerMessage());
             } else {
                 sender.sendMessage("There was an error teleporting to the home.");
                 ex.printStackTrace();

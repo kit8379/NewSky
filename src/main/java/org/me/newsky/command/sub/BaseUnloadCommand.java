@@ -6,6 +6,8 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.exceptions.IslandNotLoadedException;
+import org.me.newsky.exceptions.NoActiveServerException;
 
 import java.util.UUID;
 
@@ -35,6 +37,10 @@ public abstract class BaseUnloadCommand implements BaseCommand {
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
                 sender.sendMessage(config.getNoIslandMessage(args[1]));
+            } else if (ex.getCause() instanceof NoActiveServerException) {
+                sender.sendMessage(config.getNoActiveServerMessage());
+            } else if (ex.getCause() instanceof IslandNotLoadedException) {
+                sender.sendMessage(config.getIslandNotLoadedMessage());
             } else {
                 sender.sendMessage("There was an error unloading the island");
                 ex.printStackTrace();

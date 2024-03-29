@@ -330,12 +330,28 @@ public class IslandHandler {
         });
     }
 
-    public CompletableFuture<Void> calculateIslandLevel(UUID islandUuid) {
-        return levelCalculation.calculateIslandLevel(islandUuid);
+    public CompletableFuture<Void> calculateIslandLevel(UUID playerUuid) {
+        return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getIslandUuid(playerUuid);
+        }).thenCompose(islandUuidOpt -> {
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
+            }
+            UUID islandUuid = islandUuidOpt.get();
+
+            return levelCalculation.calculateIslandLevel(islandUuid);
+        });
     }
 
-    public CompletableFuture<Integer> getIslandLevel(UUID islandUuid) {
+    public CompletableFuture<Integer> getIslandLevel(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getIslandUuid(playerUuid);
+        }).thenApply(islandUuidOpt -> {
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
+            }
+            UUID islandUuid = islandUuidOpt.get();
+
             return cacheHandler.getIslandLevel(islandUuid);
         });
     }

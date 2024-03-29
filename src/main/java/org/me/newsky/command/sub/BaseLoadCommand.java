@@ -5,7 +5,9 @@ import org.bukkit.command.CommandSender;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.IslandAlreadyLoadedException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.exceptions.NoActiveServerException;
 
 import java.util.UUID;
 
@@ -35,6 +37,10 @@ public abstract class BaseLoadCommand implements BaseCommand {
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
                 sender.sendMessage(config.getNoIslandMessage(args[1]));
+            } else if (ex.getCause() instanceof NoActiveServerException) {
+                sender.sendMessage(config.getNoActiveServerMessage());
+            } else if (ex.getCause() instanceof IslandAlreadyLoadedException) {
+                sender.sendMessage(config.getIslandAlreadyLoadedMessage());
             } else {
                 sender.sendMessage("There was an error loading the island");
                 ex.printStackTrace();

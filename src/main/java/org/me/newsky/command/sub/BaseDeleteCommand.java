@@ -6,6 +6,7 @@ import org.me.newsky.command.BaseCommand;
 import org.me.newsky.command.Confirmation;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.exceptions.NoActiveServerException;
 
 import java.util.UUID;
 
@@ -39,6 +40,8 @@ public abstract class BaseDeleteCommand implements BaseCommand {
             }).exceptionally(ex -> {
                 if (ex.getCause() instanceof IslandDoesNotExistException) {
                     sender.sendMessage(getNoIslandMessage(args));
+                } else if (ex.getCause() instanceof NoActiveServerException) {
+                    sender.sendMessage(config.getNoActiveServerMessage());
                 } else {
                     sender.sendMessage("There was an error deleting the island");
                     ex.printStackTrace();
