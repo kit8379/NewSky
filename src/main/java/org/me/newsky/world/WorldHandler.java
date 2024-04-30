@@ -10,6 +10,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.teleport.TeleportRequestManager;
 
 import java.io.File;
 import java.util.Objects;
@@ -20,13 +21,15 @@ public class WorldHandler {
     public final NewSky plugin;
 
     public final ConfigHandler config;
+    public final TeleportRequestManager teleportRequestManager;
     private final SlimePlugin slimePlugin;
     private final SlimeLoader slimeLoader;
     private final SlimePropertyMap properties;
 
-    public WorldHandler(NewSky plugin, ConfigHandler config) {
+    public WorldHandler(NewSky plugin, ConfigHandler config, TeleportRequestManager teleportRequestManager) {
         this.plugin = plugin;
         this.config = config;
+        this.teleportRequestManager = teleportRequestManager;
         this.slimePlugin = (SlimePlugin) Bukkit.getPluginManager().getPlugin("SlimeWorldManager");
         this.slimeLoader = Objects.requireNonNull(slimePlugin).getLoader("mysql");
 
@@ -126,9 +129,8 @@ public class WorldHandler {
     }
 
     public void removePlayersFromWorld(World world) {
-        World safeWorld = Bukkit.getServer().getWorlds().get(0);
         for (Player player : world.getPlayers()) {
-            player.teleport(safeWorld.getSpawnLocation());
+            // Teleport players to spawn that have configured in the plugin
         }
     }
 

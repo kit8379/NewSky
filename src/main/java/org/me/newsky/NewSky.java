@@ -18,7 +18,7 @@ import org.me.newsky.network.BaseSubscribeRequest;
 import org.me.newsky.network.redis.RedisPublishRequest;
 import org.me.newsky.network.redis.RedisSubscribeRequest;
 import org.me.newsky.redis.RedisHandler;
-import org.me.newsky.teleport.TeleportManager;
+import org.me.newsky.teleport.TeleportRequestManager;
 import org.me.newsky.world.WorldHandler;
 
 import java.util.Objects;
@@ -29,7 +29,7 @@ public class NewSky extends JavaPlugin {
     private RedisHandler redisHandler;
     private DatabaseHandler databaseHandler;
     private CacheHandler cacheHandler;
-    private TeleportManager teleportManager;
+    private TeleportRequestManager teleportRequestManager;
     private HeartBeatHandler heartBeatHandler;
     private BasePublishRequest brokerRequestPublish;
     private BaseSubscribeRequest brokerRequestSubscribe;
@@ -59,7 +59,7 @@ public class NewSky extends JavaPlugin {
             info("This Server ID: " + serverID);
 
             info("Starting WorldHandler");
-            WorldHandler worldHandler = new WorldHandler(this, config);
+            WorldHandler worldHandler = new WorldHandler(this, config, teleportRequestManager);
             info("WorldHandler loaded");
 
             info("Start connecting to Redis now...");
@@ -76,7 +76,7 @@ public class NewSky extends JavaPlugin {
             info("Cache to Redis success");
 
             info("Starting teleport manager");
-            teleportManager = new TeleportManager(this);
+            teleportRequestManager = new TeleportRequestManager(this);
             info("Teleport manager loaded");
 
             info("Start connecting to Heart Beat system now...");
@@ -90,7 +90,7 @@ public class NewSky extends JavaPlugin {
 
             // 2
             info("Starting post island handler");
-            PostIslandHandler postIslandHandler = new PostIslandHandler(this, cacheHandler, worldHandler, teleportManager, serverID);
+            PostIslandHandler postIslandHandler = new PostIslandHandler(this, cacheHandler, worldHandler, teleportRequestManager, serverID);
             info("Post island handler loaded");
 
 
@@ -134,7 +134,7 @@ public class NewSky extends JavaPlugin {
 
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(new WorldInitListener(this), this);
-        getServer().getPluginManager().registerEvents(new PlayerJoinListener(this, teleportManager), this);
+        getServer().getPluginManager().registerEvents(new PlayerJoinListener(this, teleportRequestManager), this);
         getServer().getPluginManager().registerEvents(new IslandProtectionListener(config, cacheHandler), this);
         getServer().getPluginManager().registerEvents(new IslandMoveListener(config, cacheHandler), this);
         getServer().getPluginManager().registerEvents(new IslandPvPListener(config, cacheHandler), this);
@@ -167,13 +167,17 @@ public class NewSky extends JavaPlugin {
         info("Plugin reloaded!");
     }
 
+    public void info(String message) {
+        getLogger().info(message);
+    }
+
+    public void warning(String message) {
+        getLogger().warning(message);
+    }
+
     public void debug(String message) {
         if (config.isDebug()) {
             info(config.getDebugPrefix() + message);
         }
-    }
-
-    public void info(String message) {
-        getLogger().info(message);
     }
 }

@@ -187,13 +187,23 @@ public class DatabaseHandler {
     public void deleteIsland(UUID islandUuid) {
         executeUpdate(statement -> {
             statement.setString(1, islandUuid.toString());
-        }, "DELETE FROM island_warps WHERE island_uuid = ?;").thenCompose(v -> executeUpdate(statement -> {
-            statement.setString(1, islandUuid.toString());
-        }, "DELETE FROM island_homes WHERE island_uuid = ?;")).thenCompose(v -> executeUpdate(statement -> {
-            statement.setString(1, islandUuid.toString());
-        }, "DELETE FROM island_players WHERE island_uuid = ?;")).thenCompose(v -> executeUpdate(statement -> {
-            statement.setString(1, islandUuid.toString());
-        }, "DELETE FROM islands WHERE island_uuid = ?;"));
+        }, "DELETE FROM island_levels WHERE island_uuid = ?;").thenCompose(v -> {
+            return executeUpdate(statement -> {
+                statement.setString(1, islandUuid.toString());
+            }, "DELETE FROM island_warps WHERE island_uuid = ?;");
+        }).thenCompose(v -> {
+            return executeUpdate(statement -> {
+                statement.setString(1, islandUuid.toString());
+            }, "DELETE FROM island_homes WHERE island_uuid = ?;");
+        }).thenCompose(v -> {
+            return executeUpdate(statement -> {
+                statement.setString(1, islandUuid.toString());
+            }, "DELETE FROM island_players WHERE island_uuid = ?;");
+        }).thenCompose(v -> {
+            return executeUpdate(statement -> {
+                statement.setString(1, islandUuid.toString());
+            }, "DELETE FROM islands WHERE island_uuid = ?;");
+        });
     }
 
 

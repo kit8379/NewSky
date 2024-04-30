@@ -30,10 +30,8 @@ public class CacheHandler {
                 while (resultSet.next()) {
                     String islandUuid = resultSet.getString("island_uuid");
                     boolean lock = resultSet.getBoolean("lock");
-
                     Map<String, String> islandData = new HashMap<>();
                     islandData.put("lock", String.valueOf(lock));
-
                     jedis.hmset("island_data:" + islandUuid, islandData);
                 }
             } catch (Exception e) {
@@ -49,10 +47,8 @@ public class CacheHandler {
                     String playerUuid = resultSet.getString("player_uuid");
                     String islandUuid = resultSet.getString("island_uuid");
                     String role = resultSet.getString("role");
-
                     Map<String, String> playerData = new HashMap<>();
                     playerData.put("role", role);
-
                     jedis.hmset("island_players:" + islandUuid + ":" + playerUuid, playerData);
                 }
             } catch (Exception e) {
@@ -69,8 +65,6 @@ public class CacheHandler {
                     String islandUuid = resultSet.getString("island_uuid");
                     String homeName = resultSet.getString("home_name");
                     String homeLocation = resultSet.getString("home_location");
-
-                    // Adjusting key to include island_uuid for better association
                     jedis.hset("island_homes:" + islandUuid + ":" + playerUuid, homeName, homeLocation);
                 }
             } catch (Exception e) {
@@ -87,8 +81,6 @@ public class CacheHandler {
                     String islandUuid = resultSet.getString("island_uuid");
                     String warpName = resultSet.getString("warp_name");
                     String warpLocation = resultSet.getString("warp_location");
-
-                    // Adjusting key to include island_uuid for better association
                     jedis.hset("island_warps:" + islandUuid + ":" + playerUuid, warpName, warpLocation);
                 }
             } catch (Exception e) {
@@ -103,7 +95,6 @@ public class CacheHandler {
                 while (resultSet.next()) {
                     String islandUuid = resultSet.getString("island_uuid");
                     int level = resultSet.getInt("level");
-
                     jedis.hset("island_levels", islandUuid, String.valueOf(level));
                 }
             } catch (Exception e) {
@@ -187,14 +178,15 @@ public class CacheHandler {
 
     public void deleteIsland(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.hdel("island_levels", islandUuid.toString());
             jedis.keys("island_warps:" + islandUuid + ":*").forEach(jedis::del);
             jedis.keys("island_homes:" + islandUuid + ":*").forEach(jedis::del);
             jedis.keys("island_players:" + islandUuid + ":*").forEach(jedis::del);
             jedis.del("island_data:" + islandUuid);
+            databaseHandler.deleteIsland(islandUuid);
         }
-
-        databaseHandler.deleteIsland(islandUuid);
     }
+
 
     public void deleteIslandPlayer(UUID islandUuid, UUID playerUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
@@ -333,7 +325,6 @@ public class CacheHandler {
     }
 
     // The cache in below section only stored in Redis
-
     public void updateActiveServer(String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset("server_heartbeats", serverName, String.valueOf(System.currentTimeMillis()));

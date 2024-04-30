@@ -6,12 +6,12 @@ import org.me.newsky.NewSky;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class TeleportManager {
+public class TeleportRequestManager {
 
     private final NewSky plugin;
     private final ConcurrentHashMap<UUID, Location> pendingTeleports = new ConcurrentHashMap<>();
 
-    public TeleportManager(NewSky plugin) {
+    public TeleportRequestManager(NewSky plugin) {
         this.plugin = plugin;
     }
 

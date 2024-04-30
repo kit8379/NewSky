@@ -1,5 +1,6 @@
 package org.me.newsky.module;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -25,9 +26,15 @@ public class Level {
     public CompletableFuture<Void> calculateIslandLevel(UUID islandUuid) {
         return CompletableFuture.runAsync(() -> {
             String islandName = IslandUtils.UUIDToName(islandUuid);
-            Location center = LocationUtils.stringToLocation(islandName, config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch());
-            int size = config.getIslandSize();
 
+            // Check if the world is null and skip the job if it is
+            if (Bukkit.getWorld(islandName) == null) {
+                return;
+            }
+
+            Location center = LocationUtils.stringToLocation(islandName, config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch());
+
+            int size = config.getIslandSize();
             List<Chunk> chunks = getChunksForIsland(center, size);
 
             int totalPoints = chunks.parallelStream().mapToInt(chunk -> {
@@ -49,6 +56,7 @@ public class Level {
             cacheHandler.updateIslandLevel(islandUuid, totalLevel);
         });
     }
+
 
     private List<Chunk> getChunksForIsland(Location center, int size) {
         List<Chunk> chunks = new ArrayList<>();

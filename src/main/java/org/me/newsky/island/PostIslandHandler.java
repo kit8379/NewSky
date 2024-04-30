@@ -6,7 +6,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.teleport.TeleportManager;
+import org.me.newsky.teleport.TeleportRequestManager;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.world.WorldHandler;
 
@@ -23,14 +23,14 @@ public class PostIslandHandler {
     private final NewSky plugin;
     private final CacheHandler cacheHandler;
     private final WorldHandler worldHandler;
-    private final TeleportManager teleportManager;
+    private final TeleportRequestManager teleportRequestManager;
     private final String serverID;
 
-    public PostIslandHandler(NewSky plugin, CacheHandler cacheHandler, WorldHandler worldHandler, TeleportManager teleportManager, String serverID) {
+    public PostIslandHandler(NewSky plugin, CacheHandler cacheHandler, WorldHandler worldHandler, TeleportRequestManager teleportRequestManager, String serverID) {
         this.plugin = plugin;
         this.cacheHandler = cacheHandler;
         this.worldHandler = worldHandler;
-        this.teleportManager = teleportManager;
+        this.teleportRequestManager = teleportRequestManager;
         this.serverID = serverID;
     }
 
@@ -111,7 +111,7 @@ public class PostIslandHandler {
                 player.teleportAsync(location);
                 plugin.debug("Player " + playerUuid + " is online, teleporting to " + location);
             } else {
-                teleportManager.addPendingTeleport(playerUuid, location);
+                teleportRequestManager.addPendingTeleport(playerUuid, location);
                 plugin.debug("Player " + playerUuid + " is not online, adding pending teleport to " + location);
             }
 
@@ -125,25 +125,22 @@ public class PostIslandHandler {
     public CompletableFuture<Void> lockIsland(UUID islandUuid) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            String islandName = IslandUtils.UUIDToName(islandUuid);
-            World world = Bukkit.getWorld(islandName);
-            if (world != null) {
-                World safeWorld = Bukkit.getServer().getWorlds().get(0);
-                Set<UUID> islandPlayers = cacheHandler.getIslandPlayers(islandUuid);
-                for (Player player : world.getPlayers()) {
-                    UUID playerUuid = player.getUniqueId();
-                    if (!islandPlayers.contains(playerUuid)) {
-                        player.teleportAsync(safeWorld.getSpawnLocation());
-                        plugin.debug("Removed player " + playerUuid + " from island " + islandName + " because the island is locked");
-                    }
+        String islandName = IslandUtils.UUIDToName(islandUuid);
+        World world = Bukkit.getWorld(islandName);
+        if (world != null) {
+            Set<UUID> islandPlayers = cacheHandler.getIslandPlayers(islandUuid);
+            for (Player player : world.getPlayers()) {
+                UUID playerUuid = player.getUniqueId();
+                if (!islandPlayers.contains(playerUuid)) {
+                    // Teleport player to default spawn that have configured in the plugin
+                    plugin.debug("Removed player " + playerUuid + " from island " + islandName + " because the island is locked");
                 }
             }
-            future.complete(null);
-            plugin.debug("lockIsland completed successfully");
-        });
+        }
+
+        future.complete(null);
+        plugin.debug("lockIsland completed successfully");
 
         return future;
     }
-
 }
