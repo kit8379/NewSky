@@ -6,7 +6,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.teleport.TeleportRequestManager;
+import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.world.WorldHandler;
 
@@ -23,14 +23,14 @@ public class PostIslandHandler {
     private final NewSky plugin;
     private final CacheHandler cacheHandler;
     private final WorldHandler worldHandler;
-    private final TeleportRequestManager teleportRequestManager;
+    private final TeleportHandler teleportHandler;
     private final String serverID;
 
-    public PostIslandHandler(NewSky plugin, CacheHandler cacheHandler, WorldHandler worldHandler, TeleportRequestManager teleportRequestManager, String serverID) {
+    public PostIslandHandler(NewSky plugin, CacheHandler cacheHandler, WorldHandler worldHandler, TeleportHandler teleportHandler, String serverID) {
         this.plugin = plugin;
         this.cacheHandler = cacheHandler;
         this.worldHandler = worldHandler;
-        this.teleportRequestManager = teleportRequestManager;
+        this.teleportHandler = teleportHandler;
         this.serverID = serverID;
     }
 
@@ -111,7 +111,7 @@ public class PostIslandHandler {
                 player.teleportAsync(location);
                 plugin.debug("Player " + playerUuid + " is online, teleporting to " + location);
             } else {
-                teleportRequestManager.addPendingTeleport(playerUuid, location);
+                teleportHandler.addPendingTeleport(playerUuid, location);
                 plugin.debug("Player " + playerUuid + " is not online, adding pending teleport to " + location);
             }
 

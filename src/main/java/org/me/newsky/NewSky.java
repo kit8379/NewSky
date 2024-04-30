@@ -18,7 +18,7 @@ import org.me.newsky.network.BaseSubscribeRequest;
 import org.me.newsky.network.redis.RedisPublishRequest;
 import org.me.newsky.network.redis.RedisSubscribeRequest;
 import org.me.newsky.redis.RedisHandler;
-import org.me.newsky.teleport.TeleportRequestManager;
+import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.world.WorldHandler;
 
 import java.util.Objects;
@@ -29,7 +29,7 @@ public class NewSky extends JavaPlugin {
     private RedisHandler redisHandler;
     private DatabaseHandler databaseHandler;
     private CacheHandler cacheHandler;
-    private TeleportRequestManager teleportRequestManager;
+    private TeleportHandler teleportHandler;
     private HeartBeatHandler heartBeatHandler;
     private BasePublishRequest brokerRequestPublish;
     private BaseSubscribeRequest brokerRequestSubscribe;
@@ -59,7 +59,7 @@ public class NewSky extends JavaPlugin {
             info("This Server ID: " + serverID);
 
             info("Starting WorldHandler");
-            WorldHandler worldHandler = new WorldHandler(this, config, teleportRequestManager);
+            WorldHandler worldHandler = new WorldHandler(this, config, teleportHandler);
             info("WorldHandler loaded");
 
             info("Start connecting to Redis now...");
@@ -68,7 +68,6 @@ public class NewSky extends JavaPlugin {
 
             info("Start connecting to Database now...");
             databaseHandler = new DatabaseHandler(config);
-
             info("Database connection success!");
 
             info("Starting cache handler");
@@ -76,30 +75,26 @@ public class NewSky extends JavaPlugin {
             info("Cache to Redis success");
 
             info("Starting teleport manager");
-            teleportRequestManager = new TeleportRequestManager(this);
+            teleportHandler = new TeleportHandler(this);
             info("Teleport manager loaded");
 
             info("Start connecting to Heart Beat system now...");
             heartBeatHandler = new HeartBeatHandler(this, config, cacheHandler, serverID);
             info("Heart Beat started!");
 
-            // 1
             info("Starting publish request broker class");
             brokerRequestPublish = new RedisPublishRequest(this, redisHandler, serverID);
             info("Request broker loaded");
 
-            // 2
             info("Starting post island handler");
-            PostIslandHandler postIslandHandler = new PostIslandHandler(this, cacheHandler, worldHandler, teleportRequestManager, serverID);
+            PostIslandHandler postIslandHandler = new PostIslandHandler(this, cacheHandler, worldHandler, teleportHandler, serverID);
             info("Post island handler loaded");
 
 
-            // 3
             info("Starting pre island handler");
             PreIslandHandler preIslandHandler = new PreIslandHandler(this, cacheHandler, brokerRequestPublish, postIslandHandler, serverID);
             info("Pre island handler loaded");
 
-            // 4
             info("Starting subscribe request broker class");
             brokerRequestSubscribe = new RedisSubscribeRequest(this, redisHandler, serverID, postIslandHandler);
             info("Request broker loaded");
@@ -134,7 +129,7 @@ public class NewSky extends JavaPlugin {
 
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(new WorldInitListener(this), this);
-        getServer().getPluginManager().registerEvents(new PlayerJoinListener(this, teleportRequestManager), this);
+        getServer().getPluginManager().registerEvents(new PlayerJoinListener(this, teleportHandler), this);
         getServer().getPluginManager().registerEvents(new IslandProtectionListener(config, cacheHandler), this);
         getServer().getPluginManager().registerEvents(new IslandMoveListener(config, cacheHandler), this);
         getServer().getPluginManager().registerEvents(new IslandPvPListener(config, cacheHandler), this);
@@ -167,14 +162,22 @@ public class NewSky extends JavaPlugin {
         info("Plugin reloaded!");
     }
 
+    @SuppressWarnings("unused")
     public void info(String message) {
         getLogger().info(message);
     }
 
+    @SuppressWarnings("unused")
     public void warning(String message) {
         getLogger().warning(message);
     }
 
+    @SuppressWarnings("unused")
+    public void severe(String message) {
+        getLogger().severe(message);
+    }
+
+    @SuppressWarnings("unused")
     public void debug(String message) {
         if (config.isDebug()) {
             info(config.getDebugPrefix() + message);

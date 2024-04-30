@@ -10,7 +10,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.teleport.TeleportRequestManager;
+import org.me.newsky.teleport.TeleportHandler;
 
 import java.io.File;
 import java.util.Objects;
@@ -21,15 +21,15 @@ public class WorldHandler {
     public final NewSky plugin;
 
     public final ConfigHandler config;
-    public final TeleportRequestManager teleportRequestManager;
+    public final TeleportHandler teleportHandler;
     private final SlimePlugin slimePlugin;
     private final SlimeLoader slimeLoader;
     private final SlimePropertyMap properties;
 
-    public WorldHandler(NewSky plugin, ConfigHandler config, TeleportRequestManager teleportRequestManager) {
+    public WorldHandler(NewSky plugin, ConfigHandler config, TeleportHandler teleportHandler) {
         this.plugin = plugin;
         this.config = config;
-        this.teleportRequestManager = teleportRequestManager;
+        this.teleportHandler = teleportHandler;
         this.slimePlugin = (SlimePlugin) Bukkit.getPluginManager().getPlugin("SlimeWorldManager");
         this.slimeLoader = Objects.requireNonNull(slimePlugin).getLoader("mysql");
 
