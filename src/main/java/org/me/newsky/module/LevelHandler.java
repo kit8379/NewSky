@@ -14,11 +14,11 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-public class Level {
+public class LevelHandler {
     private final ConfigHandler config;
     private final CacheHandler cacheHandler;
 
-    public Level(ConfigHandler config, CacheHandler cacheHandler) {
+    public LevelHandler(ConfigHandler config, CacheHandler cacheHandler) {
         this.config = config;
         this.cacheHandler = cacheHandler;
     }

@@ -4,7 +4,7 @@ import org.bukkit.Location;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.*;
-import org.me.newsky.module.Level;
+import org.me.newsky.module.LevelHandler;
 import org.me.newsky.util.LocationUtils;
 
 import java.util.Optional;
@@ -17,13 +17,13 @@ public class IslandHandler {
     private final ConfigHandler config;
     private final CacheHandler cacheHandler;
     private final PreIslandHandler preIslandHandler;
-    private final Level level;
+    private final LevelHandler levelHandler;
 
-    public IslandHandler(ConfigHandler configHandler, CacheHandler cacheHandler, PreIslandHandler preIslandHandler, Level level) {
+    public IslandHandler(ConfigHandler configHandler, CacheHandler cacheHandler, PreIslandHandler preIslandHandler, LevelHandler levelHandler) {
         this.config = configHandler;
         this.cacheHandler = cacheHandler;
         this.preIslandHandler = preIslandHandler;
-        this.level = level;
+        this.levelHandler = levelHandler;
     }
 
     public CompletableFuture<Void> createIsland(UUID playerUuid) {
@@ -339,7 +339,7 @@ public class IslandHandler {
             }
             UUID islandUuid = islandUuidOpt.get();
 
-            return level.calculateIslandLevel(islandUuid);
+            return levelHandler.calculateIslandLevel(islandUuid);
         });
     }
 
