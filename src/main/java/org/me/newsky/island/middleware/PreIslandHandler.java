@@ -1,4 +1,4 @@
-package org.me.newsky.island;
+package org.me.newsky.island.middleware;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -7,6 +7,7 @@ import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.exceptions.IslandAlreadyLoadedException;
 import org.me.newsky.exceptions.IslandNotLoadedException;
 import org.me.newsky.exceptions.NoActiveServerException;
+import org.me.newsky.island.middleware.PostIslandHandler;
 import org.me.newsky.network.BasePublishRequest;
 
 import java.io.ByteArrayOutputStream;

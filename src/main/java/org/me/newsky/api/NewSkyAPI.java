@@ -1,7 +1,7 @@
 package org.me.newsky.api;
 
 import org.bukkit.Location;
-import org.me.newsky.island.IslandHandler;
+import org.me.newsky.island.*;
 
 import java.util.Set;
 import java.util.UUID;
@@ -10,9 +10,18 @@ import java.util.concurrent.CompletableFuture;
 public class NewSkyAPI {
 
     private final IslandHandler islandHandler;
+    private final PlayerHandler playerHandler;
+    private final HomeHandler homeHandler;
+    private final WarpHandler warpHandler;
+    private final LevelHandler levelHandler;
 
-    public NewSkyAPI(IslandHandler islandHandler) {
+    public NewSkyAPI(IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler) {
         this.islandHandler = islandHandler;
+        this.playerHandler = playerHandler;
+        this.homeHandler = homeHandler;
+        this.warpHandler = warpHandler;
+        this.levelHandler = levelHandler;
+
     }
 
     // Island Operation API methods
@@ -91,7 +100,7 @@ public class NewSkyAPI {
      * @return A CompletableFuture that completes with the UUID of the island owner
      */
     public CompletableFuture<Void> addMember(UUID islandOwnerId, UUID playerUuid, String role) {
-        return islandHandler.addMember(islandOwnerId, playerUuid, role);
+        return playerHandler.addMember(islandOwnerId, playerUuid, role);
     }
 
 
@@ -103,7 +112,7 @@ public class NewSkyAPI {
      * @return A CompletableFuture that completes when the player is added
      */
     public CompletableFuture<Void> removeMember(UUID islandOwnerId, UUID playerUuid) {
-        return islandHandler.removeMember(islandOwnerId, playerUuid);
+        return playerHandler.removeMember(islandOwnerId, playerUuid);
     }
 
 
@@ -115,7 +124,7 @@ public class NewSkyAPI {
      * @return A CompletableFuture that completes when the owner is set
      */
     public CompletableFuture<Void> setOwner(UUID islandOwnerId, UUID newOwnerId) {
-        return islandHandler.setOwner(islandOwnerId, newOwnerId);
+        return playerHandler.setOwner(islandOwnerId, newOwnerId);
     }
 
 
@@ -130,7 +139,7 @@ public class NewSkyAPI {
      * @return A CompletableFuture that completes when the home is set
      */
     public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, Location location) {
-        return islandHandler.setHome(playerUuid, homeName, location);
+        return homeHandler.setHome(playerUuid, homeName, location);
     }
 
 
@@ -142,7 +151,7 @@ public class NewSkyAPI {
      * @return A CompletableFuture that completes when the home is deleted
      */
     public CompletableFuture<Void> delHome(UUID playerUuid, String homeName) {
-        return islandHandler.delHome(playerUuid, homeName);
+        return homeHandler.delHome(playerUuid, homeName);
     }
 
 
@@ -154,7 +163,7 @@ public class NewSkyAPI {
      * @return A CompletableFuture that completes when the player is teleported
      */
     public CompletableFuture<Void> home(UUID playerUuid, String homeName) {
-        return islandHandler.home(playerUuid, homeName);
+        return homeHandler.home(playerUuid, homeName);
     }
 
 
@@ -165,7 +174,7 @@ public class NewSkyAPI {
      * @return A CompletableFuture that completes with the set of home names
      */
     public CompletableFuture<Set<String>> getHomeNames(UUID playerUuid) {
-        return islandHandler.getHomeNames(playerUuid);
+        return homeHandler.getHomeNames(playerUuid);
     }
 
 
@@ -180,7 +189,7 @@ public class NewSkyAPI {
      * @return A CompletableFuture that completes when the warp is set
      */
     public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, Location location) {
-        return islandHandler.setWarp(playerUuid, warpName, location);
+        return warpHandler.setWarp(playerUuid, warpName, location);
     }
 
 
@@ -192,7 +201,7 @@ public class NewSkyAPI {
      * @return A CompletableFuture that completes when the warp is deleted
      */
     public CompletableFuture<Void> delWarp(UUID playerUuid, String warpName) {
-        return islandHandler.delWarp(playerUuid, warpName);
+        return warpHandler.delWarp(playerUuid, warpName);
     }
 
 
@@ -204,7 +213,7 @@ public class NewSkyAPI {
      * @return A CompletableFuture that completes when the player is teleported
      */
     public CompletableFuture<Void> warp(UUID playerUuid, String warpName) {
-        return islandHandler.warp(playerUuid, warpName);
+        return warpHandler.warp(playerUuid, warpName);
     }
 
 
@@ -215,7 +224,7 @@ public class NewSkyAPI {
      * @return A CompletableFuture that completes with the set of warp names
      */
     public CompletableFuture<Set<String>> getWarpNames(UUID playerUuid) {
-        return islandHandler.getWarpNames(playerUuid);
+        return warpHandler.getWarpNames(playerUuid);
     }
 
 
@@ -225,8 +234,8 @@ public class NewSkyAPI {
      * @param playerUuid The UUID of the island
      * @return A CompletableFuture that completes when the level is calculated
      */
-    public CompletableFuture<Void> calculateIslandLevel(UUID playerUuid) {
-        return islandHandler.calculateIslandLevel(playerUuid);
+    public CompletableFuture<Void> calIslandLevel(UUID playerUuid) {
+        return levelHandler.calIslandLevel(playerUuid);
     }
 
 
@@ -237,6 +246,6 @@ public class NewSkyAPI {
      * @return A CompletableFuture that completes with the level of the island
      */
     public CompletableFuture<Integer> getIslandLevel(UUID playerUuid) {
-        return islandHandler.getIslandLevel(playerUuid);
+        return levelHandler.getIslandLevel(playerUuid);
     }
 }

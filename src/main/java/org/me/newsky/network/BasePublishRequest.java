@@ -3,6 +3,7 @@ package org.me.newsky.network;
 import org.me.newsky.NewSky;
 import org.me.newsky.redis.RedisHandler;
 
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -43,4 +44,5 @@ public abstract class BasePublishRequest {
      * @return A CompletableFuture that will be completed when the request is acknowledged
      */
     public abstract CompletableFuture<Void> sendRequest(String targetServer, String operation, String... args);
+
 }

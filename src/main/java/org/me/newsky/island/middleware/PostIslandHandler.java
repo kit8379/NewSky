@@ -1,4 +1,4 @@
-package org.me.newsky.island;
+package org.me.newsky.island.middleware;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;

@@ -1,16 +1,17 @@
-package org.me.newsky.module;
+package org.me.newsky.island;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.util.LocationUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -23,14 +24,9 @@ public class LevelHandler {
         this.cacheHandler = cacheHandler;
     }
 
-    public CompletableFuture<Void> calculateIslandLevel(UUID islandUuid) {
+    public CompletableFuture<Void> calIslandLevel(UUID islandUuid) {
         return CompletableFuture.runAsync(() -> {
             String islandName = IslandUtils.UUIDToName(islandUuid);
-
-            // Check if the world is null and skip the job if it is
-            if (Bukkit.getWorld(islandName) == null) {
-                return;
-            }
 
             Location center = LocationUtils.stringToLocation(islandName, config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch());
 
@@ -57,6 +53,16 @@ public class LevelHandler {
         });
     }
 
+    public CompletableFuture<Integer> getIslandLevel(UUID playerUuid) {
+        return CompletableFuture.supplyAsync(() -> {
+            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(playerUuid);
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
+            }
+            UUID islandUuid = islandUuidOpt.get();
+            return cacheHandler.getIslandLevel(islandUuid);
+        });
+    }
 
     private List<Chunk> getChunksForIsland(Location center, int size) {
         List<Chunk> chunks = new ArrayList<>();

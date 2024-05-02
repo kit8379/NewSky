@@ -8,11 +8,10 @@ import org.me.newsky.command.PlayerCommandExecutor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.heartbeat.HeartBeatHandler;
-import org.me.newsky.island.IslandHandler;
-import org.me.newsky.island.PostIslandHandler;
-import org.me.newsky.island.PreIslandHandler;
+import org.me.newsky.island.*;
+import org.me.newsky.island.middleware.PostIslandHandler;
+import org.me.newsky.island.middleware.PreIslandHandler;
 import org.me.newsky.listener.*;
-import org.me.newsky.module.LevelHandler;
 import org.me.newsky.network.BasePublishRequest;
 import org.me.newsky.network.BaseSubscribeRequest;
 import org.me.newsky.network.redis.RedisPublishRequest;
@@ -82,37 +81,33 @@ public class NewSky extends JavaPlugin {
             heartBeatHandler = new HeartBeatHandler(this, config, cacheHandler, serverID);
             info("Heart Beat started!");
 
-            info("Starting publish request broker class");
-            brokerRequestPublish = new RedisPublishRequest(this, redisHandler, serverID);
-            info("Request broker loaded");
-
-            info("Starting post island handler");
+            info("Starting handlers for remote requests");
             PostIslandHandler postIslandHandler = new PostIslandHandler(this, cacheHandler, worldHandler, teleportHandler, serverID);
-            info("Post island handler loaded");
-
-
-            info("Starting pre island handler");
-            PreIslandHandler preIslandHandler = new PreIslandHandler(this, cacheHandler, brokerRequestPublish, postIslandHandler, serverID);
-            info("Pre island handler loaded");
-
-            info("Starting subscribe request broker class");
             brokerRequestSubscribe = new RedisSubscribeRequest(this, redisHandler, serverID, postIslandHandler);
-            info("Request broker loaded");
+            brokerRequestPublish = new RedisPublishRequest(this, redisHandler, serverID);
+            PreIslandHandler preIslandHandler = new PreIslandHandler(this, cacheHandler, brokerRequestPublish, postIslandHandler, serverID);
+            info("All handlers for remote requests loaded");
 
-            info("Starting pre island handler");
-            IslandHandler islandHandler = new IslandHandler(config, cacheHandler, preIslandHandler, new LevelHandler(config, cacheHandler));
-            info("Pre island handler loaded");
+            info("Starting main handlers for the plugin");
+            IslandHandler islandHandler = new IslandHandler(config, cacheHandler, preIslandHandler);
+            PlayerHandler playerHandler = new PlayerHandler(config, cacheHandler);
+            HomeHandler homeHandler = new HomeHandler(config, cacheHandler, preIslandHandler);
+            WarpHandler warpHandler = new WarpHandler(config, cacheHandler, preIslandHandler);
+            LevelHandler levelHandler = new LevelHandler(config, cacheHandler);
+            info("All main handlers loaded");
 
             info("Starting plugin messaging");
             getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
             info("Plugin messaging loaded");
 
             info("Starting API");
-            api = new NewSkyAPI(islandHandler);
+            api = new NewSkyAPI(islandHandler, playerHandler, homeHandler, warpHandler, levelHandler);
             info("API loaded");
 
+            info("Starting listeners and commands");
             registerListeners();
             registerCommands();
+            info("Listeners and commands loaded");
 
             databaseHandler.createTables();
             cacheHandler.cacheAllDataToRedis();

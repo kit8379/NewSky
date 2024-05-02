@@ -1,7 +1,7 @@
 package org.me.newsky.network.redis;
 
 import org.me.newsky.NewSky;
-import org.me.newsky.island.PostIslandHandler;
+import org.me.newsky.island.middleware.PostIslandHandler;
 import org.me.newsky.network.BaseSubscribeRequest;
 import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.JedisPubSub;
