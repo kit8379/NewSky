@@ -16,6 +16,7 @@ import org.me.newsky.network.BasePublishRequest;
 import org.me.newsky.network.BaseSubscribeRequest;
 import org.me.newsky.network.redis.RedisPublishRequest;
 import org.me.newsky.network.redis.RedisSubscribeRequest;
+import org.me.newsky.placeholder.NewSkyPlaceholderExpansion;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.world.WorldHandler;
@@ -115,6 +116,11 @@ public class NewSky extends JavaPlugin {
             brokerRequestPublish.subscribeToResponseChannel();
             brokerRequestSubscribe.subscribeToRequestChannel();
 
+            info("Registering placeholder");
+            registerPlaceholder();
+            info("Placeholder registered");
+
+
         } catch (Exception e) {
             e.printStackTrace();
             info("Plugin initialization failed!");
@@ -133,6 +139,10 @@ public class NewSky extends JavaPlugin {
     private void registerCommands() {
         Objects.requireNonNull(this.getCommand("islandadmin")).setExecutor(new AdminCommandExecutor(this, config, api));
         Objects.requireNonNull(this.getCommand("island")).setExecutor(new PlayerCommandExecutor(config, api));
+    }
+
+    private void registerPlaceholder() {
+        new NewSkyPlaceholderExpansion(this).register();
     }
 
     @Override

@@ -80,6 +80,10 @@
             <id>is-snapshots</id>
             <url>https://repo.infernalsuite.com/repository/maven-snapshots/</url>
         </repository>
+        <repository>
+            <id>placeholderapi</id>
+            <url>https://repo.extendedclip.com/content/repositories/placeholderapi/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -116,6 +120,12 @@
             <groupId>com.infernalsuite.aswm</groupId>
             <artifactId>api</artifactId>
             <version>1.20.2-R0.1-SNAPSHOT</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>me.clip</groupId>
+            <artifactId>placeholderapi</artifactId>
+            <version>2.11.5</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>
