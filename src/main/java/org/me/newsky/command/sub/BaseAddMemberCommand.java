@@ -6,6 +6,8 @@ import org.bukkit.command.CommandSender;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
 
 import java.util.UUID;
 
@@ -39,8 +41,14 @@ public abstract class BaseAddMemberCommand implements BaseCommand {
         api.addMember(islandOwnerId, targetUuid, role).thenRun(() -> {
             sender.sendMessage(getIslandAddMemberSuccessMessage(args));
         }).exceptionally(ex -> {
-            sender.sendMessage("There was an error adding the member");
-            ex.printStackTrace();
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                sender.sendMessage(getNoIslandMessage(args));
+            } else if (ex.getCause() instanceof IslandPlayerAlreadyExistsException) {
+                sender.sendMessage(config.getIslandMemberExistsMessage(args[getTargetAddArgIndex()]));
+            } else {
+                sender.sendMessage("There was an error adding the member");
+                ex.printStackTrace();
+            }
             return null;
         });
 

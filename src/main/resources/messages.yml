@@ -1,113 +1,113 @@
 messages:
-  debug-prefix: '[Debug] '
-  usage-prefix: '&cUsage: '
-  cannot-leave-island-boundary: '&cYou cannot leave the island boundary!'
-  no-active-server: '&cNo active server available.'
-  island-not-loaded: '&cIsland is not loaded.'
-  island-already-loaded: '&cIsland is already loaded.'
-  cannot-edit-island: '&cYou cannot edit this island.'
-  island-pvp-disabled: '&cIsland PvP is disabled.'
-  island-member-exists: '&c{name} is already a member of this island.'
-  not-island-member: '&c{name} is not a member of this island.'
-  only-player-can-run-command: '&cOnly players can run this command.'
-  no-island: '&c{name} does not have an island.'
-  no-owner: '&cThis island has no owner.'
-  island-id: '&aIsland ID: {island}'
-  island-owner: '&aIsland Owner: {owner}'
-  island-members: '&aIsland Members: {members}'
-  island-load-success: '&aSuccessfully loaded {name}''s island.'
-  island-unload-success: '&aSuccessfully unloaded {name}''s island.'
-  plugin-reloaded: '&aPlugin reloaded successfully.'
-  admin-command-help: '&eUse /islandadmin <subcommand> for admin commands.'
-  admin-unknown-sub-command: '&cUnknown subcommand: {subCommand}'
-  admin-add-member-usage: '&b/islandadmin addmember <island> <player>'
-  admin-remove-member-usage: '&b/islandadmin removemember <island> <player>'
-  admin-create-island-usage: '&b/islandadmin create <player>'
-  admin-delete-island-usage: '&b/islandadmin delete <player>'
-  admin-set-home-usage: '&b/islandadmin sethome <island> <homeName>'
-  admin-delete-home-usage: '&b/islandadmin delhome <island> <homeName>'
-  admin-home-usage: '&b/islandadmin home <island> <homeName>'
-  admin-set-warps-usage: '&b/islandadmin setwarp <island> <warpName>'
-  admin-delete-warp-usage: '&b/islandadmin delwarp <island> <warpName>'
-  admin-warp-usage: '&b/islandadmin warp <island> <warpName>'
-  admin-info-usage: '&b/islandadmin info <island>'
-  admin-load-usage: '&b/islandadmin load <island>'
-  admin-unload-usage: '&b/islandadmin unload <island>'
-  admin-reload-usage: '&b/islandadmin reload'
-  admin-lock-usage: '&b/islandadmin lock <island>'
-  admin-pvp-usage: '&b/islandadmin pvp <island>'
-  admin-set-owner-usage: '&b/islandadmin setowner <island> <player>'
-  admin-no-island: '&c{name} does not have an island.'
-  admin-already-has-island: '&c{name} already has an island.'
-  admin-add-member-success: '&aSuccessfully added {member} to {name}''s island.'
-  admin-remove-member-success: '&aSuccessfully removed {member} from {name}''s island.'
-  admin-create-island-success: '&aSuccessfully created an island for {name}.'
-  admin-delete-warning: '&cWarning: This will permanently delete {name}''s island! Type the command again within 10 seconds to confirm.'
-  admin-delete-island-success: '&aSuccessfully deleted {name}''s island.'
-  admin-cannot-delete-default-home: '&cCannot delete the default home of {name}''s island.'
-  admin-no-home: '&cNo home named {home} found for {name}''s island.'
-  home-success: '&aSuccessfully teleported to home {home}.'
-  admin-delete-home-success: '&aSuccessfully deleted home {home} for {name}''s island.'
-  admin-no-warp: '&cNo warp named {warp} found for {name}''s island.'
-  admin-delete-warp-success: '&aSuccessfully deleted warp {warp} for {name}''s island.'
-  admin-lock-success: '&aSuccessfully locked {name}''s island.'
-  admin-unlock-success: '&aSuccessfully unlocked {name}''s island.'
-  admin-must-in-island-set-home: '&cYou must be in {name}''s island to set a home.'
-  admin-must-in-island-set-warp: '&cYou must be in {name}''s island to set a warp.'
-  admin-set-home-success: '&aSuccessfully set home {home} for {name}''s island.'
-  admin-set-warp-success: '&aSuccessfully set warp {warp} for {name}''s island.'
-  admin-pvp-enable-success: '&aSuccessfully enabled PvP for {name}''s island.'
-  admin-pvp-disable-success: '&aSuccessfully disabled PvP for {name}''s island.'
-  admin-set-owner-success: '&aSuccessfully set {name} as the owner of {owner}''s island.'
-  admin-already-owner: '&c{name} is already the owner of the island.'
-  player-command-help: '&eUse /island <subcommand> for island commands.'
-  player-unknown-sub-command: '&cUnknown subcommand: {subCommand}'
-  player-add-member-usage: '&b/island addmember <player>'
-  player-remove-member-usage: '&b/island removemember <player>'
-  player-create-island-usage: '&b/island create'
-  player-delete-island-usage: '&b/island delete'
-  player-home-usage: '&b/island home [homeName]'
-  player-set-home-usage: '&b/island sethome <homeName>'
-  player-delete-home-usage: '&b/island delhome <homeName>'
-  player-warp-usage: '&b/island warp [warpName]'
-  player-set-warp-usage: '&b/island setwarp <warpName>'
-  player-delete-warp-usage: '&b/island delwarp <warpName>'
-  player-info-usage: '&b/island info'
-  player-lock-usage: '&b/island lock'
-  player-pvp-usage: '&b/island pvp'
-  player-set-owner-usage: '&b/island setowner <player>'
-  player-leave-usage: '&b/island leave'
-  player-no-island: '&cYou do not have an island.'
-  player-already-has-island: '&cYou already have an island.'
-  player-must-in-island-set-home: '&cYou must be in your island to set a home.'
-  player-must-in-island-set-warp: '&cYou must be in your island to set a warp.'
-  player-add-member-success: '&aSuccessfully added {member} to your island.'
-  player-remove-member-success: '&aSuccessfully removed {member} from your island.'
-  player-remove-member-cannot-remove-self: '&cYou cannot remove yourself from the island.'
-  player-create-island-success: '&aSuccessfully created your island.'
-  player-delete-warning: '&cWarning: This will permanently delete your island! Type the command again within 10 seconds to confirm.'
-  player-delete-island-success: '&aSuccessfully deleted your island.'
-  player-set-home-success: '&aSuccessfully set home {home} on your island.'
-  player-set-warp-success: '&aSuccessfully set warp {warp} on your island.'
-  player-delete-home-success: '&aSuccessfully deleted home {home} from your island.'
-  player-cannot-delete-default-home: '&cYou cannot delete the default home of your island.'
-  player-delete-warp-success: '&aSuccessfully deleted warp {warp} from your island.'
-  player-pvp-enable-success: '&aSuccessfully enabled PvP on your island.'
-  player-pvp-disable-success: '&aSuccessfully disabled PvP on your island.'
-  player-unlock-success: '&aSuccessfully unlocked your island.'
-  player-lock-success: '&aSuccessfully locked your island.'
-  player-no-home: '&cNo home named {home} found on your island.'
-  player-no-warp: '&cNo warp named {warp} found on your island.'
-  player-home-success: '&aSuccessfully teleported to home {home} on your island.'
-  player-not-owner: '&cYou are not the owner of this island.'
-  warp-success: '&aSuccessfully teleported to warp {warp}.'
-  no-warp: '&cNo warp named {warp} found for {name}''s island.'
-  island-locked: '&cThis island is locked.'
-  player-set-owner-success: '&aSuccessfully set {name} as the owner of your island.'
-  player-already-owner: '&c{name} is already the owner of the island.'
-  player-cannot-leave-as-owner: '&cYou cannot leave the island as the owner. Please transfer ownership first.'
-  player-leave-success: '&aSuccessfully left the island.'
-  admin-island-level: '&aThe island level is &e{level}&a.'
-  admin-level-usage: '&cUsage: /adminlevel <player>'
-  player-island-level: '&aYour island level is &e{level}&a.'
-  player-level-usage: '&cUsage: /level'
+  debug-prefix: "&7[Debug] &r"
+  usage-prefix: "&eUsage: &r"
+  cannot-leave-island-boundary: "&cYou cannot leave the island boundary!"
+  no-active-server: "&cNo active server found!"
+  island-not-loaded: "&cIsland not loaded!"
+  island-already-loaded: "&cIsland already loaded!"
+  cannot-edit-island: "&cYou cannot edit this island!"
+  island-pvp-disabled: "&cIsland PvP is disabled!"
+  island-member-exists: "&cPlayer '{name}' is already a member of this island!"
+  not-island-member: "&cPlayer '{name}' is not a member of this island!"
+  only-player-can-run-command: "&cOnly players can run this command!"
+  no-island: "&cPlayer '{name}' does not have an island!"
+  island-id: "&aIsland ID: {island}"
+  island-owner: "&aIsland Owner: {owner}"
+  island-members: "&aIsland Members: {members}"
+  island-load-success: "&aIsland '{name}' loaded successfully!"
+  island-unload-success: "&aIsland '{name}' unloaded successfully!"
+  plugin-reloaded: "&aPlugin reloaded successfully!"
+
+
+  admin-command-help: "&eAdmin commands:"
+  admin-unknown-sub-command: "&cUnknown sub-command: {subCommand}"
+  admin-add-member-usage: "&eUsage: /is admin addmember <player>"
+  admin-remove-member-usage: "&eUsage: /is admin removemember <player>"
+  admin-create-island-usage: "&eUsage: /is admin create <player>"
+  admin-delete-island-usage: "&eUsage: /is admin delete <player>"
+  admin-set-home-usage: "&eUsage: /is admin sethome <player>"
+  admin-delete-home-usage: "&eUsage: /is admin delhome <player>"
+  admin-home-usage: "&eUsage: /is admin home <player>"
+  admin-set-warps-usage: "&eUsage: /is admin setwarp <player> <warp>"
+  admin-delete-warp-usage: "&eUsage: /is admin delwarp <player> <warp>"
+  admin-warp-usage: "&eUsage: /is admin warp <player> <warp>"
+  admin-info-usage: "&eUsage: /is admin info <player>"
+  admin-load-usage: "&eUsage: /is admin load <player>"
+  admin-unload-usage: "&eUsage: /is admin unload <player>"
+  admin-reload-usage: "&eUsage: /is admin reload"
+  admin-lock-usage: "&eUsage: /is admin lock <player>"
+  admin-pvp-usage: "&eUsage: /is admin pvp <player> <on/off>"
+  admin-set-owner-usage: "&eUsage: /is admin setowner <player> <new owner>"
+  admin-no-island: "&cPlayer '{name}' does not have an island!"
+  admin-already-has-island: "&cPlayer '{name}' already has an island!"
+  admin-add-member-success: "&aAdded member '{member}' to island '{name}'!"
+  admin-remove-member-success: "&aRemoved member '{member}' from island '{name}'!"
+  admin-create-island-success: "&aCreated island for player '{name}'!"
+  admin-delete-warning: "&cAre you sure you want to delete island '{name}'? This action cannot be undone!"
+  admin-delete-island-success: "&aDeleted island '{name}'!"
+  admin-cannot-delete-default-home: "&cCannot delete default home of player '{name}'!"
+  admin-no-home: "&cPlayer '{name}' does not have a home named '{home}'!"
+  admin-home-success: "&aTeleported you to home '{home}' of player '{name}'!"
+  admin-delete-home-success: "&aDeleted home '{home}' of player '{name}'!"
+  admin-no-warp: "&cPlayer '{name}' does not have a warp named '{warp}'!"
+  admin-delete-warp-success: "&aDeleted warp '{warp}' of player '{name}'!"
+  admin-lock-success: "&aIsland '{name}' locked successfully!"
+  admin-unlock-success: "&aIsland '{name}' unlocked successfully!"
+  admin-must-in-island-set-home: "&cYou must be on an island to set a home!"
+  admin-must-in-island-set-warp: "&cYou must be on an island to set a warp!"
+  admin-set-home-success: "&aSet home '{home}' for player '{name}'!"
+  admin-set-warp-success: "&aSet warp '{warp}' for player '{name}'!"
+  admin-pvp-enable-success: "&aPvP enabled for island '{name}'!"
+  admin-pvp-disable-success: "&aPvP disabled for island '{name}'!"
+  admin-set-owner-success: "&aSet owner of island '{name}' to '{owner}'!"
+  admin-already-owner: "&cPlayer '{name}' is already the owner of island '{owner}'!"
+  player-command-help: "&ePlayer commands:"
+  player-unknown-sub-command: "&cUnknown sub-command: {subCommand}"
+  player-add-member-usage: "&eUsage: /is addmember <player>"
+  player-remove-member-usage: "&eUsage: /is removemember <player>"
+  player-create-island-usage: "&eUsage: /is create"
+  player-delete-island-usage: "&eUsage: /is delete"
+  player-home-usage: "&eUsage: /is home"
+  player-set-home-usage: "&eUsage: /is sethome"
+  player-delete-home-usage: "&eUsage: /is delhome"
+  player-warp-usage: "&eUsage: /is warp <warp>"
+  player-set-warp-usage: "&eUsage: /is setwarp <warp>"
+  player-delete-warp-usage: "&eUsage: /is delwarp <warp>"
+  player-info-usage: "&eUsage: /is info"
+  player-lock-usage: "&eUsage: /is lock"
+  player-pvp-usage: "&eUsage: /is pvp <on/off>"
+  player-set-owner-usage: "&eUsage: /is setowner <new owner>"
+  player-leave-usage: "&eUsage: /is leave"
+  player-no-island: "&cYou do not have an island!"
+  player-already-has-island: "&cYou already have an island!"
+  player-must-in-island-set-home: "&cYou must be on your island to set a home!"
+  player-must-in-island-set-warp: "&cYou must be on your island to set a warp!"
+  player-add-member-success: "&aAdded member '{member}' to your island!"
+  player-remove-member-success: "&aRemoved member '{member}' from your island!"
+  player-create-island-success: "&aIsland created successfully!"
+  player-delete-warning: "&cAre you sure you want to delete your island? This action cannot be undone!"
+  player-delete-island-success: "&aYour island has been deleted!"
+  player-set-home-success: "&aHome '{home}' set successfully!"
+  player-set-warp-success: "&aWarp '{warp}' set successfully!"
+  player-delete-home-success: "&aHome '{home}' deleted successfully!"
+  player-cannot-delete-default-home: "&cYou cannot delete your default home!"
+  player-delete-warp-success: "&aWarp '{warp}' deleted successfully!"
+  player-pvp-enable-success: "&aPvP enabled for your island!"
+  player-pvp-disable-success: "&aPvP disabled for your island!"
+  player-unlock-success: "&aYour island has been unlocked!"
+  player-lock-success: "&aYour island has been locked!"
+  player-no-home: "&cYou do not have a home named '{home}'!"
+  player-no-warp: "&cYou do not have a warp named '{warp}'!"
+  player-home-success: "&aTeleported to home '{home}'!"
+
+  warp-success: "&aTeleported to warp '{warp}'!"
+  no-warp: "&cPlayer '{name}' does not have a warp named '{warp}'!"
+  island-locked: "&cThis island is currently locked!"
+  player-set-owner-success: "&aYou have transferred ownership of your island to '{name}'!"
+  player-already-owner: "&cYou are already the owner of this island!"
+  player-cannot-leave-as-owner: "&cYou cannot leave your island as the owner!"
+  player-leave-success: "&aYou have left your island!"
+  admin-island-level: "&eIsland level: {level}"
+  admin-level-usage: "&eUsage: /is admin level <player>"
+  player-island-level: "&eYour island level: {level}"
+  player-level-usage: "&eUsage: /is level"

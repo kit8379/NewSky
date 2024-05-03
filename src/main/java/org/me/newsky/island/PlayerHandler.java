@@ -1,8 +1,10 @@
 package org.me.newsky.island;
 
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.exceptions.*;
+import org.me.newsky.exceptions.AlreadyOwnerException;
+import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
+import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
 
 import java.util.Optional;
 import java.util.Set;
@@ -11,11 +13,9 @@ import java.util.concurrent.CompletableFuture;
 
 public class PlayerHandler {
 
-    private final ConfigHandler config;
     private final CacheHandler cacheHandler;
 
-    public PlayerHandler(ConfigHandler config, CacheHandler cacheHandler) {
-        this.config = config;
+    public PlayerHandler(CacheHandler cacheHandler) {
         this.cacheHandler = cacheHandler;
     }
 
@@ -39,14 +39,11 @@ public class PlayerHandler {
     public CompletableFuture<Void> removeMember(UUID islandOwnerId, UUID playerUuid) {
         return CompletableFuture.runAsync(() -> {
             Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(islandOwnerId);
+
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
             UUID islandUuid = islandUuidOpt.get();
-
-            if (islandOwnerId.equals(playerUuid)) {
-                throw new CannotRemoveOwnerException();
-            }
 
             Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
             if (!members.contains(playerUuid)) {

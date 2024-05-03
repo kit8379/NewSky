@@ -6,6 +6,8 @@ import org.bukkit.command.CommandSender;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.BaseCommand;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
 
 import java.util.UUID;
 
@@ -36,8 +38,14 @@ public abstract class BaseRemoveMemberCommand implements BaseCommand {
         api.removeMember(islandOwnerId, targetUuid).thenRun(() -> {
             sender.sendMessage(getIslandRemoveMemberSuccessMessage(args));
         }).exceptionally(ex -> {
-            sender.sendMessage("There was an error removing the member");
-            ex.printStackTrace();
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                sender.sendMessage(getNoIslandMessage(args));
+            } else if (ex.getCause() instanceof IslandPlayerDoesNotExistException) {
+                sender.sendMessage(config.getIslandMemberNotExistsMessage(args[getTargetRemoveArgIndex()]));
+            } else {
+                sender.sendMessage("There was an error adding the member");
+                ex.printStackTrace();
+            }
             return null;
         });
 

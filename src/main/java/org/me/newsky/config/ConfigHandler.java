@@ -67,6 +67,10 @@ public class ConfigHandler {
         }
     }
 
+    // ================================================================================================================
+    // Config Section
+    // ================================================================================================================
+
     public String getMySQLHost() {
         return config.getString("MySQL.host");
     }
@@ -171,6 +175,14 @@ public class ConfigHandler {
         return (float) config.getDouble("island.spawn.pitch");
     }
 
+    public int getBlockLevel(String material) {
+        return levels.getInt("blocks." + material, 0);
+    }
+
+    // ================================================================================================================
+    // Message Section
+    // ================================================================================================================
+
     public String getDebugPrefix() {
         return ColorUtils.colorize(messages.getString("messages.debug-prefix"));
     }
@@ -207,7 +219,7 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-member-exists")).replace("{name}", name));
     }
 
-    public String getNotIslandMemberMessage(String name) {
+    public String getIslandMemberNotExistsMessage(String name) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.not-island-member")).replace("{name}", name));
     }
 
@@ -217,10 +229,6 @@ public class ConfigHandler {
 
     public String getNoIslandMessage(String name) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.no-island")).replace("{name}", name));
-    }
-
-    public String getNoOwnerMessage() {
-        return ColorUtils.colorize(messages.getString("messages.no-owner"));
     }
 
     public String getIslandIDMessage(String islandId) {
@@ -359,8 +367,8 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-no-home")).replace("{name}", name).replace("{home}", home));
     }
 
-    public String getAdminHomeSuccessMessage(String home) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.home-success")).replace("{home}", home));
+    public String getAdminHomeSuccessMessage(String name, String home) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-home-success")).replace("{home}", home).replace("{name}", name));
     }
 
     public String getAdminDelHomeSuccessMessage(String name, String home) {
@@ -508,10 +516,6 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-remove-member-success")).replace("{member}", member));
     }
 
-    public String getPlayerRemoveMemberCannotRemoveSelfMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-remove-member-cannot-remove-self"));
-    }
-
     public String getPlayerCreateSuccessMessage() {
         return ColorUtils.colorize(messages.getString("messages.player-create-island-success"));
     }
@@ -572,9 +576,6 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-home-success")).replace("{home}", home));
     }
 
-    public String getPlayerNotOwnerMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-not-owner"));
-    }
 
     public String getWarpSuccessMessage(String warp) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.warp-success")).replace("{warp}", warp));
@@ -619,9 +620,5 @@ public class ConfigHandler {
 
     public String getPlayerLevelUsageMessage() {
         return ColorUtils.colorize(messages.getString("messages.player-level-usage"));
-    }
-
-    public int getBlockLevel(String material) {
-        return levels.getInt("blocks." + material, 0);
     }
 }

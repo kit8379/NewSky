@@ -51,7 +51,7 @@ public abstract class BaseWarpCommand implements BaseCommand {
             } else if (ex.getCause() instanceof NoActiveServerException) {
                 sender.sendMessage(config.getNoActiveServerMessage());
             } else {
-                sender.sendMessage("There was an error teleporting to the home.");
+                sender.sendMessage("There was an error teleporting to the warp.");
                 ex.printStackTrace();
             }
             return null;

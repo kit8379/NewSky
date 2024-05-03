@@ -44,8 +44,8 @@ public class PlayerSetHomeCommand extends BaseSetHomeCommand {
     }
 
     @Override
-    protected String getSetHomeSuccessMessage(String[] args, String homeName) {
-        return config.getPlayerSetHomeSuccessMessage(homeName);
+    protected String getSetHomeSuccessMessage(String[] args) {
+        return config.getPlayerSetHomeSuccessMessage(args[1]);
     }
 
     @Override

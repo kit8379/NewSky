@@ -44,8 +44,8 @@ public class AdminSetHomeCommand extends BaseSetHomeCommand {
     }
 
     @Override
-    protected String getSetHomeSuccessMessage(String[] args, String homeName) {
-        return config.getAdminSetHomeSuccessMessage(args[1], homeName);
+    protected String getSetHomeSuccessMessage(String[] args) {
+        return config.getAdminSetHomeSuccessMessage(args[1], args[2]);
     }
 
     @Override
