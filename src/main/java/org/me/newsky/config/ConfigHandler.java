@@ -179,10 +179,8 @@ public class ConfigHandler {
         return levels.getInt("blocks." + material, 0);
     }
 
-    // ================================================================================================================
-    // Message Section
-    // ================================================================================================================
 
+    // General Messages
     public String getDebugPrefix() {
         return ColorUtils.colorize(messages.getString("messages.debug-prefix"));
     }
@@ -191,8 +189,12 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.usage-prefix"));
     }
 
-    public String getCannotLeaveIslandBoundaryMessage() {
-        return ColorUtils.colorize(messages.getString("messages.cannot-leave-island-boundary"));
+    public String getPluginReloadedMessage() {
+        return ColorUtils.colorize(messages.getString("messages.plugin-reloaded"));
+    }
+
+    public String getOnlyPlayerCanRunCommandMessage() {
+        return ColorUtils.colorize(messages.getString("messages.only-player-can-run-command"));
     }
 
     public String getNoActiveServerMessage() {
@@ -205,30 +207,6 @@ public class ConfigHandler {
 
     public String getIslandAlreadyLoadedMessage() {
         return ColorUtils.colorize(messages.getString("messages.island-already-loaded"));
-    }
-
-    public String getCannotEditIslandMessage() {
-        return ColorUtils.colorize(messages.getString("messages.cannot-edit-island"));
-    }
-
-    public String getIslandPvpDisabledMessage() {
-        return ColorUtils.colorize(messages.getString("messages.island-pvp-disabled"));
-    }
-
-    public String getIslandMemberExistsMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-member-exists")).replace("{name}", name));
-    }
-
-    public String getIslandMemberNotExistsMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.not-island-member")).replace("{name}", name));
-    }
-
-    public String getOnlyPlayerCanRunCommandMessage() {
-        return ColorUtils.colorize(messages.getString("messages.only-player-can-run-command"));
-    }
-
-    public String getNoIslandMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.no-island")).replace("{name}", name));
     }
 
     public String getIslandIDMessage(String islandId) {
@@ -251,10 +229,43 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-unload-success")).replace("{name}", name));
     }
 
-    public String getPluginReloadedMessage() {
-        return ColorUtils.colorize(messages.getString("messages.plugin-reloaded"));
+    public String getIslandLockedMessage() {
+        return ColorUtils.colorize(messages.getString("messages.island-locked"));
     }
 
+    public String getIslandPvpDisabledMessage() {
+        return ColorUtils.colorize(messages.getString("messages.island-pvp-disabled"));
+    }
+
+    public String getIslandMemberExistsMessage(String name) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-member-exists")).replace("{name}", name));
+    }
+
+    public String getIslandMemberNotExistsMessage(String name) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.not-island-member")).replace("{name}", name));
+    }
+
+    public String getCannotEditIslandMessage() {
+        return ColorUtils.colorize(messages.getString("messages.cannot-edit-island"));
+    }
+
+    public String getCannotLeaveIslandBoundaryMessage() {
+        return ColorUtils.colorize(messages.getString("messages.cannot-leave-island-boundary"));
+    }
+
+    public String getWarpSuccessMessage(String warp) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.warp-success")).replace("{warp}", warp));
+    }
+
+    public String getNoWarpMessage(String name, String warp) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.no-warp")).replace("{name}", name).replace("{warp}", warp));
+    }
+
+    public String getNoIslandMessage(String name) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.no-island")).replace("{name}", name));
+    }
+
+    // Admin Command Messages
     public String getAdminCommandHelpMessage() {
         return ColorUtils.colorize(messages.getString("messages.admin-command-help"));
     }
@@ -331,6 +342,10 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.admin-set-owner-usage"));
     }
 
+    public String getAdminLevelUsageMessage() {
+        return ColorUtils.colorize(messages.getString("messages.admin-level-usage"));
+    }
+
     public String getAdminNoIslandMessage(String name) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-no-island")).replace("{name}", name));
     }
@@ -391,7 +406,6 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-unlock-success")).replace("{name}", name));
     }
 
-
     public String getAdminMustInIslandSetHomeMessage(String name) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-must-in-island-set-home")).replace("{name}", name));
     }
@@ -424,6 +438,11 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-already-owner")).replace("{name}", name).replace("{owner}", owner));
     }
 
+    public String getAdminIslandLevelMessage(int level) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-island-level")).replace("{level}", String.valueOf(level)));
+    }
+
+    // Player Command Messages
     public String getPlayerCommandHelpMessage() {
         return ColorUtils.colorize(messages.getString("messages.player-command-help"));
     }
@@ -490,6 +509,10 @@ public class ConfigHandler {
 
     public String getPlayerLeaveUsageMessage() {
         return ColorUtils.colorize(messages.getString("messages.player-leave-usage"));
+    }
+
+    public String getPlayerLevelUsageMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-level-usage"));
     }
 
     public String getPlayerNoIslandMessage() {
@@ -576,20 +599,6 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-home-success")).replace("{home}", home));
     }
 
-
-    public String getWarpSuccessMessage(String warp) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.warp-success")).replace("{warp}", warp));
-    }
-
-    public String getNoWarpMessage(String name, String warp) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.no-warp")).replace("{name}", name).replace("{warp}", warp));
-    }
-
-    public String getIslandLockedMessage() {
-        return ColorUtils.colorize(messages.getString("messages.island-locked"));
-    }
-
-
     public String getPlayerSetOwnerSuccessMessage(String name) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-set-owner-success")).replace("{name}", name));
     }
@@ -606,19 +615,7 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.player-leave-success"));
     }
 
-    public String getAdminIslandLevelMessage(int level) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-island-level")).replace("{level}", String.valueOf(level)));
-    }
-
-    public String getAdminLevelUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.admin-level-usage"));
-    }
-
     public String getPlayerIslandLevelMessage(int level) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-island-level")).replace("{level}", String.valueOf(level)));
-    }
-
-    public String getPlayerLevelUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-level-usage"));
     }
 }
