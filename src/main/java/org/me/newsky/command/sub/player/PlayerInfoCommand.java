@@ -16,15 +16,6 @@ public class PlayerInfoCommand extends BaseInfoCommand {
     }
 
     @Override
-    protected UUID getTargetUuid(CommandSender sender, String[] args) {
-        if (args.length > 1) {
-            return Bukkit.getOfflinePlayer(args[1]).getUniqueId();
-        } else {
-            return ((Player) sender).getUniqueId();
-        }
-    }
-
-    @Override
     public String getUsageCommandMessage() {
         return config.getPlayerInfoUsageMessage();
     }

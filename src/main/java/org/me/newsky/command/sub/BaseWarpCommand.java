@@ -40,7 +40,9 @@ public abstract class BaseWarpCommand implements BaseCommand {
         // Get the target UUID
         UUID targetUuid = getTargetUuid(sender, args);
 
+        // Get the warp name
         String warpName = args.length > getTargetWarpArgIndex() ? args[getTargetWarpArgIndex()] : "default";
+
         api.warp(targetUuid, warpName).thenRun(() -> {
             sender.sendMessage(config.getWarpSuccessMessage(warpName));
         }).exceptionally(ex -> {

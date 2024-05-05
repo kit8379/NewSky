@@ -4,13 +4,16 @@ import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.me.newsky.NewSky;
+import org.me.newsky.cache.CacheHandler;
 
 public class NewSkyPlaceholderExpansion extends PlaceholderExpansion {
 
     private final NewSky plugin;
+    private final CacheHandler cacheHandler;
 
-    public NewSkyPlaceholderExpansion(NewSky plugin) {
+    public NewSkyPlaceholderExpansion(NewSky plugin, CacheHandler cacheHandler) {
         this.plugin = plugin;
+        this.cacheHandler = cacheHandler;
     }
 
     @Override
@@ -45,15 +48,15 @@ public class NewSkyPlaceholderExpansion extends PlaceholderExpansion {
         }
 
         if (identifier.equalsIgnoreCase("newsky_island_level")) {
-            return "100";
+            return String.valueOf(cacheHandler.getIslandLevel(player.getUniqueId()));
         } else if (identifier.equalsIgnoreCase("newsky_island_uuid")) {
-            return "100";
+            return cacheHandler.getIslandUuid(player.getUniqueId()).toString();
         } else if (identifier.equalsIgnoreCase("newsky_island_owner")) {
-            return "100";
+            return cacheHandler.getIslandOwner(player.getUniqueId()).toString();
         } else if (identifier.equalsIgnoreCase("newsky_island_members")) {
-            return "100";
+            return cacheHandler.getIslandMembers(player.getUniqueId()).toString();
         } else if (identifier.equalsIgnoreCase("newsky_island_players")) {
-            return "100";
+            return cacheHandler.getIslandPlayers(player.getUniqueId()).toString();
         }
 
         return null;

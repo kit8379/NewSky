@@ -15,11 +15,6 @@ public class AdminInfoCommand extends BaseInfoCommand {
     }
 
     @Override
-    protected UUID getTargetUuid(CommandSender sender, String[] args) {
-        return Bukkit.getOfflinePlayer(args[2]).getUniqueId();
-    }
-
-    @Override
     public String getUsageCommandMessage() {
         return config.getAdminInfoUsageMessage();
     }

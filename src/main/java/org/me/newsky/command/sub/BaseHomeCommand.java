@@ -40,8 +40,9 @@ public abstract class BaseHomeCommand implements BaseCommand {
         // Get the target UUID
         UUID targetUuid = getTargetUuid(sender, args);
 
-        // Teleport the player to the home location
+        // Get the home name
         String homeName = args.length > getTargetHomeArgIndex() ? args[getTargetHomeArgIndex()] : "default";
+
         api.home(targetUuid, homeName).thenRun(() -> {
             sender.sendMessage(getIslandHomeSuccessMessage(args));
         }).exceptionally(ex -> {

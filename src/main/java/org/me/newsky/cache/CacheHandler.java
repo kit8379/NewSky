@@ -276,6 +276,13 @@ public class CacheHandler {
         }
     }
 
+    public int getIslandLevel(UUID islandUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            String level = jedis.hget("island_levels", islandUuid.toString());
+            return level != null ? Integer.parseInt(level) : 0;
+        }
+    }
+
     public Optional<UUID> getIslandOwner(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             Set<String> keys = jedis.keys("island_players:" + islandUuid.toString() + ":*");
@@ -290,11 +297,19 @@ public class CacheHandler {
         return Optional.empty();
     }
 
-    public int getIslandLevel(UUID islandUuid) {
+    public Set<UUID> getIslandMembers(UUID islandUuid) {
+        Set<UUID> members = new HashSet<>();
         try (Jedis jedis = redisHandler.getJedis()) {
-            String level = jedis.hget("island_levels", islandUuid.toString());
-            return level != null ? Integer.parseInt(level) : 0;
+            Set<String> keys = jedis.keys("island_players:" + islandUuid.toString() + ":*");
+            for (String key : keys) {
+                Map<String, String> data = jedis.hgetAll(key);
+                if ("member".equals(data.get("role"))) {
+                    String[] parts = key.split(":");
+                    members.add(UUID.fromString(parts[2]));
+                }
+            }
         }
+        return members;
     }
 
     public Set<UUID> getIslandPlayers(UUID islandUuid) {
@@ -368,6 +383,4 @@ public class CacheHandler {
             return jedis.hget("island_server", islandUuid.toString());
         }
     }
-
-
 }
