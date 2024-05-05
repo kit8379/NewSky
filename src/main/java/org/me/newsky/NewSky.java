@@ -18,6 +18,7 @@ import org.me.newsky.network.redis.RedisPublishRequest;
 import org.me.newsky.network.redis.RedisSubscribeRequest;
 import org.me.newsky.placeholder.NewSkyPlaceholderExpansion;
 import org.me.newsky.redis.RedisHandler;
+import org.me.newsky.scheduler.LevelUpdateScheduler;
 import org.me.newsky.scheduler.WorldUnloadScheduler;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.world.WorldHandler;
@@ -33,6 +34,7 @@ public class NewSky extends JavaPlugin {
     private TeleportHandler teleportHandler;
     private HeartBeatHandler heartBeatHandler;
     private WorldUnloadScheduler worldUnloadScheduler;
+    private LevelUpdateScheduler levelUpdateScheduler;
     private BasePublishRequest brokerRequestPublish;
     private BaseSubscribeRequest brokerRequestSubscribe;
     private NewSkyAPI api;
@@ -99,10 +101,6 @@ public class NewSky extends JavaPlugin {
             LevelHandler levelHandler = new LevelHandler(config, cacheHandler);
             info("All main handlers loaded");
 
-            info("Starting all schedulers for the plugin");
-            worldUnloadScheduler = new WorldUnloadScheduler(this, config, cacheHandler, worldHandler);
-            info("All schedulers loaded");
-
             info("Starting plugin messaging");
             getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
             info("Plugin messaging loaded");
@@ -110,6 +108,11 @@ public class NewSky extends JavaPlugin {
             info("Starting API");
             api = new NewSkyAPI(islandHandler, playerHandler, homeHandler, warpHandler, levelHandler);
             info("API loaded");
+
+            info("Starting all schedulers for the plugin");
+            worldUnloadScheduler = new WorldUnloadScheduler(this, config, cacheHandler, worldHandler);
+            levelUpdateScheduler = new LevelUpdateScheduler(this, config, levelHandler);
+            info("All schedulers loaded");
 
             info("Starting listeners and commands");
             registerListeners();
@@ -120,9 +123,9 @@ public class NewSky extends JavaPlugin {
             cacheHandler.cacheAllDataToRedis();
             heartBeatHandler.start();
             worldUnloadScheduler.start();
+            levelUpdateScheduler.start();
             brokerRequestPublish.subscribeToResponseChannel();
             brokerRequestSubscribe.subscribeToRequestChannel();
-
 
             info("Registering placeholder");
             registerPlaceholder();
@@ -163,6 +166,7 @@ public class NewSky extends JavaPlugin {
     public void shutdown() {
         brokerRequestSubscribe.unsubscribeFromRequestChannel();
         brokerRequestPublish.unsubscribeFromResponseChannel();
+        levelUpdateScheduler.stop();
         worldUnloadScheduler.stop();
         heartBeatHandler.stop();
         redisHandler.disconnect();

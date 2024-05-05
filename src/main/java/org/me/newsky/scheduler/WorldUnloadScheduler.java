@@ -15,7 +15,7 @@ public class WorldUnloadScheduler {
     private final NewSky plugin;
     private final CacheHandler cacheHandler;
     private final WorldHandler worldHandler;
-    private final long worldUnloadInterval;
+    private final long unloadInterval;
     private final Map<String, Long> inactiveWorlds = new HashMap<>();
     private BukkitTask unloadTask;
 
@@ -23,11 +23,11 @@ public class WorldUnloadScheduler {
         this.plugin = plugin;
         this.cacheHandler = cacheHandler;
         this.worldHandler = worldHandler;
-        this.worldUnloadInterval = config.getWorldUnloadInterval();
+        this.unloadInterval = config.getWorldUnloadInterval();
     }
 
     public void start() {
-        unloadTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::checkAndUnloadWorlds, 0, worldUnloadInterval / 50);
+        unloadTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::checkAndUnloadWorlds, 0, unloadInterval / 50);
     }
 
     public void stop() {
@@ -42,7 +42,7 @@ public class WorldUnloadScheduler {
         plugin.getServer().getWorlds().forEach(world -> {
             if (world.getName().startsWith("island-") && world.getPlayers().isEmpty()) {
                 long inactiveTime = inactiveWorlds.getOrDefault(world.getName(), currentTime);
-                if (currentTime - inactiveTime > worldUnloadInterval) {
+                if (currentTime - inactiveTime > unloadInterval) {
                     worldHandler.unloadWorld(world.getName()).thenRun(() -> {
                         plugin.debug("Unloaded inactive island world: " + world.getName());
                         inactiveWorlds.remove(world.getName());

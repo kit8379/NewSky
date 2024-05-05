@@ -179,6 +179,10 @@ public class ConfigHandler {
         return (float) config.getDouble("island.spawn.pitch");
     }
 
+    public int getIslandLevelUpdateInterval() {
+        return config.getInt("island.level-update-interval");
+    }
+
     public int getBlockLevel(String material) {
         return levels.getInt("blocks." + material, 0);
     }

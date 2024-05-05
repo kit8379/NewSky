@@ -24,6 +24,19 @@ public class LevelHandler {
         this.cacheHandler = cacheHandler;
     }
 
+
+    public CompletableFuture<Integer> getIslandLevel(UUID playerUuid) {
+        return CompletableFuture.supplyAsync(() -> {
+            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(playerUuid);
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
+            }
+            UUID islandUuid = islandUuidOpt.get();
+            return cacheHandler.getIslandLevel(islandUuid);
+        });
+    }
+
+
     public CompletableFuture<Void> calIslandLevel(UUID islandUuid) {
         return CompletableFuture.runAsync(() -> {
             String islandName = IslandUtils.UUIDToName(islandUuid);
@@ -53,16 +66,6 @@ public class LevelHandler {
         });
     }
 
-    public CompletableFuture<Integer> getIslandLevel(UUID playerUuid) {
-        return CompletableFuture.supplyAsync(() -> {
-            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(playerUuid);
-            if (islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException();
-            }
-            UUID islandUuid = islandUuidOpt.get();
-            return cacheHandler.getIslandLevel(islandUuid);
-        });
-    }
 
     private List<Chunk> getChunksForIsland(Location center, int size) {
         List<Chunk> chunks = new ArrayList<>();

@@ -55,6 +55,8 @@ island:
   # Set it to 0 if you don't want any buffer. The border will be exactly at the edge of the island.
   buffer: 10
 
+  level-update-interval: 360
+
   # The default spawn point of the island.
   spawn:
     x: 0
