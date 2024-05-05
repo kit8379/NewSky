@@ -27,6 +27,27 @@ public class NewSkyAPI {
     // Island Operation API methods
 
     /**
+     * Get the owner of the island for the specified player
+     *
+     * @param playerUuid The UUID of the player
+     * @return A CompletableFuture that completes with the UUID of the island owner
+     */
+    public CompletableFuture<UUID> getIslandOwner(UUID playerUuid) {
+        return islandHandler.getIslandOwner(playerUuid);
+    }
+
+    /**
+     * Get the members of the island for the specified player
+     *
+     * @param playerUuid The UUID of the player
+     * @return A CompletableFuture that completes with the set of island members
+     */
+    public CompletableFuture<Set<UUID>> getIslandMembers(UUID playerUuid) {
+        return islandHandler.getIslandMembers(playerUuid);
+    }
+
+
+    /**
      * Create an island for the specified player
      *
      * @param playerUuid The UUID of the player

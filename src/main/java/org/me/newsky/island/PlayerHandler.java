@@ -68,11 +68,7 @@ public class PlayerHandler {
             UUID islandUuid = islandUuidOpt.get();
 
             // Get the owner UUID
-            Optional<UUID> ownerUuidOpt = cacheHandler.getIslandOwner(islandUuid);
-            if (ownerUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException();
-            }
-            UUID ownerUuid = ownerUuidOpt.get();
+            UUID ownerUuid = cacheHandler.getIslandOwner(islandUuid);
 
             // Check if the new owner is already the owner
             if (ownerUuid.equals(newOwnerId)) {

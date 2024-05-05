@@ -37,12 +37,11 @@ public abstract class BaseInfoCommand implements BaseCommand {
         CompletableFuture<Void> allFutures = CompletableFuture.allOf(levelFuture, ownerFuture, membersFuture);
 
         allFutures.thenRun(() -> {
-            // Access results using join, which is safe as all futures are guaranteed to have completed here
             int level = levelFuture.join();
             UUID owner = ownerFuture.join();
             Set<UUID> members = membersFuture.join();
 
-            // Ensure this interaction is run on the main thread
+            sender.sendMessage("Island Information:");
             sender.sendMessage("Island Owner: " + owner.toString());
             sender.sendMessage("Island Level: " + level);
             sender.sendMessage("Island Members: " + members.size() + " members.");

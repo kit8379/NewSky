@@ -7,6 +7,7 @@ import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.island.middleware.PreIslandHandler;
 
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -20,6 +21,28 @@ public class IslandHandler {
         this.config = configHandler;
         this.cacheHandler = cacheHandler;
         this.preIslandHandler = preIslandHandler;
+    }
+
+    public CompletableFuture<UUID> getIslandOwner(UUID playerUuid) {
+        return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getIslandUuid(playerUuid);
+        }).thenApply(islandUuidOpt -> {
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
+            }
+            return cacheHandler.getIslandOwner(islandUuidOpt.get());
+        });
+    }
+
+    public CompletableFuture<Set<UUID>> getIslandMembers(UUID playerUuid) {
+        return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getIslandUuid(playerUuid);
+        }).thenApply(islandUuidOpt -> {
+            if (islandUuidOpt.isEmpty()) {
+                throw new IslandDoesNotExistException();
+            }
+            return cacheHandler.getIslandMembers(islandUuidOpt.get());
+        });
     }
 
     public CompletableFuture<Void> createIsland(UUID playerUuid) {

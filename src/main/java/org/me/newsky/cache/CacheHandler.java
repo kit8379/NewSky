@@ -283,18 +283,18 @@ public class CacheHandler {
         }
     }
 
-    public Optional<UUID> getIslandOwner(UUID islandUuid) {
+    public UUID getIslandOwner(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             Set<String> keys = jedis.keys("island_players:" + islandUuid.toString() + ":*");
             for (String key : keys) {
                 Map<String, String> data = jedis.hgetAll(key);
                 if ("owner".equals(data.get("role"))) {
                     String[] parts = key.split(":");
-                    return Optional.of(UUID.fromString(parts[2]));
+                    return UUID.fromString(parts[2]);
                 }
             }
         }
-        return Optional.empty();
+        return null;
     }
 
     public Set<UUID> getIslandMembers(UUID islandUuid) {
