@@ -6,7 +6,7 @@ messages:
   no-active-server: "&cNo active server found!"
   island-not-loaded: "&cIsland not loaded!"
   island-already-loaded: "&cIsland already loaded!"
-  island-id: "&aIsland ID: {island}"
+  island-info: "&aIsland Info:"
   island-owner: "&aIsland Owner: {owner}"
   island-members: "&aIsland Members: {members}"
   island-load-success: "&aIsland '{name}' loaded successfully!"

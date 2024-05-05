@@ -42,7 +42,6 @@ public class PostIslandHandler {
         worldHandler.createWorld(islandName).thenRun(() -> {
             cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
             future.complete(null);
-            plugin.debug("createIsland completed successfully");
         });
 
         return future;
@@ -56,7 +55,6 @@ public class PostIslandHandler {
         worldHandler.deleteWorld(islandName).thenRun(() -> {
             cacheHandler.removeIslandLoadedServer(islandUuid);
             future.complete(null);
-            plugin.debug("deleteIsland completed successfully");
         });
 
         return future;
@@ -69,9 +67,7 @@ public class PostIslandHandler {
 
         worldHandler.loadWorld(islandName).thenRun(() -> {
             cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
-            plugin.debug("Loaded island " + islandName);
             future.complete(null);
-            plugin.debug("loadIsland completed successfully");
         });
 
         return future;
@@ -84,9 +80,7 @@ public class PostIslandHandler {
 
         worldHandler.unloadWorld(islandName).thenRun(() -> {
             cacheHandler.removeIslandLoadedServer(islandUuid);
-            plugin.debug("Unloaded island " + islandName);
             future.complete(null);
-            plugin.debug("unloadIsland completed successfully");
         });
 
         return future;
@@ -116,7 +110,6 @@ public class PostIslandHandler {
             }
 
             future.complete(null);
-            plugin.debug("teleportToIsland completed successfully");
         });
 
         return future;
@@ -126,20 +119,20 @@ public class PostIslandHandler {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
         String islandName = IslandUtils.UUIDToName(islandUuid);
+
         World world = Bukkit.getWorld(islandName);
         if (world != null) {
+            World safeWorld = Bukkit.getServer().getWorlds().get(0);
             Set<UUID> islandPlayers = cacheHandler.getIslandPlayers(islandUuid);
             for (Player player : world.getPlayers()) {
                 UUID playerUuid = player.getUniqueId();
                 if (!islandPlayers.contains(playerUuid)) {
-                    // Teleport player to default spawn that have configured in the plugin
+                    player.teleportAsync(safeWorld.getSpawnLocation());
                     plugin.debug("Removed player " + playerUuid + " from island " + islandName + " because the island is locked");
                 }
             }
         }
-
         future.complete(null);
-        plugin.debug("lockIsland completed successfully");
 
         return future;
     }

@@ -41,10 +41,13 @@ public abstract class BaseInfoCommand implements BaseCommand {
             UUID owner = ownerFuture.join();
             Set<UUID> members = membersFuture.join();
 
-            sender.sendMessage("Island Information:");
-            sender.sendMessage("Island Owner: " + owner.toString());
-            sender.sendMessage("Island Level: " + level);
-            sender.sendMessage("Island Members: " + members.size() + " members.");
+            String ownerName = Bukkit.getOfflinePlayer(owner).getName();
+            String membersNames = members.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).reduce("", (acc, name) -> acc + name + ", ");
+
+            sender.sendMessage(config.getIslandInfoMessage());
+            sender.sendMessage(config.getIslandLevelMessage(level));
+            sender.sendMessage(config.getIslandOwnerMessage(ownerName));
+            sender.sendMessage(config.getIslandMembersMessage(membersNames));
         }).exceptionally(ex -> {
             sender.sendMessage("There was an error retrieving island information.");
             ex.printStackTrace();

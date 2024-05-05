@@ -27,7 +27,7 @@ public class WorldUnloadScheduler {
     }
 
     public void start() {
-        unloadTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::checkAndUnloadWorlds, 0, unloadInterval / 50);
+        unloadTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::checkAndUnloadWorlds, 0, unloadInterval * 20);
     }
 
     public void stop() {

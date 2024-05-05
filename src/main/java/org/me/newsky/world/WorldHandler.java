@@ -129,8 +129,9 @@ public class WorldHandler {
     }
 
     public void removePlayersFromWorld(World world) {
+        World safeWorld = Bukkit.getServer().getWorlds().get(0);
         for (Player player : world.getPlayers()) {
-            // Teleport players to spawn that have configured in the plugin
+            player.teleport(safeWorld.getSpawnLocation());
         }
     }
 

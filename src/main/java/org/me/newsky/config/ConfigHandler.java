@@ -217,8 +217,12 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.island-already-loaded"));
     }
 
-    public String getIslandIDMessage(String islandId) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-id")).replace("{island}", islandId));
+    public String getIslandInfoMessage() {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info")));
+    }
+
+    public String getIslandLevelMessage(int level) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-level")).replace("{level}", String.valueOf(level)));
     }
 
     public String getIslandOwnerMessage(String ownerName) {

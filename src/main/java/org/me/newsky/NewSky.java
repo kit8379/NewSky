@@ -79,7 +79,7 @@ public class NewSky extends JavaPlugin {
             info("Cache to Redis success");
 
             info("Starting teleport manager");
-            teleportHandler = new TeleportHandler(this);
+            teleportHandler = new TeleportHandler();
             info("Teleport manager loaded");
 
             info("Start connecting to Heart Beat system now...");
