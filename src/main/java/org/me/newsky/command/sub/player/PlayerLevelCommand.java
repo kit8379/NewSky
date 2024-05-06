@@ -16,12 +16,12 @@ public class PlayerLevelCommand extends BaseLevelCommand {
 
     @Override
     protected boolean validateArgs(CommandSender sender, String[] args) {
-        return true; // No specific arguments to validate for player level command
+        return true;
     }
 
     @Override
     protected UUID getTargetUuid(CommandSender sender, String[] args) {
-        return ((Player) sender).getUniqueId(); // The target is the player who issued the command
+        return ((Player) sender).getUniqueId();
     }
 
     @Override
