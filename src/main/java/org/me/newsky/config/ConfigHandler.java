@@ -5,8 +5,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.me.newsky.NewSky;
 import org.me.newsky.util.ColorUtils;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
 import java.util.Objects;
 import java.util.Set;
 

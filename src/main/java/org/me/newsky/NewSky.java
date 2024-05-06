@@ -23,6 +23,7 @@ import org.me.newsky.scheduler.WorldUnloadScheduler;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.world.WorldHandler;
 
+import java.io.*;
 import java.util.Objects;
 
 public class NewSky extends JavaPlugin {
@@ -119,6 +120,14 @@ public class NewSky extends JavaPlugin {
             registerCommands();
             info("Listeners and commands loaded");
 
+            info("Registering placeholder");
+            registerPlaceholder();
+            info("Placeholder registered");
+
+            info("Copying default slime world");
+            copyDefaultWorld();
+            info("Default slime world copied");
+
             databaseHandler.createTables();
             cacheHandler.cacheAllDataToRedis();
             heartBeatHandler.start();
@@ -127,15 +136,10 @@ public class NewSky extends JavaPlugin {
             brokerRequestPublish.subscribeToResponseChannel();
             brokerRequestSubscribe.subscribeToRequestChannel();
 
-            info("Registering placeholder");
-            registerPlaceholder();
-            info("Placeholder registered");
-
-
         } catch (Exception e) {
             e.printStackTrace();
             info("Plugin initialization failed!");
-            shutdown();
+            getServer().getPluginManager().disablePlugin(this);
         }
     }
 
@@ -154,6 +158,30 @@ public class NewSky extends JavaPlugin {
 
     private void registerPlaceholder() {
         new NewSkyPlaceholderExpansion(this, cacheHandler).register();
+    }
+
+    private void copyDefaultWorld() {
+        File templateDir = new File(getDataFolder(), "template");
+        if (!templateDir.exists()) {
+            templateDir.mkdirs();
+        }
+
+        File targetFile = new File(templateDir, "default.slime");
+        if (!targetFile.exists()) {
+            try (InputStream in = getResource("default.slime"); OutputStream out = new FileOutputStream(targetFile)) {
+                if (in == null) {
+                    info("Resource default.slime not found");
+                    return;
+                }
+                byte[] buffer = new byte[1024];
+                int length;
+                while ((length = in.read(buffer)) != -1) {
+                    out.write(buffer, 0, length);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     @Override
