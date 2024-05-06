@@ -12,7 +12,10 @@ import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.teleport.TeleportHandler;
 
-import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
@@ -24,6 +27,7 @@ public class WorldHandler {
     public final TeleportHandler teleportHandler;
     private final SlimePlugin slimePlugin;
     private final SlimeLoader slimeLoader;
+    private final SlimeLoader templateLoader;
     private final SlimePropertyMap properties;
 
     public WorldHandler(NewSky plugin, ConfigHandler config, TeleportHandler teleportHandler) {
@@ -32,6 +36,7 @@ public class WorldHandler {
         this.teleportHandler = teleportHandler;
         this.slimePlugin = (SlimePlugin) Bukkit.getPluginManager().getPlugin("SlimeWorldManager");
         this.slimeLoader = Objects.requireNonNull(slimePlugin).getLoader("mysql");
+        this.templateLoader = Objects.requireNonNull(slimePlugin).getLoader("file");
 
         // Set world properties
         properties = new SlimePropertyMap();
@@ -48,9 +53,19 @@ public class WorldHandler {
 
         CompletableFuture.runAsync(() -> {
             try {
-                File templateWorld = plugin.getDataFolder().toPath().resolve("template/" + config.getTemplateWorldName()).toFile();
-                slimePlugin.importWorld(templateWorld, worldName, slimeLoader);
+                // Get the template path
+                Path templatePath = plugin.getDataFolder().toPath().resolve("template/" + config.getTemplateWorldName() + ".slime");
+                Path targetPath = Paths.get(plugin.getServer().getWorldContainer().getAbsolutePath(), "slime_worlds", worldName + ".slime");
+
+                // Copy the template world to the target location
+                Files.copy(templatePath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+
+                // Migrate the world with the appropriate loaders
+                slimePlugin.migrateWorld(worldName, templateLoader, slimeLoader);
+
+                // Load the world with the specified properties
                 SlimeWorld world = slimePlugin.loadWorld(slimeLoader, worldName, false, properties);
+
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     try {
                         slimePlugin.loadWorld(world);
@@ -68,6 +83,8 @@ public class WorldHandler {
 
         return future;
     }
+
+
 
     public CompletableFuture<Void> loadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
