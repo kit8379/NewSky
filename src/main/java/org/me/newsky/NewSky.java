@@ -124,10 +124,6 @@ public class NewSky extends JavaPlugin {
             registerPlaceholder();
             info("Placeholder registered");
 
-            info("Copying default slime world");
-            copyDefaultWorld();
-            info("Default slime world copied");
-
             databaseHandler.createTables();
             cacheHandler.cacheAllDataToRedis();
             heartBeatHandler.start();
@@ -158,30 +154,6 @@ public class NewSky extends JavaPlugin {
 
     private void registerPlaceholder() {
         new NewSkyPlaceholderExpansion(this, cacheHandler).register();
-    }
-
-    private void copyDefaultWorld() {
-        File templateDir = new File(getDataFolder(), "template");
-        if (!templateDir.exists()) {
-            templateDir.mkdirs();
-        }
-
-        File targetFile = new File(templateDir, "default.slime");
-        if (!targetFile.exists()) {
-            try (InputStream in = getResource("default.slime"); OutputStream out = new FileOutputStream(targetFile)) {
-                if (in == null) {
-                    info("Resource default.slime not found");
-                    return;
-                }
-                byte[] buffer = new byte[1024];
-                int length;
-                while ((length = in.read(buffer)) != -1) {
-                    out.write(buffer, 0, length);
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
     }
 
     @Override
