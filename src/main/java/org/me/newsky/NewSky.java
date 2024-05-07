@@ -1,10 +1,11 @@
 package org.me.newsky;
 
+import co.aikar.commands.PaperCommandManager;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.command.AdminCommandExecutor;
-import org.me.newsky.command.PlayerCommandExecutor;
+import org.me.newsky.command.IslandCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.heartbeat.HeartBeatHandler;
@@ -23,11 +24,11 @@ import org.me.newsky.scheduler.WorldUnloadScheduler;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.world.WorldHandler;
 
-import java.io.*;
-import java.util.Objects;
+import java.util.Collections;
 
 public class NewSky extends JavaPlugin {
 
+    private PaperCommandManager commandManager;
     private ConfigHandler config;
     private RedisHandler redisHandler;
     private DatabaseHandler databaseHandler;
@@ -148,8 +149,34 @@ public class NewSky extends JavaPlugin {
     }
 
     private void registerCommands() {
-        Objects.requireNonNull(this.getCommand("islandadmin")).setExecutor(new AdminCommandExecutor(this, config, api));
-        Objects.requireNonNull(this.getCommand("island")).setExecutor(new PlayerCommandExecutor(config, api));
+        commandManager = new PaperCommandManager(this);
+
+        // Register the IslandCommand
+        IslandCommand islandCommand = new IslandCommand(config, api);
+        commandManager.registerCommand(islandCommand);
+
+        // Setup command completions
+        setupCommandCompletions();
+    }
+
+    private void setupCommandCompletions() {
+        // Register a dynamic completion for home names
+        commandManager.getCommandCompletions().registerAsyncCompletion("homes", context -> {
+            Player player = context.getPlayer();
+            if (player != null) {
+                return api.getHomeNames(player.getUniqueId()).join();
+            }
+            return Collections.emptyList();
+        });
+
+        // Register a dynamic completion for warp names
+        commandManager.getCommandCompletions().registerAsyncCompletion("warps", context -> {
+            Player player = context.getPlayer();
+            if (player != null) {
+                return api.getWarpNames(player.getUniqueId()).join();
+            }
+            return Collections.emptyList();
+        });
     }
 
     private void registerPlaceholder() {
