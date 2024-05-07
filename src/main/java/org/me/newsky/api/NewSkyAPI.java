@@ -27,6 +27,16 @@ public class NewSkyAPI {
     // Island Operation API methods
 
     /**
+     * Get the UUID of the island for the specified player
+     *
+     * @param playerUuid The UUID of the player
+     * @return A CompletableFuture that completes with the UUID of the island
+     */
+    public CompletableFuture<UUID> getIslandUuid(UUID playerUuid) {
+        return islandHandler.getIslandUuid(playerUuid);
+    }
+
+    /**
      * Get the owner of the island for the specified player
      *
      * @param playerUuid The UUID of the player
@@ -50,11 +60,11 @@ public class NewSkyAPI {
     /**
      * Create an island for the specified player
      *
-     * @param ownerUuid The UUID of the island owner
+     * @param ownerPlayerUuid The UUID of the island owner
      * @return A CompletableFuture that completes when the island is created
      */
-    public CompletableFuture<Void> createIsland(UUID ownerUuid) {
-        return islandHandler.createIsland(ownerUuid);
+    public CompletableFuture<Void> createIsland(UUID ownerPlayerUuid) {
+        return islandHandler.createIsland(ownerPlayerUuid);
     }
 
 
@@ -141,12 +151,12 @@ public class NewSkyAPI {
     /**
      * Set the owner of the island for the specified player
      *
-     * @param islandUuid   The UUID of the island
-     * @param newOwnerUuid The UUID of the new island owner
+     * @param islandUuid         The UUID of the island
+     * @param newOwnerPlayerUuid The UUID of the new island owner
      * @return A CompletableFuture that completes when the owner is set
      */
-    public CompletableFuture<Void> setOwner(UUID islandUuid, UUID newOwnerUuid) {
-        return playerHandler.setOwner(islandUuid, newOwnerUuid);
+    public CompletableFuture<Void> setOwner(UUID islandUuid, UUID newOwnerPlayerUuid) {
+        return playerHandler.setOwner(islandUuid, newOwnerPlayerUuid);
     }
 
 
@@ -155,53 +165,49 @@ public class NewSkyAPI {
     /**
      * Set a home for the specified player
      *
-     * @param islandUuid The UUID of the island
      * @param playerUuid The UUID of the player
      * @param homeName   The name of the home
      * @param location   The location of the home
      * @return A CompletableFuture that completes when the home is set
      */
-    public CompletableFuture<Void> setHome(UUID islandUuid, String playerUuid, String homeName, Location location) {
-        return homeHandler.setHome(islandUuid, playerUuid, homeName, location);
+    public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, Location location) {
+        return homeHandler.setHome(playerUuid, homeName, location);
     }
 
 
     /**
      * Delete a home for the specified player
      *
-     * @param islandUuid The UUID of the island
      * @param playerUuid The UUID of the player
      * @param homeName   The name of the home
      * @return A CompletableFuture that completes when the home is deleted
      */
-    public CompletableFuture<Void> delHome(UUID islandUuid, String playerUuid, String homeName) {
-        return homeHandler.delHome(islandUuid, playerUuid, homeName);
+    public CompletableFuture<Void> delHome(UUID playerUuid, String homeName) {
+        return homeHandler.delHome(playerUuid, homeName);
     }
 
 
     /**
      * Teleport to a home for the specified player
      *
-     * @param islandUuid       The UUID of the island
      * @param playerUuid       The UUID of the player
      * @param homeName         The name of the home
      * @param targetPlayerUuid The UUID of the player to teleport
      * @return A CompletableFuture that completes when the player is teleported
      */
-    public CompletableFuture<Void> home(UUID islandUuid, UUID playerUuid, String homeName, UUID targetPlayerUuid) {
-        return homeHandler.home(islandUuid, playerUuid, homeName, targetPlayerUuid);
+    public CompletableFuture<Void> home(UUID playerUuid, String homeName, UUID targetPlayerUuid) {
+        return homeHandler.home(playerUuid, homeName, targetPlayerUuid);
     }
 
 
     /**
      * Get the names of the homes for the specified player
      *
-     * @param islandUuid The UUID of the island
      * @param playerUuid The UUID of the player
      * @return A CompletableFuture that completes with the set of home names
      */
-    public CompletableFuture<Set<String>> getHomeNames(UUID islandUuid, UUID playerUuid) {
-        return homeHandler.getHomeNames(islandUuid, playerUuid);
+    public CompletableFuture<Set<String>> getHomeNames(UUID playerUuid) {
+        return homeHandler.getHomeNames(playerUuid);
     }
 
 
@@ -210,53 +216,49 @@ public class NewSkyAPI {
     /**
      * Set a warp for the specified player
      *
-     * @param islandUuid The UUID of the island
      * @param playerUuid The UUID of the player
      * @param warpName   The name of the warp
      * @param location   The location of the warp
      * @return A CompletableFuture that completes when the warp is set
      */
-    public CompletableFuture<Void> setWarp(UUID islandUuid, UUID playerUuid, String warpName, Location location) {
-        return warpHandler.setWarp(islandUuid, playerUuid, warpName, location);
+    public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, Location location) {
+        return warpHandler.setWarp(playerUuid, warpName, location);
     }
 
 
     /**
      * Delete a warp for the specified player
      *
-     * @param islandUuid The UUID of the island
      * @param playerUuid The UUID of the player
      * @param warpName   The name of the warp
      * @return A CompletableFuture that completes when the warp is deleted
      */
-    public CompletableFuture<Void> delWarp(UUID islandUuid, UUID playerUuid, String warpName) {
-        return warpHandler.delWarp(islandUuid, playerUuid, warpName);
+    public CompletableFuture<Void> delWarp(UUID playerUuid, String warpName) {
+        return warpHandler.delWarp(playerUuid, warpName);
     }
 
 
     /**
      * Teleport to a warp for the specified player
      *
-     * @param islandUuid       The UUID of the island
      * @param playerUuid       The UUID of the player
      * @param warpName         The name of the warp
      * @param targetPlayerUuid The UUID of the player to teleport
      * @return A CompletableFuture that completes when the player is teleported
      */
-    public CompletableFuture<Void> warp(UUID islandUuid, UUID playerUuid, String warpName, UUID targetPlayerUuid) {
-        return warpHandler.warp(islandUuid, playerUuid, warpName, targetPlayerUuid);
+    public CompletableFuture<Void> warp(UUID playerUuid, String warpName, UUID targetPlayerUuid) {
+        return warpHandler.warp(playerUuid, warpName, targetPlayerUuid);
     }
 
 
     /**
      * Get the names of the warps for the specified player
      *
-     * @param islandUuid The UUID of the island
      * @param playerUuid The UUID of the player
      * @return A CompletableFuture that completes with the set of warp names
      */
-    public CompletableFuture<Set<String>> getWarpNames(UUID islandUuid, UUID playerUuid) {
-        return warpHandler.getWarpNames(islandUuid, playerUuid);
+    public CompletableFuture<Set<String>> getWarpNames(UUID playerUuid) {
+        return warpHandler.getWarpNames(playerUuid);
     }
 
 

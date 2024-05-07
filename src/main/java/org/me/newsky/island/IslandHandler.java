@@ -3,6 +3,7 @@ package org.me.newsky.island;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
+import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.island.middleware.PreIslandHandler;
 
 import java.util.Set;
@@ -19,6 +20,10 @@ public class IslandHandler {
         this.config = configHandler;
         this.cacheHandler = cacheHandler;
         this.preIslandHandler = preIslandHandler;
+    }
+
+    public CompletableFuture<UUID> getIslandUuid(UUID playerUuid) {
+        return CompletableFuture.completedFuture(cacheHandler.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new));
     }
 
     public CompletableFuture<UUID> getIslandOwner(UUID islandUuid) {

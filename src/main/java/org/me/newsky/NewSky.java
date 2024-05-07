@@ -99,7 +99,7 @@ public class NewSky extends JavaPlugin {
             IslandHandler islandHandler = new IslandHandler(config, cacheHandler, preIslandHandler);
             PlayerHandler playerHandler = new PlayerHandler(cacheHandler);
             HomeHandler homeHandler = new HomeHandler(cacheHandler, preIslandHandler);
-            WarpHandler warpHandler = new WarpHandler(cacheHandler, preIslandHandler);
+            WarpHandler warpHandler = new WarpHandler(preIslandHandler);
             LevelHandler levelHandler = new LevelHandler(config, cacheHandler);
             info("All main handlers loaded");
 

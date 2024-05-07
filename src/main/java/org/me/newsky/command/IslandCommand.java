@@ -37,7 +37,7 @@ public class IslandCommand extends BaseCommand {
 
         api.createIsland(playerUuid).thenRun(() -> {
             player.sendMessage(config.getPlayerCreateSuccessMessage());
-            api.home(player.getUniqueId(), "default").thenRun(() -> {
+            api.home(player.getUniqueId(), "default", player.getUniqueId()).thenRun(() -> {
                 player.sendMessage(config.getPlayerHomeSuccessMessage("default"));
             }).exceptionally(ex -> {
                 player.sendMessage("There was an error teleporting you to your island home");
@@ -140,7 +140,7 @@ public class IslandCommand extends BaseCommand {
     @Description("Teleports you to your island home")
     @SuppressWarnings("unused")
     public void onHome(Player player, @Default("default") String homeName) {
-        api.home(player.getUniqueId(), homeName).thenRun(() -> {
+        api.home(player.getUniqueId(), homeName, player.getUniqueId()).thenRun(() -> {
             player.sendMessage(config.getPlayerHomeSuccessMessage(homeName));
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
@@ -212,7 +212,7 @@ public class IslandCommand extends BaseCommand {
     @Description("Teleports you to a specified warp point on your island")
     @SuppressWarnings("unused")
     public void onWarp(Player player, String warpName) {
-        api.warp(player.getUniqueId(), warpName).thenRun(() -> {
+        api.warp(player.getUniqueId(), warpName, player.getUniqueId()).thenRun(() -> {
             player.sendMessage(config.getWarpSuccessMessage(warpName));
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
