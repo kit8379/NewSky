@@ -27,7 +27,6 @@ public class IslandCommand extends BaseCommand {
         this.api = api;
     }
 
-
     @Subcommand("create")
     @CommandPermission("newsky.island.create")
     @Description("Creates an island for the player")
@@ -85,7 +84,6 @@ public class IslandCommand extends BaseCommand {
         }
     }
 
-
     @Subcommand("addmember")
     @CommandPermission("newsky.island.addmember")
     @CommandCompletion("@players")
@@ -109,7 +107,6 @@ public class IslandCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("removemember")
     @CommandPermission("newsky.island.removemember")
     @CommandCompletion("@players")
@@ -132,7 +129,6 @@ public class IslandCommand extends BaseCommand {
             return null;
         });
     }
-
 
     @Subcommand("home")
     @CommandPermission("newsky.island.home")
@@ -208,17 +204,19 @@ public class IslandCommand extends BaseCommand {
 
     @Subcommand("warp")
     @CommandPermission("newsky.island.warp")
-    @CommandCompletion("@warps")
-    @Description("Teleports you to a specified warp point on your island")
+    @CommandCompletion("@players @warps")
+    @Description("Teleports you or another player to a specified warp point on an island")
     @SuppressWarnings("unused")
-    public void onWarp(Player player, String warpName) {
-        api.warp(player.getUniqueId(), warpName, player.getUniqueId()).thenRun(() -> {
+    public void onWarp(Player player, @Single String targetPlayerName, @Default("default") String warpName) {
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetPlayerName);
+
+        api.warp(target.getUniqueId(), warpName, player.getUniqueId()).thenRun(() -> {
             player.sendMessage(config.getWarpSuccessMessage(warpName));
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
-                player.sendMessage(config.getNoIslandMessage());
+                player.sendMessage(config.getNoIslandMessage(targetPlayerName));
             } else if (ex.getCause() instanceof WarpDoesNotExistException) {
-                player.sendMessage(config.getNoWarpMessage(player.getName(), warpName));
+                player.sendMessage(config.getNoWarpMessage(target.getName(), warpName));
             } else if (ex.getCause() instanceof NoActiveServerException) {
                 player.sendMessage(config.getNoActiveServerMessage());
             } else {
@@ -273,7 +271,6 @@ public class IslandCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("leave")
     @CommandPermission("newsky.island.leave")
     @Description("Leaves your current island")
@@ -298,7 +295,6 @@ public class IslandCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("level")
     @CommandPermission("newsky.island.level")
     @Description("Displays the level of your island")
@@ -318,7 +314,6 @@ public class IslandCommand extends BaseCommand {
             return null;
         });
     }
-
 
     @Subcommand("lock")
     @CommandPermission("newsky.island.togglelock")
@@ -343,7 +338,6 @@ public class IslandCommand extends BaseCommand {
             return null;
         });
     }
-
 
     @Subcommand("pvp")
     @CommandPermission("newsky.island.togglepvp")

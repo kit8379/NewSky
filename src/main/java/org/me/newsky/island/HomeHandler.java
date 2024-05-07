@@ -16,12 +16,10 @@ import java.util.concurrent.CompletableFuture;
 
 public class HomeHandler {
 
-    private final ConfigHandler config;
     private final CacheHandler cacheHandler;
     private final PreIslandHandler preIslandHandler;
 
-    public HomeHandler(ConfigHandler config, CacheHandler cacheHandler, PreIslandHandler preIslandHandler) {
-        this.config = config;
+    public HomeHandler(CacheHandler cacheHandler, PreIslandHandler preIslandHandler) {
         this.cacheHandler = cacheHandler;
         this.preIslandHandler = preIslandHandler;
     }
