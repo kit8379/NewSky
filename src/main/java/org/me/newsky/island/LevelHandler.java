@@ -5,13 +5,11 @@ import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.util.LocationUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -24,18 +22,11 @@ public class LevelHandler {
         this.cacheHandler = cacheHandler;
     }
 
-
-    public CompletableFuture<Integer> getIslandLevel(UUID playerUuid) {
+    public CompletableFuture<Integer> getIslandLevel(UUID islandUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(playerUuid);
-            if (islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException();
-            }
-            UUID islandUuid = islandUuidOpt.get();
             return cacheHandler.getIslandLevel(islandUuid);
         });
     }
-
 
     public CompletableFuture<Void> calIslandLevel(UUID islandUuid) {
         return CompletableFuture.runAsync(() -> {
@@ -65,7 +56,6 @@ public class LevelHandler {
             cacheHandler.updateIslandLevel(islandUuid, totalLevel);
         });
     }
-
 
     private List<Chunk> getChunksForIsland(Location center, int size) {
         List<Chunk> chunks = new ArrayList<>();

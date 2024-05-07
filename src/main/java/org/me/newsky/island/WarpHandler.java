@@ -2,8 +2,6 @@ package org.me.newsky.island;
 
 import org.bukkit.Location;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
 import org.me.newsky.exceptions.WarpDoesNotExistException;
 import org.me.newsky.island.middleware.PreIslandHandler;
@@ -16,74 +14,47 @@ import java.util.concurrent.CompletableFuture;
 
 public class WarpHandler {
 
-    private final ConfigHandler config;
     private final CacheHandler cacheHandler;
     private final PreIslandHandler preIslandHandler;
 
-    public WarpHandler(ConfigHandler config, CacheHandler cacheHandler, PreIslandHandler preIslandHandler) {
-        this.config = config;
+    public WarpHandler(CacheHandler cacheHandler, PreIslandHandler preIslandHandler) {
         this.cacheHandler = cacheHandler;
         this.preIslandHandler = preIslandHandler;
     }
 
-    public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, Location location) {
-        return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getIslandUuid(playerUuid);
-        }).thenCompose(islandUuidOpt -> {
-            if (islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException();
-            }
-            UUID islandUuid = islandUuidOpt.get();
+    public CompletableFuture<Void> setWarp(UUID islandUuid, UUID playerUuid, String warpName, Location location) {
+        return CompletableFuture.runAsync(() -> {
             if (location.getWorld() == null || !location.getWorld().getName().equals("island-" + islandUuid)) {
                 throw new LocationNotInIslandException();
             }
             String warpLocation = LocationUtils.locationToString(location);
             cacheHandler.updateWarpPoint(islandUuid, playerUuid, warpName, warpLocation);
-            return CompletableFuture.completedFuture(null);
         });
     }
 
-    public CompletableFuture<Void> delWarp(UUID playerUuid, String warpName) {
-        return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getIslandUuid(playerUuid);
-        }).thenCompose(islandUuidOpt -> {
-            if (islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException();
-            }
-            UUID islandUuid = islandUuidOpt.get();
+    public CompletableFuture<Void> delWarp(UUID islandUuid, UUID playerUuid, String warpName) {
+        return CompletableFuture.runAsync(() -> {
             if (cacheHandler.getWarpLocation(islandUuid, playerUuid, warpName).isEmpty()) {
                 throw new WarpDoesNotExistException();
             }
             cacheHandler.deleteWarpPoint(islandUuid, playerUuid, warpName);
-            return CompletableFuture.completedFuture(null);
         });
     }
 
-    public CompletableFuture<Void> warp(UUID playerUuid, String warpName) {
+    public CompletableFuture<Void> warp(UUID islandUuid, UUID playerUuid, String warpName, UUID targetPlayerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getIslandUuid(playerUuid);
-        }).thenCompose(islandUuidOpt -> {
-            if (islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException();
-            }
-            UUID islandUuid = islandUuidOpt.get();
             Optional<String> warpLocationOpt = cacheHandler.getWarpLocation(islandUuid, playerUuid, warpName);
             if (warpLocationOpt.isEmpty()) {
                 throw new WarpDoesNotExistException();
             }
-            String warpLocation = warpLocationOpt.get();
-            return preIslandHandler.teleportToIsland(playerUuid, islandUuid, warpLocation);
+            return warpLocationOpt.get();
+        }).thenCompose(warpLocation -> {
+            return preIslandHandler.teleportToIsland(targetPlayerUuid, islandUuid, warpLocation);
         });
     }
 
-    public CompletableFuture<Set<String>> getWarpNames(UUID playerUuid) {
+    public CompletableFuture<Set<String>> getWarpNames(UUID islandUuid, UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getIslandUuid(playerUuid);
-        }).thenApply(islandUuidOpt -> {
-            if (islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException();
-            }
-            UUID islandUuid = islandUuidOpt.get();
             return cacheHandler.getWarpNames(islandUuid, playerUuid);
         });
     }

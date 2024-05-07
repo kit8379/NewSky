@@ -2,11 +2,9 @@ package org.me.newsky.island;
 
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.exceptions.AlreadyOwnerException;
-import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
 import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
 
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -19,14 +17,8 @@ public class PlayerHandler {
         this.cacheHandler = cacheHandler;
     }
 
-    public CompletableFuture<Void> addMember(UUID islandOwnerId, UUID playerUuid, String role) {
+    public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role) {
         return CompletableFuture.runAsync(() -> {
-            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(islandOwnerId);
-            if (islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException();
-            }
-            UUID islandUuid = islandUuidOpt.get();
-
             Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
             if (members.contains(playerUuid)) {
                 throw new IslandPlayerAlreadyExistsException();
@@ -36,15 +28,8 @@ public class PlayerHandler {
         });
     }
 
-    public CompletableFuture<Void> removeMember(UUID islandOwnerId, UUID playerUuid) {
+    public CompletableFuture<Void> removeMember(UUID islandUuid, UUID playerUuid) {
         return CompletableFuture.runAsync(() -> {
-            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(islandOwnerId);
-
-            if (islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException();
-            }
-            UUID islandUuid = islandUuidOpt.get();
-
             Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
             if (!members.contains(playerUuid)) {
                 throw new IslandPlayerDoesNotExistException();
@@ -54,33 +39,11 @@ public class PlayerHandler {
         });
     }
 
-    public CompletableFuture<Void> setOwner(UUID islandOwnerId, UUID newOwnerId) {
+    public CompletableFuture<Void> setOwner(UUID islandUuid, UUID newOwnerId) {
         return CompletableFuture.runAsync(() -> {
-            // Get the island UUID
-            Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(islandOwnerId);
-
-            // Check if the island exists
-            if (islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException();
-            }
-
-            // Get the island UUID
-            UUID islandUuid = islandUuidOpt.get();
-
-            // Get the owner UUID
-            UUID ownerUuid = cacheHandler.getIslandOwner(islandUuid);
-
-            // Check if the new owner is already the owner
-            if (ownerUuid.equals(newOwnerId)) {
+            UUID currentOwner = cacheHandler.getIslandOwner(islandUuid);
+            if (currentOwner.equals(newOwnerId)) {
                 throw new AlreadyOwnerException();
-            }
-
-            // Get the members of the island
-            Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
-
-            // Check if the new owner is a member of the island
-            if (!members.contains(newOwnerId)) {
-                throw new IslandPlayerDoesNotExistException();
             }
 
             // Set the new owner
