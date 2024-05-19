@@ -244,19 +244,19 @@ public class IslandCommand extends BaseCommand {
     @CommandCompletion("@players @warps")
     @Description("Teleports you or another player to a specified warp point on an island")
     @SuppressWarnings("unused")
-    public void onWarp(CommandSender sender, @Single String targetPlayerName, @Default("default") String warpName) {
+    public void onWarp(CommandSender sender, @Single String warpPlayerName, @Default("default") String warpName) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
             return;
         }
 
-        OfflinePlayer target = Bukkit.getOfflinePlayer(targetPlayerName);
+        OfflinePlayer target = Bukkit.getOfflinePlayer(warpPlayerName);
 
         api.warp(target.getUniqueId(), warpName, player.getUniqueId()).thenRun(() -> {
             player.sendMessage(config.getWarpSuccessMessage(warpName));
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
-                player.sendMessage(config.getNoIslandMessage(targetPlayerName));
+                player.sendMessage(config.getNoIslandMessage(warpPlayerName));
             } else if (ex.getCause() instanceof WarpDoesNotExistException) {
                 player.sendMessage(config.getNoWarpMessage(target.getName(), warpName));
             } else if (ex.getCause() instanceof NoActiveServerException) {

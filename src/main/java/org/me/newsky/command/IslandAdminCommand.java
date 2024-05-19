@@ -155,20 +155,20 @@ public class IslandAdminCommand extends BaseCommand {
     @Syntax("<player> [home] [target]")
     @CommandCompletion("@players @homes @players")
     @SuppressWarnings("unused")
-    public void onAdminHome(CommandSender sender, @Single String homePlayerName, @Default("default") @Single String homeName, @Optional @Single String targetPlayerName) {
+    public void onAdminHome(CommandSender sender, @Single String homePlayerName, @Default("default") @Single String homeName, @Optional @Single String teleportPlayerName) {
         // Get the UUIDs
         OfflinePlayer homePlayer = Bukkit.getOfflinePlayer(homePlayerName);
         UUID homePlayerUuid = homePlayer.getUniqueId();
         UUID senderUuid;
 
-        if (targetPlayerName == null) {
+        if (teleportPlayerName == null) {
             if (!(sender instanceof Player player)) {
                 sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
                 return;
             }
             senderUuid = player.getUniqueId();
         } else {
-            OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
+            OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(teleportPlayerName);
             senderUuid = targetPlayer.getUniqueId();
         }
 
@@ -197,18 +197,23 @@ public class IslandAdminCommand extends BaseCommand {
     @Syntax("<player> <home>")
     @CommandCompletion("@players @homes")
     @SuppressWarnings("unused")
-    public void onAdminSetHome(Player sender, @Single String targetPlayerName, @Single String homeName) {
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
+    public void onAdminSetHome(CommandSender sender, @Single String homePlayerName, @Single String homeName) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
+        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(homePlayerName);
         UUID targetUuid = targetPlayer.getUniqueId();
-        Location loc = sender.getLocation();
+        Location loc = player.getLocation();
 
         api.setHome(targetUuid, homeName, loc).thenRun(() -> {
-            sender.sendMessage(config.getAdminSetHomeSuccessMessage(targetPlayerName, homeName));
+            sender.sendMessage(config.getAdminSetHomeSuccessMessage(homePlayerName, homeName));
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
-                sender.sendMessage(config.getAdminNoIslandMessage(targetPlayerName));
+                sender.sendMessage(config.getAdminNoIslandMessage(homePlayerName));
             } else if (ex.getCause() instanceof LocationNotInIslandException) {
-                sender.sendMessage(config.getAdminMustInIslandSetHomeMessage(targetPlayerName));
+                sender.sendMessage(config.getAdminMustInIslandSetHomeMessage(homePlayerName));
             } else {
                 sender.sendMessage("There was an error setting the home.");
                 ex.printStackTrace();
@@ -224,22 +229,22 @@ public class IslandAdminCommand extends BaseCommand {
     @Syntax("<player> <home>")
     @CommandCompletion("@players @homes")
     @SuppressWarnings("unused")
-    public void onAdminDelHome(CommandSender sender, @Single String targetPlayerName, @Single String homeName) {
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
+    public void onAdminDelHome(CommandSender sender, @Single String homePlayerName, @Single String homeName) {
+        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(homePlayerName);
         UUID targetUuid = targetPlayer.getUniqueId();
 
         if ("default".equals(homeName)) {
-            sender.sendMessage(config.getAdminCannotDeleteDefaultHomeMessage(targetPlayerName));
+            sender.sendMessage(config.getAdminCannotDeleteDefaultHomeMessage(homePlayerName));
             return;
         }
 
         api.delHome(targetUuid, homeName).thenRun(() -> {
-            sender.sendMessage(config.getAdminDelHomeSuccessMessage(targetPlayerName, homeName));
+            sender.sendMessage(config.getAdminDelHomeSuccessMessage(homePlayerName, homeName));
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
-                sender.sendMessage(config.getAdminNoIslandMessage(targetPlayerName));
+                sender.sendMessage(config.getAdminNoIslandMessage(homePlayerName));
             } else if (ex.getCause() instanceof HomeDoesNotExistException) {
-                sender.sendMessage(config.getAdminNoHomeMessage(targetPlayerName, homeName));
+                sender.sendMessage(config.getAdminNoHomeMessage(homePlayerName, homeName));
             } else {
                 sender.sendMessage("There was an error deleting the home.");
                 ex.printStackTrace();
@@ -255,19 +260,19 @@ public class IslandAdminCommand extends BaseCommand {
     @Syntax("<player> <warp> [target]")
     @CommandCompletion("@players @warps @players")
     @SuppressWarnings("unused")
-    public void onAdminWarp(CommandSender sender, @Single String warpPlayerName, @Default("default") @Single String warpName, @Optional @Single String targetPlayerName) {
+    public void onAdminWarp(CommandSender sender, @Single String warpPlayerName, @Default("default") @Single String warpName, @Optional @Single String teleportPlayerName) {
         OfflinePlayer warpPlayer = Bukkit.getOfflinePlayer(warpPlayerName);
         UUID warpPlayerUuid = warpPlayer.getUniqueId();
         UUID senderUuid;
 
-        if (targetPlayerName == null) {
+        if (teleportPlayerName == null) {
             if (!(sender instanceof Player player)) {
                 sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
                 return;
             }
             senderUuid = player.getUniqueId();
         } else {
-            OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
+            OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(teleportPlayerName);
             senderUuid = targetPlayer.getUniqueId();
         }
 
@@ -295,18 +300,23 @@ public class IslandAdminCommand extends BaseCommand {
     @Syntax("<player> <warp>")
     @CommandCompletion("@players @warps")
     @SuppressWarnings("unused")
-    public void onAdminSetWarp(Player sender, @Single String targetPlayerName, @Single String warpName) {
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
+    public void onAdminSetWarp(CommandSender sender, @Single String warpPlayerName, @Single String warpName) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
+        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(warpPlayerName);
         UUID targetUuid = targetPlayer.getUniqueId();
-        Location loc = sender.getLocation();
+        Location loc = player.getLocation();
 
         api.setWarp(targetUuid, warpName, loc).thenRun(() -> {
-            sender.sendMessage(config.getAdminSetWarpSuccessMessage(targetPlayerName, warpName));
+            sender.sendMessage(config.getAdminSetWarpSuccessMessage(warpPlayerName, warpName));
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
-                sender.sendMessage(config.getAdminNoIslandMessage(targetPlayerName));
+                sender.sendMessage(config.getAdminNoIslandMessage(warpPlayerName));
             } else if (ex.getCause() instanceof LocationNotInIslandException) {
-                sender.sendMessage(config.getAdminMustInIslandSetWarpMessage(targetPlayerName));
+                sender.sendMessage(config.getAdminMustInIslandSetWarpMessage(warpPlayerName));
             } else {
                 sender.sendMessage("There was an error setting the warp.");
                 ex.printStackTrace();
@@ -318,21 +328,21 @@ public class IslandAdminCommand extends BaseCommand {
 
     @Subcommand("delwarp")
     @CommandPermission("newsky.admin.island.delwarp")
-    @Description("Admin command to delete a warp point on a player's island")
+    @Description("Admin command to delete a warp point on a player'6s island")
     @Syntax("<player> <warp>")
     @CommandCompletion("@players @warps")
     @SuppressWarnings("unused")
-    public void onAdminDelWarp(CommandSender sender, @Single String targetPlayerName, @Single String warpName) {
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
+    public void onAdminDelWarp(CommandSender sender, @Single String warpPlayerName, @Single String warpName) {
+        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(warpPlayerName);
         UUID targetUuid = targetPlayer.getUniqueId();
 
         api.delWarp(targetUuid, warpName).thenRun(() -> {
-            sender.sendMessage(config.getAdminDelWarpSuccessMessage(targetPlayerName, warpName));
+            sender.sendMessage(config.getAdminDelWarpSuccessMessage(warpPlayerName, warpName));
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
-                sender.sendMessage(config.getAdminNoIslandMessage(targetPlayerName));
+                sender.sendMessage(config.getAdminNoIslandMessage(warpPlayerName));
             } else if (ex.getCause() instanceof WarpDoesNotExistException) {
-                sender.sendMessage(config.getAdminNoWarpMessage(targetPlayerName, warpName));
+                sender.sendMessage(config.getAdminNoWarpMessage(warpPlayerName, warpName));
             } else {
                 sender.sendMessage("There was an error deleting the warp.");
                 ex.printStackTrace();
