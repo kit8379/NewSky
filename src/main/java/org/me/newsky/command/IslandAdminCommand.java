@@ -152,23 +152,34 @@ public class IslandAdminCommand extends BaseCommand {
     @Subcommand("home")
     @CommandPermission("newsky.admin.island.home")
     @Description("Admin command to teleport to a player's island home")
-    @Syntax("<player> [home]")
-    @CommandCompletion("@players @homes")
+    @Syntax("<player> [home] [target]")
+    @CommandCompletion("@players @homes @players")
     @SuppressWarnings("unused")
-    public void onAdminHome(Player sender, @Single String targetPlayerName, @Default("default") @Single String homeName) {
+    public void onAdminHome(CommandSender sender, @Single String homePlayerName, @Default("default") @Single String homeName, @Optional @Single String targetPlayerName) {
         // Get the UUIDs
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
-        UUID targetUuid = targetPlayer.getUniqueId();
-        UUID senderUuid = sender.getUniqueId();
+        OfflinePlayer homePlayer = Bukkit.getOfflinePlayer(homePlayerName);
+        UUID homePlayerUuid = homePlayer.getUniqueId();
+        UUID senderUuid;
+
+        if (targetPlayerName == null) {
+            if (!(sender instanceof Player player)) {
+                sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+                return;
+            }
+            senderUuid = player.getUniqueId();
+        } else {
+            OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
+            senderUuid = targetPlayer.getUniqueId();
+        }
 
         // Teleport to the home
-        api.home(targetUuid, homeName, senderUuid).thenRun(() -> {
-            sender.sendMessage(config.getAdminHomeSuccessMessage(targetPlayerName, homeName));
+        api.home(homePlayerUuid, homeName, senderUuid).thenRun(() -> {
+            sender.sendMessage(config.getAdminHomeSuccessMessage(homePlayerName, homeName));
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
-                sender.sendMessage(config.getAdminNoIslandMessage(targetPlayerName));
+                sender.sendMessage(config.getAdminNoIslandMessage(homePlayerName));
             } else if (ex.getCause() instanceof HomeDoesNotExistException) {
-                sender.sendMessage(config.getAdminNoHomeMessage(targetPlayerName, homeName));
+                sender.sendMessage(config.getAdminNoHomeMessage(homePlayerName, homeName));
             } else if (ex.getCause() instanceof NoActiveServerException) {
                 sender.sendMessage(config.getNoActiveServerMessage());
             } else {
@@ -241,21 +252,32 @@ public class IslandAdminCommand extends BaseCommand {
     @Subcommand("warp")
     @CommandPermission("newsky.admin.island.warp")
     @Description("Admin command to teleport to a warp point on a player's island")
-    @Syntax("<player> <warp>")
-    @CommandCompletion("@players @warps")
+    @Syntax("<player> <warp> [target]")
+    @CommandCompletion("@players @warps @players")
     @SuppressWarnings("unused")
-    public void onAdminWarp(Player sender, @Single String targetPlayerName, @Default("default") @Single String warpName) {
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
-        UUID targetUuid = targetPlayer.getUniqueId();
-        UUID senderUuid = sender.getUniqueId();
+    public void onAdminWarp(CommandSender sender, @Single String warpPlayerName, @Default("default") @Single String warpName, @Optional @Single String targetPlayerName) {
+        OfflinePlayer warpPlayer = Bukkit.getOfflinePlayer(warpPlayerName);
+        UUID warpPlayerUuid = warpPlayer.getUniqueId();
+        UUID senderUuid;
 
-        api.warp(targetUuid, warpName, senderUuid).thenRun(() -> {
+        if (targetPlayerName == null) {
+            if (!(sender instanceof Player player)) {
+                sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+                return;
+            }
+            senderUuid = player.getUniqueId();
+        } else {
+            OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
+            senderUuid = targetPlayer.getUniqueId();
+        }
+
+        api.warp(warpPlayerUuid, warpName, senderUuid).thenRun(() -> {
             sender.sendMessage(config.getWarpSuccessMessage(warpName));
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
-                sender.sendMessage(config.getNoIslandMessage(targetPlayerName));
+                sender.sendMessage(config.getNoIslandMessage(warpPlayerName));
             } else if (ex.getCause() instanceof WarpDoesNotExistException) {
-                sender.sendMessage(config.getNoWarpMessage(targetPlayerName, warpName));
+                sender.sendMessage(config.getNoWarpMessage(warpPlayerName, warpName));
             } else if (ex.getCause() instanceof NoActiveServerException) {
                 sender.sendMessage(config.getNoActiveServerMessage());
             } else {

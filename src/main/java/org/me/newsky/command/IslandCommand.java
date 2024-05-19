@@ -5,6 +5,7 @@ import co.aikar.commands.annotation.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.config.ConfigHandler;
@@ -31,12 +32,17 @@ public class IslandCommand extends BaseCommand {
     @CommandPermission("newsky.island.create")
     @Description("Creates an island for the player")
     @SuppressWarnings("unused")
-    public void onCreate(Player player) {
+    public void onCreate(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
         UUID playerUuid = player.getUniqueId();
 
         api.createIsland(playerUuid).thenRun(() -> {
             player.sendMessage(config.getPlayerCreateSuccessMessage());
-            api.home(player.getUniqueId(), "default", player.getUniqueId()).thenRun(() -> {
+            api.home(playerUuid, "default", playerUuid).thenRun(() -> {
                 player.sendMessage(config.getPlayerHomeSuccessMessage("default"));
             });
         }).exceptionally(ex -> {
@@ -56,13 +62,17 @@ public class IslandCommand extends BaseCommand {
     @CommandPermission("newsky.island.delete")
     @Description("Deletes your island with a confirmation step")
     @SuppressWarnings("unused")
-    public void onDelete(Player player) {
+    public void onDelete(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
         UUID playerUuid = player.getUniqueId();
 
         if (confirmationTimes.containsKey(playerUuid) && (System.currentTimeMillis() - confirmationTimes.get(playerUuid) < 15000)) {
             confirmationTimes.remove(playerUuid);
 
-            // Get the island UUID using the player UUID
             api.getIslandUuid(playerUuid).thenCompose(api::deleteIsland).thenRun(() -> {
                 player.sendMessage(config.getPlayerDeleteSuccessMessage());
             }).exceptionally(ex -> {
@@ -82,18 +92,21 @@ public class IslandCommand extends BaseCommand {
         }
     }
 
-
     @Subcommand("addmember")
     @CommandPermission("newsky.island.addmember")
     @CommandCompletion("@players")
     @Description("Adds a member to your island")
     @SuppressWarnings("unused")
-    public void onAddMember(Player player, @Single String targetPlayerName) {
+    public void onAddMember(CommandSender sender, @Single String targetPlayerName) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
         UUID playerUuid = player.getUniqueId();
         UUID targetPlayerUuid = targetPlayer.getUniqueId();
 
-        // Get the island UUID using the player UUID
         api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.addMember(islandUuid, targetPlayerUuid, "member")).thenRun(() -> {
             player.sendMessage(config.getPlayerAddMemberSuccessMessage(targetPlayerName));
         }).exceptionally(ex -> {
@@ -109,18 +122,21 @@ public class IslandCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("removemember")
     @CommandPermission("newsky.island.removemember")
     @CommandCompletion("@players")
     @Description("Removes a member from your island")
     @SuppressWarnings("unused")
-    public void onRemoveMember(Player player, @Single String targetPlayerName) {
+    public void onRemoveMember(CommandSender sender, @Single String targetPlayerName) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
         UUID playerUuid = player.getUniqueId();
         UUID targetPlayerUuid = targetPlayer.getUniqueId();
 
-        // Get the island UUID using the player UUID
         api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.removeMember(islandUuid, targetPlayerUuid)).thenRun(() -> {
             player.sendMessage(config.getPlayerRemoveMemberSuccessMessage(targetPlayerName));
         }).exceptionally(ex -> {
@@ -136,13 +152,17 @@ public class IslandCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("home")
     @CommandPermission("newsky.island.home")
     @CommandCompletion("@homes")
     @Description("Teleports you to your island home")
     @SuppressWarnings("unused")
-    public void onHome(Player player, @Default("default") String homeName) {
+    public void onHome(CommandSender sender, @Default("default") String homeName) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
         api.home(player.getUniqueId(), homeName, player.getUniqueId()).thenRun(() -> {
             player.sendMessage(config.getPlayerHomeSuccessMessage(homeName));
         }).exceptionally(ex -> {
@@ -165,7 +185,12 @@ public class IslandCommand extends BaseCommand {
     @CommandCompletion("@homes")
     @Description("Sets your island home")
     @SuppressWarnings("unused")
-    public void onSetHome(Player player, @Default("default") String homeName) {
+    public void onSetHome(CommandSender sender, @Default("default") String homeName) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
         Location loc = player.getLocation();
 
         api.setHome(player.getUniqueId(), homeName, loc).thenRun(() -> {
@@ -188,7 +213,12 @@ public class IslandCommand extends BaseCommand {
     @CommandCompletion("@homes")
     @Description("Deletes a specified home")
     @SuppressWarnings("unused")
-    public void onDelHome(Player player, String homeName) {
+    public void onDelHome(CommandSender sender, String homeName) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
         if ("default".equals(homeName)) {
             player.sendMessage(config.getPlayerCannotDeleteDefaultHomeMessage());
             return;
@@ -214,7 +244,12 @@ public class IslandCommand extends BaseCommand {
     @CommandCompletion("@players @warps")
     @Description("Teleports you or another player to a specified warp point on an island")
     @SuppressWarnings("unused")
-    public void onWarp(Player player, @Single String targetPlayerName, @Default("default") String warpName) {
+    public void onWarp(CommandSender sender, @Single String targetPlayerName, @Default("default") String warpName) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
         OfflinePlayer target = Bukkit.getOfflinePlayer(targetPlayerName);
 
         api.warp(target.getUniqueId(), warpName, player.getUniqueId()).thenRun(() -> {
@@ -239,7 +274,12 @@ public class IslandCommand extends BaseCommand {
     @CommandCompletion("@warps")
     @Description("Sets a warp point on your island")
     @SuppressWarnings("unused")
-    public void onSetWarp(Player player, String warpName) {
+    public void onSetWarp(CommandSender sender, String warpName) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
         Location loc = player.getLocation();
 
         api.setWarp(player.getUniqueId(), warpName, loc).thenRun(() -> {
@@ -262,7 +302,12 @@ public class IslandCommand extends BaseCommand {
     @CommandCompletion("@warps")
     @Description("Deletes a specified warp point on your island")
     @SuppressWarnings("unused")
-    public void onDelWarp(Player player, String warpName) {
+    public void onDelWarp(CommandSender sender, String warpName) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
         api.delWarp(player.getUniqueId(), warpName).thenRun(() -> {
             player.sendMessage(config.getPlayerDelWarpSuccessMessage(warpName));
         }).exceptionally(ex -> {
@@ -278,18 +323,21 @@ public class IslandCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("setowner")
     @CommandPermission("newsky.island.setowner")
     @CommandCompletion("@players")
     @Description("Sets a new owner for your island")
     @SuppressWarnings("unused")
-    public void onSetOwner(Player player, @Single String targetPlayerName) {
+    public void onSetOwner(CommandSender sender, @Single String targetPlayerName) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
         UUID playerUuid = player.getUniqueId();
         UUID targetPlayerUuid = targetPlayer.getUniqueId();
 
-        // Get the island UUID using the player UUID
         api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.setOwner(islandUuid, targetPlayerUuid)).thenRun(() -> {
             player.sendMessage(config.getPlayerSetOwnerSuccessMessage(targetPlayerName));
         }).exceptionally(ex -> {
@@ -305,15 +353,18 @@ public class IslandCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("leave")
     @CommandPermission("newsky.island.leave")
     @Description("Leaves your current island")
     @SuppressWarnings("unused")
-    public void onLeave(Player player) {
+    public void onLeave(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
         UUID playerUuid = player.getUniqueId();
 
-        // Get the island UUID using the player UUID
         api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.removeMember(islandUuid, playerUuid)).thenRun(() -> {
             player.sendMessage(config.getPlayerLeaveSuccessMessage());
         }).exceptionally(ex -> {
@@ -331,15 +382,18 @@ public class IslandCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("level")
     @CommandPermission("newsky.island.level")
     @Description("Displays the level of your island")
     @SuppressWarnings("unused")
-    public void onLevel(Player player) {
+    public void onLevel(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
         UUID playerUuid = player.getUniqueId();
 
-        // Get the island UUID using the player UUID
         api.getIslandUuid(playerUuid).thenCompose(api::getIslandLevel).thenAccept(level -> {
             player.sendMessage(config.getIslandLevelMessage(level));
         }).exceptionally(ex -> {
@@ -353,15 +407,18 @@ public class IslandCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("lock")
     @CommandPermission("newsky.island.togglelock")
     @Description("Toggles the lock status of your island")
     @SuppressWarnings("unused")
-    public void onLock(Player player) {
+    public void onLock(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
         UUID playerUuid = player.getUniqueId();
 
-        // Get the island UUID using the player UUID
         api.getIslandUuid(playerUuid).thenCompose(api::toggleIslandLock).thenAccept(isLocked -> {
             if (isLocked) {
                 player.sendMessage(config.getPlayerLockSuccessMessage());
@@ -379,15 +436,18 @@ public class IslandCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("pvp")
     @CommandPermission("newsky.island.togglepvp")
     @Description("Toggles the PvP status on your island")
     @SuppressWarnings("unused")
-    public void onPvp(Player player) {
+    public void onPvp(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
         UUID playerUuid = player.getUniqueId();
 
-        // Get the island UUID using the player UUID
         api.getIslandUuid(playerUuid).thenCompose(api::toggleIslandPvp).thenAccept(isPvpEnabled -> {
             if (isPvpEnabled) {
                 player.sendMessage(config.getPlayerPvpEnableSuccessMessage());
