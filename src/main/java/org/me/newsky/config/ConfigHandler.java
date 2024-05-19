@@ -5,7 +5,8 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.me.newsky.NewSky;
 import org.me.newsky.util.ColorUtils;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
 
@@ -216,20 +217,24 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.island-already-loaded"));
     }
 
-    public String getIslandInfoMessage() {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info")));
-    }
-
     public String getIslandLevelMessage(int level) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-level")).replace("{level}", String.valueOf(level)));
     }
 
-    public String getIslandOwnerMessage(String ownerName) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-owner")).replace("{owner}", ownerName));
+    public String getIslandInfoMessage() {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info")));
     }
 
-    public String getIslandMembersMessage(String membersString) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-members")).replace("{members}", membersString));
+    public String getIslandInfoLevelMessage(int level) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-level")).replace("{level}", String.valueOf(level)));
+    }
+
+    public String getIslandInfoOwnerMessage(String ownerName) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-owner")).replace("{owner}", ownerName));
+    }
+
+    public String getIslandInfoMembersMessage(String membersString) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-members")).replace("{members}", membersString));
     }
 
     public String getIslandLoadSuccessMessage(String name) {
@@ -449,10 +454,6 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-already-owner")).replace("{name}", name).replace("{owner}", owner));
     }
 
-    public String getAdminIslandLevelMessage(int level) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-island-level")).replace("{level}", String.valueOf(level)));
-    }
-
     // Player Command Messages
     public String getPlayerCommandHelpMessage() {
         return ColorUtils.colorize(messages.getString("messages.player-command-help"));
@@ -624,9 +625,5 @@ public class ConfigHandler {
 
     public String getPlayerLeaveSuccessMessage() {
         return ColorUtils.colorize(messages.getString("messages.player-leave-success"));
-    }
-
-    public String getPlayerIslandLevelMessage(int level) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-island-level")).replace("{level}", String.valueOf(level)));
     }
 }
