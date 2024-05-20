@@ -1,6 +1,7 @@
 package org.me.newsky.command;
 
 import co.aikar.commands.BaseCommand;
+import co.aikar.commands.CommandHelp;
 import co.aikar.commands.annotation.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -15,7 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-@CommandAlias("isadmin")
+@CommandAlias("isadmin|islandadmin")
 @Description("Admin commands for island management")
 public class IslandAdminCommand extends BaseCommand {
 
@@ -32,22 +33,8 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.help")
     @Description("Displays the help page")
     @SuppressWarnings("unused")
-    public void onHelp(CommandSender sender) {
-        sender.sendMessage(config.getAdminCommandHelpMessage());
-        sender.sendMessage("/isadmin create <player> - Admin command to create an island for a player");
-        sender.sendMessage("/isadmin delete <player> - Admin command to delete a player's island");
-        sender.sendMessage("/isadmin addmember <member> <owner> - Admin command to add a member to a player's island");
-        sender.sendMessage("/isadmin removemember <member> <owner> - Admin command to remove a member from a player's island");
-        sender.sendMessage("/isadmin home <player> [home] [target] - Admin command to teleport to a player's island home");
-        sender.sendMessage("/isadmin sethome <player> <home> - Admin command to set a home on a player's island");
-        sender.sendMessage("/isadmin delhome <player> <home> - Admin command to delete a home on a player's island");
-        sender.sendMessage("/isadmin warp <player> [warp] [target] - Admin command to teleport to a warp point on a player's island");
-        sender.sendMessage("/isadmin setwarp <player> <warp> - Admin command to set a warp point on a player's island");
-        sender.sendMessage("/isadmin delwarp <player> <warp> - Admin command to delete a warp point on a player's island");
-        sender.sendMessage("/isadmin lock <player> - Admin command to toggle the lock status of a player's island");
-        sender.sendMessage("/isadmin pvp <player> - Admin command to toggle the PvP status on a player's island");
-        sender.sendMessage("/isadmin load <player> - Admin command to load a player's island");
-        sender.sendMessage("/isadmin unload <player> - Admin command to unload a player's island");
+    public void onHelp(CommandSender sender, CommandHelp help) {
+        help.showHelp();
     }
 
     @Subcommand("create")
