@@ -28,18 +28,43 @@ public class IslandAdminCommand extends BaseCommand {
         this.api = api;
     }
 
+    @HelpCommand
+    @CommandPermission("newsky.admin.island.help")
+    @Description("Displays the help page")
+    @SuppressWarnings("unused")
+    public void onHelp(CommandSender sender) {
+        sender.sendMessage(config.getAdminCommandHelpMessage());
+        sender.sendMessage("/isadmin create <player> - Admin command to create an island for a player");
+        sender.sendMessage("/isadmin delete <player> - Admin command to delete a player's island");
+        sender.sendMessage("/isadmin addmember <member> <owner> - Admin command to add a member to a player's island");
+        sender.sendMessage("/isadmin removemember <member> <owner> - Admin command to remove a member from a player's island");
+        sender.sendMessage("/isadmin home <player> [home] [target] - Admin command to teleport to a player's island home");
+        sender.sendMessage("/isadmin sethome <player> <home> - Admin command to set a home on a player's island");
+        sender.sendMessage("/isadmin delhome <player> <home> - Admin command to delete a home on a player's island");
+        sender.sendMessage("/isadmin warp <player> [warp] [target] - Admin command to teleport to a warp point on a player's island");
+        sender.sendMessage("/isadmin setwarp <player> <warp> - Admin command to set a warp point on a player's island");
+        sender.sendMessage("/isadmin delwarp <player> <warp> - Admin command to delete a warp point on a player's island");
+        sender.sendMessage("/isadmin lock <player> - Admin command to toggle the lock status of a player's island");
+        sender.sendMessage("/isadmin pvp <player> - Admin command to toggle the PvP status on a player's island");
+        sender.sendMessage("/isadmin load <player> - Admin command to load a player's island");
+        sender.sendMessage("/isadmin unload <player> - Admin command to unload a player's island");
+    }
+
     @Subcommand("create")
     @CommandPermission("newsky.admin.island.create")
     @Description("Admin command to create an island for a player")
-    @Syntax("<player>")
+    @Syntax("/isadmin create <player>")
     @CommandCompletion("@players")
     @SuppressWarnings("unused")
     public void onAdminCreate(CommandSender sender, @Single String targetPlayerName) {
-        // Get the target player's UUID
+        if (targetPlayerName.isEmpty()) {
+            sender.sendMessage(config.getUsagePrefix() + "/isadmin create <player>");
+            return;
+        }
+
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
         UUID targetUuid = targetPlayer.getUniqueId();
 
-        // Create the island
         api.createIsland(targetUuid).thenRun(() -> {
             sender.sendMessage(config.getAdminCreateSuccessMessage(targetPlayerName));
         }).exceptionally(ex -> {
@@ -55,14 +80,18 @@ public class IslandAdminCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("delete")
     @CommandPermission("newsky.admin.island.delete")
     @Description("Admin command to delete a player's island")
-    @Syntax("<player>")
+    @Syntax("/isadmin delete <player>")
     @CommandCompletion("@players")
     @SuppressWarnings("unused")
     public void onAdminDelete(CommandSender sender, @Single String targetPlayerName) {
+        if (targetPlayerName.isEmpty()) {
+            sender.sendMessage(config.getUsagePrefix() + "/isadmin delete <player>");
+            return;
+        }
+
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
         UUID targetUuid = targetPlayer.getUniqueId();
 
@@ -88,21 +117,23 @@ public class IslandAdminCommand extends BaseCommand {
         }
     }
 
-
     @Subcommand("addmember")
     @CommandPermission("newsky.admin.island.addmember")
     @Description("Admin command to add a member to a player's island")
-    @Syntax("<member> <owner>")
+    @Syntax("/isadmin addmember <member> <owner>")
     @CommandCompletion("@players @players")
     @SuppressWarnings("unused")
     public void onAdminAddMember(CommandSender sender, @Single String targetMemberName, @Single String islandOwnerName) {
-        // Get the UUIDs
+        if (targetMemberName.isEmpty() || islandOwnerName.isEmpty()) {
+            sender.sendMessage(config.getUsagePrefix() + "/isadmin addmember <member> <owner>");
+            return;
+        }
+
         OfflinePlayer targetMember = Bukkit.getOfflinePlayer(targetMemberName);
         OfflinePlayer islandOwner = Bukkit.getOfflinePlayer(islandOwnerName);
         UUID targetMemberUuid = targetMember.getUniqueId();
         UUID islandOwnerUuid = islandOwner.getUniqueId();
 
-        // Add the target player to the island
         api.getIslandUuid(islandOwnerUuid).thenCompose(islandUuid -> api.addMember(islandUuid, targetMemberUuid, "member")).thenRun(() -> {
             sender.sendMessage(config.getAdminAddMemberSuccessMessage(targetMemberName, islandOwnerName));
         }).exceptionally(ex -> {
@@ -118,21 +149,23 @@ public class IslandAdminCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("removemember")
     @CommandPermission("newsky.admin.island.removemember")
     @Description("Admin command to remove a member from a player's island")
-    @Syntax("<member> <owner>")
+    @Syntax("/isadmin removemember <member> <owner>")
     @CommandCompletion("@players @players")
     @SuppressWarnings("unused")
     public void onAdminRemoveMember(CommandSender sender, @Single String targetMemberName, @Single String islandOwnerName) {
-        // Get the UUIDs
+        if (targetMemberName.isEmpty() || islandOwnerName.isEmpty()) {
+            sender.sendMessage(config.getUsagePrefix() + "/isadmin removemember <member> <owner>");
+            return;
+        }
+
         OfflinePlayer targetMember = Bukkit.getOfflinePlayer(targetMemberName);
         OfflinePlayer islandOwner = Bukkit.getOfflinePlayer(islandOwnerName);
         UUID targetMemberUuid = targetMember.getUniqueId();
         UUID islandOwnerUuid = islandOwner.getUniqueId();
 
-        // Remove the target player from the island
         api.getIslandUuid(islandOwnerUuid).thenCompose(islandUuid -> api.removeMember(islandUuid, targetMemberUuid)).thenRun(() -> {
             sender.sendMessage(config.getAdminRemoveMemberSuccessMessage(targetMemberName, islandOwnerName));
         }).exceptionally(ex -> {
@@ -148,15 +181,18 @@ public class IslandAdminCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("home")
     @CommandPermission("newsky.admin.island.home")
     @Description("Admin command to teleport to a player's island home")
-    @Syntax("<player> [home] [target]")
+    @Syntax("/isadmin home <player> [home] [target]")
     @CommandCompletion("@players @homes @players")
     @SuppressWarnings("unused")
     public void onAdminHome(CommandSender sender, @Single String homePlayerName, @Default("default") @Single String homeName, @Optional @Single String teleportPlayerName) {
-        // Get the UUIDs
+        if (homePlayerName.isEmpty()) {
+            sender.sendMessage(config.getUsagePrefix() + "/isadmin home <player> [home] [target]");
+            return;
+        }
+
         OfflinePlayer homePlayer = Bukkit.getOfflinePlayer(homePlayerName);
         UUID homePlayerUuid = homePlayer.getUniqueId();
         UUID senderUuid;
@@ -172,7 +208,6 @@ public class IslandAdminCommand extends BaseCommand {
             senderUuid = targetPlayer.getUniqueId();
         }
 
-        // Teleport to the home
         api.home(homePlayerUuid, homeName, senderUuid).thenRun(() -> {
             sender.sendMessage(config.getAdminHomeSuccessMessage(homePlayerName, homeName));
         }).exceptionally(ex -> {
@@ -190,14 +225,18 @@ public class IslandAdminCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("sethome")
     @CommandPermission("newsky.admin.island.sethome")
     @Description("Admin command to set a home on a player's island")
-    @Syntax("<player> <home>")
+    @Syntax("/isadmin sethome <player> <home>")
     @CommandCompletion("@players @homes")
     @SuppressWarnings("unused")
     public void onAdminSetHome(CommandSender sender, @Single String homePlayerName, @Single String homeName) {
+        if (homePlayerName.isEmpty() || homeName.isEmpty()) {
+            sender.sendMessage(config.getUsagePrefix() + "/isadmin sethome <player> <home>");
+            return;
+        }
+
         if (!(sender instanceof Player player)) {
             sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
             return;
@@ -222,14 +261,18 @@ public class IslandAdminCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("delhome")
     @CommandPermission("newsky.admin.island.delhome")
     @Description("Admin command to delete a home on a player's island")
-    @Syntax("<player> <home>")
+    @Syntax("/isadmin delhome <player> <home>")
     @CommandCompletion("@players @homes")
     @SuppressWarnings("unused")
     public void onAdminDelHome(CommandSender sender, @Single String homePlayerName, @Single String homeName) {
+        if (homePlayerName.isEmpty() || homeName.isEmpty()) {
+            sender.sendMessage(config.getUsagePrefix() + "/isadmin delhome <player> <home>");
+            return;
+        }
+
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(homePlayerName);
         UUID targetUuid = targetPlayer.getUniqueId();
 
@@ -253,14 +296,18 @@ public class IslandAdminCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("warp")
     @CommandPermission("newsky.admin.island.warp")
     @Description("Admin command to teleport to a warp point on a player's island")
-    @Syntax("<player> <warp> [target]")
+    @Syntax("/isadmin warp <player> [warp] [target]")
     @CommandCompletion("@players @warps @players")
     @SuppressWarnings("unused")
     public void onAdminWarp(CommandSender sender, @Single String warpPlayerName, @Default("default") @Single String warpName, @Optional @Single String teleportPlayerName) {
+        if (warpPlayerName.isEmpty()) {
+            sender.sendMessage(config.getUsagePrefix() + "/isadmin warp <player> [warp] [target]");
+            return;
+        }
+
         OfflinePlayer warpPlayer = Bukkit.getOfflinePlayer(warpPlayerName);
         UUID warpPlayerUuid = warpPlayer.getUniqueId();
         UUID senderUuid;
@@ -293,14 +340,18 @@ public class IslandAdminCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("setwarp")
     @CommandPermission("newsky.admin.island.setwarp")
     @Description("Admin command to set a warp point on a player's island")
-    @Syntax("<player> <warp>")
+    @Syntax("/isadmin setwarp <player> <warp>")
     @CommandCompletion("@players @warps")
     @SuppressWarnings("unused")
     public void onAdminSetWarp(CommandSender sender, @Single String warpPlayerName, @Single String warpName) {
+        if (warpPlayerName.isEmpty() || warpName.isEmpty()) {
+            sender.sendMessage(config.getUsagePrefix() + "/isadmin setwarp <player> <warp>");
+            return;
+        }
+
         if (!(sender instanceof Player player)) {
             sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
             return;
@@ -325,14 +376,18 @@ public class IslandAdminCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("delwarp")
     @CommandPermission("newsky.admin.island.delwarp")
-    @Description("Admin command to delete a warp point on a player'6s island")
-    @Syntax("<player> <warp>")
+    @Description("Admin command to delete a warp point on a player's island")
+    @Syntax("/isadmin delwarp <player> <warp>")
     @CommandCompletion("@players @warps")
     @SuppressWarnings("unused")
     public void onAdminDelWarp(CommandSender sender, @Single String warpPlayerName, @Single String warpName) {
+        if (warpPlayerName.isEmpty() || warpName.isEmpty()) {
+            sender.sendMessage(config.getUsagePrefix() + "/isadmin delwarp <player> <warp>");
+            return;
+        }
+
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(warpPlayerName);
         UUID targetUuid = targetPlayer.getUniqueId();
 
@@ -351,14 +406,18 @@ public class IslandAdminCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("lock")
     @CommandPermission("newsky.admin.island.lock")
     @Description("Admin command to toggle the lock status of a player's island")
-    @Syntax("<player>")
+    @Syntax("/isadmin lock <player>")
     @CommandCompletion("@players")
     @SuppressWarnings("unused")
     public void onAdminLock(CommandSender sender, @Single String targetPlayerName) {
+        if (targetPlayerName.isEmpty()) {
+            sender.sendMessage(config.getUsagePrefix() + "/isadmin lock <player>");
+            return;
+        }
+
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
         UUID targetUuid = targetPlayer.getUniqueId();
 
@@ -379,14 +438,18 @@ public class IslandAdminCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("pvp")
     @CommandPermission("newsky.admin.island.pvp")
     @Description("Admin command to toggle the PvP status on a player's island")
-    @Syntax("<player>")
+    @Syntax("/isadmin pvp <player>")
     @CommandCompletion("@players")
     @SuppressWarnings("unused")
     public void onAdminPvp(CommandSender sender, @Single String targetPlayerName) {
+        if (targetPlayerName.isEmpty()) {
+            sender.sendMessage(config.getUsagePrefix() + "/isadmin pvp <player>");
+            return;
+        }
+
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
         UUID targetUuid = targetPlayer.getUniqueId();
 
@@ -407,14 +470,18 @@ public class IslandAdminCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("load")
     @CommandPermission("newsky.admin.island.load")
     @Description("Admin command to load a player's island")
-    @Syntax("<player>")
+    @Syntax("/isadmin load <player>")
     @CommandCompletion("@players")
     @SuppressWarnings("unused")
     public void onAdminLoadIsland(CommandSender sender, @Single String targetPlayerName) {
+        if (targetPlayerName.isEmpty()) {
+            sender.sendMessage(config.getUsagePrefix() + "/isadmin load <player>");
+            return;
+        }
+
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
         UUID targetUuid = targetPlayer.getUniqueId();
 
@@ -435,14 +502,18 @@ public class IslandAdminCommand extends BaseCommand {
         });
     }
 
-
     @Subcommand("unload")
     @CommandPermission("newsky.admin.island.unload")
     @Description("Admin command to unload a player's island")
-    @Syntax("<player>")
+    @Syntax("/isadmin unload <player>")
     @CommandCompletion("@players")
     @SuppressWarnings("unused")
     public void onAdminUnloadIsland(CommandSender sender, @Single String targetPlayerName) {
+        if (targetPlayerName.isEmpty()) {
+            sender.sendMessage(config.getUsagePrefix() + "/isadmin unload <player>");
+            return;
+        }
+
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
         UUID targetUuid = targetPlayer.getUniqueId();
 
