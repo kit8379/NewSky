@@ -1,6 +1,7 @@
 package org.me.newsky.command;
 
 import co.aikar.commands.BaseCommand;
+import co.aikar.commands.CommandHelp;
 import co.aikar.commands.annotation.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -32,29 +33,14 @@ public class IslandCommand extends BaseCommand {
     @CommandPermission("newsky.island.help")
     @Description("Displays the help page")
     @SuppressWarnings("unused")
-    public void onHelp(CommandSender sender) {
-        sender.sendMessage(config.getPlayerCommandHelpMessage());
-        sender.sendMessage("/is create - Creates an island for the player");
-        sender.sendMessage("/is delete - Deletes your island with a confirmation step");
-        sender.sendMessage("/is addmember <player> - Adds a member to your island");
-        sender.sendMessage("/is removemember <player> - Removes a member from your island");
-        sender.sendMessage("/is home [homeName] - Teleports you to your island home");
-        sender.sendMessage("/is sethome [homeName] - Sets your island home");
-        sender.sendMessage("/is delhome <homeName> - Deletes a specified home");
-        sender.sendMessage("/is warp <player> [warpName] - Teleports you or another player to a specified warp point on an island");
-        sender.sendMessage("/is setwarp [warpName] - Sets a warp point on your island");
-        sender.sendMessage("/is delwarp [warpName] - Deletes a specified warp point on your island");
-        sender.sendMessage("/is setowner <player> - Sets a new owner for your island");
-        sender.sendMessage("/is leave - Leaves your current island");
-        sender.sendMessage("/is level - Displays the level of your island");
-        sender.sendMessage("/is lock - Toggles the lock status of your island");
-        sender.sendMessage("/is pvp - Toggles the PvP status on your island");
+    public void onHelp(CommandSender sender, CommandHelp help) {
+        help.showHelp();
     }
 
     @Subcommand("create")
     @CommandPermission("newsky.island.create")
     @Description("Creates an island for the player")
-    @Syntax("/is create")
+    @Syntax("<player>")
     @SuppressWarnings("unused")
     public void onCreate(CommandSender sender) {
         if (!(sender instanceof Player player)) {
@@ -85,7 +71,7 @@ public class IslandCommand extends BaseCommand {
     @Subcommand("delete")
     @CommandPermission("newsky.island.delete")
     @Description("Deletes your island with a confirmation step")
-    @Syntax("/is delete")
+    @Syntax("<player>")
     @SuppressWarnings("unused")
     public void onDelete(CommandSender sender) {
         if (!(sender instanceof Player player)) {
@@ -121,16 +107,11 @@ public class IslandCommand extends BaseCommand {
     @CommandPermission("newsky.island.addmember")
     @CommandCompletion("@players")
     @Description("Adds a member to your island")
-    @Syntax("/is addmember <player>")
+    @Syntax("<player>")
     @SuppressWarnings("unused")
     public void onAddMember(CommandSender sender, @Single String targetPlayerName) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
-            return;
-        }
-
-        if (targetPlayerName.isEmpty()) {
-            player.sendMessage(config.getUsagePrefix() + "/is addmember <player>");
             return;
         }
 
@@ -157,16 +138,11 @@ public class IslandCommand extends BaseCommand {
     @CommandPermission("newsky.island.removemember")
     @CommandCompletion("@players")
     @Description("Removes a member from your island")
-    @Syntax("/is removemember <player>")
+    @Syntax("<player>")
     @SuppressWarnings("unused")
     public void onRemoveMember(CommandSender sender, @Single String targetPlayerName) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
-            return;
-        }
-
-        if (targetPlayerName.isEmpty()) {
-            player.sendMessage(config.getUsagePrefix() + "/is removemember <player>");
             return;
         }
 
@@ -193,7 +169,7 @@ public class IslandCommand extends BaseCommand {
     @CommandPermission("newsky.island.home")
     @CommandCompletion("@homes")
     @Description("Teleports you to your island home")
-    @Syntax("/is home [homeName]")
+    @Syntax("[homeName]")
     @SuppressWarnings("unused")
     public void onHome(CommandSender sender, @Default("default") String homeName) {
         if (!(sender instanceof Player player)) {
@@ -222,7 +198,7 @@ public class IslandCommand extends BaseCommand {
     @CommandPermission("newsky.island.sethome")
     @CommandCompletion("@homes")
     @Description("Sets your island home")
-    @Syntax("/is sethome [homeName]")
+    @Syntax("[homeName]")
     @SuppressWarnings("unused")
     public void onSetHome(CommandSender sender, @Default("default") String homeName) {
         if (!(sender instanceof Player player)) {
@@ -251,16 +227,11 @@ public class IslandCommand extends BaseCommand {
     @CommandPermission("newsky.island.delhome")
     @CommandCompletion("@homes")
     @Description("Deletes a specified home")
-    @Syntax("/is delhome <homeName>")
+    @Syntax("<homeName>")
     @SuppressWarnings("unused")
     public void onDelHome(CommandSender sender, String homeName) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
-            return;
-        }
-
-        if (homeName.isEmpty()) {
-            player.sendMessage(config.getUsagePrefix() + "/is delhome <homeName>");
             return;
         }
 
@@ -288,16 +259,11 @@ public class IslandCommand extends BaseCommand {
     @CommandPermission("newsky.island.warp")
     @CommandCompletion("@players @warps")
     @Description("Teleports you or another player to a specified warp point on an island")
-    @Syntax("/is warp <player> [warpName]")
+    @Syntax("<player> [warpName]")
     @SuppressWarnings("unused")
     public void onWarp(CommandSender sender, @Single String warpPlayerName, @Default("default") String warpName) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
-            return;
-        }
-
-        if (warpPlayerName.isEmpty()) {
-            player.sendMessage(config.getUsagePrefix() + "/is warp <player> [warpName]");
             return;
         }
 
@@ -324,7 +290,7 @@ public class IslandCommand extends BaseCommand {
     @CommandPermission("newsky.island.setwarp")
     @CommandCompletion("@warps")
     @Description("Sets a warp point on your island")
-    @Syntax("/is setwarp [warpName]")
+    @Syntax("[warpName]")
     @SuppressWarnings("unused")
     public void onSetWarp(CommandSender sender, @Default("default") String warpName) {
         if (!(sender instanceof Player player)) {
@@ -353,7 +319,7 @@ public class IslandCommand extends BaseCommand {
     @CommandPermission("newsky.island.delwarp")
     @CommandCompletion("@warps")
     @Description("Deletes a specified warp point on your island")
-    @Syntax("/is delwarp [warpName]")
+    @Syntax("<warpName>")
     @SuppressWarnings("unused")
     public void onDelWarp(CommandSender sender, @Default("default") String warpName) {
         if (!(sender instanceof Player player)) {
@@ -380,16 +346,11 @@ public class IslandCommand extends BaseCommand {
     @CommandPermission("newsky.island.setowner")
     @CommandCompletion("@players")
     @Description("Sets a new owner for your island")
-    @Syntax("/is setowner <player>")
+    @Syntax("<player>")
     @SuppressWarnings("unused")
     public void onSetOwner(CommandSender sender, @Single String targetPlayerName) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
-            return;
-        }
-
-        if (targetPlayerName.isEmpty()) {
-            player.sendMessage(config.getUsagePrefix() + "/is setowner <player>");
             return;
         }
 
@@ -415,7 +376,6 @@ public class IslandCommand extends BaseCommand {
     @Subcommand("leave")
     @CommandPermission("newsky.island.leave")
     @Description("Leaves your current island")
-    @Syntax("/is leave")
     @SuppressWarnings("unused")
     public void onLeave(CommandSender sender) {
         if (!(sender instanceof Player player)) {
@@ -445,7 +405,6 @@ public class IslandCommand extends BaseCommand {
     @Subcommand("level")
     @CommandPermission("newsky.island.level")
     @Description("Displays the level of your island")
-    @Syntax("/is level")
     @SuppressWarnings("unused")
     public void onLevel(CommandSender sender) {
         if (!(sender instanceof Player player)) {
@@ -471,7 +430,6 @@ public class IslandCommand extends BaseCommand {
     @Subcommand("lock")
     @CommandPermission("newsky.island.togglelock")
     @Description("Toggles the lock status of your island")
-    @Syntax("/is lock")
     @SuppressWarnings("unused")
     public void onLock(CommandSender sender) {
         if (!(sender instanceof Player player)) {
@@ -501,7 +459,6 @@ public class IslandCommand extends BaseCommand {
     @Subcommand("pvp")
     @CommandPermission("newsky.island.togglepvp")
     @Description("Toggles the PvP status on your island")
-    @Syntax("/is pvp")
     @SuppressWarnings("unused")
     public void onPvp(CommandSender sender) {
         if (!(sender instanceof Player player)) {

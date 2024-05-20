@@ -115,7 +115,7 @@ public class PreIslandHandler {
     }
 
 
-    public CompletableFuture<Void> teleportToIsland(UUID playerUuid, UUID islandUuid, String teleportLocation) {
+    public CompletableFuture<Void> teleportToIsland(UUID islandUuid, UUID playerUuid, String teleportLocation) {
         String islandServer = getServerByIsland(islandUuid);
         if (islandServer == null) {
             String randomServer = getRandomServer();
@@ -123,21 +123,17 @@ public class PreIslandHandler {
                 return CompletableFuture.failedFuture(new NoActiveServerException());
             }
             if (randomServer.equals(serverID)) {
-                return postIslandHandler.teleportToIsland(playerUuid, islandUuid, teleportLocation).thenRun(() -> {
-                    connectToServer(playerUuid, serverID);
-                });
+                return postIslandHandler.teleportToIsland(islandUuid, playerUuid, teleportLocation);
             } else {
-                return publishRequest.sendRequest(randomServer, "teleportToIsland", playerUuid.toString(), islandUuid.toString(), teleportLocation).thenRun(() -> {
+                return publishRequest.sendRequest(randomServer, "teleportToIsland", islandUuid.toString(), playerUuid.toString(), teleportLocation).thenRun(() -> {
                     connectToServer(playerUuid, serverID);
                 });
             }
         } else {
             if (islandServer.equals(serverID)) {
-                return postIslandHandler.teleportToIsland(playerUuid, islandUuid, teleportLocation).thenRun(() -> {
-                    connectToServer(playerUuid, serverID);
-                });
+                return postIslandHandler.teleportToIsland(islandUuid, playerUuid, teleportLocation);
             } else {
-                return publishRequest.sendRequest(islandServer, "teleportToIsland", playerUuid.toString(), islandUuid.toString(), teleportLocation).thenRun(() -> {
+                return publishRequest.sendRequest(islandServer, "teleportToIsland", islandUuid.toString(), playerUuid.toString(), teleportLocation).thenRun(() -> {
                     connectToServer(playerUuid, serverID);
                 });
             }

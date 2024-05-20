@@ -37,23 +37,23 @@ public class NewSkyAPI {
     }
 
     /**
-     * Get the owner of the island for the specified player
+     * Get the owner of the island
      *
-     * @param playerUuid The UUID of the player
+     * @param islandUuid The UUID of the player
      * @return A CompletableFuture that completes with the UUID of the island owner
      */
-    public CompletableFuture<UUID> getIslandOwner(UUID playerUuid) {
-        return islandHandler.getIslandOwner(playerUuid);
+    public CompletableFuture<UUID> getIslandOwner(UUID islandUuid) {
+        return islandHandler.getIslandOwner(islandUuid);
     }
 
     /**
-     * Get the members of the island for the specified player
+     * Get the members of the island
      *
-     * @param playerUuid The UUID of the player
+     * @param islandUuid The UUID of the player
      * @return A CompletableFuture that completes with the set of island members
      */
-    public CompletableFuture<Set<UUID>> getIslandMembers(UUID playerUuid) {
-        return islandHandler.getIslandMembers(playerUuid);
+    public CompletableFuture<Set<UUID>> getIslandMembers(UUID islandUuid) {
+        return islandHandler.getIslandMembers(islandUuid);
     }
 
 

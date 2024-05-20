@@ -2,7 +2,6 @@ package org.me.newsky.island;
 
 import org.bukkit.Location;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
 import org.me.newsky.exceptions.WarpDoesNotExistException;
@@ -70,7 +69,7 @@ public class WarpHandler {
                 throw new WarpDoesNotExistException();
             }
             String warpLocation = warpLocationOpt.get();
-            return preIslandHandler.teleportToIsland(targetPlayerUuid, islandUuid, warpLocation);
+            return preIslandHandler.teleportToIsland(islandUuid, targetPlayerUuid, warpLocation);
         });
     }
 

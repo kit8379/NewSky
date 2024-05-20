@@ -23,7 +23,7 @@ public class WorldUnloadScheduler {
         this.plugin = plugin;
         this.cacheHandler = cacheHandler;
         this.worldHandler = worldHandler;
-        this.unloadInterval = config.getWorldUnloadInterval();
+        this.unloadInterval = config.getIslandUnloadInterval();
     }
 
     public void start() {

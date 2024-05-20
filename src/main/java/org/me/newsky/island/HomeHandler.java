@@ -2,7 +2,6 @@ package org.me.newsky.island;
 
 import org.bukkit.Location;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.HomeDoesNotExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
@@ -70,7 +69,7 @@ public class HomeHandler {
                 throw new HomeDoesNotExistException();
             }
             String homeLocation = homeLocationOpt.get();
-            return preIslandHandler.teleportToIsland(targetPlayerUuid, islandUuid, homeLocation);
+            return preIslandHandler.teleportToIsland(islandUuid, targetPlayerUuid, homeLocation);
         });
     }
 

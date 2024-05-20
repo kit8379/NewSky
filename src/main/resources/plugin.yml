@@ -18,12 +18,12 @@ commands:
     description: Island command
     usage: /<command>
     permission: island.command
-    aliases: [is]
+    aliases: [ is ]
   islandadmin:
     description: Island admin command
     usage: /<command>
     permission: island.admin
-    aliases: [isadmin]
+    aliases: [ isadmin ]
 permissions:
   island.command:
     description: Allows the user to use the /island command

@@ -139,10 +139,6 @@ public class ConfigHandler {
         return config.getInt("server.heartbeat-interval");
     }
 
-    public int getWorldUnloadInterval() {
-        return config.getInt("server.world-unload-interval");
-    }
-
     public boolean isLobby() {
         return config.getBoolean("server.lobby");
     }
@@ -177,6 +173,10 @@ public class ConfigHandler {
 
     public float getIslandSpawnPitch() {
         return (float) config.getDouble("island.spawn.pitch");
+    }
+
+    public int getIslandUnloadInterval() {
+        return config.getInt("server.island-unload-interval");
     }
 
     public int getIslandLevelUpdateInterval() {
@@ -286,82 +286,6 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.admin-command-help"));
     }
 
-    public String getAdminUnknownSubCommandMessage(String subCommand) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-unknown-sub-command")).replace("{subCommand}", subCommand));
-    }
-
-    public String getAdminAddMemberUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.admin-add-member-usage"));
-    }
-
-    public String getAdminRemoveMemberUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.admin-remove-member-usage"));
-    }
-
-    public String getAdminCreateUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.admin-create-island-usage"));
-    }
-
-    public String getAdminDeleteUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.admin-delete-island-usage"));
-    }
-
-    public String getAdminSetHomeUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.admin-set-home-usage"));
-    }
-
-    public String getAdminDelHomeUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.admin-delete-home-usage"));
-    }
-
-    public String getAdminHomeUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.admin-home-usage"));
-    }
-
-    public String getAdminSetWarpUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.admin-set-warps-usage"));
-    }
-
-    public String getAdminDelWarpUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.admin-delete-warp-usage"));
-    }
-
-    public String getAdminWarpUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.admin-warp-usage"));
-    }
-
-    public String getAdminInfoUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.admin-info-usage"));
-    }
-
-    public String getAdminLoadUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.admin-load-usage"));
-    }
-
-    public String getAdminUnloadUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.admin-unload-usage"));
-    }
-
-    public String getAdminReloadUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.admin-reload-usage"));
-    }
-
-    public String getAdminLockUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.admin-lock-usage"));
-    }
-
-    public String getAdminPvpUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.admin-pvp-usage"));
-    }
-
-    public String getAdminSetOwnerUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.admin-set-owner-usage"));
-    }
-
-    public String getAdminLevelUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.admin-level-usage"));
-    }
-
     public String getAdminNoIslandMessage(String name) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-no-island")).replace("{name}", name));
     }
@@ -457,74 +381,6 @@ public class ConfigHandler {
     // Player Command Messages
     public String getPlayerCommandHelpMessage() {
         return ColorUtils.colorize(messages.getString("messages.player-command-help"));
-    }
-
-    public String getPlayerUnknownSubCommandMessage(String subCommand) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-unknown-sub-command")).replace("{subCommand}", subCommand));
-    }
-
-    public String getPlayerAddMemberUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-add-member-usage"));
-    }
-
-    public String getPlayerRemoveMemberUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-remove-member-usage"));
-    }
-
-    public String getPlayerCreateUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-create-island-usage"));
-    }
-
-    public String getPlayerDeleteUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-delete-island-usage"));
-    }
-
-    public String getPlayerHomeUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-home-usage"));
-    }
-
-    public String getPlayerSetHomeUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-set-home-usage"));
-    }
-
-    public String getPlayerDelHomeUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-delete-home-usage"));
-    }
-
-    public String getPlayerWarpUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-warp-usage"));
-    }
-
-    public String getPlayerSetWarpUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-set-warp-usage"));
-    }
-
-    public String getPlayerDelWarpUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-delete-warp-usage"));
-    }
-
-    public String getPlayerInfoUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-info-usage"));
-    }
-
-    public String getPlayerLockUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-lock-usage"));
-    }
-
-    public String getPlayerPvpUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-pvp-usage"));
-    }
-
-    public String getPlayerSetOwnerUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-set-owner-usage"));
-    }
-
-    public String getPlayerLeaveUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-leave-usage"));
-    }
-
-    public String getPlayerLevelUsageMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-level-usage"));
     }
 
     public String getPlayerNoIslandMessage() {

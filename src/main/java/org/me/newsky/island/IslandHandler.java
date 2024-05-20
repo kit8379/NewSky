@@ -23,15 +23,21 @@ public class IslandHandler {
     }
 
     public CompletableFuture<UUID> getIslandUuid(UUID playerUuid) {
-        return CompletableFuture.completedFuture(cacheHandler.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new));
+        return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
+        });
     }
 
     public CompletableFuture<UUID> getIslandOwner(UUID islandUuid) {
-        return CompletableFuture.completedFuture(cacheHandler.getIslandOwner(islandUuid));
+        return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getIslandOwner(islandUuid);
+        });
     }
 
     public CompletableFuture<Set<UUID>> getIslandMembers(UUID islandUuid) {
-        return CompletableFuture.completedFuture(cacheHandler.getIslandMembers(islandUuid));
+        return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getIslandMembers(islandUuid);
+        });
     }
 
     public CompletableFuture<Void> createIsland(UUID ownerUuid) {

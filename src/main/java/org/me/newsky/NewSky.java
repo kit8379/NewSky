@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.command.IslandAdminCommand;
 import org.me.newsky.command.IslandCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
@@ -153,7 +154,10 @@ public class NewSky extends JavaPlugin {
 
         // Register the IslandCommand
         IslandCommand islandCommand = new IslandCommand(config, api);
+        IslandAdminCommand islandAdminCommand = new IslandAdminCommand(config, api);
         commandManager.registerCommand(islandCommand);
+        commandManager.registerCommand(islandAdminCommand);
+        commandManager.enableUnstableAPI("help");
 
         // Setup command completions
         setupCommandCompletions();
