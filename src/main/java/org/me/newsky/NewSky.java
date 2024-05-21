@@ -14,10 +14,8 @@ import org.me.newsky.island.*;
 import org.me.newsky.island.middleware.PostIslandHandler;
 import org.me.newsky.island.middleware.PreIslandHandler;
 import org.me.newsky.listener.*;
-import org.me.newsky.network.BasePublishRequest;
-import org.me.newsky.network.BaseSubscribeRequest;
-import org.me.newsky.network.redis.RedisPublishRequest;
-import org.me.newsky.network.redis.RedisSubscribeRequest;
+import org.me.newsky.network.RedisPublishRequest;
+import org.me.newsky.network.RedisSubscribeRequest;
 import org.me.newsky.placeholder.NewSkyPlaceholderExpansion;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.scheduler.LevelUpdateScheduler;
@@ -38,8 +36,8 @@ public class NewSky extends JavaPlugin {
     private HeartBeatHandler heartBeatHandler;
     private WorldUnloadScheduler worldUnloadScheduler;
     private LevelUpdateScheduler levelUpdateScheduler;
-    private BasePublishRequest brokerRequestPublish;
-    private BaseSubscribeRequest brokerRequestSubscribe;
+    private RedisPublishRequest brokerRequestPublish;
+    private RedisSubscribeRequest brokerRequestSubscribe;
     private NewSkyAPI api;
 
     @Override

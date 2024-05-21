@@ -7,7 +7,7 @@ import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.exceptions.IslandAlreadyLoadedException;
 import org.me.newsky.exceptions.IslandNotLoadedException;
 import org.me.newsky.exceptions.NoActiveServerException;
-import org.me.newsky.network.BasePublishRequest;
+import org.me.newsky.network.RedisPublishRequest;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -26,11 +26,11 @@ public class PreIslandHandler {
 
     private final NewSky plugin;
     private final CacheHandler cacheHandler;
-    private final BasePublishRequest publishRequest;
+    private final RedisPublishRequest publishRequest;
     private final PostIslandHandler postIslandHandler;
     private final String serverID;
 
-    public PreIslandHandler(NewSky plugin, CacheHandler cacheHandler, BasePublishRequest publishRequest, PostIslandHandler postIslandHandler, String serverID) {
+    public PreIslandHandler(NewSky plugin, CacheHandler cacheHandler, RedisPublishRequest publishRequest, PostIslandHandler postIslandHandler, String serverID) {
         this.plugin = plugin;
         this.cacheHandler = cacheHandler;
         this.publishRequest = publishRequest;
@@ -47,7 +47,7 @@ public class PreIslandHandler {
         if (randomServer.equals(serverID)) {
             return postIslandHandler.createIsland(islandUuid);
         } else {
-            return publishRequest.sendRequest(randomServer, "createIsland", islandUuid.toString());
+            return publishRequest.sendRequest(randomServer, "create", islandUuid.toString());
         }
     }
 
@@ -62,12 +62,12 @@ public class PreIslandHandler {
             if (randomServer.equals(serverID)) {
                 return postIslandHandler.deleteIsland(islandUuid);
             } else {
-                return publishRequest.sendRequest(randomServer, "deleteIsland", islandUuid.toString());
+                return publishRequest.sendRequest(randomServer, "delete", islandUuid.toString());
             }
         } else if (islandServer.equals(serverID)) {
             return postIslandHandler.deleteIsland(islandUuid);
         } else {
-            return publishRequest.sendRequest(islandServer, "deleteIsland", islandUuid.toString());
+            return publishRequest.sendRequest(islandServer, "delete", islandUuid.toString());
         }
     }
 
@@ -81,7 +81,7 @@ public class PreIslandHandler {
             if (randomServer.equals(serverID)) {
                 return postIslandHandler.loadIsland(islandUuid);
             } else {
-                return publishRequest.sendRequest(randomServer, "loadIsland", islandUuid.toString());
+                return publishRequest.sendRequest(randomServer, "load", islandUuid.toString());
             }
         } else {
             return CompletableFuture.failedFuture(new IslandAlreadyLoadedException());
@@ -96,7 +96,7 @@ public class PreIslandHandler {
             if (islandServer.equals(serverID)) {
                 return postIslandHandler.unloadIsland(islandUuid);
             } else {
-                return publishRequest.sendRequest(islandServer, "unloadIsland", islandUuid.toString());
+                return publishRequest.sendRequest(islandServer, "unload", islandUuid.toString());
             }
         }
     }
@@ -109,7 +109,7 @@ public class PreIslandHandler {
             if (islandServer.equals(serverID)) {
                 postIslandHandler.lockIsland(islandUuid);
             } else {
-                publishRequest.sendRequest(islandServer, "lockIsland", islandUuid.toString());
+                publishRequest.sendRequest(islandServer, "lock", islandUuid.toString());
             }
         }
     }
@@ -125,16 +125,16 @@ public class PreIslandHandler {
             if (randomServer.equals(serverID)) {
                 return postIslandHandler.teleportToIsland(islandUuid, playerUuid, teleportLocation);
             } else {
-                return publishRequest.sendRequest(randomServer, "teleportToIsland", islandUuid.toString(), playerUuid.toString(), teleportLocation).thenRun(() -> {
-                    connectToServer(playerUuid, serverID);
+                return publishRequest.sendRequest(randomServer, "teleport", islandUuid.toString(), playerUuid.toString(), teleportLocation).thenRun(() -> {
+                    connectToServer(playerUuid, randomServer);
                 });
             }
         } else {
             if (islandServer.equals(serverID)) {
                 return postIslandHandler.teleportToIsland(islandUuid, playerUuid, teleportLocation);
             } else {
-                return publishRequest.sendRequest(islandServer, "teleportToIsland", islandUuid.toString(), playerUuid.toString(), teleportLocation).thenRun(() -> {
-                    connectToServer(playerUuid, serverID);
+                return publishRequest.sendRequest(islandServer, "teleport", islandUuid.toString(), playerUuid.toString(), teleportLocation).thenRun(() -> {
+                    connectToServer(playerUuid, islandServer);
                 });
             }
         }

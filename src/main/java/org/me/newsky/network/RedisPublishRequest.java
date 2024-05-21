@@ -1,41 +1,57 @@
-package org.me.newsky.network.redis;
+package org.me.newsky.network;
 
 import org.me.newsky.NewSky;
-import org.me.newsky.network.BasePublishRequest;
 import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.JedisPubSub;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-public class RedisPublishRequest extends BasePublishRequest {
+public class RedisPublishRequest {
 
+    protected static final ConcurrentHashMap<String, CompletableFuture<Void>> pendingRequests = new ConcurrentHashMap<>();
+    private final NewSky plugin;
+    private final RedisHandler redisHandler;
+    private final String serverID;
     private JedisPubSub responseSubscriber;
 
     public RedisPublishRequest(NewSky plugin, RedisHandler redisHandler, String serverID) {
-        super(plugin, redisHandler, serverID);
+        this.plugin = plugin;
+        this.redisHandler = redisHandler;
+        this.serverID = serverID;
     }
 
-    @Override
     public void subscribeToResponseChannel() {
         responseSubscriber = new JedisPubSub() {
             @Override
             public void onMessage(String channel, String message) {
                 String[] parts = message.split(":");
                 String messageType = parts[0];
-                String requestID = parts[1];
-                String sourceServer = parts[2];
-                String targetServer = parts[3];
+                String messageStatus = parts[1];
+                String requestID = parts[2];
+                String sourceServer = parts[3];
+                String targetServer = parts[4];
 
                 if (messageType.equals("response") && targetServer.equals(serverID)) {
-                    plugin.debug("Received success response for request ID " + requestID + " from " + sourceServer);
-                    CompletableFuture<Void> future = pendingRequests.get(requestID);
-                    if (future != null) {
-                        future.complete(null);
-                        pendingRequests.remove(requestID);
-                        plugin.debug("Completed request with request ID " + requestID);
+                    if (messageStatus.equals("success")) {
+                        plugin.debug("Received success response for request ID " + requestID + " from " + sourceServer);
+                        CompletableFuture<Void> future = pendingRequests.get(requestID);
+                        if (future != null) {
+                            future.complete(null);
+                            pendingRequests.remove(requestID);
+                            plugin.debug("Completed request with request ID " + requestID);
+                        }
+                    } else {
+                        plugin.debug("Received failure response for request ID " + requestID + " from " + sourceServer);
+                        CompletableFuture<Void> future = pendingRequests.get(requestID);
+                        if (future != null) {
+                            future.completeExceptionally(new RuntimeException());
+                            pendingRequests.remove(requestID);
+                            plugin.debug("Completed request with request ID " + requestID);
+                        }
                     }
                 }
             }
@@ -44,14 +60,10 @@ public class RedisPublishRequest extends BasePublishRequest {
         redisHandler.subscribe(responseSubscriber, "newsky-response-channel");
     }
 
-
-    @Override
     public void unsubscribeFromResponseChannel() {
         responseSubscriber.unsubscribe();
     }
 
-
-    @Override
     public CompletableFuture<Void> sendRequest(String targetServer, String operation, String... args) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
@@ -77,5 +89,4 @@ public class RedisPublishRequest extends BasePublishRequest {
 
         return future;
     }
-
 }

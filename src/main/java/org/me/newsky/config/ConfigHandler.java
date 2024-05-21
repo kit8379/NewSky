@@ -176,7 +176,7 @@ public class ConfigHandler {
     }
 
     public int getIslandUnloadInterval() {
-        return config.getInt("server.island-unload-interval");
+        return config.getInt("island.island-unload-interval");
     }
 
     public int getIslandLevelUpdateInterval() {
