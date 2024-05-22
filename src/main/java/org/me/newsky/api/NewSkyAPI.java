@@ -3,6 +3,8 @@ package org.me.newsky.api;
 import org.bukkit.Location;
 import org.me.newsky.island.*;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -270,5 +272,15 @@ public class NewSkyAPI {
      */
     public CompletableFuture<Integer> getIslandLevel(UUID islandUuid) {
         return levelHandler.getIslandLevel(islandUuid);
+    }
+
+    /**
+     * Get the top island levels
+     *
+     * @param size The size of the top list
+     * @return A CompletableFuture that completes with the top island levels
+     */
+    public CompletableFuture<List<Map.Entry<UUID, Integer>>> getTopIslandLevels(int size) {
+        return levelHandler.getTopIslandLevels(size);
     }
 }

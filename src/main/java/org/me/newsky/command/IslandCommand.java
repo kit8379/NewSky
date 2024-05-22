@@ -14,7 +14,9 @@ import org.me.newsky.exceptions.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @CommandAlias("is|island")
 @Description("Primary command for island interactions")
@@ -481,6 +483,85 @@ public class IslandCommand extends BaseCommand {
                 player.sendMessage("There was an error toggling the PvP status.");
                 ex.printStackTrace();
             }
+            return null;
+        });
+    }
+
+    @Subcommand("top")
+    @CommandPermission("newsky.island.top")
+    @Description("Shows the top 10 islands by level")
+    @SuppressWarnings("unused")
+    public void onTop(CommandSender sender) {
+        api.getTopIslandLevels(10).thenAccept(topIslands -> {
+            if (topIslands.isEmpty()) {
+                sender.sendMessage("No islands found.");
+                return;
+            }
+
+            sender.sendMessage("Top 10 Islands by Level:");
+            for (int i = 0; i < topIslands.size(); i++) {
+                Map.Entry<UUID, Integer> entry = topIslands.get(i);
+                UUID islandUuid = entry.getKey();
+                int level = entry.getValue();
+
+                int finalI = i;
+                api.getIslandOwner(islandUuid).thenCombine(api.getIslandMembers(islandUuid), (ownerUuid, members) -> {
+                    String ownerName = Bukkit.getOfflinePlayer(ownerUuid).getName();
+                    String memberNames = members.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).reduce((a, b) -> a + ", " + b).orElse("");
+                    return (finalI + 1) + ". " + ownerName + " (" + memberNames + ") - " + level;
+                }).thenAccept(islandInfo -> {
+                    sender.sendMessage(islandInfo);
+                }).exceptionally(ex -> {
+                    sender.sendMessage("There was an error retrieving information for an island.");
+                    ex.printStackTrace();
+                    return null;
+                });
+            }
+        }).exceptionally(ex -> {
+            sender.sendMessage("There was an error retrieving the top islands.");
+            ex.printStackTrace();
+            return null;
+        });
+    }
+
+
+    @Subcommand("info")
+    @CommandPermission("newsky.island.info")
+    @Description("Shows information about your island")
+    @Syntax("<player>")
+    @SuppressWarnings("unused")
+    public void onInfo(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
+        UUID playerUuid = player.getUniqueId();
+
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> {
+            CompletableFuture<UUID> ownerFuture = api.getIslandOwner(islandUuid);
+            CompletableFuture<Set<UUID>> membersFuture = api.getIslandMembers(islandUuid);
+            CompletableFuture<Integer> levelFuture = api.getIslandLevel(islandUuid);
+
+            return CompletableFuture.allOf(ownerFuture, membersFuture, levelFuture).thenApply(v -> {
+                try {
+                    UUID ownerUuid = ownerFuture.get();
+                    Set<UUID> members = membersFuture.get();
+                    int level = levelFuture.get();
+
+                    String ownerName = Bukkit.getOfflinePlayer(ownerUuid).getName();
+                    String memberNames = members.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).reduce((a, b) -> a + ", " + b).orElse("No members");
+
+                    return "Island Info:\n" + "Island UUID: " + islandUuid + "\n" + "Island Owner: " + ownerName + "\n" + "Island Members: " + memberNames + "\n" + "Island Level: " + level;
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            });
+        }).thenAccept(info -> {
+            sender.sendMessage(info);
+        }).exceptionally(ex -> {
+            sender.sendMessage("There was an error retrieving the island info.");
+            ex.printStackTrace();
             return null;
         });
     }

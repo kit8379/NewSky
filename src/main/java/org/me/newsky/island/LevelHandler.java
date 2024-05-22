@@ -10,6 +10,7 @@ import org.me.newsky.util.LocationUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -25,6 +26,12 @@ public class LevelHandler {
     public CompletableFuture<Integer> getIslandLevel(UUID islandUuid) {
         return CompletableFuture.supplyAsync(() -> {
             return cacheHandler.getIslandLevel(islandUuid);
+        });
+    }
+
+    public CompletableFuture<List<Map.Entry<UUID, Integer>>> getTopIslandLevels(int size) {
+        return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getTopIslandLevels(size);
         });
     }
 
