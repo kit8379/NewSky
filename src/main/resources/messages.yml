@@ -13,7 +13,7 @@ messages:
   island-load-success: "&aIsland '{name}' loaded successfully!"
   island-unload-success: "&aIsland '{name}' unloaded successfully!"
   island-locked: "&cThis island is currently locked!"
-  island-banned: "&cYou are banned from this island!"
+  player-banned: "&cYou are banned from this island!"
   island-pvp-disabled: "&cIsland PvP is disabled!"
   island-member-exists: "&cPlayer '{name}' is already a member of this island!"
   not-island-member: "&cPlayer '{name}' is not a member of this island!"
@@ -31,7 +31,7 @@ messages:
   admin-add-member-success: "&aAdded member '{member}' to island '{name}'!"
   admin-remove-member-success: "&aRemoved member '{member}' from island '{name}'!"
   admin-create-island-success: "&aCreated island for player '{name}'!"
-  admin-delete-warning: "&cAre you sure you want to delete island '{name}'? This action cannot be undone!"
+  admin-delete-warning: "&cAre you sure you want to delete '{name}' island? This action cannot be undone!"
   admin-delete-island-success: "&aDeleted island '{name}'!"
   admin-cannot-delete-default-home: "&cCannot delete default home of player '{name}'!"
   admin-no-home: "&cPlayer '{name}' does not have a home named '{home}'!"
@@ -47,8 +47,6 @@ messages:
   admin-set-warp-success: "&aSet warp '{warp}' for player '{name}'!"
   admin-pvp-enable-success: "&aPvP enabled for island '{name}'!"
   admin-pvp-disable-success: "&aPvP disabled for island '{name}'!"
-  admin-set-owner-success: "&aSet owner of island '{name}' to '{owner}'!"
-  admin-already-owner: "&cPlayer '{name}' is already the owner of island '{owner}'!"
 
   # Player Command Messages
   player-command-help: "&ePlayer commands:"
@@ -97,7 +95,8 @@ messages:
   top-islands-message: "&e{rank}. &f{owner} &7({members}) - &6{level}"
   top-islands-no-island: "&cNo islands found."
 
-  # Banned Players Messages
-  no-banned-players: "&aThere are no banned players on your island."
+  # Banned List Players Messages
   banned-players-header: "&aBanned Players:"
   banned-player-list-item: "&7- {player}"
+  banned-player-no-banned: "&aThere are no banned players on your island."
+

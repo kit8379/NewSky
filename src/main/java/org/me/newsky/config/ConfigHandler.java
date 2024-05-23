@@ -194,9 +194,6 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.debug-prefix"));
     }
 
-    public String getUsagePrefix() {
-        return ColorUtils.colorize(messages.getString("messages.usage-prefix"));
-    }
 
     public String getPluginReloadedMessage() {
         return ColorUtils.colorize(messages.getString("messages.plugin-reloaded"));
@@ -232,6 +229,10 @@ public class ConfigHandler {
 
     public String getIslandLockedMessage() {
         return ColorUtils.colorize(messages.getString("messages.island-locked"));
+    }
+
+    public String getPlayerBannedMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-banned"));
     }
 
     public String getIslandPvpDisabledMessage() {
@@ -355,14 +356,6 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-pvp-disable-success")).replace("{name}", name));
     }
 
-    public String getAdminSetOwnerSuccessMessage(String name, String owner) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-set-owner-success")).replace("{name}", name).replace("{owner}", owner));
-    }
-
-    public String getAdminAlreadyOwnerMessage(String name, String owner) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-already-owner")).replace("{name}", name).replace("{owner}", owner));
-    }
-
     // Player Command Messages
     public String getPlayerCommandHelpMessage() {
         return ColorUtils.colorize(messages.getString("messages.player-command-help"));
@@ -471,7 +464,7 @@ public class ConfigHandler {
 
     // Info
     public String getIslandInfoUUIDMessage(UUID islandUuid) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-uuid").replace("{island_uuid}", islandUuid.toString())));
+        return ColorUtils.colorize(Objects.requireNonNull(Objects.requireNonNull(messages.getString("messages.island-info-uuid")).replace("{island_uuid}", islandUuid.toString())));
     }
 
     public String getIslandInfoLevelMessage(int level) {
@@ -527,10 +520,6 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.player-cannot-ban-island-player"));
     }
 
-    public String getNoBannedPlayersMessage() {
-        return ColorUtils.colorize(messages.getString("messages.no-banned-players"));
-    }
-
     public String getBannedPlayersHeaderMessage() {
         return ColorUtils.colorize(messages.getString("messages.banned-players-header"));
     }
@@ -539,7 +528,7 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.banned-player")).replace("{player}", playerName));
     }
 
-    public String getPlayerBannedMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-banned"));
+    public String getNoBannedPlayersMessage() {
+        return ColorUtils.colorize(messages.getString("messages.banned-player-no-banned"));
     }
 }

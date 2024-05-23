@@ -22,6 +22,7 @@ public class CacheHandler {
         cacheIslandHomesToRedis();
         cacheIslandWarpsToRedis();
         cacheIslandLevelsToRedis();
+        cacheIslandBansToRedis();
     }
 
     public void cacheIslandDataToRedis() {
@@ -96,6 +97,20 @@ public class CacheHandler {
                     String islandUuid = resultSet.getString("island_uuid");
                     int level = resultSet.getInt("level");
                     jedis.hset("island_levels", islandUuid, String.valueOf(level));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    public void cacheIslandBansToRedis() {
+        databaseHandler.selectAllIslandBans(resultSet -> {
+            try (Jedis jedis = redisHandler.getJedis()) {
+                while (resultSet.next()) {
+                    String islandUuid = resultSet.getString("island_uuid");
+                    String bannedPlayer = resultSet.getString("banned_player");
+                    jedis.sadd("island_bans:" + islandUuid, bannedPlayer);
                 }
             } catch (Exception e) {
                 e.printStackTrace();

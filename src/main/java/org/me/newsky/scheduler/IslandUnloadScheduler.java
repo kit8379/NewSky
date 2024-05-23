@@ -10,7 +10,7 @@ import org.me.newsky.world.WorldHandler;
 import java.util.HashMap;
 import java.util.Map;
 
-public class WorldUnloadScheduler {
+public class IslandUnloadScheduler {
 
     private final NewSky plugin;
     private final CacheHandler cacheHandler;
@@ -19,7 +19,7 @@ public class WorldUnloadScheduler {
     private final Map<String, Long> inactiveWorlds = new HashMap<>();
     private BukkitTask unloadTask;
 
-    public WorldUnloadScheduler(NewSky plugin, ConfigHandler config, CacheHandler cacheHandler, WorldHandler worldHandler) {
+    public IslandUnloadScheduler(NewSky plugin, ConfigHandler config, CacheHandler cacheHandler, WorldHandler worldHandler) {
         this.plugin = plugin;
         this.cacheHandler = cacheHandler;
         this.worldHandler = worldHandler;

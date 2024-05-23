@@ -100,7 +100,7 @@ public class IslandCommand extends BaseCommand {
             });
         } else {
             confirmationTimes.put(playerUuid, System.currentTimeMillis());
-            player.sendMessage("Are you sure you want to delete your island? Type the command again within 15 seconds to confirm.");
+            player.sendMessage(config.getPlayerDeleteWarningMessage());
         }
     }
 

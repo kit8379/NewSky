@@ -8,6 +8,7 @@ import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.*;
@@ -20,11 +21,13 @@ import java.util.UUID;
 @Description("Admin commands for island management")
 public class IslandAdminCommand extends BaseCommand {
 
+    private final NewSky plugin;
     private final ConfigHandler config;
     private final NewSkyAPI api;
     private final Map<UUID, Long> confirmationTimes = new HashMap<>();
 
-    public IslandAdminCommand(ConfigHandler config, NewSkyAPI api) {
+    public IslandAdminCommand(NewSky plugin, ConfigHandler config, NewSkyAPI api) {
+        this.plugin = plugin;
         this.config = config;
         this.api = api;
     }
@@ -36,6 +39,16 @@ public class IslandAdminCommand extends BaseCommand {
     public void onHelp(CommandSender sender, CommandHelp help) {
         help.showHelp();
     }
+
+    @Subcommand("reload")
+    @CommandPermission("newsky.admin.island.reload")
+    @Description("Admin command to reload the configuration")
+    @SuppressWarnings("unused")
+    public void onAdminReload(CommandSender sender) {
+        plugin.reload();
+        sender.sendMessage(config.getPluginReloadedMessage());
+    }
+
 
     @Subcommand("create")
     @CommandPermission("newsky.admin.island.create")
@@ -443,8 +456,8 @@ public class IslandAdminCommand extends BaseCommand {
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
                 sender.sendMessage(config.getNoIslandMessage(targetPlayerName));
-            } else if (ex.getCause() instanceof NoActiveServerException) {
-                sender.sendMessage(config.getNoActiveServerMessage());
+            } else if (ex.getCause() instanceof IslandNotLoadedException) {
+                sender.sendMessage(config.getIslandNotLoadedMessage());
             } else {
                 sender.sendMessage("There was an error unloading the island.");
                 ex.printStackTrace();

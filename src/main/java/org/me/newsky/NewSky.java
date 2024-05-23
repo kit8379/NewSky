@@ -18,12 +18,13 @@ import org.me.newsky.network.RedisPublishRequest;
 import org.me.newsky.network.RedisSubscribeRequest;
 import org.me.newsky.placeholder.NewSkyPlaceholderExpansion;
 import org.me.newsky.redis.RedisHandler;
+import org.me.newsky.scheduler.IslandUnloadScheduler;
 import org.me.newsky.scheduler.LevelUpdateScheduler;
-import org.me.newsky.scheduler.WorldUnloadScheduler;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.world.WorldHandler;
 
 import java.util.Collections;
+import java.util.Locale;
 
 public class NewSky extends JavaPlugin {
 
@@ -34,7 +35,7 @@ public class NewSky extends JavaPlugin {
     private CacheHandler cacheHandler;
     private TeleportHandler teleportHandler;
     private HeartBeatHandler heartBeatHandler;
-    private WorldUnloadScheduler worldUnloadScheduler;
+    private IslandUnloadScheduler islandUnloadScheduler;
     private LevelUpdateScheduler levelUpdateScheduler;
     private RedisPublishRequest brokerRequestPublish;
     private RedisSubscribeRequest brokerRequestSubscribe;
@@ -112,7 +113,7 @@ public class NewSky extends JavaPlugin {
             info("API loaded");
 
             info("Starting all schedulers for the plugin");
-            worldUnloadScheduler = new WorldUnloadScheduler(this, config, cacheHandler, worldHandler);
+            islandUnloadScheduler = new IslandUnloadScheduler(this, config, cacheHandler, worldHandler);
             levelUpdateScheduler = new LevelUpdateScheduler(this, config, levelHandler);
             info("All schedulers loaded");
 
@@ -128,7 +129,7 @@ public class NewSky extends JavaPlugin {
             databaseHandler.createTables();
             cacheHandler.cacheAllDataToRedis();
             heartBeatHandler.start();
-            worldUnloadScheduler.start();
+            islandUnloadScheduler.start();
             levelUpdateScheduler.start();
             brokerRequestPublish.subscribeToResponseChannel();
             brokerRequestSubscribe.subscribeToRequestChannel();
@@ -150,13 +151,14 @@ public class NewSky extends JavaPlugin {
 
     private void registerCommands() {
         commandManager = new PaperCommandManager(this);
+        commandManager.enableUnstableAPI("help");
+        commandManager.getLocales().setDefaultLocale(Locale.CHINESE);
 
         // Register the IslandCommand
         IslandCommand islandCommand = new IslandCommand(config, api);
-        IslandAdminCommand islandAdminCommand = new IslandAdminCommand(config, api);
+        IslandAdminCommand islandAdminCommand = new IslandAdminCommand(this, config, api);
         commandManager.registerCommand(islandCommand);
         commandManager.registerCommand(islandAdminCommand);
-        commandManager.enableUnstableAPI("help");
 
         // Setup command completions
         setupCommandCompletions();
@@ -197,7 +199,7 @@ public class NewSky extends JavaPlugin {
         brokerRequestSubscribe.unsubscribeFromRequestChannel();
         brokerRequestPublish.unsubscribeFromResponseChannel();
         levelUpdateScheduler.stop();
-        worldUnloadScheduler.stop();
+        islandUnloadScheduler.stop();
         heartBeatHandler.stop();
         redisHandler.disconnect();
         databaseHandler.close();
