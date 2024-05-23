@@ -169,7 +169,11 @@ public class NewSky extends JavaPlugin {
         commandManager.getCommandCompletions().registerAsyncCompletion("homes", context -> {
             Player player = context.getPlayer();
             if (player != null) {
-                return api.getHomeNames(player.getUniqueId()).join();
+                try {
+                    return api.getHomeNames(player.getUniqueId()).join();
+                } catch (Exception e) {
+                    return Collections.emptyList();
+                }
             }
             return Collections.emptyList();
         });
@@ -178,11 +182,16 @@ public class NewSky extends JavaPlugin {
         commandManager.getCommandCompletions().registerAsyncCompletion("warps", context -> {
             Player player = context.getPlayer();
             if (player != null) {
-                return api.getWarpNames(player.getUniqueId()).join();
+                try {
+                    return api.getWarpNames(player.getUniqueId()).join();
+                } catch (Exception e) {
+                    return Collections.emptyList();
+                }
             }
             return Collections.emptyList();
         });
     }
+
 
     private void registerPlaceholder() {
         new NewSkyPlaceholderExpansion(this, cacheHandler).register();

@@ -97,6 +97,6 @@ messages:
 
   # Banned List Players Messages
   banned-players-header: "&aBanned Players:"
-  banned-player-list-item: "&7- {player}"
+  banned-player-message: "&7- {player}"
   banned-player-no-banned: "&aThere are no banned players on your island."
 

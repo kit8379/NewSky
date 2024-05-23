@@ -525,7 +525,7 @@ public class ConfigHandler {
     }
 
     public String getBannedPlayerMessage(String playerName) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.banned-player")).replace("{player}", playerName));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.banned-player-message")).replace("{player}", playerName));
     }
 
     public String getNoBannedPlayersMessage() {

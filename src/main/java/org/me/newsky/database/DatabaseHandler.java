@@ -100,7 +100,7 @@ public class DatabaseHandler {
     }
 
     private void createIslandBanTable() {
-        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_ban (" + "island_uuid VARCHAR(56), " + "banned_player VARCHAR(56), " + "PRIMARY KEY (island_uuid, banned_player), " + "FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid));").join();
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_bans (" + "island_uuid VARCHAR(56), " + "banned_player VARCHAR(56), " + "PRIMARY KEY (island_uuid, banned_player), " + "FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid));").join();
     }
 
     public void selectAllIslandData(ResultProcessor processor) {
@@ -124,7 +124,7 @@ public class DatabaseHandler {
     }
 
     public void selectAllIslandBans(ResultProcessor processor) {
-        executeQuery("SELECT * FROM island_ban", processor);
+        executeQuery("SELECT * FROM island_bans", processor);
     }
 
     public void addIslandData(UUID islandUuid) {
@@ -197,13 +197,17 @@ public class DatabaseHandler {
         executeUpdate(statement -> {
             statement.setString(1, islandUuid.toString());
             statement.setString(2, playerUuid.toString());
-        }, "INSERT INTO island_ban (island_uuid, banned_player) VALUES (?, ?);");
+        }, "INSERT INTO island_bans (island_uuid, banned_player) VALUES (?, ?);");
     }
 
     public void deleteIsland(UUID islandUuid) {
         executeUpdate(statement -> {
             statement.setString(1, islandUuid.toString());
-        }, "DELETE FROM island_levels WHERE island_uuid = ?;").thenCompose(v -> {
+        }, "DELETE FROM island_bans WHERE island_uuid = ?;").thenCompose(v -> {
+            return executeUpdate(statement -> {
+                statement.setString(1, islandUuid.toString());
+            }, "DELETE FROM island_levels WHERE island_uuid = ?;");
+        }).thenCompose(v -> {
             return executeUpdate(statement -> {
                 statement.setString(1, islandUuid.toString());
             }, "DELETE FROM island_warps WHERE island_uuid = ?;");
@@ -221,7 +225,6 @@ public class DatabaseHandler {
             }, "DELETE FROM islands WHERE island_uuid = ?;");
         });
     }
-
 
     public void deleteIslandPlayer(UUID islandUuid, UUID playerUuid) {
         executeUpdate(statement -> {
@@ -254,7 +257,7 @@ public class DatabaseHandler {
         executeUpdate(statement -> {
             statement.setString(1, islandUuid.toString());
             statement.setString(2, playerUuid.toString());
-        }, "DELETE FROM island_ban WHERE island_uuid = ? AND banned_player = ?;");
+        }, "DELETE FROM island_bans WHERE island_uuid = ? AND banned_player = ?;");
     }
 
     @FunctionalInterface

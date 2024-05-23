@@ -200,6 +200,7 @@ public class CacheHandler {
 
     public void deleteIsland(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.del("island_bans:" + islandUuid.toString());
             jedis.hdel("island_levels", islandUuid.toString());
             jedis.keys("island_warps:" + islandUuid + ":*").forEach(jedis::del);
             jedis.keys("island_homes:" + islandUuid + ":*").forEach(jedis::del);
@@ -208,7 +209,6 @@ public class CacheHandler {
             databaseHandler.deleteIsland(islandUuid);
         }
     }
-
 
     public void deleteIslandPlayer(UUID islandUuid, UUID playerUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
