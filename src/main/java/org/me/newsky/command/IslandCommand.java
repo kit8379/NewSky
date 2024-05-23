@@ -2,6 +2,7 @@ package org.me.newsky.command;
 
 import co.aikar.commands.BaseCommand;
 import co.aikar.commands.CommandHelp;
+import co.aikar.commands.annotation.Optional;
 import co.aikar.commands.annotation.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -12,11 +13,9 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.*;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 @CommandAlias("is|island")
 @Description("Primary command for island interactions")
@@ -278,6 +277,10 @@ public class IslandCommand extends BaseCommand {
                 player.sendMessage(config.getNoIslandMessage(warpPlayerName));
             } else if (ex.getCause() instanceof WarpDoesNotExistException) {
                 player.sendMessage(config.getNoWarpMessage(target.getName(), warpName));
+            } else if (ex.getCause() instanceof PlayerBannedException) {
+                player.sendMessage(config.getPlayerBannedMessage());
+            } else if (ex.getCause() instanceof IslandLockedException) {
+                player.sendMessage(config.getIslandLockedMessage());
             } else if (ex.getCause() instanceof NoActiveServerException) {
                 player.sendMessage(config.getNoActiveServerMessage());
             } else {
@@ -287,6 +290,7 @@ public class IslandCommand extends BaseCommand {
             return null;
         });
     }
+
 
     @Subcommand("setwarp")
     @CommandPermission("newsky.island.setwarp")
@@ -492,51 +496,59 @@ public class IslandCommand extends BaseCommand {
     @Description("Shows the top 10 islands by level")
     @SuppressWarnings("unused")
     public void onTop(CommandSender sender) {
-        api.getTopIslandLevels(10).thenAccept(topIslands -> {
+        api.getTopIslandLevels(10).thenCompose(topIslands -> {
             if (topIslands.isEmpty()) {
-                sender.sendMessage("No islands found.");
-                return;
+                sender.sendMessage(config.getNoIslandsFoundMessage());
+                return CompletableFuture.completedFuture(null);
             }
 
-            sender.sendMessage("Top 10 Islands by Level:");
+            sender.sendMessage(config.getTopIslandsHeaderMessage());
+
+            List<CompletableFuture<String>> islandInfoFutures = new ArrayList<>();
             for (int i = 0; i < topIslands.size(); i++) {
                 Map.Entry<UUID, Integer> entry = topIslands.get(i);
                 UUID islandUuid = entry.getKey();
                 int level = entry.getValue();
-
                 int finalI = i;
-                api.getIslandOwner(islandUuid).thenCombine(api.getIslandMembers(islandUuid), (ownerUuid, members) -> {
+
+                CompletableFuture<String> islandInfoFuture = api.getIslandOwner(islandUuid).thenCombine(api.getIslandMembers(islandUuid), (ownerUuid, members) -> {
                     String ownerName = Bukkit.getOfflinePlayer(ownerUuid).getName();
                     String memberNames = members.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).reduce((a, b) -> a + ", " + b).orElse("");
-                    return (finalI + 1) + ". " + ownerName + " (" + memberNames + ") - " + level;
-                }).thenAccept(islandInfo -> {
-                    sender.sendMessage(islandInfo);
-                }).exceptionally(ex -> {
-                    sender.sendMessage("There was an error retrieving information for an island.");
-                    ex.printStackTrace();
-                    return null;
+                    return config.getTopIslandMessage(finalI + 1, ownerName, memberNames, level);
                 });
+
+                islandInfoFutures.add(islandInfoFuture);
             }
+
+            return CompletableFuture.allOf(islandInfoFutures.toArray(new CompletableFuture[0])).thenApply(v -> islandInfoFutures.stream().map(CompletableFuture::join).collect(Collectors.toList()));
+        }).thenAccept(islandInfos -> {
+            islandInfos.forEach(sender::sendMessage);
         }).exceptionally(ex -> {
-            sender.sendMessage("There was an error retrieving the top islands.");
+            sender.sendMessage("There was an error getting the top islands.");
             ex.printStackTrace();
             return null;
         });
     }
 
-
     @Subcommand("info")
     @CommandPermission("newsky.island.info")
-    @Description("Shows information about your island")
-    @Syntax("<player>")
+    @Description("Shows information about an island")
+    @Syntax("[player]")
+    @CommandCompletion("@players")
     @SuppressWarnings("unused")
-    public void onInfo(CommandSender sender) {
+    public void onInfo(CommandSender sender, @Optional @Single String targetPlayerName) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
             return;
         }
 
-        UUID playerUuid = player.getUniqueId();
+        UUID playerUuid;
+        if (targetPlayerName == null) {
+            playerUuid = player.getUniqueId();
+        } else {
+            OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
+            playerUuid = targetPlayer.getUniqueId();
+        }
 
         api.getIslandUuid(playerUuid).thenCompose(islandUuid -> {
             CompletableFuture<UUID> ownerFuture = api.getIslandOwner(islandUuid);
@@ -550,18 +562,150 @@ public class IslandCommand extends BaseCommand {
                     int level = levelFuture.get();
 
                     String ownerName = Bukkit.getOfflinePlayer(ownerUuid).getName();
-                    String memberNames = members.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).reduce((a, b) -> a + ", " + b).orElse("No members");
+                    String memberNames = members.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).reduce((a, b) -> a + ", " + b).orElse(config.getIslandInfoNoMembersMessage());
 
-                    return "Island Info:\n" + "Island UUID: " + islandUuid + "\n" + "Island Owner: " + ownerName + "\n" + "Island Members: " + memberNames + "\n" + "Island Level: " + level;
+                    sender.sendMessage(config.getIslandInfoUUIDMessage(islandUuid));
+                    sender.sendMessage(config.getIslandInfoOwnerMessage(ownerName));
+                    sender.sendMessage(config.getIslandInfoMembersMessage(memberNames));
+                    sender.sendMessage(config.getIslandInfoLevelMessage(level));
+
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
+                return null;
             });
-        }).thenAccept(info -> {
-            sender.sendMessage(info);
         }).exceptionally(ex -> {
-            sender.sendMessage("There was an error retrieving the island info.");
+            sender.sendMessage("There was an error getting the island information.");
             ex.printStackTrace();
+            return null;
+        });
+    }
+
+
+    @Subcommand("expel")
+    @CommandPermission("newsky.island.expel")
+    @Description("Expel a player from your island")
+    @Syntax("<player>")
+    @CommandCompletion("@players")
+    @SuppressWarnings("unused")
+    public void onExpel(CommandSender sender, @Single String targetPlayerName) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
+        UUID playerUuid = player.getUniqueId();
+        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
+        UUID targetPlayerUuid = targetPlayer.getUniqueId();
+
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.expelPlayer(islandUuid, targetPlayerUuid).thenRun(() -> {
+            sender.sendMessage(config.getPlayerExpelSuccessMessage(targetPlayerName));
+        })).exceptionally(ex -> {
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                sender.sendMessage(config.getPlayerNoIslandMessage());
+            } else {
+                sender.sendMessage("There was an error expelling the player.");
+                ex.printStackTrace();
+            }
+            return null;
+        });
+    }
+
+    @Subcommand("ban")
+    @CommandPermission("newsky.island.ban")
+    @CommandCompletion("@players")
+    @Description("Bans a player from your island")
+    @Syntax("<player>")
+    @SuppressWarnings("unused")
+    public void onBan(CommandSender sender, @Single String targetPlayerName) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
+        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
+        UUID playerUuid = player.getUniqueId();
+        UUID targetPlayerUuid = targetPlayer.getUniqueId();
+
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.banPlayer(islandUuid, targetPlayerUuid)).thenRun(() -> {
+            player.sendMessage(config.getPlayerBanSuccessMessage(targetPlayerName));
+        }).exceptionally(ex -> {
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoIslandMessage());
+            } else if (ex.getCause() instanceof PlayerAlreadyBannedException) {
+                player.sendMessage(config.getPlayerAlreadyBannedMessage(targetPlayerName));
+            } else if (ex.getCause() instanceof CannotBanIslandPlayerException) {
+                player.sendMessage(config.getPlayerCannotBanIslandPlayerMessage());
+            } else {
+                player.sendMessage("There was an error banning the player.");
+                ex.printStackTrace();
+            }
+            return null;
+        });
+    }
+
+    @Subcommand("unban")
+    @CommandPermission("newsky.island.unban")
+    @CommandCompletion("@players")
+    @Description("Unbans a player from your island")
+    @Syntax("<player>")
+    @SuppressWarnings("unused")
+    public void onUnban(CommandSender sender, @Single String targetPlayerName) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
+        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
+        UUID playerUuid = player.getUniqueId();
+        UUID targetPlayerUuid = targetPlayer.getUniqueId();
+
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.unbanPlayer(islandUuid, targetPlayerUuid)).thenRun(() -> {
+            player.sendMessage(config.getPlayerUnbanSuccessMessage(targetPlayerName));
+        }).exceptionally(ex -> {
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoIslandMessage());
+            } else if (ex.getCause() instanceof PlayerNotBannedException) {
+                player.sendMessage(config.getPlayerNotBannedMessage(targetPlayerName));
+            } else {
+                player.sendMessage("There was an error unbanning the player.");
+                ex.printStackTrace();
+            }
+            return null;
+        });
+    }
+
+    @Subcommand("banlist")
+    @CommandPermission("newsky.island.banlist")
+    @Description("Lists the players banned from your island")
+    @SuppressWarnings("unused")
+    public void onBanList(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
+        UUID playerUuid = player.getUniqueId();
+
+        api.getIslandUuid(playerUuid).thenCompose(api::getBannedPlayers).thenAccept(bannedPlayers -> {
+            if (bannedPlayers.isEmpty()) {
+                player.sendMessage(config.getNoBannedPlayersMessage());
+                return;
+            }
+
+            StringBuilder bannedList = new StringBuilder(config.getBannedPlayersHeaderMessage());
+            for (UUID bannedPlayerUuid : bannedPlayers) {
+                OfflinePlayer bannedPlayer = Bukkit.getOfflinePlayer(bannedPlayerUuid);
+                bannedList.append(config.getBannedPlayerMessage(bannedPlayer.getName()));
+            }
+            player.sendMessage(bannedList.toString());
+        }).exceptionally(ex -> {
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoIslandMessage());
+            } else {
+                player.sendMessage("There was an error retrieving the ban list.");
+                ex.printStackTrace();
+            }
             return null;
         });
     }

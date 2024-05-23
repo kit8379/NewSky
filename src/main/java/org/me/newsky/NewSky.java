@@ -100,6 +100,7 @@ public class NewSky extends JavaPlugin {
             HomeHandler homeHandler = new HomeHandler(cacheHandler, preIslandHandler);
             WarpHandler warpHandler = new WarpHandler(cacheHandler, preIslandHandler);
             LevelHandler levelHandler = new LevelHandler(config, cacheHandler);
+            BanHandler banHandler = new BanHandler(cacheHandler, preIslandHandler);
             info("All main handlers loaded");
 
             info("Starting plugin messaging");
@@ -107,7 +108,7 @@ public class NewSky extends JavaPlugin {
             info("Plugin messaging loaded");
 
             info("Starting API");
-            api = new NewSkyAPI(islandHandler, playerHandler, homeHandler, warpHandler, levelHandler);
+            api = new NewSkyAPI(islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler);
             info("API loaded");
 
             info("Starting all schedulers for the plugin");

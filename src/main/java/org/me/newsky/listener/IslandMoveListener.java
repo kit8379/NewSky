@@ -40,9 +40,18 @@ public class IslandMoveListener implements Listener {
             return;
         }
 
-        // Check if the island is locked
         UUID islandUuid = IslandUtils.nameToUUID(to.getWorld().getName());
-        if (cacheHandler.getIslandLock(islandUuid) && !cacheHandler.getIslandPlayers(islandUuid).contains(event.getPlayer().getUniqueId())) {
+        UUID playerUuid = event.getPlayer().getUniqueId();
+
+        // Check if the player is banned from the island
+        if (cacheHandler.getPlayerBanned(islandUuid, playerUuid)) {
+            event.setCancelled(true);
+            event.getPlayer().sendMessage(config.getPlayerBannedMessage());
+            return;
+        }
+
+        // Check if the island is locked
+        if (cacheHandler.getIslandLock(islandUuid) && !cacheHandler.getIslandPlayers(islandUuid).contains(playerUuid)) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(config.getIslandLockedMessage());
             return;

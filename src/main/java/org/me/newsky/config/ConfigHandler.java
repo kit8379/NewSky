@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 
 public class ConfigHandler {
     private final NewSky plugin;
@@ -221,22 +222,6 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-level")).replace("{level}", String.valueOf(level)));
     }
 
-    public String getIslandInfoMessage() {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info")));
-    }
-
-    public String getIslandInfoLevelMessage(int level) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-level")).replace("{level}", String.valueOf(level)));
-    }
-
-    public String getIslandInfoOwnerMessage(String ownerName) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-owner")).replace("{owner}", ownerName));
-    }
-
-    public String getIslandInfoMembersMessage(String membersString) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-members")).replace("{members}", membersString));
-    }
-
     public String getIslandLoadSuccessMessage(String name) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-load-success")).replace("{name}", name));
     }
@@ -439,20 +424,20 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-delete-warp-success")).replace("{warp}", warp));
     }
 
-    public String getPlayerPvpEnableSuccessMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-pvp-enable-success"));
-    }
-
-    public String getPlayerPvpDisableSuccessMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-pvp-disable-success"));
+    public String getPlayerLockSuccessMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-lock-success"));
     }
 
     public String getPlayerUnLockSuccessMessage() {
         return ColorUtils.colorize(messages.getString("messages.player-unlock-success"));
     }
 
-    public String getPlayerLockSuccessMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-lock-success"));
+    public String getPlayerPvpEnableSuccessMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-pvp-enable-success"));
+    }
+
+    public String getPlayerPvpDisableSuccessMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-pvp-disable-success"));
     }
 
     public String getPlayerNoHomeMessage(String home) {
@@ -481,5 +466,80 @@ public class ConfigHandler {
 
     public String getPlayerLeaveSuccessMessage() {
         return ColorUtils.colorize(messages.getString("messages.player-leave-success"));
+    }
+
+
+    // Info
+    public String getIslandInfoUUIDMessage(UUID islandUuid) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-uuid").replace("{island_uuid}", islandUuid.toString())));
+    }
+
+    public String getIslandInfoLevelMessage(int level) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-level")).replace("{level}", String.valueOf(level)));
+    }
+
+    public String getIslandInfoOwnerMessage(String ownerName) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-owner")).replace("{owner}", ownerName));
+    }
+
+    public String getIslandInfoMembersMessage(String membersString) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-members")).replace("{members}", membersString));
+    }
+
+    public String getIslandInfoNoMembersMessage() {
+        return ColorUtils.colorize(messages.getString("messages.island-info-no-members"));
+    }
+
+    // Top
+    public String getTopIslandsHeaderMessage() {
+        return ColorUtils.colorize(messages.getString("messages.top-islands-header"));
+    }
+
+    public String getTopIslandMessage(int rank, String ownerName, String memberNames, int level) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.top-islands-message")).replace("{rank}", String.valueOf(rank)).replace("{owner}", ownerName).replace("{members}", memberNames).replace("{level}", String.valueOf(level)));
+    }
+
+    public String getNoIslandsFoundMessage() {
+        return ColorUtils.colorize(messages.getString("messages.top-islands-no-island"));
+    }
+
+    public String getPlayerExpelSuccessMessage(String playerName) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-expel-success")).replace("{player}", playerName));
+    }
+
+    public String getPlayerBanSuccessMessage(String playerName) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-ban-success")).replace("{player}", playerName));
+    }
+
+    public String getPlayerUnbanSuccessMessage(String playerName) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-unban-success")).replace("{player}", playerName));
+    }
+
+    public String getPlayerAlreadyBannedMessage(String playerName) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-already-banned")).replace("{player}", playerName));
+    }
+
+    public String getPlayerNotBannedMessage(String playerName) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-not-banned")).replace("{player}", playerName));
+    }
+
+    public String getPlayerCannotBanIslandPlayerMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-cannot-ban-island-player"));
+    }
+
+    public String getNoBannedPlayersMessage() {
+        return ColorUtils.colorize(messages.getString("messages.no-banned-players"));
+    }
+
+    public String getBannedPlayersHeaderMessage() {
+        return ColorUtils.colorize(messages.getString("messages.banned-players-header"));
+    }
+
+    public String getBannedPlayerMessage(String playerName) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.banned-player")).replace("{player}", playerName));
+    }
+
+    public String getPlayerBannedMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-banned"));
     }
 }

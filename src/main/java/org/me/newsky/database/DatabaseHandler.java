@@ -76,6 +76,7 @@ public class DatabaseHandler {
         createIslandHomesTable();
         createIslandWarpsTable();
         createIslandLevelsTable();
+        createIslandBanTable();
     }
 
     private void createIslandDataTable() {
@@ -98,6 +99,10 @@ public class DatabaseHandler {
         executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_levels (" + "island_uuid VARCHAR(36) PRIMARY KEY, " + "level INT NOT NULL);").join();
     }
 
+    private void createIslandBanTable() {
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_ban (" + "island_uuid VARCHAR(56), " + "banned_player VARCHAR(56), " + "PRIMARY KEY (island_uuid, banned_player), " + "FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid));").join();
+    }
+
     public void selectAllIslandData(ResultProcessor processor) {
         executeQuery("SELECT * FROM islands", processor);
     }
@@ -116,6 +121,10 @@ public class DatabaseHandler {
 
     public void selectAllIslandLevels(ResultProcessor processor) {
         executeQuery("SELECT * FROM island_levels", processor);
+    }
+
+    public void selectAllIslandBans(ResultProcessor processor) {
+        executeQuery("SELECT * FROM island_ban", processor);
     }
 
     public void addIslandData(UUID islandUuid) {
@@ -184,6 +193,13 @@ public class DatabaseHandler {
         }, "INSERT INTO island_levels (island_uuid, level) VALUES (?, ?) ON DUPLICATE KEY UPDATE level = ?;");
     }
 
+    public void updateBanPlayer(UUID islandUuid, UUID playerUuid) {
+        executeUpdate(statement -> {
+            statement.setString(1, islandUuid.toString());
+            statement.setString(2, playerUuid.toString());
+        }, "INSERT INTO island_ban (island_uuid, banned_player) VALUES (?, ?);");
+    }
+
     public void deleteIsland(UUID islandUuid) {
         executeUpdate(statement -> {
             statement.setString(1, islandUuid.toString());
@@ -232,6 +248,13 @@ public class DatabaseHandler {
             statement.setString(2, playerUuid.toString());
             statement.setString(3, warpName);
         }, "DELETE FROM island_warps WHERE island_uuid = ? AND player_uuid = ? AND warp_name = ?;");
+    }
+
+    public void deleteBanPlayer(UUID islandUuid, UUID playerUuid) { // Add this method
+        executeUpdate(statement -> {
+            statement.setString(1, islandUuid.toString());
+            statement.setString(2, playerUuid.toString());
+        }, "DELETE FROM island_ban WHERE island_uuid = ? AND banned_player = ?;");
     }
 
     @FunctionalInterface

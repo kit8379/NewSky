@@ -86,6 +86,46 @@ public class PostIslandHandler {
         return future;
     }
 
+    public CompletableFuture<Void> lockIsland(UUID islandUuid) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
+        String islandName = IslandUtils.UUIDToName(islandUuid);
+
+        World world = Bukkit.getWorld(islandName);
+        if (world != null) {
+            World safeWorld = Bukkit.getServer().getWorlds().get(0);
+            Set<UUID> islandPlayers = cacheHandler.getIslandPlayers(islandUuid);
+            for (Player player : world.getPlayers()) {
+                UUID playerUuid = player.getUniqueId();
+                if (!islandPlayers.contains(playerUuid)) {
+                    player.teleportAsync(safeWorld.getSpawnLocation());
+                    plugin.debug("Removed player " + playerUuid + " from island " + islandName + " because the island is locked");
+                }
+            }
+        }
+        future.complete(null);
+
+        return future;
+    }
+
+    public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
+        String islandName = IslandUtils.UUIDToName(islandUuid);
+
+        World world = Bukkit.getWorld(islandName);
+        if (world != null) {
+            Player player = Bukkit.getPlayer(playerUuid);
+            if (player != null) {
+                player.teleportAsync(Bukkit.getServer().getWorlds().get(0).getSpawnLocation());
+                plugin.debug("Removed player " + playerUuid + " from island " + islandName);
+            }
+        }
+        future.complete(null);
+
+        return future;
+    }
+
     public CompletableFuture<Void> teleportToIsland(UUID islandUuid, UUID playerUuid, String teleportLocation) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
@@ -111,28 +151,6 @@ public class PostIslandHandler {
 
             future.complete(null);
         });
-
-        return future;
-    }
-
-    public CompletableFuture<Void> lockIsland(UUID islandUuid) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-
-        String islandName = IslandUtils.UUIDToName(islandUuid);
-
-        World world = Bukkit.getWorld(islandName);
-        if (world != null) {
-            World safeWorld = Bukkit.getServer().getWorlds().get(0);
-            Set<UUID> islandPlayers = cacheHandler.getIslandPlayers(islandUuid);
-            for (Player player : world.getPlayers()) {
-                UUID playerUuid = player.getUniqueId();
-                if (!islandPlayers.contains(playerUuid)) {
-                    player.teleportAsync(safeWorld.getSpawnLocation());
-                    plugin.debug("Removed player " + playerUuid + " from island " + islandName + " because the island is locked");
-                }
-            }
-        }
-        future.complete(null);
 
         return future;
     }

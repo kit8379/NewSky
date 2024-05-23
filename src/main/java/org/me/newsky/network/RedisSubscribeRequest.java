@@ -75,14 +75,18 @@ public class RedisSubscribeRequest {
             case "unload":
                 String islandUuidForUnload = args[0];
                 return postIslandHandler.unloadIsland(UUID.fromString(islandUuidForUnload));
+            case "expel":
+                String islandUuidForExpel = args[0];
+                String playerUuidForExpel = args[1];
+                return postIslandHandler.expelPlayer(UUID.fromString(islandUuidForExpel), UUID.fromString(playerUuidForExpel));
+            case "lock":
+                String islandUuidForLock = args[0];
+                return postIslandHandler.lockIsland(UUID.fromString(islandUuidForLock));
             case "teleport":
                 String islandUuidForTeleport = args[0];
                 String playerUuidForTeleport = args[1];
                 String locationStringForTeleport = args[2];
                 return postIslandHandler.teleportToIsland(UUID.fromString(islandUuidForTeleport), UUID.fromString(playerUuidForTeleport), locationStringForTeleport);
-            case "lock":
-                String islandUuidForLock = args[0];
-                return postIslandHandler.lockIsland(UUID.fromString(islandUuidForLock));
             default:
                 return CompletableFuture.failedFuture(new IllegalStateException("Unknown operation: " + operation));
         }

@@ -16,14 +16,15 @@ public class NewSkyAPI {
     private final HomeHandler homeHandler;
     private final WarpHandler warpHandler;
     private final LevelHandler levelHandler;
+    private final BanHandler banHandler;
 
-    public NewSkyAPI(IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler) {
+    public NewSkyAPI(IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler) {
         this.islandHandler = islandHandler;
         this.playerHandler = playerHandler;
         this.homeHandler = homeHandler;
         this.warpHandler = warpHandler;
         this.levelHandler = levelHandler;
-
+        this.banHandler = banHandler;
     }
 
     // Island Operation API methods
@@ -283,4 +284,48 @@ public class NewSkyAPI {
     public CompletableFuture<List<Map.Entry<UUID, Integer>>> getTopIslandLevels(int size) {
         return levelHandler.getTopIslandLevels(size);
     }
+
+    /**
+     * Expel a player from the island
+     *
+     * @param islandUuid The UUID of the island
+     * @param playerUuid The UUID of the player to expel
+     * @return A CompletableFuture that completes when the player is expelled
+     */
+    public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
+        return islandHandler.expelPlayer(islandUuid, playerUuid);
+    }
+
+    /**
+     * Ban a player from the island
+     *
+     * @param islandUuid The UUID of the island
+     * @param playerUuid The UUID of the player to ban
+     * @return A CompletableFuture that completes when the player is banned
+     */
+    public CompletableFuture<Void> banPlayer(UUID islandUuid, UUID playerUuid) {
+        return banHandler.banPlayer(islandUuid, playerUuid);
+    }
+
+    /**
+     * Unban a player from the island
+     *
+     * @param islandUuid The UUID of the island
+     * @param playerUuid The UUID of the player to unban
+     * @return A CompletableFuture that completes when the player is unbanned
+     */
+    public CompletableFuture<Void> unbanPlayer(UUID islandUuid, UUID playerUuid) {
+        return banHandler.unbanPlayer(islandUuid, playerUuid);
+    }
+
+    /**
+     * Get the banned players of the island
+     *
+     * @param islandUuid The UUID of the island
+     * @return A CompletableFuture that completes with the set of banned players
+     */
+    public CompletableFuture<Set<UUID>> getBannedPlayers(UUID islandUuid) {
+        return banHandler.getBannedPlayers(islandUuid);
+    }
+
 }

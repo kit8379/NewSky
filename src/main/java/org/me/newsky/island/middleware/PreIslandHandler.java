@@ -114,6 +114,18 @@ public class PreIslandHandler {
         }
     }
 
+    public void expelPlayer(UUID islandUuid, UUID playerUuid) {
+        String islandServer = getServerByIsland(islandUuid);
+        if (islandServer == null) {
+            CompletableFuture.completedFuture(null);
+        } else {
+            if (islandServer.equals(serverID)) {
+                postIslandHandler.expelPlayer(islandUuid, playerUuid);
+            } else {
+                publishRequest.sendRequest(islandServer, "expel", islandUuid.toString(), playerUuid.toString());
+            }
+        }
+    }
 
     public CompletableFuture<Void> teleportToIsland(UUID islandUuid, UUID playerUuid, String teleportLocation) {
         String islandServer = getServerByIsland(islandUuid);

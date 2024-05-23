@@ -277,6 +277,10 @@ public class IslandAdminCommand extends BaseCommand {
                 sender.sendMessage(config.getNoIslandMessage(warpPlayerName));
             } else if (ex.getCause() instanceof WarpDoesNotExistException) {
                 sender.sendMessage(config.getNoWarpMessage(warpPlayerName, warpName));
+            } else if (ex.getCause() instanceof PlayerBannedException) {
+                sender.sendMessage(config.getPlayerBannedMessage());
+            } else if (ex.getCause() instanceof IslandLockedException) {
+                sender.sendMessage(config.getIslandLockedMessage());
             } else if (ex.getCause() instanceof NoActiveServerException) {
                 sender.sendMessage(config.getNoActiveServerMessage());
             } else {

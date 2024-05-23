@@ -1,19 +1,19 @@
 messages:
+  # Prefixes
   debug-prefix: "&7[Debug] &r"
   usage-prefix: "&eUsage: &r"
+
+  # General Messages
   plugin-reloaded: "&aPlugin reloaded successfully!"
   only-player-can-run-command: "&cOnly players can run this command!"
   no-active-server: "&cNo active server found!"
   island-not-loaded: "&cIsland not loaded!"
   island-already-loaded: "&cIsland already loaded!"
   island-level: "&eIsland level: {level}"
-  island-info: "&aIsland Info:"
-  island-info-level: "&eIsland level: {level}"
-  island-info-owner: "&aIsland Owner: {owner}"
-  island-info-members: "&aIsland Members: {members}"
   island-load-success: "&aIsland '{name}' loaded successfully!"
   island-unload-success: "&aIsland '{name}' unloaded successfully!"
   island-locked: "&cThis island is currently locked!"
+  island-banned: "&cYou are banned from this island!"
   island-pvp-disabled: "&cIsland PvP is disabled!"
   island-member-exists: "&cPlayer '{name}' is already a member of this island!"
   not-island-member: "&cPlayer '{name}' is not a member of this island!"
@@ -22,6 +22,8 @@ messages:
   warp-success: "&aTeleported to warp '{warp}'!"
   no-warp: "&cPlayer '{name}' does not have a warp named '{warp}'!"
   no-island: "&cPlayer '{name}' does not have an island!"
+
+  # Admin Command Messages
   admin-command-help: "&eAdmin commands:"
   admin-unknown-sub-command: "&cUnknown sub-command: {subCommand}"
   admin-no-island: "&cPlayer '{name}' does not have an island!"
@@ -47,6 +49,8 @@ messages:
   admin-pvp-disable-success: "&aPvP disabled for island '{name}'!"
   admin-set-owner-success: "&aSet owner of island '{name}' to '{owner}'!"
   admin-already-owner: "&cPlayer '{name}' is already the owner of island '{owner}'!"
+
+  # Player Command Messages
   player-command-help: "&ePlayer commands:"
   player-unknown-sub-command: "&cUnknown sub-command: {subCommand}"
   player-no-island: "&cYou do not have an island!"
@@ -63,10 +67,10 @@ messages:
   player-delete-home-success: "&aHome '{home}' deleted successfully!"
   player-cannot-delete-default-home: "&cYou cannot delete your default home!"
   player-delete-warp-success: "&aWarp '{warp}' deleted successfully!"
+  player-lock-success: "&aYour island has been locked!"
+  player-unlock-success: "&aYour island has been unlocked!"
   player-pvp-enable-success: "&aPvP enabled for your island!"
   player-pvp-disable-success: "&aPvP disabled for your island!"
-  player-unlock-success: "&aYour island has been unlocked!"
-  player-lock-success: "&aYour island has been locked!"
   player-no-home: "&cYou do not have a home named '{home}'!"
   player-no-warp: "&cYou do not have a warp named '{warp}'!"
   player-home-success: "&aTeleported to home '{home}'!"
@@ -74,3 +78,26 @@ messages:
   player-already-owner: "&cYou are already the owner of this island!"
   player-cannot-leave-as-owner: "&cYou cannot leave your island as the owner!"
   player-leave-success: "&aYou have left your island!"
+  player-expel-success: "&aSuccessfully expelled {player} from your island."
+  player-ban-success: "&aSuccessfully banned {player} from your island."
+  player-unban-success: "&aSuccessfully unbanned {player} from your island."
+  player-already-banned: "&c{player} is already banned from your island."
+  player-not-banned: "&c{player} is not banned from your island."
+  player-cannot-ban-island-player: "&cYou cannot ban the member or owner of your island."
+
+  # Info Messages
+  island-info-uuid: "&aIsland UUID: &f{island_uuid}"
+  island-info-level: "&aIsland Level: &f{level}"
+  island-info-owner: "&aIsland Owner: &f{owner}"
+  island-info-members: "&aIsland Members: &f{members}"
+  island-info-no-members: "&cNo members"
+
+  # Top Islands Messages
+  top-islands-header: "&6Top 10 Islands by Level:"
+  top-islands-message: "&e{rank}. &f{owner} &7({members}) - &6{level}"
+  top-islands-no-island: "&cNo islands found."
+
+  # Banned Players Messages
+  no-banned-players: "&aThere are no banned players on your island."
+  banned-players-header: "&aBanned Players:"
+  banned-player-list-item: "&7- {player}"

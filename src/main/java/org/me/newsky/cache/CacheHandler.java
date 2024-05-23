@@ -176,6 +176,13 @@ public class CacheHandler {
         databaseHandler.updateIslandLevel(islandUuid, level);
     }
 
+    public void updateBanPlayer(UUID islandUuid, UUID playerUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.sadd("island_bans:" + islandUuid.toString(), playerUuid.toString());
+        }
+        databaseHandler.updateBanPlayer(islandUuid, playerUuid);
+    }
+
     public void deleteIsland(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hdel("island_levels", islandUuid.toString());
@@ -208,6 +215,13 @@ public class CacheHandler {
             jedis.hdel("island_warps:" + islandUuid + ":" + playerUuid, warpName);
         }
         databaseHandler.deleteWarpPoint(islandUuid, playerUuid, warpName);
+    }
+
+    public void deleteBanPlayer(UUID islandUuid, UUID playerUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.srem("island_bans:" + islandUuid.toString(), playerUuid.toString());
+        }
+        databaseHandler.deleteBanPlayer(islandUuid, playerUuid);
     }
 
     public boolean getIslandLock(UUID islandUuid) {
@@ -295,6 +309,23 @@ public class CacheHandler {
             topIslands.sort(Comparator.comparingInt(Map.Entry::getValue));
             Collections.reverse(topIslands);
             return topIslands.subList(0, Math.min(topIslands.size(), size));
+        }
+    }
+
+    public boolean getPlayerBanned(UUID islandUuid, UUID playerUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            return jedis.sismember("island_bans:" + islandUuid.toString(), playerUuid.toString());
+        }
+    }
+
+    public Set<UUID> getBannedPlayers(UUID islandUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            Set<String> bannedPlayers = jedis.smembers("island_bans:" + islandUuid.toString());
+            Set<UUID> bannedPlayerUuids = new HashSet<>();
+            for (String bannedPlayer : bannedPlayers) {
+                bannedPlayerUuids.add(UUID.fromString(bannedPlayer));
+            }
+            return bannedPlayerUuids;
         }
     }
 

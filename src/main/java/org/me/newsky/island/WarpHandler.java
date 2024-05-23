@@ -2,9 +2,7 @@ package org.me.newsky.island;
 
 import org.bukkit.Location;
 import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.exceptions.IslandDoesNotExistException;
-import org.me.newsky.exceptions.LocationNotInIslandException;
-import org.me.newsky.exceptions.WarpDoesNotExistException;
+import org.me.newsky.exceptions.*;
 import org.me.newsky.island.middleware.PreIslandHandler;
 import org.me.newsky.util.LocationUtils;
 
@@ -64,6 +62,19 @@ public class WarpHandler {
                 throw new IslandDoesNotExistException();
             }
             UUID islandUuid = islandUuidOpt.get();
+
+            // Check if the target player is banned
+            if (cacheHandler.getPlayerBanned(islandUuid, targetPlayerUuid)) {
+                throw new PlayerBannedException();
+            }
+
+            // Check if the island is locked and the player is not a member
+            boolean isLocked = cacheHandler.getIslandLock(islandUuid);
+            boolean isMember = cacheHandler.getIslandPlayers(islandUuid).contains(targetPlayerUuid);
+            if (isLocked && !isMember) {
+                throw new IslandLockedException();
+            }
+
             Optional<String> warpLocationOpt = cacheHandler.getWarpLocation(islandUuid, playerUuid, warpName);
             if (warpLocationOpt.isEmpty()) {
                 throw new WarpDoesNotExistException();
@@ -72,6 +83,7 @@ public class WarpHandler {
             return preIslandHandler.teleportToIsland(islandUuid, targetPlayerUuid, warpLocation);
         });
     }
+
 
     public CompletableFuture<Set<String>> getWarpNames(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {

@@ -6,6 +6,9 @@ import org.jetbrains.annotations.NotNull;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
 
+import java.util.Optional;
+import java.util.UUID;
+
 public class NewSkyPlaceholderExpansion extends PlaceholderExpansion {
 
     private final NewSky plugin;
@@ -48,15 +51,20 @@ public class NewSkyPlaceholderExpansion extends PlaceholderExpansion {
         }
 
         if (identifier.equalsIgnoreCase("newsky_island_level")) {
-            return String.valueOf(cacheHandler.getIslandLevel(player.getUniqueId()));
+            Optional<UUID> islandUuid = cacheHandler.getIslandUuid(player.getUniqueId());
+            return islandUuid.map(uuid -> String.valueOf(cacheHandler.getIslandLevel(uuid))).orElse(null);
         } else if (identifier.equalsIgnoreCase("newsky_island_uuid")) {
-            return cacheHandler.getIslandUuid(player.getUniqueId()).toString();
+            Optional<UUID> islandUuid = cacheHandler.getIslandUuid(player.getUniqueId());
+            return islandUuid.map(UUID::toString).orElse(null);
         } else if (identifier.equalsIgnoreCase("newsky_island_owner")) {
-            return cacheHandler.getIslandOwner(player.getUniqueId()).toString();
+            Optional<UUID> islandUuid = cacheHandler.getIslandUuid(player.getUniqueId());
+            return islandUuid.map(uuid -> cacheHandler.getIslandOwner(uuid).toString()).orElse(null);
         } else if (identifier.equalsIgnoreCase("newsky_island_members")) {
-            return cacheHandler.getIslandMembers(player.getUniqueId()).toString();
+            Optional<UUID> islandUuid = cacheHandler.getIslandUuid(player.getUniqueId());
+            return islandUuid.map(uuid -> cacheHandler.getIslandPlayers(uuid).toString()).orElse(null);
         } else if (identifier.equalsIgnoreCase("newsky_island_players")) {
-            return cacheHandler.getIslandPlayers(player.getUniqueId()).toString();
+            Optional<UUID> islandUuid = cacheHandler.getIslandUuid(player.getUniqueId());
+            return islandUuid.map(uuid -> cacheHandler.getIslandPlayers(uuid).toString()).orElse(null);
         }
 
         return null;

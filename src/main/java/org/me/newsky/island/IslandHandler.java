@@ -83,4 +83,9 @@ public class IslandHandler {
         cacheHandler.updateIslandPvp(islandUuid, !isPvpEnabled);
         return CompletableFuture.completedFuture(!isPvpEnabled);
     }
+
+    public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
+        preIslandHandler.expelPlayer(islandUuid, playerUuid);
+        return CompletableFuture.completedFuture(null);
+    }
 }
