@@ -499,7 +499,7 @@ public class IslandCommand extends BaseCommand {
         api.getTopIslandLevels(10).thenCompose(topIslands -> {
             if (topIslands.isEmpty()) {
                 sender.sendMessage(config.getNoIslandsFoundMessage());
-                return CompletableFuture.completedFuture(null);
+                return CompletableFuture.completedFuture(Collections.emptyList());
             }
 
             sender.sendMessage(config.getTopIslandsHeaderMessage());
@@ -515,20 +515,26 @@ public class IslandCommand extends BaseCommand {
                     String ownerName = Bukkit.getOfflinePlayer(ownerUuid).getName();
                     String memberNames = members.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).reduce((a, b) -> a + ", " + b).orElse("");
                     return config.getTopIslandMessage(finalI + 1, ownerName, memberNames, level);
+                }).exceptionally(ex -> {
+                    ex.printStackTrace();
+                    return null;
                 });
 
                 islandInfoFutures.add(islandInfoFuture);
             }
 
-            return CompletableFuture.allOf(islandInfoFutures.toArray(new CompletableFuture[0])).thenApply(v -> islandInfoFutures.stream().map(CompletableFuture::join).collect(Collectors.toList()));
+            return CompletableFuture.allOf(islandInfoFutures.toArray(new CompletableFuture[0])).thenApply(v -> islandInfoFutures.stream().map(CompletableFuture::join).filter(Objects::nonNull).collect(Collectors.toList()));
         }).thenAccept(islandInfos -> {
-            islandInfos.forEach(sender::sendMessage);
+            if (islandInfos != null) {
+                islandInfos.forEach(info -> sender.sendMessage((String) info));
+            }
         }).exceptionally(ex -> {
             sender.sendMessage("There was an error getting the top islands.");
             ex.printStackTrace();
             return null;
         });
     }
+
 
     @Subcommand("info")
     @CommandPermission("newsky.island.info")
@@ -696,7 +702,11 @@ public class IslandCommand extends BaseCommand {
             StringBuilder bannedList = new StringBuilder(config.getBannedPlayersHeaderMessage());
             for (UUID bannedPlayerUuid : bannedPlayers) {
                 OfflinePlayer bannedPlayer = Bukkit.getOfflinePlayer(bannedPlayerUuid);
-                bannedList.append(config.getBannedPlayerMessage(bannedPlayer.getName()));
+                String playerName = bannedPlayer.getName();
+                if (playerName == null) {
+                    playerName = bannedPlayerUuid.toString();
+                }
+                bannedList.append(config.getBannedPlayerMessage(playerName));
             }
             player.sendMessage(bannedList.toString());
         }).exceptionally(ex -> {
@@ -709,4 +719,5 @@ public class IslandCommand extends BaseCommand {
             return null;
         });
     }
+
 }
