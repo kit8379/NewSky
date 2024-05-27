@@ -470,7 +470,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.ban")
     @CommandCompletion("@players")
     @Description("Admin command to ban a player from a specified island")
-    @Syntax("<islandOwner> <targetPlayer>")
+    @Syntax("<owner> <player>")
     @SuppressWarnings("unused")
     public void onAdminBan(CommandSender sender, @Single String islandOwnerName, @Single String banPlayerName) {
         OfflinePlayer islandOwner = Bukkit.getOfflinePlayer(islandOwnerName);
@@ -499,7 +499,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.unban")
     @CommandCompletion("@players")
     @Description("Admin command to unban a player from a specified island")
-    @Syntax("<islandOwner> <targetPlayer>")
+    @Syntax("<owner> <player>")
     @SuppressWarnings("unused")
     public void onAdminUnban(CommandSender sender, @Single String islandOwnerName, @Single String banPlayerName) {
         OfflinePlayer islandOwner = Bukkit.getOfflinePlayer(islandOwnerName);

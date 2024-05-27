@@ -24,8 +24,6 @@ messages:
   no-island: "&cPlayer '{name}' does not have an island!"
 
   # Admin Command Messages
-  admin-command-help: "&eAdmin commands:"
-  admin-unknown-sub-command: "&cUnknown sub-command: {subCommand}"
   admin-no-island: "&cPlayer '{name}' does not have an island!"
   admin-already-has-island: "&cPlayer '{name}' already has an island!"
   admin-add-member-success: "&aAdded member '{member}' to island '{name}'!"
@@ -47,10 +45,10 @@ messages:
   admin-set-warp-success: "&aSet warp '{warp}' for player '{name}'!"
   admin-pvp-enable-success: "&aPvP enabled for island '{name}'!"
   admin-pvp-disable-success: "&aPvP disabled for island '{name}'!"
+  admin-ban-success: "&aSuccessfully banned {player} from island '{name}'."
+  admin-unban-success: "&aSuccessfully unbanned {player} from island '{name}'."
 
   # Player Command Messages
-  player-command-help: "&ePlayer commands:"
-  player-unknown-sub-command: "&cUnknown sub-command: {subCommand}"
   player-no-island: "&cYou do not have an island!"
   player-already-has-island: "&cYou already have an island!"
   player-must-in-island-set-home: "&cYou must be on your island to set a home!"
@@ -99,4 +97,36 @@ messages:
   banned-players-header: "&aBanned Players:"
   banned-player-message: "&7- {player}"
   banned-player-no-banned: "&aThere are no banned players on your island."
+
+# The messages for the general commands.
+# These messages are used by the ACF command manager.
+acf-core:
+  permission_denied: "I'm sorry, but you do not have permission to perform this command."
+  permission_denied_parameter: "I'm sorry, but you do not have permission to perform this command."
+  error_generic_logged: "An error occurred. This problem has been logged. Sorry for the inconvenience."
+  unknown_command: "Unknown Command, please type <c2>/help</c2>"
+  invalid_syntax: "Usage: <c2>{command}</c2> <c3>{syntax}</c3>"
+  error_prefix: "Error: {message}"
+  error_performing_command: "I'm sorry, but there was an error performing this command."
+  info_message: "{message}"
+  please_specify_one_of: "Error: Please specify one of (<c2>{valid}</c2>)."
+  must_be_a_number: "Error: {num} must be a number."
+  must_be_min_length: "Error: Must be at least {min} characters long."
+  must_be_max_length: "Error: Must be at most {max} characters long."
+  please_specify_at_most: "Error: Please specify a value at most {max}."
+  please_specify_at_least: "Error: Please specify a value at least {min}."
+  not_allowed_on_console: "Error: Console may not execute this command."
+  could_not_find_player: "Error: Could not find a player by the name: <c2>{search}</c2>"
+  no_command_matched_search: "No command matched <c2>{search}</c2>."
+  help_page_information: "- Page <c2>{page}</c2> of <c2>{totalpages}</c2> (<c3>{results}</c3> entries)"
+  help_no_results: "No more results found."
+  help_header: "<c3>=== Help: </c3><c2>{command}</c2><c3> ===</c3>"
+  help_format: "<c1>{command}</c1> <c2>{parameters}</c2> - <c3>{description}</c3>"
+  help_detailed_header: "<c3>=== Detailed Help: </c3><c2>{command}</c2><c3> ===</c3>"
+  help_detailed_command_format: "<c1>{command}</c1> <c2>{parameters}</c2> - <c3>{description}</c3>"
+  help_detailed_parameter_format: "<c2>{syntaxorname}</c2>: <c3>{description}</c3>"
+  help_search_header: "<c3>=== Search Results: </c3><c2>{command} {search}</c2><c3> ===</c3>"
+  help_footer: "&6-----------------------------------"
+
+
 

@@ -268,10 +268,6 @@ public class ConfigHandler {
     }
 
     // Admin Command Messages
-    public String getAdminCommandHelpMessage() {
-        return ColorUtils.colorize(messages.getString("messages.admin-command-help"));
-    }
-
     public String getAdminNoIslandMessage(String name) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-no-island")).replace("{name}", name));
     }
@@ -357,10 +353,6 @@ public class ConfigHandler {
     }
 
     // Player Command Messages
-    public String getPlayerCommandHelpMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-command-help"));
-    }
-
     public String getPlayerNoIslandMessage() {
         return ColorUtils.colorize(messages.getString("messages.player-no-island"));
     }
@@ -530,5 +522,13 @@ public class ConfigHandler {
 
     public String getNoBannedPlayersMessage() {
         return ColorUtils.colorize(messages.getString("messages.banned-player-no-banned"));
+    }
+
+    public String getAdminBanSuccessMessage(String name, String playerName) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-ban-success")).replace("{player}", playerName).replace("{name}", name));
+    }
+
+    public String getAdminUnbanSuccessMessage(String name, String playerName) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-unban-success")).replace("{player}", playerName).replace("{name}", name));
     }
 }

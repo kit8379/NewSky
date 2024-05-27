@@ -1,6 +1,7 @@
 package org.me.newsky;
 
 import co.aikar.commands.PaperCommandManager;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.me.newsky.api.NewSkyAPI;
@@ -24,6 +25,7 @@ import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.util.ColorUtils;
 import org.me.newsky.world.WorldHandler;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Locale;
 
@@ -150,10 +152,11 @@ public class NewSky extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new IslandPvPListener(config, cacheHandler), this);
     }
 
-    private void registerCommands() {
+    private void registerCommands() throws IOException, InvalidConfigurationException {
         commandManager = new PaperCommandManager(this);
         commandManager.enableUnstableAPI("help");
-        commandManager.getLocales().setDefaultLocale(Locale.CHINESE);
+        commandManager.getLocales().setDefaultLocale(Locale.ENGLISH);
+        commandManager.getLocales().loadYamlLanguageFile("messages.yml", Locale.ENGLISH);
 
         // Register the IslandCommand
         IslandCommand islandCommand = new IslandCommand(config, api);
