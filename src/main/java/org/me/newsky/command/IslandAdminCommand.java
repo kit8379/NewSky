@@ -465,4 +465,60 @@ public class IslandAdminCommand extends BaseCommand {
             return null;
         });
     }
+
+    @Subcommand("adminban")
+    @CommandPermission("newsky.admin.island.ban")
+    @CommandCompletion("@players")
+    @Description("Admin command to ban a player from a specified island")
+    @Syntax("<islandOwner> <targetPlayer>")
+    @SuppressWarnings("unused")
+    public void onAdminBan(CommandSender sender, @Single String islandOwnerName, @Single String banPlayerName) {
+        OfflinePlayer islandOwner = Bukkit.getOfflinePlayer(islandOwnerName);
+        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(banPlayerName);
+        UUID islandOwnerUuid = islandOwner.getUniqueId();
+        UUID targetPlayerUuid = targetPlayer.getUniqueId();
+
+        api.getIslandUuid(islandOwnerUuid).thenCompose(islandUuid -> api.banPlayer(islandUuid, targetPlayerUuid)).thenRun(() -> {
+            sender.sendMessage(config.getAdminBanSuccessMessage(islandOwnerName, banPlayerName));
+        }).exceptionally(ex -> {
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                sender.sendMessage(config.getAdminNoIslandMessage(islandOwnerName));
+            } else if (ex.getCause() instanceof PlayerAlreadyBannedException) {
+                sender.sendMessage(config.getPlayerAlreadyBannedMessage(banPlayerName));
+            } else if (ex.getCause() instanceof CannotBanIslandPlayerException) {
+                sender.sendMessage(config.getPlayerCannotBanIslandPlayerMessage());
+            } else {
+                sender.sendMessage("There was an error banning the player.");
+                ex.printStackTrace();
+            }
+            return null;
+        });
+    }
+
+    @Subcommand("adminunban")
+    @CommandPermission("newsky.admin.island.unban")
+    @CommandCompletion("@players")
+    @Description("Admin command to unban a player from a specified island")
+    @Syntax("<islandOwner> <targetPlayer>")
+    @SuppressWarnings("unused")
+    public void onAdminUnban(CommandSender sender, @Single String islandOwnerName, @Single String banPlayerName) {
+        OfflinePlayer islandOwner = Bukkit.getOfflinePlayer(islandOwnerName);
+        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(banPlayerName);
+        UUID islandOwnerUuid = islandOwner.getUniqueId();
+        UUID targetPlayerUuid = targetPlayer.getUniqueId();
+
+        api.getIslandUuid(islandOwnerUuid).thenCompose(islandUuid -> api.unbanPlayer(islandUuid, targetPlayerUuid)).thenRun(() -> {
+            sender.sendMessage(config.getAdminUnbanSuccessMessage(islandOwnerName, banPlayerName));
+        }).exceptionally(ex -> {
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                sender.sendMessage(config.getAdminNoIslandMessage(islandOwnerName));
+            } else if (ex.getCause() instanceof PlayerNotBannedException) {
+                sender.sendMessage(config.getPlayerNotBannedMessage(banPlayerName));
+            } else {
+                sender.sendMessage("There was an error unbanning the player.");
+                ex.printStackTrace();
+            }
+            return null;
+        });
+    }
 }
