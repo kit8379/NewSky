@@ -72,7 +72,6 @@ public class IslandCommand extends BaseCommand {
     @Subcommand("delete")
     @CommandPermission("newsky.island.delete")
     @Description("Deletes your island with a confirmation step")
-    @Syntax("<player>")
     @SuppressWarnings("unused")
     public void onDelete(CommandSender sender) {
         if (!(sender instanceof Player player)) {
@@ -581,8 +580,12 @@ public class IslandCommand extends BaseCommand {
                 return null;
             });
         }).exceptionally(ex -> {
-            sender.sendMessage("There was an error getting the island information.");
-            ex.printStackTrace();
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                sender.sendMessage(config.getPlayerNoIslandMessage());
+            } else {
+                sender.sendMessage("There was an error getting the island information.");
+                ex.printStackTrace();
+            }
             return null;
         });
     }

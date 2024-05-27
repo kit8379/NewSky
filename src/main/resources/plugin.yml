@@ -16,15 +16,15 @@ commands:
   island:
     description: Island command
     usage: /<command>
-    permission: island.command
+    permission: island.player
     aliases: [ is ]
   islandadmin:
     description: Island admin command
-    usage: /<command>
+    usage: /<command>sto
     permission: island.admin
     aliases: [ isadmin ]
 permissions:
-  island.command:
+  island.player:
     description: Allows the user to use the /island command
     default: true
   island.admin:

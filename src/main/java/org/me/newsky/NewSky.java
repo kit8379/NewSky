@@ -21,6 +21,7 @@ import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.scheduler.IslandUnloadScheduler;
 import org.me.newsky.scheduler.LevelUpdateScheduler;
 import org.me.newsky.teleport.TeleportHandler;
+import org.me.newsky.util.ColorUtils;
 import org.me.newsky.world.WorldHandler;
 
 import java.util.Collections;
@@ -239,7 +240,7 @@ public class NewSky extends JavaPlugin {
     @SuppressWarnings("unused")
     public void debug(String message) {
         if (config.isDebug()) {
-            info(config.getDebugPrefix() + message);
+            info(ColorUtils.colorize(config.getDebugPrefix()) + message);
         }
     }
 }

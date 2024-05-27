@@ -50,21 +50,15 @@ public class NewSkyPlaceholderExpansion extends PlaceholderExpansion {
             return null;
         }
 
-        if (identifier.equalsIgnoreCase("newsky_island_level")) {
+        if (identifier.equalsIgnoreCase("island_level")) {
             Optional<UUID> islandUuid = cacheHandler.getIslandUuid(player.getUniqueId());
             return islandUuid.map(uuid -> String.valueOf(cacheHandler.getIslandLevel(uuid))).orElse(null);
-        } else if (identifier.equalsIgnoreCase("newsky_island_uuid")) {
+        } else if (identifier.equalsIgnoreCase("island_uuid")) {
             Optional<UUID> islandUuid = cacheHandler.getIslandUuid(player.getUniqueId());
             return islandUuid.map(UUID::toString).orElse(null);
-        } else if (identifier.equalsIgnoreCase("newsky_island_owner")) {
+        } else if (identifier.equalsIgnoreCase("island_owner")) {
             Optional<UUID> islandUuid = cacheHandler.getIslandUuid(player.getUniqueId());
             return islandUuid.map(uuid -> cacheHandler.getIslandOwner(uuid).toString()).orElse(null);
-        } else if (identifier.equalsIgnoreCase("newsky_island_members")) {
-            Optional<UUID> islandUuid = cacheHandler.getIslandUuid(player.getUniqueId());
-            return islandUuid.map(uuid -> cacheHandler.getIslandPlayers(uuid).toString()).orElse(null);
-        } else if (identifier.equalsIgnoreCase("newsky_island_players")) {
-            Optional<UUID> islandUuid = cacheHandler.getIslandUuid(player.getUniqueId());
-            return islandUuid.map(uuid -> cacheHandler.getIslandPlayers(uuid).toString()).orElse(null);
         }
 
         return null;
