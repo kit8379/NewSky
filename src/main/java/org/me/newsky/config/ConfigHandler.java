@@ -455,6 +455,10 @@ public class ConfigHandler {
 
 
     // Info
+    public String getIslandInfoHeaderMessage(String name) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-header")).replace("{name}", name));
+    }
+
     public String getIslandInfoUUIDMessage(UUID islandUuid) {
         return ColorUtils.colorize(Objects.requireNonNull(Objects.requireNonNull(messages.getString("messages.island-info-uuid")).replace("{island_uuid}", islandUuid.toString())));
     }
@@ -530,5 +534,13 @@ public class ConfigHandler {
 
     public String getAdminUnbanSuccessMessage(String name, String playerName) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-unban-success")).replace("{player}", playerName).replace("{name}", name));
+    }
+
+    public String getPlayerNoItemInHandMessage() {
+        return ColorUtils.colorize(messages.getString("messages.no-item-in-hand"));
+    }
+
+    public String getPlayerBlockValueCommandMessage(String blockName, int value) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.block-value")).replace("{blockName}", blockName).replace("{value}", String.valueOf(value)));
     }
 }

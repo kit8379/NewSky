@@ -69,7 +69,3 @@ island:
   # The interval that the plugin update the island level.
   # The default value is 300 seconds (5 minutes).
   level-update-interval: 300
-
-
-
-

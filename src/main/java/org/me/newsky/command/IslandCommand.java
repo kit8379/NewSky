@@ -6,9 +6,11 @@ import co.aikar.commands.annotation.Optional;
 import co.aikar.commands.annotation.*;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.*;
@@ -432,6 +434,35 @@ public class IslandCommand extends BaseCommand {
         });
     }
 
+    @Subcommand("value")
+    @CommandPermission("newsky.island.value")
+    @Description("Checks the block level value of the item in your hand")
+    @SuppressWarnings("unused")
+    public void onValue(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
+        // Get the item in the player's main hand
+        ItemStack itemInHand = player.getInventory().getItemInMainHand();
+
+        // Check if the item is not air or null
+        if (itemInHand.getType() == Material.AIR) {
+            player.sendMessage(config.getPlayerNoItemInHandMessage());
+            return;
+        }
+
+        // Get the material of the item
+        Material material = itemInHand.getType();
+
+        // Get the block level value from the configuration
+        int value = config.getBlockLevel(material.name());
+
+        // Send the value to the player
+        player.sendMessage(config.getPlayerBlockValueCommandMessage(material.name(), value));
+    }
+
     @Subcommand("lock")
     @CommandPermission("newsky.island.togglelock")
     @Description("Toggles the lock status of your island")
@@ -569,6 +600,7 @@ public class IslandCommand extends BaseCommand {
                     String ownerName = Bukkit.getOfflinePlayer(ownerUuid).getName();
                     String memberNames = members.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).reduce((a, b) -> a + ", " + b).orElse(config.getIslandInfoNoMembersMessage());
 
+                    sender.sendMessage(config.getIslandInfoHeaderMessage());
                     sender.sendMessage(config.getIslandInfoUUIDMessage(islandUuid));
                     sender.sendMessage(config.getIslandInfoOwnerMessage(ownerName));
                     sender.sendMessage(config.getIslandInfoMembersMessage(memberNames));
