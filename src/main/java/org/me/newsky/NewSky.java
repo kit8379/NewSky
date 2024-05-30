@@ -69,9 +69,9 @@ public class NewSky extends JavaPlugin {
             info("Server ID load success!");
             info("This Server ID: " + serverID);
 
-            info("Starting WorldHandler");
+            info("Starting World handler");
             WorldHandler worldHandler = new WorldHandler(this, config, teleportHandler);
-            info("WorldHandler loaded");
+            info("World handler loaded");
 
             info("Start connecting to Redis now...");
             redisHandler = new RedisHandler(this, config);
@@ -83,11 +83,11 @@ public class NewSky extends JavaPlugin {
 
             info("Starting cache handler");
             cacheHandler = new CacheHandler(redisHandler, databaseHandler);
-            info("Cache to Redis success");
+            info("Cache handler loaded");
 
-            info("Starting teleport manager");
+            info("Starting teleport handler");
             teleportHandler = new TeleportHandler();
-            info("Teleport manager loaded");
+            info("Teleport handler loaded");
 
             info("Start connecting to Heart Beat system now...");
             heartBeatHandler = new HeartBeatHandler(this, config, cacheHandler, serverID);

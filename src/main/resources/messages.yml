@@ -22,7 +22,9 @@ messages:
   warp-success: "&aTeleported to warp '{warp}'!"
   no-warp: "&cPlayer '{name}' does not have a warp named '{warp}'!"
   no-island: "&cPlayer '{name}' does not have an island!"
-  player-not-online: "&cPlayer '{name}' is not online!"
+  player-not-online: "&cPlayer '{player}' is not online!"
+  block-value: "&aBlock value: {value}"
+  no-item-in-hand: "&cYou must hold an item in your hand!"
 
   # Admin Command Messages
   admin-no-island: "&cPlayer '{name}' does not have an island!"
