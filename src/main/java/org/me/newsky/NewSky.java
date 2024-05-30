@@ -28,6 +28,7 @@ import org.me.newsky.world.WorldHandler;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Locale;
+import java.util.Set;
 
 public class NewSky extends JavaPlugin {
 
@@ -43,6 +44,7 @@ public class NewSky extends JavaPlugin {
     private RedisPublishRequest brokerRequestPublish;
     private RedisSubscribeRequest brokerRequestSubscribe;
     private NewSkyAPI api;
+    private String serverID;
 
     @Override
     public void onEnable() {
@@ -63,7 +65,7 @@ public class NewSky extends JavaPlugin {
             info("Config load success!");
 
             info("Start loading server ID now...");
-            String serverID = config.getServerName();
+            serverID = config.getServerName();
             info("Server ID load success!");
             info("This Server ID: " + serverID);
 
@@ -112,7 +114,7 @@ public class NewSky extends JavaPlugin {
             info("Plugin messaging loaded");
 
             info("Starting API");
-            api = new NewSkyAPI(islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler);
+            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler);
             info("API loaded");
 
             info("Starting all schedulers for the plugin");
@@ -145,8 +147,9 @@ public class NewSky extends JavaPlugin {
     }
 
     private void registerListeners() {
+        getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, cacheHandler, serverID), this);
         getServer().getPluginManager().registerEvents(new WorldInitListener(this), this);
-        getServer().getPluginManager().registerEvents(new PlayerJoinListener(this, teleportHandler), this);
+        getServer().getPluginManager().registerEvents(new TeleportRequestListener(this, teleportHandler), this);
         getServer().getPluginManager().registerEvents(new IslandProtectionListener(config, cacheHandler), this);
         getServer().getPluginManager().registerEvents(new IslandMoveListener(config, cacheHandler), this);
         getServer().getPluginManager().registerEvents(new IslandPvPListener(config, cacheHandler), this);
@@ -169,6 +172,15 @@ public class NewSky extends JavaPlugin {
     }
 
     private void setupCommandCompletions() {
+        // Register a dynamic completion for global online player names
+        commandManager.getCommandCompletions().registerAsyncCompletion("globalplayers", context -> {
+            try {
+                return getOnlinePlayers();
+            } catch (Exception e) {
+                return Collections.emptyList();
+            }
+        });
+
         // Register a dynamic completion for home names
         commandManager.getCommandCompletions().registerAsyncCompletion("homes", context -> {
             Player player = context.getPlayer();
@@ -245,5 +257,10 @@ public class NewSky extends JavaPlugin {
         if (config.isDebug()) {
             info(ColorUtils.colorize(config.getDebugPrefix()) + message);
         }
+    }
+
+    // Get Online Players
+    public Set<String> getOnlinePlayers() {
+        return cacheHandler.getOnlinePlayers();
     }
 }

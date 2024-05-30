@@ -54,7 +54,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.create")
     @Description("Admin command to create an island for a player")
     @Syntax("<player>")
-    @CommandCompletion("@players")
+    @CommandCompletion("@globalplayers")
     @SuppressWarnings("unused")
     public void onAdminCreate(CommandSender sender, @Single String targetPlayerName) {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
@@ -79,7 +79,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.delete")
     @Description("Admin command to delete a player's island")
     @Syntax("<player>")
-    @CommandCompletion("@players")
+    @CommandCompletion("@globalplayers")
     @SuppressWarnings("unused")
     public void onAdminDelete(CommandSender sender, @Single String targetPlayerName) {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
@@ -111,7 +111,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.addmember")
     @Description("Admin command to add a member to a player's island")
     @Syntax("<member> <owner>")
-    @CommandCompletion("@players @players")
+    @CommandCompletion("@globalplayers @globalplayers")
     @SuppressWarnings("unused")
     public void onAdminAddMember(CommandSender sender, @Single String targetMemberName, @Single String islandOwnerName) {
         OfflinePlayer targetMember = Bukkit.getOfflinePlayer(targetMemberName);
@@ -138,7 +138,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.removemember")
     @Description("Admin command to remove a member from a player's island")
     @Syntax("<member> <owner>")
-    @CommandCompletion("@players @players")
+    @CommandCompletion("@globalplayers @globalplayers")
     @SuppressWarnings("unused")
     public void onAdminRemoveMember(CommandSender sender, @Single String targetMemberName, @Single String islandOwnerName) {
         OfflinePlayer targetMember = Bukkit.getOfflinePlayer(targetMemberName);
@@ -165,7 +165,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.home")
     @Description("Admin command to teleport to a player's island home")
     @Syntax("<player> [home] [target]")
-    @CommandCompletion("@players @homes @players")
+    @CommandCompletion("@globalplayers @homes @globalplayers")
     @SuppressWarnings("unused")
     public void onAdminHome(CommandSender sender, @Single String homePlayerName, @Default("default") @Single String homeName, @Optional @Single String teleportPlayerName) {
         OfflinePlayer homePlayer = Bukkit.getOfflinePlayer(homePlayerName);
@@ -204,7 +204,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.sethome")
     @Description("Admin command to set a home on a player's island")
     @Syntax("<player> <home>")
-    @CommandCompletion("@players @homes")
+    @CommandCompletion("@globalplayers @homes")
     @SuppressWarnings("unused")
     public void onAdminSetHome(CommandSender sender, @Single String homePlayerName, @Single String homeName) {
         if (!(sender instanceof Player player)) {
@@ -235,7 +235,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.delhome")
     @Description("Admin command to delete a home on a player's island")
     @Syntax("<player> <home>")
-    @CommandCompletion("@players @homes")
+    @CommandCompletion("@globalplayers @homes")
     @SuppressWarnings("unused")
     public void onAdminDelHome(CommandSender sender, @Single String homePlayerName, @Single String homeName) {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(homePlayerName);
@@ -265,7 +265,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.warp")
     @Description("Admin command to teleport to a warp point on a player's island")
     @Syntax("<player> [warp] [target]")
-    @CommandCompletion("@players @warps @players")
+    @CommandCompletion("@globalplayers @warps @globalplayers")
     @SuppressWarnings("unused")
     public void onAdminWarp(CommandSender sender, @Single String warpPlayerName, @Default("default") @Single String warpName, @Optional @Single String teleportPlayerName) {
         OfflinePlayer warpPlayer = Bukkit.getOfflinePlayer(warpPlayerName);
@@ -308,7 +308,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.setwarp")
     @Description("Admin command to set a warp point on a player's island")
     @Syntax("<player> <warp>")
-    @CommandCompletion("@players @warps")
+    @CommandCompletion("@globalplayers @warps")
     @SuppressWarnings("unused")
     public void onAdminSetWarp(CommandSender sender, @Single String warpPlayerName, @Single String warpName) {
         if (!(sender instanceof Player player)) {
@@ -339,7 +339,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.delwarp")
     @Description("Admin command to delete a warp point on a player's island")
     @Syntax("<player> <warp>")
-    @CommandCompletion("@players @warps")
+    @CommandCompletion("@globalplayers @warps")
     @SuppressWarnings("unused")
     public void onAdminDelWarp(CommandSender sender, @Single String warpPlayerName, @Single String warpName) {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(warpPlayerName);
@@ -364,7 +364,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.lock")
     @Description("Admin command to toggle the lock status of a player's island")
     @Syntax("<player>")
-    @CommandCompletion("@players")
+    @CommandCompletion("@globalplayers")
     @SuppressWarnings("unused")
     public void onAdminLock(CommandSender sender, @Single String targetPlayerName) {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
@@ -391,7 +391,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.pvp")
     @Description("Admin command to toggle the PvP status on a player's island")
     @Syntax("<player>")
-    @CommandCompletion("@players")
+    @CommandCompletion("@globalplayers")
     @SuppressWarnings("unused")
     public void onAdminPvp(CommandSender sender, @Single String targetPlayerName) {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
@@ -418,7 +418,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.load")
     @Description("Admin command to load a player's island")
     @Syntax("<player>")
-    @CommandCompletion("@players")
+    @CommandCompletion("@globalplayers")
     @SuppressWarnings("unused")
     public void onAdminLoadIsland(CommandSender sender, @Single String targetPlayerName) {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
@@ -445,7 +445,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.unload")
     @Description("Admin command to unload a player's island")
     @Syntax("<player>")
-    @CommandCompletion("@players")
+    @CommandCompletion("@globalplayers")
     @SuppressWarnings("unused")
     public void onAdminUnloadIsland(CommandSender sender, @Single String targetPlayerName) {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
@@ -468,7 +468,7 @@ public class IslandAdminCommand extends BaseCommand {
 
     @Subcommand("adminban")
     @CommandPermission("newsky.admin.island.ban")
-    @CommandCompletion("@players")
+    @CommandCompletion("@globalplayers")
     @Description("Admin command to ban a player from a specified island")
     @Syntax("<owner> <player>")
     @SuppressWarnings("unused")
@@ -497,7 +497,7 @@ public class IslandAdminCommand extends BaseCommand {
 
     @Subcommand("adminunban")
     @CommandPermission("newsky.admin.island.unban")
-    @CommandCompletion("@players")
+    @CommandCompletion("@globalplayers")
     @Description("Admin command to unban a player from a specified island")
     @Syntax("<owner> <player>")
     @SuppressWarnings("unused")

@@ -1,6 +1,7 @@
 package org.me.newsky.api;
 
 import org.bukkit.Location;
+import org.me.newsky.NewSky;
 import org.me.newsky.island.*;
 
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class NewSkyAPI {
 
+    private final NewSky plugin;
     private final IslandHandler islandHandler;
     private final PlayerHandler playerHandler;
     private final HomeHandler homeHandler;
@@ -18,7 +20,8 @@ public class NewSkyAPI {
     private final LevelHandler levelHandler;
     private final BanHandler banHandler;
 
-    public NewSkyAPI(IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler) {
+    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler) {
+        this.plugin = plugin;
         this.islandHandler = islandHandler;
         this.playerHandler = playerHandler;
         this.homeHandler = homeHandler;
@@ -328,4 +331,12 @@ public class NewSkyAPI {
         return banHandler.getBannedPlayers(islandUuid);
     }
 
+    /**
+     * Get the online players
+     *
+     * @return A set of online players
+     */
+    public Set<String> getOnlinePlayers() {
+        return plugin.getOnlinePlayers();
+    }
 }

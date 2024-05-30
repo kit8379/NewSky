@@ -22,6 +22,7 @@ messages:
   warp-success: "&aTeleported to warp '{warp}'!"
   no-warp: "&cPlayer '{name}' does not have a warp named '{warp}'!"
   no-island: "&cPlayer '{name}' does not have an island!"
+  player-not-online: "&cPlayer '{name}' is not online!"
 
   # Admin Command Messages
   admin-no-island: "&cPlayer '{name}' does not have an island!"
@@ -128,7 +129,3 @@ acf-core:
   help_detailed_parameter_format: "&6{syntaxorname}: &e{description}"
   help_search_header: "&6=== Search Results: &e{command} {search}&6 ==="
   help_footer: "&6-----------------------------------"
-
-
-
-

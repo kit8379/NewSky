@@ -107,13 +107,18 @@ public class IslandCommand extends BaseCommand {
 
     @Subcommand("addmember")
     @CommandPermission("newsky.island.addmember")
-    @CommandCompletion("@players")
+    @CommandCompletion("@globalplayers")
     @Description("Adds a member to your island")
     @Syntax("<player>")
     @SuppressWarnings("unused")
     public void onAddMember(CommandSender sender, @Single String targetPlayerName) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
+        if (!api.getOnlinePlayers().contains(targetPlayerName)) {
+            player.sendMessage(config.getPlayerNotOnlineMessage(targetPlayerName));
             return;
         }
 
@@ -138,7 +143,7 @@ public class IslandCommand extends BaseCommand {
 
     @Subcommand("removemember")
     @CommandPermission("newsky.island.removemember")
-    @CommandCompletion("@players")
+    @CommandCompletion("@globalplayers")
     @Description("Removes a member from your island")
     @Syntax("<player>")
     @SuppressWarnings("unused")
@@ -259,7 +264,7 @@ public class IslandCommand extends BaseCommand {
 
     @Subcommand("warp")
     @CommandPermission("newsky.island.warp")
-    @CommandCompletion("@players @warps")
+    @CommandCompletion("@globalplayers @warps")
     @Description("Teleports you or another player to a specified warp point on an island")
     @Syntax("<player> [warpName]")
     @SuppressWarnings("unused")
@@ -351,7 +356,7 @@ public class IslandCommand extends BaseCommand {
 
     @Subcommand("setowner")
     @CommandPermission("newsky.island.setowner")
-    @CommandCompletion("@players")
+    @CommandCompletion("@globalplayers")
     @Description("Sets a new owner for your island")
     @Syntax("<player>")
     @SuppressWarnings("unused")
@@ -570,7 +575,7 @@ public class IslandCommand extends BaseCommand {
     @CommandPermission("newsky.island.info")
     @Description("Shows information about an island")
     @Syntax("[player]")
-    @CommandCompletion("@players")
+    @CommandCompletion("@globalplayers")
     @SuppressWarnings("unused")
     public void onInfo(CommandSender sender, @Optional @Single String targetPlayerName) {
         if (!(sender instanceof Player player)) {
@@ -627,11 +632,16 @@ public class IslandCommand extends BaseCommand {
     @CommandPermission("newsky.island.expel")
     @Description("Expel a player from your island")
     @Syntax("<player>")
-    @CommandCompletion("@players")
+    @CommandCompletion("@globalplayers")
     @SuppressWarnings("unused")
     public void onExpel(CommandSender sender, @Single String targetPlayerName) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
+        if (!api.getOnlinePlayers().contains(targetPlayerName)) {
+            player.sendMessage(config.getPlayerNotOnlineMessage(targetPlayerName));
             return;
         }
 
@@ -654,13 +664,18 @@ public class IslandCommand extends BaseCommand {
 
     @Subcommand("ban")
     @CommandPermission("newsky.island.ban")
-    @CommandCompletion("@players")
+    @CommandCompletion("@globalplayers")
     @Description("Bans a player from your island")
     @Syntax("<player>")
     @SuppressWarnings("unused")
     public void onBan(CommandSender sender, @Single String targetPlayerName) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
+        if (!api.getOnlinePlayers().contains(targetPlayerName)) {
+            player.sendMessage(config.getPlayerNotOnlineMessage(targetPlayerName));
             return;
         }
 
@@ -687,7 +702,7 @@ public class IslandCommand extends BaseCommand {
 
     @Subcommand("unban")
     @CommandPermission("newsky.island.unban")
-    @CommandCompletion("@players")
+    @CommandCompletion("@globalplayers")
     @Description("Unbans a player from your island")
     @Syntax("<player>")
     @SuppressWarnings("unused")

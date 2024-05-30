@@ -17,12 +17,30 @@ public class CacheHandler {
     }
 
     public void cacheAllDataToRedis() {
+        flushAllDataFromRedis();
         cacheIslandDataToRedis();
         cacheIslandPlayersToRedis();
         cacheIslandHomesToRedis();
         cacheIslandWarpsToRedis();
         cacheIslandLevelsToRedis();
         cacheIslandBansToRedis();
+    }
+
+    // Check is there online server
+    // If not, then this server is the first server startup in the network
+    // Then we can flush all data related to this plugin before cache in
+    // This can prevent data inconsistency if the user directly modify the database data
+    public void flushAllDataFromRedis() {
+        if (getActiveServers().isEmpty()) {
+            try (Jedis jedis = redisHandler.getJedis()) {
+                jedis.keys("island_bans:*").forEach(jedis::del);
+                jedis.del("island_levels");
+                jedis.keys("island_warps:*").forEach(jedis::del);
+                jedis.keys("island_homes:*").forEach(jedis::del);
+                jedis.keys("island_players:*").forEach(jedis::del);
+                jedis.keys("island_data:*").forEach(jedis::del);
+            }
+        }
     }
 
     public void cacheIslandDataToRedis() {
@@ -400,7 +418,9 @@ public class CacheHandler {
         }
     }
 
-    // The cache in below section only stored in Redis
+    /**
+     * The cache in below section only stored in Redis
+     */
     public void updateActiveServer(String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset("server_heartbeats", serverName, String.valueOf(System.currentTimeMillis()));
@@ -410,12 +430,18 @@ public class CacheHandler {
     public void removeActiveServer(String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hdel("server_heartbeats", serverName);
-
             // Remove island server association
             Map<String, String> islandServerMap = jedis.hgetAll("island_server");
             for (Map.Entry<String, String> entry : islandServerMap.entrySet()) {
                 if (entry.getValue().equals(serverName)) {
                     jedis.hdel("island_server", entry.getKey());
+                }
+            }
+            // Remove online players from server
+            Map<String, String> onlinePlayers = jedis.hgetAll("online_players");
+            for (Map.Entry<String, String> entry : onlinePlayers.entrySet()) {
+                if (entry.getValue().equals(serverName)) {
+                    jedis.hdel("online_players", entry.getKey());
                 }
             }
         }
@@ -442,6 +468,24 @@ public class CacheHandler {
     public String getIslandLoadedServer(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             return jedis.hget("island_server", islandUuid.toString());
+        }
+    }
+
+    public void addOnlinePlayer(String playerName, String serverName) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.hset("online_players", playerName, serverName);
+        }
+    }
+
+    public void removeOnlinePlayer(String playerName, String serverName) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.hdel("online_players", playerName, serverName);
+        }
+    }
+
+    public Set<String> getOnlinePlayers() {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            return jedis.hkeys("online_players");
         }
     }
 }

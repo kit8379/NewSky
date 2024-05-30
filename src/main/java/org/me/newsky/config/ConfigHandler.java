@@ -455,8 +455,8 @@ public class ConfigHandler {
 
 
     // Info
-    public String getIslandInfoHeaderMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-header")).replace("{name}", name));
+    public String getIslandInfoHeaderMessage() {
+        return ColorUtils.colorize(messages.getString("messages.island-info-header"));
     }
 
     public String getIslandInfoUUIDMessage(UUID islandUuid) {
@@ -542,5 +542,9 @@ public class ConfigHandler {
 
     public String getPlayerBlockValueCommandMessage(String blockName, int value) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.block-value")).replace("{blockName}", blockName).replace("{value}", String.valueOf(value)));
+    }
+
+    public String getPlayerNotOnlineMessage(String playerName) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-not-online")).replace("{player}", playerName));
     }
 }
