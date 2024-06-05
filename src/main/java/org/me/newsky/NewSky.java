@@ -259,6 +259,10 @@ public class NewSky extends JavaPlugin {
         }
     }
 
+    public NewSkyAPI getApi() {
+        return api;
+    }
+
     // Get Online Players
     public Set<String> getOnlinePlayers() {
         return cacheHandler.getOnlinePlayers();
