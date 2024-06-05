@@ -29,7 +29,7 @@ public class LevelHandler {
         });
     }
 
-    public CompletableFuture<List<Map.Entry<UUID, Integer>>> getTopIslandLevels(int size) {
+    public CompletableFuture<Map<UUID, Integer>> getTopIslandLevels(int size) {
         return CompletableFuture.supplyAsync(() -> {
             return cacheHandler.getTopIslandLevels(size);
         });

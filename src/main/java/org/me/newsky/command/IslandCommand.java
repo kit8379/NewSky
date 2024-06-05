@@ -539,24 +539,20 @@ public class IslandCommand extends BaseCommand {
 
             sender.sendMessage(config.getTopIslandsHeaderMessage());
 
-            List<CompletableFuture<String>> islandInfoFutures = new ArrayList<>();
-            for (int i = 0; i < topIslands.size(); i++) {
-                Map.Entry<UUID, Integer> entry = topIslands.get(i);
+            List<CompletableFuture<String>> islandInfoFutures = topIslands.entrySet().stream().map(entry -> {
                 UUID islandUuid = entry.getKey();
                 int level = entry.getValue();
-                int finalI = i;
+                int rank = new ArrayList<>(topIslands.keySet()).indexOf(islandUuid) + 1;
 
-                CompletableFuture<String> islandInfoFuture = api.getIslandOwner(islandUuid).thenCombine(api.getIslandMembers(islandUuid), (ownerUuid, members) -> {
+                return api.getIslandOwner(islandUuid).thenCombine(api.getIslandMembers(islandUuid), (ownerUuid, members) -> {
                     String ownerName = Bukkit.getOfflinePlayer(ownerUuid).getName();
-                    String memberNames = members.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).reduce((a, b) -> a + ", " + b).orElse("");
-                    return config.getTopIslandMessage(finalI + 1, ownerName, memberNames, level);
+                    String memberNames = members.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).collect(Collectors.joining(", "));
+                    return config.getTopIslandMessage(rank, ownerName, memberNames, level);
                 }).exceptionally(ex -> {
                     ex.printStackTrace();
                     return null;
                 });
-
-                islandInfoFutures.add(islandInfoFuture);
-            }
+            }).toList();
 
             return CompletableFuture.allOf(islandInfoFutures.toArray(new CompletableFuture[0])).thenApply(v -> islandInfoFutures.stream().map(CompletableFuture::join).filter(Objects::nonNull).collect(Collectors.toList()));
         }).thenAccept(islandInfos -> {
@@ -569,7 +565,6 @@ public class IslandCommand extends BaseCommand {
             return null;
         });
     }
-
 
     @Subcommand("info")
     @CommandPermission("newsky.island.info")

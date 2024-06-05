@@ -175,7 +175,7 @@ public class NewSky extends JavaPlugin {
         // Register a dynamic completion for global online player names
         commandManager.getCommandCompletions().registerAsyncCompletion("globalplayers", context -> {
             try {
-                return getOnlinePlayers();
+                return api.getOnlinePlayers();
             } catch (Exception e) {
                 return Collections.emptyList();
             }
@@ -237,6 +237,15 @@ public class NewSky extends JavaPlugin {
         info("Plugin reloaded!");
     }
 
+    public Set<String> getOnlinePlayers() {
+        return cacheHandler.getOnlinePlayers();
+    }
+
+    @SuppressWarnings("unused")
+    public NewSkyAPI getApi() {
+        return api;
+    }
+
     @SuppressWarnings("unused")
     public void info(String message) {
         getLogger().info(message);
@@ -257,14 +266,5 @@ public class NewSky extends JavaPlugin {
         if (config.isDebug()) {
             info(ColorUtils.colorize(config.getDebugPrefix()) + message);
         }
-    }
-
-    public NewSkyAPI getApi() {
-        return api;
-    }
-
-    // Get Online Players
-    public Set<String> getOnlinePlayers() {
-        return cacheHandler.getOnlinePlayers();
     }
 }

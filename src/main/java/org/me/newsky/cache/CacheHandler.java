@@ -330,20 +330,13 @@ public class CacheHandler {
         }
     }
 
-    public List<Map.Entry<UUID, Integer>> getTopIslandLevels(int size) {
+    public Map<UUID, Integer> getTopIslandLevels(int size) {
         try (Jedis jedis = redisHandler.getJedis()) {
             Map<String, String> islandLevels = jedis.hgetAll("island_levels");
-            List<Map.Entry<UUID, Integer>> topIslands = new ArrayList<>();
-            for (Map.Entry<String, String> entry : islandLevels.entrySet()) {
-                UUID islandUuid = UUID.fromString(entry.getKey());
-                int level = Integer.parseInt(entry.getValue());
-                topIslands.add(new AbstractMap.SimpleEntry<>(islandUuid, level));
-            }
-            topIslands.sort(Comparator.comparingInt(Map.Entry::getValue));
-            Collections.reverse(topIslands);
-            return topIslands.subList(0, Math.min(topIslands.size(), size));
+            return islandLevels.entrySet().stream().map(entry -> new AbstractMap.SimpleEntry<>(UUID.fromString(entry.getKey()), Integer.parseInt(entry.getValue()))).sorted(Map.Entry.<UUID, Integer>comparingByValue().reversed()).limit(size).collect(LinkedHashMap::new, (map, entry) -> map.put(entry.getKey(), entry.getValue()), LinkedHashMap::putAll);
         }
     }
+
 
     public boolean getPlayerBanned(UUID islandUuid, UUID playerUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {

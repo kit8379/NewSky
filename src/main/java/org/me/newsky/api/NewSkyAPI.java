@@ -4,7 +4,6 @@ import org.bukkit.Location;
 import org.me.newsky.NewSky;
 import org.me.newsky.island.*;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -284,7 +283,7 @@ public class NewSkyAPI {
      * @param size The size of the top list
      * @return A CompletableFuture that completes with the top island levels
      */
-    public CompletableFuture<List<Map.Entry<UUID, Integer>>> getTopIslandLevels(int size) {
+    public CompletableFuture<Map<UUID, Integer>> getTopIslandLevels(int size) {
         return levelHandler.getTopIslandLevels(size);
     }
 
