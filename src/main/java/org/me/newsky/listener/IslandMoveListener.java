@@ -30,6 +30,11 @@ public class IslandMoveListener implements Listener {
 
     @EventHandler
     public void onPlayerMove(PlayerMoveEvent event) {
+        // Check if the player has admin permissions
+        if (event.getPlayer().hasPermission("newsky.admin.bypass")) {
+            return;
+        }
+
         Location from = event.getFrom();
         Location to = event.getTo();
         if (from.getBlockX() - to.getBlockX() == 0 && from.getBlockZ() - to.getBlockZ() == 0) {

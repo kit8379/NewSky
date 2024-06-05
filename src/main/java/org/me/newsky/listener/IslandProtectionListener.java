@@ -4,6 +4,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -46,13 +47,21 @@ public class IslandProtectionListener implements Listener {
 
     @EventHandler
     public void onPlayerInteract(PlayerInteractEvent event) {
-        if (event.getClickedBlock() != null && !canPlayerEdit(event.getPlayer(), event.getClickedBlock().getLocation())) {
-            event.setCancelled(true);
-            event.getPlayer().sendMessage(config.getCannotEditIslandMessage());
+        if (event.getAction() == Action.RIGHT_CLICK_BLOCK || event.getAction() == Action.LEFT_CLICK_BLOCK) {
+            if (event.getClickedBlock() != null && !canPlayerEdit(event.getPlayer(), event.getClickedBlock().getLocation())) {
+                event.setCancelled(true);
+                event.getPlayer().sendMessage(config.getCannotEditIslandMessage());
+            }
         }
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     private boolean canPlayerEdit(Player player, Location location) {
+        // Check if the player has admin permissions
+        if (player.hasPermission("newsky.admin.bypass")) {
+            return true;
+        }
+
         if (location.getWorld() == null || !location.getWorld().getName().startsWith("island-")) {
             return true;
         }
@@ -65,8 +74,7 @@ public class IslandProtectionListener implements Listener {
         int minZ = islandCenterZ - halfSize;
         int maxZ = islandCenterZ + halfSize;
 
-        if (location.getBlockX() < minX || location.getBlockX() > maxX ||
-                location.getBlockZ() < minZ || location.getBlockZ() > maxZ) {
+        if (location.getBlockX() < minX || location.getBlockX() > maxX || location.getBlockZ() < minZ || location.getBlockZ() > maxZ) {
             return false;
         }
 
