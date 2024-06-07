@@ -22,6 +22,7 @@ import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.scheduler.IslandUnloadScheduler;
 import org.me.newsky.scheduler.LevelUpdateScheduler;
 import org.me.newsky.teleport.TeleportHandler;
+import org.me.newsky.thread.BukkitAsyncExecutor;
 import org.me.newsky.util.ColorUtils;
 import org.me.newsky.world.WorldHandler;
 
@@ -31,6 +32,7 @@ import java.util.Locale;
 import java.util.Set;
 
 public class NewSky extends JavaPlugin {
+
 
     private PaperCommandManager commandManager;
     private ConfigHandler config;
@@ -44,7 +46,9 @@ public class NewSky extends JavaPlugin {
     private RedisPublishRequest brokerRequestPublish;
     private RedisSubscribeRequest brokerRequestSubscribe;
     private NewSkyAPI api;
+    private BukkitAsyncExecutor bukkitAsyncExecutor;
     private String serverID;
+
 
     @Override
     public void onEnable() {
@@ -59,6 +63,11 @@ public class NewSky extends JavaPlugin {
 
     private void initialize() {
         try {
+            // Initialize the executor service
+            info("Starting async executor");
+            bukkitAsyncExecutor = new BukkitAsyncExecutor(this);
+            info("Async executor started");
+
             info("Start loading configuration now...");
             saveDefaultConfig();
             config = new ConfigHandler(this);
@@ -101,12 +110,12 @@ public class NewSky extends JavaPlugin {
             info("All handlers for remote requests loaded");
 
             info("Starting main handlers for the plugin");
-            IslandHandler islandHandler = new IslandHandler(config, cacheHandler, preIslandHandler);
-            PlayerHandler playerHandler = new PlayerHandler(cacheHandler);
-            HomeHandler homeHandler = new HomeHandler(cacheHandler, preIslandHandler);
-            WarpHandler warpHandler = new WarpHandler(cacheHandler, preIslandHandler);
-            LevelHandler levelHandler = new LevelHandler(config, cacheHandler);
-            BanHandler banHandler = new BanHandler(cacheHandler, preIslandHandler);
+            IslandHandler islandHandler = new IslandHandler(this, config, cacheHandler, preIslandHandler);
+            PlayerHandler playerHandler = new PlayerHandler(this, cacheHandler);
+            HomeHandler homeHandler = new HomeHandler(this, cacheHandler, preIslandHandler);
+            WarpHandler warpHandler = new WarpHandler(this, cacheHandler, preIslandHandler);
+            LevelHandler levelHandler = new LevelHandler(this, config, cacheHandler);
+            BanHandler banHandler = new BanHandler(this, cacheHandler, preIslandHandler);
             info("All main handlers loaded");
 
             info("Starting plugin messaging");
@@ -208,7 +217,6 @@ public class NewSky extends JavaPlugin {
         });
     }
 
-
     private void registerPlaceholder() {
         new NewSkyPlaceholderExpansion(this, cacheHandler).register();
     }
@@ -239,6 +247,10 @@ public class NewSky extends JavaPlugin {
 
     public Set<String> getOnlinePlayers() {
         return cacheHandler.getOnlinePlayers();
+    }
+
+    public BukkitAsyncExecutor getBukkitAsyncExecutor() {
+        return bukkitAsyncExecutor;
     }
 
     @SuppressWarnings("unused")

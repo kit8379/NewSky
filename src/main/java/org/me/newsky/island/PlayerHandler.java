@@ -1,5 +1,6 @@
 package org.me.newsky.island;
 
+import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.exceptions.AlreadyOwnerException;
 import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
@@ -11,9 +12,12 @@ import java.util.concurrent.CompletableFuture;
 
 public class PlayerHandler {
 
+
+    private final NewSky plugin;
     private final CacheHandler cacheHandler;
 
-    public PlayerHandler(CacheHandler cacheHandler) {
+    public PlayerHandler(NewSky plugin, CacheHandler cacheHandler) {
+        this.plugin = plugin;
         this.cacheHandler = cacheHandler;
     }
 
@@ -25,7 +29,7 @@ public class PlayerHandler {
             }
 
             cacheHandler.updateIslandPlayer(islandUuid, playerUuid, role);
-        });
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> removeMember(UUID islandUuid, UUID playerUuid) {
@@ -36,7 +40,7 @@ public class PlayerHandler {
             }
 
             cacheHandler.deleteIslandPlayer(islandUuid, playerUuid);
-        });
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> setOwner(UUID islandUuid, UUID newOwnerId) {
@@ -48,6 +52,6 @@ public class PlayerHandler {
 
             // Set the new owner
             cacheHandler.updateIslandOwner(islandUuid, newOwnerId);
-        });
+        }, plugin.getBukkitAsyncExecutor());
     }
 }

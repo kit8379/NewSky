@@ -11,9 +11,11 @@ import java.util.concurrent.CompletableFuture;
 
 public class RedisHandler {
 
+    private final NewSky plugin;
     private final JedisPool jedisPool;
 
     public RedisHandler(NewSky plugin, ConfigHandler config) {
+        this.plugin = plugin;
 
         // Get and set Redis config
         String host = config.getRedisHost();
@@ -37,7 +39,7 @@ public class RedisHandler {
             try (Jedis jedis = getJedis()) {
                 jedis.publish(channel, message);
             }
-        });
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     // Subscribe to a channel
@@ -46,7 +48,7 @@ public class RedisHandler {
             try (Jedis jedis = getJedis()) {
                 jedis.subscribe(pubSub, channel);
             }
-        });
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     public Jedis getJedis() {

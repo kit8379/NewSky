@@ -1,6 +1,7 @@
 package org.me.newsky.island;
 
 import org.bukkit.Location;
+import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.exceptions.HomeDoesNotExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
@@ -15,10 +16,12 @@ import java.util.concurrent.CompletableFuture;
 
 public class HomeHandler {
 
+    private final NewSky plugin;
     private final CacheHandler cacheHandler;
     private final PreIslandHandler preIslandHandler;
 
-    public HomeHandler(CacheHandler cacheHandler, PreIslandHandler preIslandHandler) {
+    public HomeHandler(NewSky plugin, CacheHandler cacheHandler, PreIslandHandler preIslandHandler) {
+        this.plugin = plugin;
         this.cacheHandler = cacheHandler;
         this.preIslandHandler = preIslandHandler;
     }
@@ -26,7 +29,7 @@ public class HomeHandler {
     public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, Location location) {
         return CompletableFuture.supplyAsync(() -> {
             return cacheHandler.getIslandUuid(playerUuid);
-        }).thenCompose(islandUuidOpt -> {
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
@@ -43,7 +46,7 @@ public class HomeHandler {
     public CompletableFuture<Void> delHome(UUID playerUuid, String homeName) {
         return CompletableFuture.supplyAsync(() -> {
             return cacheHandler.getIslandUuid(playerUuid);
-        }).thenCompose(islandUuidOpt -> {
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
@@ -59,7 +62,7 @@ public class HomeHandler {
     public CompletableFuture<Void> home(UUID playerUuid, String homeName, UUID targetPlayerUuid) {
         return CompletableFuture.supplyAsync(() -> {
             return cacheHandler.getIslandUuid(playerUuid);
-        }).thenCompose(islandUuidOpt -> {
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
@@ -76,7 +79,7 @@ public class HomeHandler {
     public CompletableFuture<Set<String>> getHomeNames(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {
             return cacheHandler.getIslandUuid(playerUuid);
-        }).thenApply(islandUuidOpt -> {
+        }, plugin.getBukkitAsyncExecutor()).thenApply(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }

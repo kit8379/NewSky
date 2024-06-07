@@ -333,7 +333,7 @@ public class NewSkyAPI {
     /**
      * Get the online players
      *
-     * @return A set of online players
+     * @return A set of online playersgetTopIslandLevels
      */
     public Set<String> getOnlinePlayers() {
         return plugin.getOnlinePlayers();

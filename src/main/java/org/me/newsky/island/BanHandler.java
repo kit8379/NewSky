@@ -1,5 +1,6 @@
 package org.me.newsky.island;
 
+import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.exceptions.CannotBanIslandPlayerException;
 import org.me.newsky.exceptions.PlayerAlreadyBannedException;
@@ -12,10 +13,12 @@ import java.util.concurrent.CompletableFuture;
 
 public class BanHandler {
 
+    private final NewSky plugin;
     private final CacheHandler cacheHandler;
     private final PreIslandHandler preIslandHandler;
 
-    public BanHandler(CacheHandler cacheHandler, PreIslandHandler preIslandHandler) {
+    public BanHandler(NewSky plugin, CacheHandler cacheHandler, PreIslandHandler preIslandHandler) {
+        this.plugin = plugin;
         this.cacheHandler = cacheHandler;
         this.preIslandHandler = preIslandHandler;
     }
@@ -31,7 +34,7 @@ public class BanHandler {
             preIslandHandler.expelPlayer(islandUuid, playerUuid);
             cacheHandler.updateBanPlayer(islandUuid, playerUuid);
             return null;
-        });
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> unbanPlayer(UUID islandUuid, UUID playerUuid) {
@@ -41,11 +44,13 @@ public class BanHandler {
             }
             cacheHandler.deleteBanPlayer(islandUuid, playerUuid);
             return null;
-        });
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Set<UUID>> getBannedPlayers(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> cacheHandler.getBannedPlayers(islandUuid));
+        return CompletableFuture.supplyAsync(() -> {
+            return cacheHandler.getBannedPlayers(islandUuid);
+        }, plugin.getBukkitAsyncExecutor());
     }
 
 }

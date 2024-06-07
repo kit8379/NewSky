@@ -3,6 +3,7 @@ package org.me.newsky.island;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.util.IslandUtils;
@@ -15,10 +16,13 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public class LevelHandler {
+
+    private final NewSky plugin;
     private final ConfigHandler config;
     private final CacheHandler cacheHandler;
 
-    public LevelHandler(ConfigHandler config, CacheHandler cacheHandler) {
+    public LevelHandler(NewSky plugin, ConfigHandler config, CacheHandler cacheHandler) {
+        this.plugin = plugin;
         this.config = config;
         this.cacheHandler = cacheHandler;
     }
@@ -26,13 +30,13 @@ public class LevelHandler {
     public CompletableFuture<Integer> getIslandLevel(UUID islandUuid) {
         return CompletableFuture.supplyAsync(() -> {
             return cacheHandler.getIslandLevel(islandUuid);
-        });
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Map<UUID, Integer>> getTopIslandLevels(int size) {
         return CompletableFuture.supplyAsync(() -> {
             return cacheHandler.getTopIslandLevels(size);
-        });
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> calIslandLevel(UUID islandUuid) {
@@ -61,7 +65,7 @@ public class LevelHandler {
             int totalLevel = (int) Math.round((double) totalPoints / 100);
 
             cacheHandler.updateIslandLevel(islandUuid, totalLevel);
-        });
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     private List<Chunk> getChunksForIsland(Location center, int size) {

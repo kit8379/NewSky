@@ -46,25 +46,23 @@ public class WorldHandler {
     public CompletableFuture<Void> createWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        CompletableFuture.runAsync(() -> {
-            try {
-                File templateWorld = plugin.getDataFolder().toPath().resolve("template/" + config.getTemplateWorldName()).toFile();
-                slimePlugin.importWorld(templateWorld, worldName, slimeLoader);
-                SlimeWorld world = slimePlugin.loadWorld(slimeLoader, worldName, false, properties);
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    try {
-                        slimePlugin.loadWorld(world);
-                        future.complete(null);
-                    } catch (Exception e) {
-                        future.completeExceptionally(e);
-                        e.printStackTrace();
-                    }
-                });
-            } catch (Exception e) {
-                future.completeExceptionally(e);
-                e.printStackTrace();
-            }
-        });
+        try {
+            File templateWorld = plugin.getDataFolder().toPath().resolve("template/" + config.getTemplateWorldName()).toFile();
+            slimePlugin.importWorld(templateWorld, worldName, slimeLoader);
+            SlimeWorld world = slimePlugin.loadWorld(slimeLoader, worldName, false, properties);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                try {
+                    slimePlugin.loadWorld(world);
+                    future.complete(null);
+                } catch (Exception e) {
+                    future.completeExceptionally(e);
+                    e.printStackTrace();
+                }
+            });
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+            e.printStackTrace();
+        }
 
         return future;
     }
@@ -77,23 +75,21 @@ public class WorldHandler {
             return future;
         }
 
-        CompletableFuture.runAsync(() -> {
-            try {
-                SlimeWorld world = slimePlugin.loadWorld(slimeLoader, worldName, false, properties);
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    try {
-                        slimePlugin.loadWorld(world);
-                        future.complete(null);
-                    } catch (Exception e) {
-                        future.completeExceptionally(e);
-                        e.printStackTrace();
-                    }
-                });
-            } catch (Exception e) {
-                future.completeExceptionally(e);
-                e.printStackTrace();
-            }
-        });
+        try {
+            SlimeWorld world = slimePlugin.loadWorld(slimeLoader, worldName, false, properties);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                try {
+                    slimePlugin.loadWorld(world);
+                    future.complete(null);
+                } catch (Exception e) {
+                    future.completeExceptionally(e);
+                    e.printStackTrace();
+                }
+            });
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+            e.printStackTrace();
+        }
 
         return future;
     }
@@ -101,7 +97,7 @@ public class WorldHandler {
     public CompletableFuture<Void> unloadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        unloadWorldFromBukkit(worldName, true).thenRunAsync(() -> {
+        unloadWorldFromBukkit(worldName, true).thenRun(() -> {
             future.complete(null);
         });
 
@@ -111,15 +107,13 @@ public class WorldHandler {
     public CompletableFuture<Void> deleteWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        unloadWorldFromBukkit(worldName, false).thenRunAsync(() -> {
-            try {
-                slimeLoader.deleteWorld(worldName);
-                future.complete(null);
-            } catch (Exception e) {
-                future.completeExceptionally(e);
-                e.printStackTrace();
-            }
-        });
+        try {
+            slimeLoader.deleteWorld(worldName);
+            future.complete(null);
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+            e.printStackTrace();
+        }
 
         return future;
     }
