@@ -1,10 +1,11 @@
 package org.me.newsky.world;
 
-import com.infernalsuite.aswm.api.SlimePlugin;
-import com.infernalsuite.aswm.api.loaders.SlimeLoader;
-import com.infernalsuite.aswm.api.world.SlimeWorld;
-import com.infernalsuite.aswm.api.world.properties.SlimeProperties;
-import com.infernalsuite.aswm.api.world.properties.SlimePropertyMap;
+import com.infernalsuite.asp.api.AdvancedSlimePaperAPI;
+import com.infernalsuite.asp.api.loaders.SlimeLoader;
+import com.infernalsuite.asp.api.world.SlimeWorld;
+import com.infernalsuite.asp.api.world.properties.SlimeProperties;
+import com.infernalsuite.asp.api.world.properties.SlimePropertyMap;
+import com.infernalsuite.asp.loaders.mysql.MysqlLoader;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -13,34 +14,38 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.teleport.TeleportHandler;
 
 import java.io.File;
-import java.util.Objects;
+import java.sql.SQLException;
 import java.util.concurrent.CompletableFuture;
 
 public class WorldHandler {
 
     public final NewSky plugin;
-
     public final ConfigHandler config;
     public final TeleportHandler teleportHandler;
-    private final SlimePlugin slimePlugin;
     private final SlimeLoader slimeLoader;
     private final SlimePropertyMap properties;
+    private final AdvancedSlimePaperAPI asp = AdvancedSlimePaperAPI.instance();
 
     public WorldHandler(NewSky plugin, ConfigHandler config, TeleportHandler teleportHandler) {
         this.plugin = plugin;
         this.config = config;
         this.teleportHandler = teleportHandler;
-        this.slimePlugin = (SlimePlugin) Bukkit.getPluginManager().getPlugin("SlimeWorldManager");
-        this.slimeLoader = Objects.requireNonNull(slimePlugin).getLoader("mysql");
+
+        try {
+            this.slimeLoader = new MysqlLoader("jdbc:mysql://{host}:{port}/{database}?useSSL={usessl}&autoReconnect=true&useUnicode=true&characterEncoding=utf8&allowPublicKeyRetrieval=true", config.getMySQLHost(), config.getMySQLPort(), "slimeworld", false, config.getMySQLUsername(), config.getMySQLPassword());
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
 
         // Set world properties
         properties = new SlimePropertyMap();
-        properties.setString(SlimeProperties.DIFFICULTY, "normal");
-        properties.setInt(SlimeProperties.SPAWN_X, config.getIslandSpawnX());
-        properties.setInt(SlimeProperties.SPAWN_Y, config.getIslandSpawnY());
-        properties.setInt(SlimeProperties.SPAWN_Z, config.getIslandSpawnZ());
         properties.setValue(SlimeProperties.DIFFICULTY, "normal");
+        properties.setValue(SlimeProperties.SPAWN_X, config.getIslandSpawnX());
+        properties.setValue(SlimeProperties.SPAWN_Y, config.getIslandSpawnY());
+        properties.setValue(SlimeProperties.SPAWN_Z, config.getIslandSpawnZ());
+        properties.setValue(SlimeProperties.ENVIRONMENT, "normal");
         properties.setValue(SlimeProperties.DEFAULT_BIOME, "plains");
+        properties.setValue(SlimeProperties.DEFAULT_BIOME, "minecraft:plains");
     }
 
     public CompletableFuture<Void> createWorld(String worldName) {
@@ -48,20 +53,19 @@ public class WorldHandler {
 
         try {
             File templateWorld = plugin.getDataFolder().toPath().resolve("template/" + config.getTemplateWorldName()).toFile();
-            slimePlugin.importWorld(templateWorld, worldName, slimeLoader);
-            SlimeWorld world = slimePlugin.loadWorld(slimeLoader, worldName, false, properties);
+            SlimeWorld newworld = asp.readVanillaWorld(templateWorld, worldName, slimeLoader);
+            asp.saveWorld(newworld);
+            SlimeWorld world = asp.readWorld(slimeLoader, worldName, false, properties);
             Bukkit.getScheduler().runTask(plugin, () -> {
                 try {
-                    slimePlugin.loadWorld(world);
+                    asp.loadWorld(world, true);
                     future.complete(null);
                 } catch (Exception e) {
                     future.completeExceptionally(e);
-                    e.printStackTrace();
                 }
             });
         } catch (Exception e) {
             future.completeExceptionally(e);
-            e.printStackTrace();
         }
 
         return future;
@@ -76,19 +80,17 @@ public class WorldHandler {
         }
 
         try {
-            SlimeWorld world = slimePlugin.loadWorld(slimeLoader, worldName, false, properties);
+            SlimeWorld world = asp.readWorld(slimeLoader, worldName, false, properties);
             Bukkit.getScheduler().runTask(plugin, () -> {
                 try {
-                    slimePlugin.loadWorld(world);
+                    asp.loadWorld(world, true);
                     future.complete(null);
                 } catch (Exception e) {
                     future.completeExceptionally(e);
-                    e.printStackTrace();
                 }
             });
         } catch (Exception e) {
             future.completeExceptionally(e);
-            e.printStackTrace();
         }
 
         return future;
@@ -97,9 +99,7 @@ public class WorldHandler {
     public CompletableFuture<Void> unloadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        unloadWorldFromBukkit(worldName, true).thenRun(() -> {
-            future.complete(null);
-        });
+        unloadWorldFromBukkit(worldName, true).thenRun(() -> future.complete(null));
 
         return future;
     }
@@ -112,7 +112,6 @@ public class WorldHandler {
             future.complete(null);
         } catch (Exception e) {
             future.completeExceptionally(e);
-            e.printStackTrace();
         }
 
         return future;

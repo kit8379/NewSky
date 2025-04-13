@@ -42,5 +42,6 @@ public class LevelUpdateScheduler {
                 plugin.debug("Level updated for island: " + world.getName());
             }
         }
+        plugin.debug("Scheduled task to update island levels completed.");
     }
 }
