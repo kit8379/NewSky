@@ -13,9 +13,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Map;
-import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Level;
 
 
@@ -161,7 +161,7 @@ public class PreIslandHandler {
             return null;
         }
         String[] serverNames = activeServers.keySet().toArray(new String[0]);
-        int randomIndex = new Random().nextInt(serverNames.length);
+        int randomIndex = ThreadLocalRandom.current().nextInt(serverNames.length);
         return serverNames[randomIndex];
     }
 
