@@ -1,6 +1,5 @@
 messages:
   # Prefixes
-  debug-prefix: "&7[Debug] &r"
   usage-prefix: "&eUsage: &r"
 
   # General Messages
@@ -102,8 +101,10 @@ messages:
   banned-player-message: "&7- {player}"
   banned-player-no-banned: "&aThere are no banned players on your island."
 
+  # Island List Messages
+  block-limit-reached: "&cYou have reached the maximum number of block {block} on your island!"
+
 # The messages for the general commands.
-# These messages are used by the ACF command manager.
 acf-core:
   permission_denied: "&cI'm sorry, but you do not have permission to perform this command."
   permission_denied_parameter: "&cI'm sorry, but you do not have permission to perform this command."

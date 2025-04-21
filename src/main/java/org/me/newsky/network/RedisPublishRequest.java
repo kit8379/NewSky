@@ -9,6 +9,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.logging.Level;
 
 public class RedisPublishRequest {
 
@@ -81,9 +82,9 @@ public class RedisPublishRequest {
         // Set a future timeout of 30 seconds
         future.orTimeout(30, TimeUnit.SECONDS).whenComplete((result, error) -> {
             if (error instanceof TimeoutException) {
-                plugin.debug("Request timed out for request ID " + requestID);
                 pendingRequests.remove(requestID);
                 future.completeExceptionally(new TimeoutException("Request timed out"));
+                plugin.getLogger().log(Level.SEVERE, "Request with ID " + requestID + " timed out after 30 seconds");
             }
         });
 

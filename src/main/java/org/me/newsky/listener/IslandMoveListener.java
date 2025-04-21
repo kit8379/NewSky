@@ -2,8 +2,10 @@ package org.me.newsky.listener;
 
 import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.util.IslandUtils;
@@ -12,6 +14,7 @@ import java.util.UUID;
 
 public class IslandMoveListener implements Listener {
 
+    private final NewSky plugin;
     private final ConfigHandler config;
     private final CacheHandler cacheHandler;
     private final int islandSize;
@@ -19,7 +22,8 @@ public class IslandMoveListener implements Listener {
     private final int centerX;
     private final int centerZ;
 
-    public IslandMoveListener(ConfigHandler config, CacheHandler cacheHandler) {
+    public IslandMoveListener(NewSky plugin, ConfigHandler config, CacheHandler cacheHandler) {
+        this.plugin = plugin;
         this.config = config;
         this.cacheHandler = cacheHandler;
         this.islandSize = config.getIslandSize();
@@ -28,10 +32,11 @@ public class IslandMoveListener implements Listener {
         this.centerZ = 0;
     }
 
-    @EventHandler
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlayerMove(PlayerMoveEvent event) {
         // Check if the player has admin permissions
         if (event.getPlayer().hasPermission("newsky.admin.bypass")) {
+            plugin.debug("Player " + event.getPlayer().getName() + " has admin permissions, bypassing island move check.");
             return;
         }
 
@@ -52,6 +57,7 @@ public class IslandMoveListener implements Listener {
         if (cacheHandler.getPlayerBanned(islandUuid, playerUuid)) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(config.getPlayerBannedMessage());
+            plugin.debug("Player " + event.getPlayer().getName() + " is banned from island " + islandUuid);
             return;
         }
 
@@ -59,6 +65,7 @@ public class IslandMoveListener implements Listener {
         if (cacheHandler.getIslandLock(islandUuid) && !cacheHandler.getIslandPlayers(islandUuid).contains(playerUuid)) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(config.getIslandLockedMessage());
+            plugin.debug("Player " + event.getPlayer().getName() + " tried to move in a locked island " + islandUuid);
             return;
         }
 
@@ -71,6 +78,7 @@ public class IslandMoveListener implements Listener {
         if (to.getBlockX() < minX || to.getBlockX() > maxX || to.getBlockZ() < minZ || to.getBlockZ() > maxZ) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(config.getCannotLeaveIslandBoundaryMessage());
+            plugin.debug("Player " + event.getPlayer().getName() + " tried to leave the island boundary at " + to.getBlockX() + ", " + to.getBlockZ());
         }
     }
 }

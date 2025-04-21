@@ -25,9 +25,7 @@ public class WarpHandler {
     }
 
     public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, Location location) {
-        return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getIslandUuid(playerUuid);
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
+        return CompletableFuture.supplyAsync(() -> cacheHandler.getIslandUuid(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
@@ -42,9 +40,7 @@ public class WarpHandler {
     }
 
     public CompletableFuture<Void> delWarp(UUID playerUuid, String warpName) {
-        return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getIslandUuid(playerUuid);
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
+        return CompletableFuture.supplyAsync(() -> cacheHandler.getIslandUuid(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
@@ -58,9 +54,7 @@ public class WarpHandler {
     }
 
     public CompletableFuture<Void> warp(UUID playerUuid, String warpName, UUID targetPlayerUuid) {
-        return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getIslandUuid(playerUuid);
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
+        return CompletableFuture.supplyAsync(() -> cacheHandler.getIslandUuid(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
@@ -89,9 +83,7 @@ public class WarpHandler {
 
 
     public CompletableFuture<Set<String>> getWarpNames(UUID playerUuid) {
-        return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getIslandUuid(playerUuid);
-        }, plugin.getBukkitAsyncExecutor()).thenApply(islandUuidOpt -> {
+        return CompletableFuture.supplyAsync(() -> cacheHandler.getIslandUuid(playerUuid), plugin.getBukkitAsyncExecutor()).thenApply(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }

@@ -4,6 +4,8 @@ import co.aikar.commands.BaseCommand;
 import co.aikar.commands.CommandHelp;
 import co.aikar.commands.annotation.Optional;
 import co.aikar.commands.annotation.*;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -11,23 +13,27 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.*;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 @CommandAlias("is|island")
 @Description("Primary command for island interactions")
 public class IslandCommand extends BaseCommand {
 
+    private final NewSky plugin;
     private final ConfigHandler config;
     private final NewSkyAPI api;
     private final Map<UUID, Long> confirmationTimes = new HashMap<>();
 
-    public IslandCommand(ConfigHandler config, NewSkyAPI api) {
+    public IslandCommand(NewSky plugin, ConfigHandler config, NewSkyAPI api) {
+        this.plugin = plugin;
         this.config = config;
         this.api = api;
     }
@@ -55,9 +61,7 @@ public class IslandCommand extends BaseCommand {
 
         api.createIsland(playerUuid).thenRun(() -> {
             player.sendMessage(config.getPlayerCreateSuccessMessage());
-            api.home(playerUuid, "default", playerUuid).thenRun(() -> {
-                player.sendMessage(config.getPlayerHomeSuccessMessage("default"));
-            });
+            api.home(playerUuid, "default", playerUuid).thenRun(() -> player.sendMessage(config.getPlayerHomeSuccessMessage("default")));
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandAlreadyExistException) {
                 player.sendMessage(config.getPlayerAlreadyHasIslandMessage());
@@ -65,7 +69,7 @@ public class IslandCommand extends BaseCommand {
                 player.sendMessage(config.getNoActiveServerMessage());
             } else {
                 player.sendMessage("There was an error creating the island");
-                ex.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error creating island for player " + player.getName(), ex);
             }
             return null;
         });
@@ -86,16 +90,14 @@ public class IslandCommand extends BaseCommand {
         if (confirmationTimes.containsKey(playerUuid) && (System.currentTimeMillis() - confirmationTimes.get(playerUuid) < 15000)) {
             confirmationTimes.remove(playerUuid);
 
-            api.getIslandUuid(playerUuid).thenCompose(api::deleteIsland).thenRun(() -> {
-                player.sendMessage(config.getPlayerDeleteSuccessMessage());
-            }).exceptionally(ex -> {
+            api.getIslandUuid(playerUuid).thenCompose(api::deleteIsland).thenRun(() -> player.sendMessage(config.getPlayerDeleteSuccessMessage())).exceptionally(ex -> {
                 if (ex.getCause() instanceof IslandDoesNotExistException) {
                     player.sendMessage(config.getPlayerNoIslandMessage());
                 } else if (ex.getCause() instanceof NoActiveServerException) {
                     player.sendMessage(config.getNoActiveServerMessage());
                 } else {
                     player.sendMessage("There was an error deleting the island");
-                    ex.printStackTrace();
+                    plugin.getLogger().log(Level.SEVERE, "Error deleting island for player " + player.getName(), ex);
                 }
                 return null;
             });
@@ -126,16 +128,14 @@ public class IslandCommand extends BaseCommand {
         UUID playerUuid = player.getUniqueId();
         UUID targetPlayerUuid = targetPlayer.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.addMember(islandUuid, targetPlayerUuid, "member")).thenRun(() -> {
-            player.sendMessage(config.getPlayerAddMemberSuccessMessage(targetPlayerName));
-        }).exceptionally(ex -> {
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.addMember(islandUuid, targetPlayerUuid, "member")).thenRun(() -> player.sendMessage(config.getPlayerAddMemberSuccessMessage(targetPlayerName))).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else if (ex.getCause() instanceof IslandPlayerAlreadyExistsException) {
                 player.sendMessage(config.getIslandMemberExistsMessage(targetPlayerName));
             } else {
                 player.sendMessage("There was an error adding the member.");
-                ex.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error adding member to island for player " + player.getName(), ex);
             }
             return null;
         });
@@ -157,16 +157,14 @@ public class IslandCommand extends BaseCommand {
         UUID playerUuid = player.getUniqueId();
         UUID targetPlayerUuid = targetPlayer.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.removeMember(islandUuid, targetPlayerUuid)).thenRun(() -> {
-            player.sendMessage(config.getPlayerRemoveMemberSuccessMessage(targetPlayerName));
-        }).exceptionally(ex -> {
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.removeMember(islandUuid, targetPlayerUuid)).thenRun(() -> player.sendMessage(config.getPlayerRemoveMemberSuccessMessage(targetPlayerName))).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else if (ex.getCause() instanceof IslandPlayerDoesNotExistException) {
                 player.sendMessage(config.getIslandMemberNotExistsMessage(targetPlayerName));
             } else {
                 player.sendMessage("There was an error removing the member.");
-                ex.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error removing member from island for player " + player.getName(), ex);
             }
             return null;
         });
@@ -184,9 +182,7 @@ public class IslandCommand extends BaseCommand {
             return;
         }
 
-        api.home(player.getUniqueId(), homeName, player.getUniqueId()).thenRun(() -> {
-            player.sendMessage(config.getPlayerHomeSuccessMessage(homeName));
-        }).exceptionally(ex -> {
+        api.home(player.getUniqueId(), homeName, player.getUniqueId()).thenRun(() -> player.sendMessage(config.getPlayerHomeSuccessMessage(homeName))).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else if (ex.getCause() instanceof HomeDoesNotExistException) {
@@ -195,7 +191,7 @@ public class IslandCommand extends BaseCommand {
                 player.sendMessage(config.getNoActiveServerMessage());
             } else {
                 player.sendMessage("There was an error teleporting to the home.");
-                ex.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error teleporting to home for player " + player.getName(), ex);
             }
             return null;
         });
@@ -215,16 +211,14 @@ public class IslandCommand extends BaseCommand {
 
         Location loc = player.getLocation();
 
-        api.setHome(player.getUniqueId(), homeName, loc).thenRun(() -> {
-            player.sendMessage(config.getPlayerSetHomeSuccessMessage(homeName));
-        }).exceptionally(ex -> {
+        api.setHome(player.getUniqueId(), homeName, loc).thenRun(() -> player.sendMessage(config.getPlayerSetHomeSuccessMessage(homeName))).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else if (ex.getCause() instanceof LocationNotInIslandException) {
                 player.sendMessage(config.getPlayerMustInIslandSetHomeMessage());
             } else {
                 player.sendMessage("There was an error setting the home.");
-                ex.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error setting home for player " + player.getName(), ex);
             }
             return null;
         });
@@ -247,16 +241,14 @@ public class IslandCommand extends BaseCommand {
             return;
         }
 
-        api.delHome(player.getUniqueId(), homeName).thenRun(() -> {
-            player.sendMessage(config.getPlayerDelHomeSuccessMessage(homeName));
-        }).exceptionally(ex -> {
+        api.delHome(player.getUniqueId(), homeName).thenRun(() -> player.sendMessage(config.getPlayerDelHomeSuccessMessage(homeName))).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else if (ex.getCause() instanceof HomeDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoHomeMessage(homeName));
             } else {
                 player.sendMessage("There was an error deleting the home.");
-                ex.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error deleting home for player " + player.getName(), ex);
             }
             return null;
         });
@@ -276,9 +268,7 @@ public class IslandCommand extends BaseCommand {
 
         OfflinePlayer target = Bukkit.getOfflinePlayer(warpPlayerName);
 
-        api.warp(target.getUniqueId(), warpName, player.getUniqueId()).thenRun(() -> {
-            player.sendMessage(config.getWarpSuccessMessage(warpName));
-        }).exceptionally(ex -> {
+        api.warp(target.getUniqueId(), warpName, player.getUniqueId()).thenRun(() -> player.sendMessage(config.getWarpSuccessMessage(warpName))).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getNoIslandMessage(warpPlayerName));
             } else if (ex.getCause() instanceof WarpDoesNotExistException) {
@@ -291,7 +281,7 @@ public class IslandCommand extends BaseCommand {
                 player.sendMessage(config.getNoActiveServerMessage());
             } else {
                 player.sendMessage("There was an error teleporting to the warp.");
-                ex.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error teleporting to warp for player " + player.getName(), ex);
             }
             return null;
         });
@@ -312,16 +302,14 @@ public class IslandCommand extends BaseCommand {
 
         Location loc = player.getLocation();
 
-        api.setWarp(player.getUniqueId(), warpName, loc).thenRun(() -> {
-            player.sendMessage(config.getPlayerSetWarpSuccessMessage(warpName));
-        }).exceptionally(ex -> {
+        api.setWarp(player.getUniqueId(), warpName, loc).thenRun(() -> player.sendMessage(config.getPlayerSetWarpSuccessMessage(warpName))).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else if (ex.getCause() instanceof LocationNotInIslandException) {
                 player.sendMessage(config.getPlayerMustInIslandSetWarpMessage());
             } else {
                 player.sendMessage("There was an error setting the warp");
-                ex.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error setting warp for player " + player.getName(), ex);
             }
             return null;
         });
@@ -339,16 +327,14 @@ public class IslandCommand extends BaseCommand {
             return;
         }
 
-        api.delWarp(player.getUniqueId(), warpName).thenRun(() -> {
-            player.sendMessage(config.getPlayerDelWarpSuccessMessage(warpName));
-        }).exceptionally(ex -> {
+        api.delWarp(player.getUniqueId(), warpName).thenRun(() -> player.sendMessage(config.getPlayerDelWarpSuccessMessage(warpName))).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else if (ex.getCause() instanceof WarpDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoWarpMessage(warpName));
             } else {
                 player.sendMessage("There was an error deleting the warp.");
-                ex.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error deleting warp for player " + player.getName(), ex);
             }
             return null;
         });
@@ -370,16 +356,14 @@ public class IslandCommand extends BaseCommand {
         UUID playerUuid = player.getUniqueId();
         UUID targetPlayerUuid = targetPlayer.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.setOwner(islandUuid, targetPlayerUuid)).thenRun(() -> {
-            player.sendMessage(config.getPlayerSetOwnerSuccessMessage(targetPlayerName));
-        }).exceptionally(ex -> {
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.setOwner(islandUuid, targetPlayerUuid)).thenRun(() -> player.sendMessage(config.getPlayerSetOwnerSuccessMessage(targetPlayerName))).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else if (ex.getCause() instanceof AlreadyOwnerException) {
                 player.sendMessage(config.getPlayerAlreadyOwnerMessage(targetPlayerName));
             } else {
                 player.sendMessage("There was an error setting the owner.");
-                ex.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error setting owner for island for player " + player.getName(), ex);
             }
             return null;
         });
@@ -397,9 +381,7 @@ public class IslandCommand extends BaseCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.removeMember(islandUuid, playerUuid)).thenRun(() -> {
-            player.sendMessage(config.getPlayerLeaveSuccessMessage());
-        }).exceptionally(ex -> {
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.removeMember(islandUuid, playerUuid)).thenRun(() -> player.sendMessage(config.getPlayerLeaveSuccessMessage())).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else if (ex.getCause() instanceof CannotRemoveOwnerException) {
@@ -408,7 +390,7 @@ public class IslandCommand extends BaseCommand {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else {
                 player.sendMessage("There was an error leaving the island");
-                ex.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error leaving island for player " + player.getName(), ex);
             }
             return null;
         });
@@ -426,14 +408,12 @@ public class IslandCommand extends BaseCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(api::getIslandLevel).thenAccept(level -> {
-            player.sendMessage(config.getIslandLevelMessage(level));
-        }).exceptionally(ex -> {
+        api.getIslandUuid(playerUuid).thenCompose(api::getIslandLevel).thenAccept(level -> player.sendMessage(config.getIslandLevelMessage(level))).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else {
                 player.sendMessage("There was an error calculating the island level.");
-                ex.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error calculating island level for player " + player.getName(), ex);
             }
             return null;
         });
@@ -491,7 +471,7 @@ public class IslandCommand extends BaseCommand {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else {
                 player.sendMessage("There was an error toggling the island lock status.");
-                ex.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error toggling island lock status for player " + player.getName(), ex);
             }
             return null;
         });
@@ -520,7 +500,7 @@ public class IslandCommand extends BaseCommand {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else {
                 player.sendMessage("There was an error toggling the PvP status.");
-                ex.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error toggling PvP status for player " + player.getName(), ex);
             }
             return null;
         });
@@ -539,7 +519,7 @@ public class IslandCommand extends BaseCommand {
 
             sender.sendMessage(config.getTopIslandsHeaderMessage());
 
-            List<CompletableFuture<String>> islandInfoFutures = topIslands.entrySet().stream().map(entry -> {
+            List<CompletableFuture<Component>> islandInfoFutures = topIslands.entrySet().stream().map(entry -> {
                 UUID islandUuid = entry.getKey();
                 int level = entry.getValue();
                 int rank = new ArrayList<>(topIslands.keySet()).indexOf(islandUuid) + 1;
@@ -547,12 +527,13 @@ public class IslandCommand extends BaseCommand {
                 return api.getIslandOwner(islandUuid).thenCombine(api.getIslandMembers(islandUuid), (ownerUuid, members) -> {
                     String ownerName = Bukkit.getOfflinePlayer(ownerUuid).getName();
                     String memberNames = members.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).collect(Collectors.joining(", "));
-                    return config.getTopIslandMessage(rank, ownerName, memberNames, level);
+                    return config.getTopIslandMessage(rank, ownerName, memberNames, level); // ✅ returns Component
                 }).exceptionally(ex -> {
-                    ex.printStackTrace();
-                    return null;
+                    plugin.getLogger().log(Level.SEVERE, "Failed to build top island message for island " + islandUuid, ex);
+                    return Component.text("There was an error retrieving the island information.");
                 });
             }).toList();
+
 
             return CompletableFuture.allOf(islandInfoFutures.toArray(new CompletableFuture[0])).thenApply(v -> islandInfoFutures.stream().map(CompletableFuture::join).filter(Objects::nonNull).collect(Collectors.toList()));
         }).thenAccept(islandInfos -> {
@@ -561,7 +542,7 @@ public class IslandCommand extends BaseCommand {
             }
         }).exceptionally(ex -> {
             sender.sendMessage("There was an error getting the top islands.");
-            ex.printStackTrace();
+            plugin.getLogger().log(Level.SEVERE, "Error getting top islands", ex);
             return null;
         });
     }
@@ -598,7 +579,7 @@ public class IslandCommand extends BaseCommand {
                     int level = levelFuture.get();
 
                     String ownerName = Bukkit.getOfflinePlayer(ownerUuid).getName();
-                    String memberNames = members.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).reduce((a, b) -> a + ", " + b).orElse(config.getIslandInfoNoMembersMessage());
+                    String memberNames = members.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).reduce((a, b) -> a + ", " + b).orElse(LegacyComponentSerializer.legacyAmpersand().serialize(config.getIslandInfoNoMembersMessage()));
 
                     sender.sendMessage(config.getIslandInfoHeaderMessage());
                     sender.sendMessage(config.getIslandInfoUUIDMessage(islandUuid));
@@ -616,7 +597,7 @@ public class IslandCommand extends BaseCommand {
                 sender.sendMessage(config.getPlayerNoIslandMessage());
             } else {
                 sender.sendMessage("There was an error getting the island information.");
-                ex.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error getting island information for player " + player.getName(), ex);
             }
             return null;
         });
@@ -644,14 +625,12 @@ public class IslandCommand extends BaseCommand {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
         UUID targetPlayerUuid = targetPlayer.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.expelPlayer(islandUuid, targetPlayerUuid).thenRun(() -> {
-            sender.sendMessage(config.getPlayerExpelSuccessMessage(targetPlayerName));
-        })).exceptionally(ex -> {
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.expelPlayer(islandUuid, targetPlayerUuid).thenRun(() -> sender.sendMessage(config.getPlayerExpelSuccessMessage(targetPlayerName)))).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
                 sender.sendMessage(config.getPlayerNoIslandMessage());
             } else {
                 sender.sendMessage("There was an error expelling the player.");
-                ex.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error expelling player " + targetPlayerName + " from island of player " + player.getName(), ex);
             }
             return null;
         });
@@ -678,9 +657,7 @@ public class IslandCommand extends BaseCommand {
         UUID playerUuid = player.getUniqueId();
         UUID targetPlayerUuid = targetPlayer.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.banPlayer(islandUuid, targetPlayerUuid)).thenRun(() -> {
-            player.sendMessage(config.getPlayerBanSuccessMessage(targetPlayerName));
-        }).exceptionally(ex -> {
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.banPlayer(islandUuid, targetPlayerUuid)).thenRun(() -> player.sendMessage(config.getPlayerBanSuccessMessage(targetPlayerName))).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else if (ex.getCause() instanceof PlayerAlreadyBannedException) {
@@ -689,7 +666,7 @@ public class IslandCommand extends BaseCommand {
                 player.sendMessage(config.getPlayerCannotBanIslandPlayerMessage());
             } else {
                 player.sendMessage("There was an error banning the player.");
-                ex.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error banning player " + targetPlayerName + " from island of player " + player.getName(), ex);
             }
             return null;
         });
@@ -711,16 +688,14 @@ public class IslandCommand extends BaseCommand {
         UUID playerUuid = player.getUniqueId();
         UUID targetPlayerUuid = targetPlayer.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.unbanPlayer(islandUuid, targetPlayerUuid)).thenRun(() -> {
-            player.sendMessage(config.getPlayerUnbanSuccessMessage(targetPlayerName));
-        }).exceptionally(ex -> {
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.unbanPlayer(islandUuid, targetPlayerUuid)).thenRun(() -> player.sendMessage(config.getPlayerUnbanSuccessMessage(targetPlayerName))).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else if (ex.getCause() instanceof PlayerNotBannedException) {
                 player.sendMessage(config.getPlayerNotBannedMessage(targetPlayerName));
             } else {
                 player.sendMessage("There was an error unbanning the player.");
-                ex.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error unbanning player " + targetPlayerName + " from island of player " + player.getName(), ex);
             }
             return null;
         });
@@ -744,24 +719,27 @@ public class IslandCommand extends BaseCommand {
                 return;
             }
 
-            StringBuilder bannedList = new StringBuilder(config.getBannedPlayersHeaderMessage());
+            Component bannedList = config.getBannedPlayersHeaderMessage();
             for (UUID bannedPlayerUuid : bannedPlayers) {
                 OfflinePlayer bannedPlayer = Bukkit.getOfflinePlayer(bannedPlayerUuid);
                 String playerName = bannedPlayer.getName();
                 if (playerName == null) {
                     playerName = bannedPlayerUuid.toString();
                 }
-                bannedList.append(config.getBannedPlayerMessage(playerName));
+                bannedList = bannedList.append(config.getBannedPlayerMessage(playerName));
             }
-            player.sendMessage(bannedList.toString());
+
+            player.sendMessage(bannedList);
+
         }).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else {
-                player.sendMessage("There was an error retrieving the ban list.");
-                ex.printStackTrace();
+                player.sendMessage(Component.text("There was an error retrieving the ban list."));
+                plugin.getLogger().log(Level.SEVERE, "Error retrieving ban list for " + player.getName(), ex);
             }
             return null;
         });
+
     }
 }

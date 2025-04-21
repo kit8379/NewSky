@@ -28,19 +28,15 @@ public class LevelHandler {
     }
 
     public CompletableFuture<Integer> getIslandLevel(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getIslandLevel(islandUuid);
-        }, plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> cacheHandler.getIslandLevel(islandUuid), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Map<UUID, Integer>> getTopIslandLevels(int size) {
-        return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getTopIslandLevels(size);
-        }, plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> cacheHandler.getTopIslandLevels(size), plugin.getBukkitAsyncExecutor());
     }
 
-    public CompletableFuture<Void> calIslandLevel(UUID islandUuid) {
-        return CompletableFuture.runAsync(() -> {
+    public void calIslandLevel(UUID islandUuid) {
+        CompletableFuture.runAsync(() -> {
             String islandName = IslandUtils.UUIDToName(islandUuid);
 
             Location center = LocationUtils.stringToLocation(islandName, config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch());

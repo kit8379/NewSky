@@ -1,0 +1,88 @@
+// IslandLimitListener.java
+package org.me.newsky.listener;
+
+import org.bukkit.Material;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.me.newsky.NewSky;
+import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.util.IslandUtils;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+public class IslandLimitListener implements Listener {
+
+    private final NewSky plugin;
+    private final ConfigHandler config;
+    private final CacheHandler cacheHandler;
+
+    private final Map<UUID, Map<Material, Integer>> islandBlockCounts = new HashMap<>();
+    private final Map<UUID, Map<EntityType, Integer>> islandEntityCounts = new HashMap<>();
+
+    public IslandLimitListener(NewSky plugin, ConfigHandler config, CacheHandler cacheHandler) {
+        this.plugin = plugin;
+        this.config = config;
+        this.cacheHandler = cacheHandler;
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onBlockPlace(BlockPlaceEvent event) {
+        Player player = event.getPlayer();
+        String worldName = player.getWorld().getName();
+        UUID islandUuid = IslandUtils.nameToUUID(worldName);
+        Material type = event.getBlock().getType();
+
+        if (!canPlace(islandUuid, type)) {
+            player.sendMessage(config.getBlockLimitMessage(type.name()));
+            event.setCancelled(true);
+            plugin.debug("Player " + player.getName() + " exceeded block limit on island " + islandUuid);
+            return;
+        }
+
+        registerBlockPlace(islandUuid, type);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onEntitySpawn(CreatureSpawnEvent event) {
+        String worldName = event.getLocation().getWorld().getName();
+        if (!worldName.startsWith("island-")) return;
+
+        UUID islandUuid = IslandUtils.nameToUUID(worldName);
+        EntityType type = event.getEntityType();
+
+        if (!canSpawn(islandUuid, type)) {
+            event.setCancelled(true);
+            plugin.debug("Entity " + type + " spawn cancelled on island " + islandUuid);
+        } else {
+            registerEntitySpawn(islandUuid, type);
+        }
+    }
+
+    private boolean canPlace(UUID islandId, Material type) {
+        int current = islandBlockCounts.getOrDefault(islandId, new HashMap<>()).getOrDefault(type, 0);
+        int limit = config.getBlockLimit(type.name());
+        return limit == -1 || current < limit;
+    }
+
+    private boolean canSpawn(UUID islandId, EntityType type) {
+        int current = islandEntityCounts.getOrDefault(islandId, new HashMap<>()).getOrDefault(type, 0);
+        int limit = config.getEntityLimit(type.name());
+        return limit == -1 || current < limit;
+    }
+
+    private void registerBlockPlace(UUID islandId, Material type) {
+        islandBlockCounts.computeIfAbsent(islandId, id -> new HashMap<>()).merge(type, 1, Integer::sum);
+    }
+
+    private void registerEntitySpawn(UUID islandId, EntityType type) {
+        islandEntityCounts.computeIfAbsent(islandId, id -> new HashMap<>()).merge(type, 1, Integer::sum);
+    }
+}

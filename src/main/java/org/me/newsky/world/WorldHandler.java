@@ -40,12 +40,11 @@ public class WorldHandler {
         // Set world properties
         properties = new SlimePropertyMap();
         properties.setValue(SlimeProperties.DIFFICULTY, "normal");
+        properties.setValue(SlimeProperties.ENVIRONMENT, "normal");
         properties.setValue(SlimeProperties.SPAWN_X, config.getIslandSpawnX());
         properties.setValue(SlimeProperties.SPAWN_Y, config.getIslandSpawnY());
         properties.setValue(SlimeProperties.SPAWN_Z, config.getIslandSpawnZ());
-        properties.setValue(SlimeProperties.ENVIRONMENT, "normal");
-        properties.setValue(SlimeProperties.DEFAULT_BIOME, "plains");
-        properties.setValue(SlimeProperties.DEFAULT_BIOME, "minecraft:plains");
+
     }
 
     public CompletableFuture<Void> createWorld(String worldName) {

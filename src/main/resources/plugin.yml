@@ -9,9 +9,9 @@ softdepend:
   - 'Vault'
   - 'PlaceholderAPI'
 libraries:
-  - 'com.mysql:mysql-connector-j:8.3.0'
-  - 'redis.clients:jedis:5.1.0'
-  - 'com.zaxxer:HikariCP:5.0.1'
+  - 'com.mysql:mysql-connector-j:${mysql.version}'
+  - 'com.zaxxer:HikariCP:${hikari.version}'
+  - 'redis.clients:jedis:${jedis.version}'
 commands:
   island:
     description: Island command
@@ -20,7 +20,7 @@ commands:
     aliases: [ is ]
   islandadmin:
     description: Island admin command
-    usage: /<command>sto
+    usage: /<command>
     permission: island.admin
     aliases: [ isadmin ]
 permissions:

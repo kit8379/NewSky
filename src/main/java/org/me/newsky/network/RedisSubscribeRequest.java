@@ -7,6 +7,7 @@ import redis.clients.jedis.JedisPubSub;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
 
 public class RedisSubscribeRequest {
 
@@ -44,7 +45,7 @@ public class RedisSubscribeRequest {
                         redisHandler.publish("newsky-response-channel", responseMessage);
                         plugin.debug("Sent success response back to " + sourceServer + " for request ID " + requestID);
                     }).exceptionally(e -> {
-                        e.printStackTrace();
+                        plugin.getLogger().log(Level.SEVERE, "Failed to process request: " + e.getMessage());
                         String responseMessage = String.join(":", "response", "fail", requestID, serverID, sourceServer);
                         redisHandler.publish("newsky-response-channel", responseMessage);
                         plugin.debug("Sent failure response back to " + sourceServer + " for request ID " + requestID);

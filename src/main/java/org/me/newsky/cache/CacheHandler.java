@@ -1,17 +1,21 @@
 package org.me.newsky.cache;
 
+import org.me.newsky.NewSky;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.Jedis;
 
 import java.util.*;
+import java.util.logging.Level;
 
 public class CacheHandler {
 
+    private final NewSky plugin;
     private final RedisHandler redisHandler;
     private final DatabaseHandler databaseHandler;
 
-    public CacheHandler(RedisHandler redisHandler, DatabaseHandler databaseHandler) {
+    public CacheHandler(NewSky plugin, RedisHandler redisHandler, DatabaseHandler databaseHandler) {
+        this.plugin = plugin;
         this.redisHandler = redisHandler;
         this.databaseHandler = databaseHandler;
     }
@@ -54,7 +58,7 @@ public class CacheHandler {
                     jedis.hmset("island_data:" + islandUuid, islandData);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error while caching island data to Redis", e);
             }
         });
     }
@@ -71,7 +75,7 @@ public class CacheHandler {
                     jedis.hmset("island_players:" + islandUuid + ":" + playerUuid, playerData);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error while caching island players to Redis", e);
             }
         });
     }
@@ -87,7 +91,7 @@ public class CacheHandler {
                     jedis.hset("island_homes:" + islandUuid + ":" + playerUuid, homeName, homeLocation);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error while caching island homes to Redis", e);
             }
         });
     }
@@ -103,7 +107,7 @@ public class CacheHandler {
                     jedis.hset("island_warps:" + islandUuid + ":" + playerUuid, warpName, warpLocation);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error while caching island warps to Redis", e);
             }
         });
     }
@@ -117,7 +121,7 @@ public class CacheHandler {
                     jedis.hset("island_levels", islandUuid, String.valueOf(level));
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error while caching island levels to Redis", e);
             }
         });
     }
@@ -131,7 +135,7 @@ public class CacheHandler {
                     jedis.sadd("island_bans:" + islandUuid, bannedPlayer);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Error while caching island bans to Redis", e);
             }
         });
     }
@@ -262,7 +266,7 @@ public class CacheHandler {
             String lock = jedis.hget("island_data:" + islandUuid.toString(), "lock");
             return Boolean.parseBoolean(lock);
         } catch (Exception e) {
-            e.printStackTrace();
+            plugin.getLogger().log(Level.SEVERE, "Error while getting island lock status", e);
             return false;
         }
     }
@@ -272,7 +276,7 @@ public class CacheHandler {
             String pvp = jedis.hget("island_data:" + islandUuid.toString(), "pvp");
             return Boolean.parseBoolean(pvp);
         } catch (Exception e) {
-            e.printStackTrace();
+            plugin.getLogger().log(Level.SEVERE, "Error while getting island pvp status", e);
             return false;
         }
     }
@@ -285,7 +289,7 @@ public class CacheHandler {
             }
             return Optional.ofNullable(jedis.hget(key, homeName));
         } catch (Exception e) {
-            e.printStackTrace();
+            plugin.getLogger().log(Level.SEVERE, "Error while getting home location", e);
             return Optional.empty();
         }
     }
@@ -295,7 +299,7 @@ public class CacheHandler {
             String key = "island_homes:" + islandUuid + ":" + playerUuid;
             return jedis.hkeys(key);
         } catch (Exception e) {
-            e.printStackTrace();
+            plugin.getLogger().log(Level.SEVERE, "Error while getting home names", e);
             return Collections.emptySet();
         }
     }
@@ -308,7 +312,7 @@ public class CacheHandler {
             }
             return Optional.ofNullable(jedis.hget(key, warpName));
         } catch (Exception e) {
-            e.printStackTrace();
+            plugin.getLogger().log(Level.SEVERE, "Error while getting warp location", e);
             return Optional.empty();
         }
     }
@@ -318,7 +322,7 @@ public class CacheHandler {
             String key = "island_warps:" + islandUuid + ":" + playerUuid;
             return jedis.hkeys(key);
         } catch (Exception e) {
-            e.printStackTrace();
+            plugin.getLogger().log(Level.SEVERE, "Error while getting warp names", e);
             return Collections.emptySet();
         }
     }

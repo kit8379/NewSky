@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
 
 
 /**
@@ -93,7 +94,11 @@ public class PreIslandHandler {
         if (islandServer == null) {
             return CompletableFuture.failedFuture(new IslandNotLoadedException());
         } else {
-            return publishRequest.sendRequest(islandServer, "unload", islandUuid.toString());
+            if (islandServer.equals(serverID)) {
+                return postIslandHandler.unloadIsland(islandUuid);
+            } else {
+                return publishRequest.sendRequest(islandServer, "unload", islandUuid.toString());
+            }
         }
     }
 
@@ -102,7 +107,11 @@ public class PreIslandHandler {
         if (islandServer == null) {
             CompletableFuture.completedFuture(null);
         } else {
-            publishRequest.sendRequest(islandServer, "lock", islandUuid.toString());
+            if (islandServer.equals(serverID)) {
+                postIslandHandler.lockIsland(islandUuid);
+            } else {
+                publishRequest.sendRequest(islandServer, "lock", islandUuid.toString());
+            }
         }
     }
 
@@ -111,7 +120,11 @@ public class PreIslandHandler {
         if (islandServer == null) {
             CompletableFuture.completedFuture(null);
         } else {
-            publishRequest.sendRequest(islandServer, "expel", islandUuid.toString(), playerUuid.toString());
+            if (islandServer.equals(serverID)) {
+                postIslandHandler.expelPlayer(islandUuid, playerUuid);
+            } else {
+                publishRequest.sendRequest(islandServer, "expel", islandUuid.toString(), playerUuid.toString());
+            }
         }
     }
 
@@ -122,13 +135,17 @@ public class PreIslandHandler {
             if (randomServer == null) {
                 return CompletableFuture.failedFuture(new NoActiveServerException());
             }
-            return publishRequest.sendRequest(randomServer, "teleport", islandUuid.toString(), playerUuid.toString(), teleportLocation).thenRun(() -> {
-                connectToServer(playerUuid, randomServer);
-            });
+            if (randomServer.equals(serverID)) {
+                return postIslandHandler.teleportToIsland(islandUuid, playerUuid, teleportLocation);
+            } else {
+                return publishRequest.sendRequest(randomServer, "teleport", islandUuid.toString(), playerUuid.toString(), teleportLocation).thenRun(() -> connectToServer(playerUuid, randomServer));
+            }
         } else {
-            return publishRequest.sendRequest(islandServer, "teleport", islandUuid.toString(), playerUuid.toString(), teleportLocation).thenRun(() -> {
-                connectToServer(playerUuid, islandServer);
-            });
+            if (islandServer.equals(serverID)) {
+                return postIslandHandler.teleportToIsland(islandUuid, playerUuid, teleportLocation);
+            } else {
+                return publishRequest.sendRequest(islandServer, "teleport", islandUuid.toString(), playerUuid.toString(), teleportLocation).thenRun(() -> connectToServer(playerUuid, islandServer));
+            }
         }
     }
 
@@ -180,7 +197,7 @@ public class PreIslandHandler {
                 out.writeUTF(serverName);
                 player.sendPluginMessage(plugin, "BungeeCord", byteArray.toByteArray());
             } catch (IOException e) {
-                e.printStackTrace();
+                plugin.getLogger().log(Level.SEVERE, "Failed to send plugin message to player " + player.getName(), e);
             }
         }
     }

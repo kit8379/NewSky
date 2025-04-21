@@ -23,7 +23,6 @@ import org.me.newsky.scheduler.IslandUnloadScheduler;
 import org.me.newsky.scheduler.LevelUpdateScheduler;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.thread.BukkitAsyncExecutor;
-import org.me.newsky.util.ColorUtils;
 import org.me.newsky.world.WorldHandler;
 
 import java.io.IOException;
@@ -91,7 +90,7 @@ public class NewSky extends JavaPlugin {
             info("Database connection success!");
 
             info("Starting cache handler");
-            cacheHandler = new CacheHandler(redisHandler, databaseHandler);
+            cacheHandler = new CacheHandler(this, redisHandler, databaseHandler);
             info("Cache handler loaded");
 
             info("Starting teleport handler");
@@ -122,14 +121,14 @@ public class NewSky extends JavaPlugin {
             getServer().getMessenger().registerOutgoingPluginChannel(this, "BungeeCord");
             info("Plugin messaging loaded");
 
-            info("Starting API");
-            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler);
-            info("API loaded");
-
             info("Starting all schedulers for the plugin");
             islandUnloadScheduler = new IslandUnloadScheduler(this, config, cacheHandler, worldHandler);
             levelUpdateScheduler = new LevelUpdateScheduler(this, config, levelHandler);
             info("All schedulers loaded");
+
+            info("Starting API");
+            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler);
+            info("API loaded");
 
             info("Starting listeners and commands");
             registerListeners();
@@ -149,8 +148,8 @@ public class NewSky extends JavaPlugin {
             brokerRequestSubscribe.subscribeToRequestChannel();
 
         } catch (Exception e) {
-            e.printStackTrace();
-            info("Plugin initialization failed!");
+            warning("Plugin initialization failed!");
+            warning(e.getMessage());
             getServer().getPluginManager().disablePlugin(this);
         }
     }
@@ -159,9 +158,9 @@ public class NewSky extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, cacheHandler, serverID), this);
         getServer().getPluginManager().registerEvents(new WorldInitListener(this), this);
         getServer().getPluginManager().registerEvents(new TeleportRequestListener(this, teleportHandler), this);
-        getServer().getPluginManager().registerEvents(new IslandProtectionListener(config, cacheHandler), this);
-        getServer().getPluginManager().registerEvents(new IslandMoveListener(config, cacheHandler), this);
-        getServer().getPluginManager().registerEvents(new IslandPvPListener(config, cacheHandler), this);
+        getServer().getPluginManager().registerEvents(new IslandProtectionListener(this, config, cacheHandler), this);
+        getServer().getPluginManager().registerEvents(new IslandMoveListener(this, config, cacheHandler), this);
+        getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config, cacheHandler), this);
     }
 
     private void registerCommands() throws IOException, InvalidConfigurationException {
@@ -171,7 +170,7 @@ public class NewSky extends JavaPlugin {
         commandManager.getLocales().loadYamlLanguageFile("messages.yml", Locale.ENGLISH);
 
         // Register the IslandCommand
-        IslandCommand islandCommand = new IslandCommand(config, api);
+        IslandCommand islandCommand = new IslandCommand(this, config, api);
         IslandAdminCommand islandAdminCommand = new IslandAdminCommand(this, config, api);
         commandManager.registerCommand(islandCommand);
         commandManager.registerCommand(islandAdminCommand);
@@ -276,7 +275,7 @@ public class NewSky extends JavaPlugin {
     @SuppressWarnings("unused")
     public void debug(String message) {
         if (config.isDebug()) {
-            info(ColorUtils.colorize(config.getDebugPrefix()) + message);
+            info("DEBUG: " + message);
         }
     }
 }

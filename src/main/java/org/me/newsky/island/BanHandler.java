@@ -48,9 +48,7 @@ public class BanHandler {
     }
 
     public CompletableFuture<Set<UUID>> getBannedPlayers(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> {
-            return cacheHandler.getBannedPlayers(islandUuid);
-        }, plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> cacheHandler.getBannedPlayers(islandUuid), plugin.getBukkitAsyncExecutor());
     }
 
 }
