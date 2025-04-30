@@ -12,18 +12,19 @@ import org.me.newsky.network.RedisPublishRequest;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.security.SecureRandom;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.logging.Level;
-
 
 /**
  * Handles pre-island operations such as creating, deleting, loading, unloading, and locking islands.
  * This class is responsible for sending requests to the appropriate server to perform these operations.
  */
 public class PreIslandHandler {
+
+    private static final SecureRandom secureRandom = new SecureRandom();
 
     private final NewSky plugin;
     private final CacheHandler cacheHandler;
@@ -39,7 +40,6 @@ public class PreIslandHandler {
         this.serverID = serverID;
     }
 
-
     public CompletableFuture<Void> createIsland(UUID islandUuid) {
         String randomServer = getRandomServer();
         if (randomServer == null) {
@@ -51,7 +51,6 @@ public class PreIslandHandler {
             return publishRequest.sendRequest(randomServer, "create", islandUuid.toString());
         }
     }
-
 
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
         String islandServer = getServerByIsland(islandUuid);
@@ -149,7 +148,6 @@ public class PreIslandHandler {
         }
     }
 
-
     /**
      * Get a random server from the list of active servers
      *
@@ -161,13 +159,12 @@ public class PreIslandHandler {
             return null;
         }
         String[] serverNames = activeServers.keySet().toArray(new String[0]);
-        int randomIndex = ThreadLocalRandom.current().nextInt(serverNames.length);
+        int randomIndex = secureRandom.nextInt(serverNames.length);
         return serverNames[randomIndex];
     }
 
-
     /**
-     * Get the server that is currently loaded with the specified island
+     * Get the server currently loaded with the specified island
      *
      * @param islandUuid The UUID of the island
      * @return The server name that is currently loaded with the island
@@ -179,7 +176,6 @@ public class PreIslandHandler {
         }
         return serverName;
     }
-
 
     /**
      * Connect a player to a server
