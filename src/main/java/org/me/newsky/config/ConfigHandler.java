@@ -8,9 +8,7 @@ import org.me.newsky.util.ColorUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.logging.Level;
 
 public class ConfigHandler {
@@ -19,6 +17,7 @@ public class ConfigHandler {
     private FileConfiguration messages;
     private FileConfiguration levels;
     private FileConfiguration limits;
+    private FileConfiguration upgrades;
 
     public ConfigHandler(NewSky plugin) {
         this.plugin = plugin;
@@ -31,6 +30,7 @@ public class ConfigHandler {
         messages = loadConfig("messages.yml");
         levels = loadConfig("levels.yml");
         limits = loadConfig("limits.yml");
+        upgrades = loadConfig("upgrades.yml");
     }
 
     private FileConfiguration loadConfig(String fileName) {
@@ -46,6 +46,7 @@ public class ConfigHandler {
         updateConfig(messages, "messages.yml");
         updateConfig(levels, "levels.yml");
         updateConfig(limits, "limits.yml");
+        updateConfig(upgrades, "upgrades.yml");
     }
 
     private void updateConfig(FileConfiguration config, String fileName) {
@@ -199,6 +200,26 @@ public class ConfigHandler {
 
     public int getEntityLimit(String entity) {
         return limits.getInt("entities." + entity, -1);
+    }
+
+    public boolean hasUpgradeRank(int rank) {
+        return upgrades.contains("ranks." + rank);
+    }
+
+    public int getRequiredLevelForRank(int rank) {
+        return upgrades.getInt("ranks." + rank + ".require.island-level");
+    }
+
+    public int getUpgradeCostForRank(int rank) {
+        return upgrades.getInt("ranks." + rank + ".require.cost");
+    }
+
+    public int getIslandSizeForRank(int rank) {
+        return upgrades.getInt("ranks." + rank + ".reward.size");
+    }
+
+    public List<String> getPermissionsForRank(int rank) {
+        return upgrades.getStringList("ranks." + rank + ".reward.permissions");
     }
 
 
@@ -461,7 +482,6 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.player-leave-success"));
     }
 
-
     // Info
     public Component getIslandInfoHeaderMessage() {
         return ColorUtils.colorize(messages.getString("messages.island-info-header"));
@@ -555,7 +575,6 @@ public class ConfigHandler {
     public Component getPlayerNotOnlineMessage(String playerName) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-not-online")).replace("{player}", playerName));
     }
-
 
     public Component getBlockLimitMessage(String block) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.block-limit-reached")).replace("{block}", block));

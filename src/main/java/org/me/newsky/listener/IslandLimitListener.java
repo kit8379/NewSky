@@ -10,7 +10,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.util.IslandUtils;
 
@@ -22,15 +21,13 @@ public class IslandLimitListener implements Listener {
 
     private final NewSky plugin;
     private final ConfigHandler config;
-    private final CacheHandler cacheHandler;
 
     private final Map<UUID, Map<Material, Integer>> islandBlockCounts = new HashMap<>();
     private final Map<UUID, Map<EntityType, Integer>> islandEntityCounts = new HashMap<>();
 
-    public IslandLimitListener(NewSky plugin, ConfigHandler config, CacheHandler cacheHandler) {
+    public IslandLimitListener(NewSky plugin, ConfigHandler config) {
         this.plugin = plugin;
         this.config = config;
-        this.cacheHandler = cacheHandler;
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)

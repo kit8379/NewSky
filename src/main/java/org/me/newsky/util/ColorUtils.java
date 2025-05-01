@@ -13,13 +13,10 @@ public class ColorUtils {
      * Supports BOTH MiniMessage syntax and legacy '&' and '&#RRGGBB' color codes.
      */
     public static Component colorize(String message) {
-        // Step 1: Convert legacy color codes into Component
         Component legacyComponent = LEGACY.deserialize(message);
 
-        // Step 2: Serialize legacy component to MiniMessage-compatible string
         String miniFormat = MINI.serialize(legacyComponent);
 
-        // Step 3: Deserialize MiniMessage (to handle things like <bold>, <hover>, etc.)
         return MINI.deserialize(miniFormat);
     }
 }
