@@ -6,10 +6,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.cache.RedisCacheHandler;
 import org.me.newsky.command.IslandAdminCommand;
 import org.me.newsky.command.IslandCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
+import org.me.newsky.database.MariaDBDatabaseHandler;
 import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.island.*;
 import org.me.newsky.island.middleware.PostIslandHandler;
@@ -86,11 +88,11 @@ public class NewSky extends JavaPlugin {
             info("Redis connection success!");
 
             info("Start connecting to Database now...");
-            databaseHandler = new DatabaseHandler(config);
+            databaseHandler = new MariaDBDatabaseHandler(config);
             info("Database connection success!");
 
             info("Starting cache handler");
-            cacheHandler = new CacheHandler(this, redisHandler, databaseHandler);
+            cacheHandler = new RedisCacheHandler(this, redisHandler, databaseHandler);
             info("Cache handler loaded");
 
             info("Starting teleport handler");
@@ -140,7 +142,7 @@ public class NewSky extends JavaPlugin {
             info("Placeholder registered");
 
             databaseHandler.createTables();
-            cacheHandler.cacheAllDataToRedis();
+            cacheHandler.cacheAllData();
             heartBeatHandler.start();
             islandUnloadScheduler.start();
             levelUpdateScheduler.start();
@@ -265,11 +267,6 @@ public class NewSky extends JavaPlugin {
     @SuppressWarnings("unused")
     public void warning(String message) {
         getLogger().warning(message);
-    }
-
-    @SuppressWarnings("unused")
-    public void severe(String message) {
-        getLogger().severe(message);
     }
 
     @SuppressWarnings("unused")
