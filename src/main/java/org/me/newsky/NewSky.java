@@ -12,13 +12,15 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.island.*;
-import org.me.newsky.island.middleware.PostIslandHandler;
-import org.me.newsky.island.middleware.PreIslandHandler;
+import org.me.newsky.island.middleware.LocalIslandOperation;
+import org.me.newsky.island.middleware.IslandServiceDistributor;
 import org.me.newsky.listener.*;
-import org.me.newsky.network.RedisPublishRequest;
-import org.me.newsky.network.RedisSubscribeRequest;
+import org.me.newsky.network.Broker;
 import org.me.newsky.placeholder.NewSkyPlaceholderExpansion;
 import org.me.newsky.redis.RedisHandler;
+import org.me.newsky.routing.RandomServerSelector;
+import org.me.newsky.routing.RoundRobinServerSelector;
+import org.me.newsky.routing.ServerSelector;
 import org.me.newsky.scheduler.IslandUnloadScheduler;
 import org.me.newsky.scheduler.LevelUpdateScheduler;
 import org.me.newsky.teleport.TeleportHandler;
@@ -42,8 +44,7 @@ public class NewSky extends JavaPlugin {
     private HeartBeatHandler heartBeatHandler;
     private IslandUnloadScheduler islandUnloadScheduler;
     private LevelUpdateScheduler levelUpdateScheduler;
-    private RedisPublishRequest brokerRequestPublish;
-    private RedisSubscribeRequest brokerRequestSubscribe;
+    private Broker broker;
     private NewSkyAPI api;
     private BukkitAsyncExecutor bukkitAsyncExecutor;
     private String serverID;
@@ -101,20 +102,33 @@ public class NewSky extends JavaPlugin {
             heartBeatHandler = new HeartBeatHandler(this, config, cacheHandler, serverID);
             info("Heart Beat started!");
 
+            info("Starting server selector");
+            ServerSelector serverSelector;
+            switch (config.getServerSelector().toLowerCase()) {
+                case "round-robin":
+                    serverSelector = new RoundRobinServerSelector(cacheHandler);
+                    break;
+                case "random":
+                    serverSelector = new RandomServerSelector();
+                    break;
+                default:
+                    serverSelector = new RandomServerSelector();
+            }
+            info("Server selector loaded");
+
             info("Starting handlers for remote requests");
-            PostIslandHandler postIslandHandler = new PostIslandHandler(this, cacheHandler, worldHandler, teleportHandler, serverID);
-            brokerRequestSubscribe = new RedisSubscribeRequest(this, redisHandler, serverID, postIslandHandler);
-            brokerRequestPublish = new RedisPublishRequest(this, redisHandler, serverID);
-            PreIslandHandler preIslandHandler = new PreIslandHandler(this, cacheHandler, brokerRequestPublish, postIslandHandler, serverID);
+            LocalIslandOperation localIslandOperation = new LocalIslandOperation(this, cacheHandler, worldHandler, teleportHandler, serverID);
+            broker = new Broker(this, redisHandler, localIslandOperation, serverID);
+            IslandServiceDistributor islandServiceDistributor = new IslandServiceDistributor(this, cacheHandler, broker, localIslandOperation, serverSelector, serverID);
             info("All handlers for remote requests loaded");
 
             info("Starting main handlers for the plugin");
-            IslandHandler islandHandler = new IslandHandler(this, config, cacheHandler, preIslandHandler);
+            IslandHandler islandHandler = new IslandHandler(this, config, cacheHandler, islandServiceDistributor);
             PlayerHandler playerHandler = new PlayerHandler(this, cacheHandler);
-            HomeHandler homeHandler = new HomeHandler(this, cacheHandler, preIslandHandler);
-            WarpHandler warpHandler = new WarpHandler(this, cacheHandler, preIslandHandler);
+            HomeHandler homeHandler = new HomeHandler(this, cacheHandler, islandServiceDistributor);
+            WarpHandler warpHandler = new WarpHandler(this, cacheHandler, islandServiceDistributor);
             LevelHandler levelHandler = new LevelHandler(this, config, cacheHandler);
-            BanHandler banHandler = new BanHandler(this, cacheHandler, preIslandHandler);
+            BanHandler banHandler = new BanHandler(this, cacheHandler, islandServiceDistributor);
             info("All main handlers loaded");
 
             info("Starting plugin messaging");
@@ -144,9 +158,7 @@ public class NewSky extends JavaPlugin {
             heartBeatHandler.start();
             islandUnloadScheduler.start();
             levelUpdateScheduler.start();
-            brokerRequestPublish.subscribeToResponseChannel();
-            brokerRequestSubscribe.subscribeToRequestChannel();
-
+            broker.subscribe();
         } catch (Exception e) {
             warning("Plugin initialization failed!");
             warning(e.getMessage());
@@ -228,8 +240,7 @@ public class NewSky extends JavaPlugin {
     }
 
     public void shutdown() {
-        brokerRequestSubscribe.unsubscribeFromRequestChannel();
-        brokerRequestPublish.unsubscribeFromResponseChannel();
+        broker.unsubscribe();
         levelUpdateScheduler.stop();
         islandUnloadScheduler.stop();
         heartBeatHandler.stop();

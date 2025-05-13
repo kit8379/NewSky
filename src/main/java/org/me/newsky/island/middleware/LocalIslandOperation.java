@@ -18,7 +18,7 @@ import java.util.concurrent.CompletableFuture;
  * Handles post-island operations such as creating, deleting, loading, unloading, and locking islands.
  * This class is responsible for performing these operations on the server where the actual operation is to be performed.
  */
-public class PostIslandHandler {
+public class LocalIslandOperation {
 
     private final NewSky plugin;
     private final CacheHandler cacheHandler;
@@ -26,7 +26,7 @@ public class PostIslandHandler {
     private final TeleportHandler teleportHandler;
     private final String serverID;
 
-    public PostIslandHandler(NewSky plugin, CacheHandler cacheHandler, WorldHandler worldHandler, TeleportHandler teleportHandler, String serverID) {
+    public LocalIslandOperation(NewSky plugin, CacheHandler cacheHandler, WorldHandler worldHandler, TeleportHandler teleportHandler, String serverID) {
         this.plugin = plugin;
         this.cacheHandler = cacheHandler;
         this.worldHandler = worldHandler;
@@ -41,6 +41,7 @@ public class PostIslandHandler {
 
         worldHandler.createWorld(islandName).thenRun(() -> {
             cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
+            plugin.debug("Island " + islandName + " created and loaded on server " + serverID);
             future.complete(null);
         });
 
@@ -54,6 +55,7 @@ public class PostIslandHandler {
 
         worldHandler.deleteWorld(islandName).thenRun(() -> {
             cacheHandler.removeIslandLoadedServer(islandUuid);
+            plugin.debug("Island " + islandName + " deleted from server " + serverID);
             future.complete(null);
         });
 
@@ -67,6 +69,7 @@ public class PostIslandHandler {
 
         worldHandler.loadWorld(islandName).thenRun(() -> {
             cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
+            plugin.debug("Island " + islandName + " loaded on server " + serverID);
             future.complete(null);
         });
 
@@ -80,6 +83,7 @@ public class PostIslandHandler {
 
         worldHandler.unloadWorld(islandName).thenRun(() -> {
             cacheHandler.removeIslandLoadedServer(islandUuid);
+            plugin.debug("Island " + islandName + " unloaded from server " + serverID);
             future.complete(null);
         });
 

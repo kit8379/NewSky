@@ -37,7 +37,7 @@ public class IslandUnloadScheduler {
     }
 
     private void checkAndUnloadWorlds() {
-        plugin.debug("Checking for inactive island worlds...");
+        plugin.debug("Starting scheduled task to check for inactive island worlds.");
         long currentTime = System.currentTimeMillis();
         plugin.getServer().getWorlds().forEach(world -> {
             if (world.getName().startsWith("island-") && world.getPlayers().isEmpty()) {

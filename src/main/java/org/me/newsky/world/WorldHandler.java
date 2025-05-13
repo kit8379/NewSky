@@ -32,7 +32,7 @@ public class WorldHandler {
         this.teleportHandler = teleportHandler;
 
         try {
-            this.slimeLoader = new MysqlLoader("jdbc:mysql://{host}:{port}/{database}?useSSL={usessl}&autoReconnect=true&useUnicode=true&characterEncoding=utf8&allowPublicKeyRetrieval=true", config.getMySQLHost(), config.getMySQLPort(), "slimeworld", false, config.getMySQLUsername(), config.getMySQLPassword());
+            this.slimeLoader = new MysqlLoader("jdbc:mysql://{host}:{port}/{database}?useSSL={usessl}&autoReconnect=true&useUnicode=true&characterEncoding=utf8", config.getMySQLHost(), config.getMySQLPort(), "slimeworld", false, config.getMySQLUsername(), config.getMySQLPassword());
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
@@ -98,7 +98,9 @@ public class WorldHandler {
     public CompletableFuture<Void> unloadWorld(String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        unloadWorldFromBukkit(worldName, true).thenRun(() -> future.complete(null));
+        unloadWorldFromBukkit(worldName, true).thenRun(() -> {
+            future.complete(null);
+        });
 
         return future;
     }

@@ -23,4 +23,14 @@ public class IslandUtils {
     public static String UUIDToName(UUID islandUuid) {
         return "island-" + islandUuid.toString();
     }
+
+    /**
+     * Checks if the given island name is valid.
+     *
+     * @param islandName the name of the island
+     * @return true if the island name is valid, false otherwise
+     */
+    public static boolean isIslandWorld(String islandName) {
+        return islandName.startsWith("island-");
+    }
 }

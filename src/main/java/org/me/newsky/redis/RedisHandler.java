@@ -38,6 +38,7 @@ public class RedisHandler {
         CompletableFuture.runAsync(() -> {
             try (Jedis jedis = getJedis()) {
                 jedis.publish(channel, message);
+                plugin.debug("Published message " + message + " to channel " + channel);
             }
         }, plugin.getBukkitAsyncExecutor());
     }

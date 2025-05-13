@@ -6,6 +6,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldInitEvent;
 import org.me.newsky.NewSky;
+import org.me.newsky.util.IslandUtils;
 
 public class WorldInitListener implements Listener {
 
@@ -21,7 +22,7 @@ public class WorldInitListener implements Listener {
         String worldName = world.getName();
 
         // Check if the world is an island to set the spawn to not keep in memory
-        if (worldName.startsWith("island-")) {
+        if (IslandUtils.isIslandWorld(worldName)) {
             world.setKeepSpawnInMemory(false);
             plugin.debug("Island world " + worldName + " set to not keep spawn in memory.");
         }

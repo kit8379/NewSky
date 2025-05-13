@@ -415,8 +415,11 @@ public class CacheHandler {
         }
     }
 
+
     /**
-     * The cache in below section only stored in Redis
+     * Update the active server's heartbeat in Redis
+     *
+     * @param serverName The name of the server to update
      */
     public void updateActiveServer(String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
@@ -424,6 +427,11 @@ public class CacheHandler {
         }
     }
 
+    /**
+     * Remove the active server from Redis
+     *
+     * @param serverName The name of the server to remove
+     */
     public void removeActiveServer(String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hdel("server_heartbeats", serverName);
@@ -444,42 +452,101 @@ public class CacheHandler {
         }
     }
 
+    /**
+     * Get all active servers from Redis
+     *
+     * @return A map of server names and their last heartbeat timestamps
+     */
     public Map<String, String> getActiveServers() {
         try (Jedis jedis = redisHandler.getJedis()) {
             return jedis.hgetAll("server_heartbeats");
         }
     }
 
+    /**
+     * Atomically increments the round-robin counter and returns the new value.
+     *
+     * @return The incremented value, or -1 if an error occurs.
+     */
+    public long incrementAndGetRoundRobinCounter() {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            long value = jedis.incr("round_robin_counter");
+            if (value >= 1_000_000_000) {
+                jedis.set("round_robin_counter", "0");
+                value = 0;
+            }
+            return value;
+        } catch (Exception e) {
+            plugin.getLogger().severe("Failed to increment round-robin counter");
+            return -1;
+        }
+    }
+
+
+    /**
+     * Update the server name for a specific island UUID in Redis.
+     *
+     * @param islandUuid The UUID of the island.
+     * @param serverName The name of the server where the island is loaded.
+     */
     public void updateIslandLoadedServer(UUID islandUuid, String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset("island_server", islandUuid.toString(), serverName);
         }
     }
 
+    /**
+     * Remove the server name for a specific island UUID in Redis.
+     *
+     * @param islandUuid The UUID of the island.
+     */
     public void removeIslandLoadedServer(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hdel("island_server", islandUuid.toString());
         }
     }
 
+    /**
+     * Get the server name for a specific island UUID from Redis.
+     *
+     * @param islandUuid The UUID of the island.
+     * @return The name of the server where the island is loaded, or null if not found.
+     */
     public String getIslandLoadedServer(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             return jedis.hget("island_server", islandUuid.toString());
         }
     }
 
+    /**
+     * Add an online player to the Redis cache.
+     *
+     * @param playerName The name of the player.
+     * @param serverName The name of the server where the player is online.
+     */
     public void addOnlinePlayer(String playerName, String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset("online_players", playerName, serverName);
         }
     }
 
+    /**
+     * Remove an online player from the Redis cache.
+     *
+     * @param playerName The name of the player.
+     * @param serverName The name of the server where the playerwas online.
+     */
     public void removeOnlinePlayer(String playerName, String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hdel("online_players", playerName, serverName);
         }
     }
 
+    /**
+     * Get the set of online players from Redis.
+     *
+     * @return A set of player names currently online.
+     */
     public Set<String> getOnlinePlayers() {
         try (Jedis jedis = redisHandler.getJedis()) {
             return jedis.hkeys("online_players");

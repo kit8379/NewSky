@@ -46,7 +46,7 @@ public class IslandMoveListener implements Listener {
             return;
         }
 
-        if (to.getWorld() == null || !to.getWorld().getName().startsWith("island-")) {
+        if (to.getWorld() == null || !IslandUtils.isIslandWorld(to.getWorld().getName())) {
             return;
         }
 

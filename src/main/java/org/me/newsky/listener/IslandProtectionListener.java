@@ -12,6 +12,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.util.IslandUtils;
 
 import java.util.UUID;
 
@@ -69,12 +70,11 @@ public class IslandProtectionListener implements Listener {
             return true;
         }
 
-        if (location.getWorld() == null || !location.getWorld().getName().startsWith("island-")) {
-            plugin.debug("Location is not in an island world, allowing edit.");
+        if (location.getWorld() == null || !IslandUtils.isIslandWorld(location.getWorld().getName())) {
             return true;
         }
 
-        UUID islandUuid = UUID.fromString(location.getWorld().getName().substring(7));
+        UUID islandUuid = IslandUtils.nameToUUID(location.getWorld().getName());
 
         // Assuming islandCenter and halfSize are cached or constants
         int minX = islandCenterX - halfSize;

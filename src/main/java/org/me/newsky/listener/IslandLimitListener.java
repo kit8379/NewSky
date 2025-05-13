@@ -34,6 +34,11 @@ public class IslandLimitListener implements Listener {
     public void onBlockPlace(BlockPlaceEvent event) {
         Player player = event.getPlayer();
         String worldName = player.getWorld().getName();
+
+        if (!IslandUtils.isIslandWorld(worldName)) {
+            return;
+        }
+
         UUID islandUuid = IslandUtils.nameToUUID(worldName);
         Material type = event.getBlock().getType();
 
@@ -47,10 +52,14 @@ public class IslandLimitListener implements Listener {
         registerBlockPlace(islandUuid, type);
     }
 
+
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onEntitySpawn(CreatureSpawnEvent event) {
         String worldName = event.getLocation().getWorld().getName();
-        if (!worldName.startsWith("island-")) return;
+
+        if (!IslandUtils.isIslandWorld(worldName)) {
+            return;
+        }
 
         UUID islandUuid = IslandUtils.nameToUUID(worldName);
         EntityType type = event.getEntityType();
@@ -63,23 +72,23 @@ public class IslandLimitListener implements Listener {
         }
     }
 
-    private boolean canPlace(UUID islandId, Material type) {
-        int current = islandBlockCounts.getOrDefault(islandId, new HashMap<>()).getOrDefault(type, 0);
+    private boolean canPlace(UUID islandUuid, Material type) {
+        int current = islandBlockCounts.getOrDefault(islandUuid, new HashMap<>()).getOrDefault(type, 0);
         int limit = config.getBlockLimit(type.name());
         return limit == -1 || current < limit;
     }
 
-    private boolean canSpawn(UUID islandId, EntityType type) {
-        int current = islandEntityCounts.getOrDefault(islandId, new HashMap<>()).getOrDefault(type, 0);
+    private boolean canSpawn(UUID islandUuid, EntityType type) {
+        int current = islandEntityCounts.getOrDefault(islandUuid, new HashMap<>()).getOrDefault(type, 0);
         int limit = config.getEntityLimit(type.name());
         return limit == -1 || current < limit;
     }
 
-    private void registerBlockPlace(UUID islandId, Material type) {
-        islandBlockCounts.computeIfAbsent(islandId, id -> new HashMap<>()).merge(type, 1, Integer::sum);
+    private void registerBlockPlace(UUID islandUuid, Material type) {
+        islandBlockCounts.computeIfAbsent(islandUuid, id -> new HashMap<>()).merge(type, 1, Integer::sum);
     }
 
-    private void registerEntitySpawn(UUID islandId, EntityType type) {
-        islandEntityCounts.computeIfAbsent(islandId, id -> new HashMap<>()).merge(type, 1, Integer::sum);
+    private void registerEntitySpawn(UUID islandUuid, EntityType type) {
+        islandEntityCounts.computeIfAbsent(islandUuid, id -> new HashMap<>()).merge(type, 1, Integer::sum);
     }
 }

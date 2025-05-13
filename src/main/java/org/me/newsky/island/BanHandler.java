@@ -5,7 +5,7 @@ import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.exceptions.CannotBanIslandPlayerException;
 import org.me.newsky.exceptions.PlayerAlreadyBannedException;
 import org.me.newsky.exceptions.PlayerNotBannedException;
-import org.me.newsky.island.middleware.PreIslandHandler;
+import org.me.newsky.island.middleware.IslandServiceDistributor;
 
 import java.util.Set;
 import java.util.UUID;
@@ -15,12 +15,12 @@ public class BanHandler {
 
     private final NewSky plugin;
     private final CacheHandler cacheHandler;
-    private final PreIslandHandler preIslandHandler;
+    private final IslandServiceDistributor islandServiceDistributor;
 
-    public BanHandler(NewSky plugin, CacheHandler cacheHandler, PreIslandHandler preIslandHandler) {
+    public BanHandler(NewSky plugin, CacheHandler cacheHandler, IslandServiceDistributor islandServiceDistributor) {
         this.plugin = plugin;
         this.cacheHandler = cacheHandler;
-        this.preIslandHandler = preIslandHandler;
+        this.islandServiceDistributor = islandServiceDistributor;
     }
 
     public CompletableFuture<Void> banPlayer(UUID islandUuid, UUID playerUuid) {
@@ -31,7 +31,7 @@ public class BanHandler {
             if (cacheHandler.getIslandPlayers(islandUuid).contains(playerUuid)) {
                 throw new CannotBanIslandPlayerException();
             }
-            preIslandHandler.expelPlayer(islandUuid, playerUuid);
+            islandServiceDistributor.expelPlayer(islandUuid, playerUuid);
             cacheHandler.updateBanPlayer(islandUuid, playerUuid);
             return null;
         }, plugin.getBukkitAsyncExecutor());

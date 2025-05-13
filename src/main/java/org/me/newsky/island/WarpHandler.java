@@ -4,7 +4,7 @@ import org.bukkit.Location;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.exceptions.*;
-import org.me.newsky.island.middleware.PreIslandHandler;
+import org.me.newsky.island.middleware.IslandServiceDistributor;
 import org.me.newsky.util.LocationUtils;
 
 import java.util.Optional;
@@ -16,12 +16,12 @@ public class WarpHandler {
 
     private final NewSky plugin;
     private final CacheHandler cacheHandler;
-    private final PreIslandHandler preIslandHandler;
+    private final IslandServiceDistributor islandServiceDistributor;
 
-    public WarpHandler(NewSky plugin, CacheHandler cacheHandler, PreIslandHandler preIslandHandler) {
+    public WarpHandler(NewSky plugin, CacheHandler cacheHandler, IslandServiceDistributor islandServiceDistributor) {
         this.plugin = plugin;
         this.cacheHandler = cacheHandler;
-        this.preIslandHandler = preIslandHandler;
+        this.islandServiceDistributor = islandServiceDistributor;
     }
 
     public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, Location location) {
@@ -77,7 +77,7 @@ public class WarpHandler {
                 throw new WarpDoesNotExistException();
             }
             String warpLocation = warpLocationOpt.get();
-            return preIslandHandler.teleportToIsland(islandUuid, targetPlayerUuid, warpLocation);
+            return islandServiceDistributor.teleportToIsland(islandUuid, targetPlayerUuid, warpLocation);
         });
     }
 

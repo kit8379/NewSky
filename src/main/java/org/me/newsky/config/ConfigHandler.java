@@ -146,6 +146,10 @@ public class ConfigHandler {
         return config.getInt("server.heartbeat-interval");
     }
 
+    public String getServerSelector() {
+        return config.getString("server.selector");
+    }
+
     public boolean isLobby() {
         return config.getBoolean("server.lobby");
     }

@@ -30,7 +30,7 @@ public class IslandPvPListener implements Listener {
             return;
         }
 
-        if (!victim.getWorld().getName().startsWith("island-")) {
+        if (!IslandUtils.isIslandWorld(victim.getWorld().getName())) {
             return;
         }
 
