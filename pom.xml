@@ -11,7 +11,7 @@
     <name>NewSky</name>
 
     <properties>
-        <java.version>17</java.version>
+        <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <mysql.version>9.2.0</mysql.version>
@@ -25,7 +25,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
+                <version>3.14.0</version>
                 <configuration>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
@@ -37,7 +37,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>3.4.1</version>
+                <version>3.6.0</version>
                 <executions>
                     <execution>
                         <phase>package</phase>
@@ -46,6 +46,16 @@
                         </goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
+
+                            <artifactSet>
+                                <excludes>
+                                    <exclude>net.gmcbm.dependencies:acf-core</exclude>
+                                    <exclude>net.gmcbm.dependencies:acf-bukkit</exclude>
+                                    <exclude>net.gmcbm.dependencies:acf-brigadier</exclude>
+                                    <exclude>net.gmcbm.dependencies:locales</exclude>
+                                </excludes>
+                            </artifactSet>
+
                             <relocations>
                                 <relocation>
                                     <pattern>co.aikar.commands</pattern>
