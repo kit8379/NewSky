@@ -331,46 +331,6 @@ public class NewSkyAPI {
     }
 
     /**
-     * Deposit money into the island's bank
-     *
-     * @param islandUuid The UUID of the island
-     * @return A CompletableFuture that completes with the bank balance
-     */
-    public CompletableFuture<Void> bankDeposit(UUID islandUuid, double amount) {
-        return bankHandler.bankDeposit(islandUuid, amount);
-    }
-
-    /**
-     * Withdraw money from the island's bank
-     *
-     * @param islandUuid The UUID of the island
-     * @return A CompletableFuture that completes with the bank balance
-     */
-    public CompletableFuture<Void> bankWithdraw(UUID islandUuid, double amount) {
-        return bankHandler.bankWithdraw(islandUuid, amount);
-    }
-
-    /**
-     * Get the bank balance of the island
-     *
-     * @param islandUuid The UUID of the island
-     * @return A CompletableFuture that completes with the bank balance
-     */
-    public CompletableFuture<Double> getBankBalance(UUID islandUuid) {
-        return bankHandler.getBankBalance(islandUuid);
-    }
-
-    /**
-     * Upgrade the island
-     *
-     * @param islandUuid The UUID of the island
-     * @return A CompletableFuture that completes when the island is upgraded
-     */
-    public CompletableFuture<Void> upgradeIsland(UUID islandUuid) {
-        return upgradeHandler.upgradeIsland(islandUuid);
-    }
-
-    /**
      * Get the online players
      *
      * @return A set of online players

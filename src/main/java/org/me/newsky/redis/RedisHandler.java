@@ -48,6 +48,7 @@ public class RedisHandler {
         CompletableFuture.runAsync(() -> {
             try (Jedis jedis = getJedis()) {
                 jedis.subscribe(pubSub, channel);
+                plugin.debug("Subscribed to channel " + channel);
             }
         }, plugin.getBukkitAsyncExecutor());
     }
@@ -59,6 +60,7 @@ public class RedisHandler {
     public void disconnect() {
         if (jedisPool != null) {
             jedisPool.close();
+            plugin.debug("Closed the Jedis pool");
         }
     }
 }

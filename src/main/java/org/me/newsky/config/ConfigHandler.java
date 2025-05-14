@@ -142,16 +142,16 @@ public class ConfigHandler {
         return config.getString("server.name");
     }
 
+    public boolean isLobby() {
+        return config.getBoolean("server.lobby");
+    }
+
     public int getHeartbeatInterval() {
         return config.getInt("server.heartbeat-interval");
     }
 
     public String getServerSelector() {
         return config.getString("server.selector");
-    }
-
-    public boolean isLobby() {
-        return config.getBoolean("server.lobby");
     }
 
     public String getTemplateWorldName() {
@@ -205,27 +205,6 @@ public class ConfigHandler {
     public int getEntityLimit(String entity) {
         return limits.getInt("entities." + entity, -1);
     }
-
-    public boolean hasUpgradeRank(int rank) {
-        return upgrades.contains("ranks." + rank);
-    }
-
-    public int getRequiredLevelForRank(int rank) {
-        return upgrades.getInt("ranks." + rank + ".require.island-level");
-    }
-
-    public int getUpgradeCostForRank(int rank) {
-        return upgrades.getInt("ranks." + rank + ".require.cost");
-    }
-
-    public int getIslandSizeForRank(int rank) {
-        return upgrades.getInt("ranks." + rank + ".reward.size");
-    }
-
-    public List<String> getPermissionsForRank(int rank) {
-        return upgrades.getStringList("ranks." + rank + ".reward.permissions");
-    }
-
 
     // General Messages
     public Component getPluginReloadedMessage() {
