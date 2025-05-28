@@ -24,7 +24,6 @@ import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 @CommandAlias("is|island")
-@Description("Primary command for island interactions")
 public class IslandCommand extends BaseCommand {
 
     private final NewSky plugin;
@@ -40,7 +39,6 @@ public class IslandCommand extends BaseCommand {
 
     @HelpCommand
     @CommandPermission("newsky.island.help")
-    @Description("Displays the help page")
     @SuppressWarnings("unused")
     public void onHelp(CommandSender sender, CommandHelp help) {
         help.showHelp();
@@ -48,7 +46,6 @@ public class IslandCommand extends BaseCommand {
 
     @Subcommand("create")
     @CommandPermission("newsky.island.create")
-    @Description("Creates an island for the player")
     @Syntax("<player>")
     @SuppressWarnings("unused")
     public void onCreate(CommandSender sender) {
@@ -77,7 +74,6 @@ public class IslandCommand extends BaseCommand {
 
     @Subcommand("delete")
     @CommandPermission("newsky.island.delete")
-    @Description("Deletes your island with a confirmation step")
     @SuppressWarnings("unused")
     public void onDelete(CommandSender sender) {
         if (!(sender instanceof Player player)) {
@@ -87,30 +83,45 @@ public class IslandCommand extends BaseCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        if (confirmationTimes.containsKey(playerUuid) && (System.currentTimeMillis() - confirmationTimes.get(playerUuid) < 15000)) {
-            confirmationTimes.remove(playerUuid);
+        api.getIslandUuid(playerUuid).thenAccept(islandUuid -> {
+            if (islandUuid == null) {
+                player.sendMessage(config.getPlayerNoIslandMessage());
+                return;
+            }
 
-            api.getIslandUuid(playerUuid).thenCompose(api::deleteIsland).thenRun(() -> player.sendMessage(config.getPlayerDeleteSuccessMessage())).exceptionally(ex -> {
-                if (ex.getCause() instanceof IslandDoesNotExistException) {
-                    player.sendMessage(config.getPlayerNoIslandMessage());
-                } else if (ex.getCause() instanceof NoActiveServerException) {
-                    player.sendMessage(config.getNoActiveServerMessage());
-                } else {
-                    player.sendMessage("There was an error deleting the island");
-                    plugin.getLogger().log(Level.SEVERE, "Error deleting island for player " + player.getName(), ex);
-                }
-                return null;
-            });
-        } else {
-            confirmationTimes.put(playerUuid, System.currentTimeMillis());
-            player.sendMessage(config.getPlayerDeleteWarningMessage());
-        }
+            if (confirmationTimes.containsKey(playerUuid) && (System.currentTimeMillis() - confirmationTimes.get(playerUuid) < 15000)) {
+
+                confirmationTimes.remove(playerUuid);
+
+                api.deleteIsland(islandUuid).thenRun(() -> player.sendMessage(config.getPlayerDeleteSuccessMessage())).exceptionally(ex -> {
+                    if (ex.getCause() instanceof NoActiveServerException) {
+                        player.sendMessage(config.getNoActiveServerMessage());
+                    } else {
+                        player.sendMessage("There was an error deleting the island");
+                        plugin.getLogger().log(Level.SEVERE, "Error deleting island for player " + player.getName(), ex);
+                    }
+                    return null;
+                });
+
+            } else {
+                confirmationTimes.put(playerUuid, System.currentTimeMillis());
+                player.sendMessage(config.getPlayerDeleteWarningMessage());
+            }
+
+        }).exceptionally(ex -> {
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoIslandMessage());
+            } else {
+                player.sendMessage("There was an error checking your island");
+                plugin.getLogger().log(Level.SEVERE, "Error checking island for player " + player.getName(), ex);
+            }
+            return null;
+        });
     }
 
     @Subcommand("addmember")
     @CommandPermission("newsky.island.addmember")
     @CommandCompletion("@globalplayers")
-    @Description("Adds a member to your island")
     @Syntax("<player>")
     @SuppressWarnings("unused")
     public void onAddMember(CommandSender sender, @Single String targetPlayerName) {
@@ -144,7 +155,6 @@ public class IslandCommand extends BaseCommand {
     @Subcommand("removemember")
     @CommandPermission("newsky.island.removemember")
     @CommandCompletion("@globalplayers")
-    @Description("Removes a member from your island")
     @Syntax("<player>")
     @SuppressWarnings("unused")
     public void onRemoveMember(CommandSender sender, @Single String targetPlayerName) {
@@ -173,7 +183,6 @@ public class IslandCommand extends BaseCommand {
     @Subcommand("home")
     @CommandPermission("newsky.island.home")
     @CommandCompletion("@homes")
-    @Description("Teleports you to your island home")
     @Syntax("[homeName]")
     @SuppressWarnings("unused")
     public void onHome(CommandSender sender, @Default("default") String homeName) {
@@ -200,7 +209,6 @@ public class IslandCommand extends BaseCommand {
     @Subcommand("sethome")
     @CommandPermission("newsky.island.sethome")
     @CommandCompletion("@homes")
-    @Description("Sets your island home")
     @Syntax("[homeName]")
     @SuppressWarnings("unused")
     public void onSetHome(CommandSender sender, @Default("default") String homeName) {
@@ -227,7 +235,6 @@ public class IslandCommand extends BaseCommand {
     @Subcommand("delhome")
     @CommandPermission("newsky.island.delhome")
     @CommandCompletion("@homes")
-    @Description("Deletes a specified home")
     @Syntax("<homeName>")
     @SuppressWarnings("unused")
     public void onDelHome(CommandSender sender, String homeName) {
@@ -257,7 +264,6 @@ public class IslandCommand extends BaseCommand {
     @Subcommand("warp")
     @CommandPermission("newsky.island.warp")
     @CommandCompletion("@globalplayers @warps")
-    @Description("Teleports you or another player to a specified warp point on an island")
     @Syntax("<player> [warpName]")
     @SuppressWarnings("unused")
     public void onWarp(CommandSender sender, @Single String warpPlayerName, @Default("default") String warpName) {
@@ -291,7 +297,6 @@ public class IslandCommand extends BaseCommand {
     @Subcommand("setwarp")
     @CommandPermission("newsky.island.setwarp")
     @CommandCompletion("@warps")
-    @Description("Sets a warp point on your island")
     @Syntax("[warpName]")
     @SuppressWarnings("unused")
     public void onSetWarp(CommandSender sender, @Default("default") String warpName) {
@@ -318,7 +323,6 @@ public class IslandCommand extends BaseCommand {
     @Subcommand("delwarp")
     @CommandPermission("newsky.island.delwarp")
     @CommandCompletion("@warps")
-    @Description("Deletes a specified warp point on your island")
     @Syntax("<warpName>")
     @SuppressWarnings("unused")
     public void onDelWarp(CommandSender sender, @Default("default") String warpName) {
@@ -343,7 +347,6 @@ public class IslandCommand extends BaseCommand {
     @Subcommand("setowner")
     @CommandPermission("newsky.island.setowner")
     @CommandCompletion("@globalplayers")
-    @Description("Sets a new owner for your island")
     @Syntax("<player>")
     @SuppressWarnings("unused")
     public void onSetOwner(CommandSender sender, @Single String targetPlayerName) {
@@ -371,7 +374,6 @@ public class IslandCommand extends BaseCommand {
 
     @Subcommand("leave")
     @CommandPermission("newsky.island.leave")
-    @Description("Leaves your current island")
     @SuppressWarnings("unused")
     public void onLeave(CommandSender sender) {
         if (!(sender instanceof Player player)) {
@@ -398,7 +400,6 @@ public class IslandCommand extends BaseCommand {
 
     @Subcommand("level")
     @CommandPermission("newsky.island.level")
-    @Description("Displays the level of your island")
     @SuppressWarnings("unused")
     public void onLevel(CommandSender sender) {
         if (!(sender instanceof Player player)) {
@@ -421,7 +422,6 @@ public class IslandCommand extends BaseCommand {
 
     @Subcommand("value")
     @CommandPermission("newsky.island.value")
-    @Description("Checks the block level value of the item in your hand")
     @SuppressWarnings("unused")
     public void onValue(CommandSender sender) {
         if (!(sender instanceof Player player)) {
@@ -450,7 +450,6 @@ public class IslandCommand extends BaseCommand {
 
     @Subcommand("lock")
     @CommandPermission("newsky.island.togglelock")
-    @Description("Toggles the lock status of your island")
     @SuppressWarnings("unused")
     public void onLock(CommandSender sender) {
         if (!(sender instanceof Player player)) {
@@ -479,7 +478,6 @@ public class IslandCommand extends BaseCommand {
 
     @Subcommand("pvp")
     @CommandPermission("newsky.island.togglepvp")
-    @Description("Toggles the PvP status on your island")
     @SuppressWarnings("unused")
     public void onPvp(CommandSender sender) {
         if (!(sender instanceof Player player)) {
@@ -508,7 +506,6 @@ public class IslandCommand extends BaseCommand {
 
     @Subcommand("top")
     @CommandPermission("newsky.island.top")
-    @Description("Shows the top 10 islands by level")
     @SuppressWarnings("unused")
     public void onTop(CommandSender sender) {
         api.getTopIslandLevels(10).thenCompose(topIslands -> {
@@ -549,7 +546,6 @@ public class IslandCommand extends BaseCommand {
 
     @Subcommand("info")
     @CommandPermission("newsky.island.info")
-    @Description("Shows information about an island")
     @Syntax("[player]")
     @CommandCompletion("@globalplayers")
     @SuppressWarnings("unused")
@@ -606,7 +602,6 @@ public class IslandCommand extends BaseCommand {
 
     @Subcommand("expel")
     @CommandPermission("newsky.island.expel")
-    @Description("Expel a player from your island")
     @Syntax("<player>")
     @CommandCompletion("@globalplayers")
     @SuppressWarnings("unused")
@@ -639,7 +634,6 @@ public class IslandCommand extends BaseCommand {
     @Subcommand("ban")
     @CommandPermission("newsky.island.ban")
     @CommandCompletion("@globalplayers")
-    @Description("Bans a player from your island")
     @Syntax("<player>")
     @SuppressWarnings("unused")
     public void onBan(CommandSender sender, @Single String targetPlayerName) {
@@ -675,7 +669,6 @@ public class IslandCommand extends BaseCommand {
     @Subcommand("unban")
     @CommandPermission("newsky.island.unban")
     @CommandCompletion("@globalplayers")
-    @Description("Unbans a player from your island")
     @Syntax("<player>")
     @SuppressWarnings("unused")
     public void onUnban(CommandSender sender, @Single String targetPlayerName) {
@@ -703,7 +696,6 @@ public class IslandCommand extends BaseCommand {
 
     @Subcommand("banlist")
     @CommandPermission("newsky.island.banlist")
-    @Description("Lists the players banned from your island")
     @SuppressWarnings("unused")
     public void onBanList(CommandSender sender) {
         if (!(sender instanceof Player player)) {

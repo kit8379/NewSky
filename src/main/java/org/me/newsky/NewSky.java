@@ -12,7 +12,7 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.island.*;
-import org.me.newsky.island.middleware.LocalIslandOperation;
+import org.me.newsky.island.operation.LocalIslandOperation;
 import org.me.newsky.island.middleware.IslandServiceDistributor;
 import org.me.newsky.listener.*;
 import org.me.newsky.network.Broker;
@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Set;
+import java.util.logging.Level;
 
 public class NewSky extends JavaPlugin {
 
@@ -75,8 +76,13 @@ public class NewSky extends JavaPlugin {
 
             info("Start loading server ID now...");
             serverID = config.getServerName();
-            info("Server ID load success!");
+            info("Server ID loaded success!");
             info("This Server ID: " + serverID);
+
+            info("Start loading Redis Pub/Sub channel name now...");
+            String channelID = config.getRedisChannel();
+            info("Redis Pub/Sub channel name loaded success!");
+            info("This server using Redis Pub/Sub channel name: " + channelID);
 
             info("Starting World handler");
             WorldHandler worldHandler = new WorldHandler(this, config, teleportHandler);
@@ -109,8 +115,7 @@ public class NewSky extends JavaPlugin {
                     serverSelector = new RoundRobinServerSelector(cacheHandler);
                     break;
                 case "random":
-                    serverSelector = new RandomServerSelector();
-                    break;
+
                 default:
                     serverSelector = new RandomServerSelector();
             }
@@ -118,7 +123,7 @@ public class NewSky extends JavaPlugin {
 
             info("Starting handlers for remote requests");
             LocalIslandOperation localIslandOperation = new LocalIslandOperation(this, cacheHandler, worldHandler, teleportHandler, serverID);
-            broker = new Broker(this, redisHandler, localIslandOperation, serverID);
+            broker = new Broker(this, redisHandler, localIslandOperation, serverID, channelID);
             IslandServiceDistributor islandServiceDistributor = new IslandServiceDistributor(this, cacheHandler, broker, localIslandOperation, serverSelector, serverID);
             info("All handlers for remote requests loaded");
 
@@ -150,8 +155,13 @@ public class NewSky extends JavaPlugin {
             info("Listeners and commands loaded");
 
             info("Registering placeholder");
-            registerPlaceholder();
-            info("Placeholder registered");
+            if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+                info("PlaceholderAPI found, registering placeholders");
+                new NewSkyPlaceholderExpansion(this, cacheHandler).register();
+                info("Placeholder registered");
+            } else {
+                info("PlaceholderAPI not found, skipping placeholder registration");
+            }
 
             databaseHandler.createTables();
             cacheHandler.cacheAllDataToRedis();
@@ -160,8 +170,7 @@ public class NewSky extends JavaPlugin {
             levelUpdateScheduler.start();
             broker.subscribe();
         } catch (Exception e) {
-            warning("Plugin initialization failed!");
-            warning(e.getMessage());
+            getLogger().log(Level.SEVERE, "An error occurred during plugin initialization", e);
             getServer().getPluginManager().disablePlugin(this);
         }
     }
@@ -228,10 +237,6 @@ public class NewSky extends JavaPlugin {
         });
     }
 
-    private void registerPlaceholder() {
-        new NewSkyPlaceholderExpansion(this, cacheHandler).register();
-    }
-
     @Override
     public void onDisable() {
         info("Plugin disabling...");
@@ -274,19 +279,9 @@ public class NewSky extends JavaPlugin {
     }
 
     @SuppressWarnings("unused")
-    public void warning(String message) {
-        getLogger().warning(message);
-    }
-
-    @SuppressWarnings("unused")
-    public void severe(String message) {
-        getLogger().severe(message);
-    }
-
-    @SuppressWarnings("unused")
-    public void debug(String message) {
+    public void debug(String module, String message) {
         if (config.isDebug()) {
-            info("DEBUG: " + message);
+            info(String.format("[DEBUG] [%s] %s", module, message));
         }
     }
 }

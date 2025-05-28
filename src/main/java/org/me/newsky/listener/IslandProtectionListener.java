@@ -39,7 +39,6 @@ public class IslandProtectionListener implements Listener {
         if (!canPlayerEdit(event.getPlayer(), event.getBlock().getLocation())) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(config.getCannotEditIslandMessage());
-            plugin.debug("Player " + event.getPlayer().getName() + " tried to break a block on an island they don't own.");
         }
     }
 
@@ -48,7 +47,6 @@ public class IslandProtectionListener implements Listener {
         if (!canPlayerEdit(event.getPlayer(), event.getBlockPlaced().getLocation())) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(config.getCannotEditIslandMessage());
-            plugin.debug("Player " + event.getPlayer().getName() + " tried to place a block on an island they don't own.");
         }
     }
 
@@ -58,7 +56,6 @@ public class IslandProtectionListener implements Listener {
             if (event.getClickedBlock() != null && !canPlayerEdit(event.getPlayer(), event.getClickedBlock().getLocation())) {
                 event.setCancelled(true);
                 event.getPlayer().sendMessage(config.getCannotEditIslandMessage());
-                plugin.debug("Player " + event.getPlayer().getName() + " tried to interact with a block on an island they don't own.");
             }
         }
     }
@@ -66,7 +63,6 @@ public class IslandProtectionListener implements Listener {
     private boolean canPlayerEdit(Player player, Location location) {
         // Check if the player has admin permissions
         if (player.hasPermission("newsky.admin.bypass")) {
-            plugin.debug("Player " + player.getName() + " has admin permissions, bypassing island protection.");
             return true;
         }
 
@@ -83,11 +79,9 @@ public class IslandProtectionListener implements Listener {
         int maxZ = islandCenterZ + halfSize;
 
         if (location.getBlockX() < minX || location.getBlockX() > maxX || location.getBlockZ() < minZ || location.getBlockZ() > maxZ) {
-            plugin.debug("Player " + player.getName() + " is outside the island boundary.");
             return false;
         }
 
-        // Assuming members is a cached HashSet for quick lookup
         return cacheHandler.getIslandPlayers(islandUuid).contains(player.getUniqueId());
     }
 }

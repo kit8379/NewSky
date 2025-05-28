@@ -1,7 +1,7 @@
 package org.me.newsky.network;
 
 import org.me.newsky.NewSky;
-import org.me.newsky.island.middleware.LocalIslandOperation;
+import org.me.newsky.island.operation.LocalIslandOperation;
 import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.JedisPubSub;
 
@@ -11,7 +11,6 @@ import java.util.logging.Level;
 
 public class Broker {
 
-    private static final String CHANNEL = "newsky-channel";
     private static final ConcurrentHashMap<String, CompletableFuture<Void>> pendingRequests = new ConcurrentHashMap<>();
 
     private final NewSky plugin;
@@ -19,12 +18,14 @@ public class Broker {
     private final LocalIslandOperation localIslandOperation;
     private final String serverID;
     private JedisPubSub subscriber;
+    private final String channelID;
 
-    public Broker(NewSky plugin, RedisHandler redisHandler, LocalIslandOperation localIslandOperation, String serverID) {
+    public Broker(NewSky plugin, RedisHandler redisHandler, LocalIslandOperation localIslandOperation, String serverID, String channelID) {
         this.plugin = plugin;
         this.redisHandler = redisHandler;
         this.localIslandOperation = localIslandOperation;
         this.serverID = serverID;
+        this.channelID = channelID;
     }
 
     public void subscribe() {
@@ -32,9 +33,12 @@ public class Broker {
             @Override
             public void onMessage(String channel, String message) {
                 String[] parts = message.split(":");
-                if (parts.length < 5) return;
+                if (parts.length < 5) {
+                    return;
+                }
 
                 String type = parts[0];
+                plugin.debug(getClass().getSimpleName(), "Received message on channel " + channel + ": " + message);
                 if (type.equals("request")) {
                     handleRequest(parts);
                 } else if (type.equals("response")) {
@@ -43,7 +47,7 @@ public class Broker {
             }
         };
 
-        redisHandler.subscribe(subscriber, CHANNEL);
+        redisHandler.subscribe(subscriber, channelID);
     }
 
     public void unsubscribe() {
@@ -62,8 +66,8 @@ public class Broker {
             message.append(":").append(arg);
         }
 
-        redisHandler.publish(CHANNEL, message.toString());
-        plugin.debug("Sent request " + operation + " to " + targetServer + " [ID=" + requestId + "]");
+        redisHandler.publish(channelID, message.toString());
+        plugin.debug(getClass().getSimpleName(), "Sent request " + operation + " to " + targetServer + " [ID=" + requestId + "]");
 
         future.orTimeout(30, TimeUnit.SECONDS).exceptionally(error -> {
             pendingRequests.remove(requestId);
@@ -85,12 +89,14 @@ public class Broker {
         String[] args = new String[parts.length - 5];
         System.arraycopy(parts, 5, args, 0, args.length);
 
-        plugin.debug("Received request " + operation + " from " + source + " [ID=" + requestId + "]");
+        plugin.debug(getClass().getSimpleName(), "Received request " + operation + " [ID=" + requestId + "] from " + source);
 
         processRequest(operation, args).thenRun(() -> {
             sendResponse("success", requestId, source);
+            plugin.debug(getClass().getSimpleName(), "Sent success response for request " + operation + " [ID=" + requestId + "] to " + source);
         }).exceptionally(e -> {
             sendResponse("fail", requestId, source);
+            plugin.debug(getClass().getSimpleName(), "Failed to process request " + operation + " [ID=" + requestId + "] from " + source);
             plugin.getLogger().log(Level.SEVERE, "Failed to handle request " + operation, e);
             return null;
         });
@@ -98,7 +104,7 @@ public class Broker {
 
     private void sendResponse(String status, String requestId, String destination) {
         String msg = String.join(":", "response", status, requestId, serverID, destination);
-        redisHandler.publish(CHANNEL, msg);
+        redisHandler.publish(channelID, msg);
     }
 
     private void handleResponse(String[] parts) {
@@ -117,11 +123,11 @@ public class Broker {
             return;
         }
 
-        plugin.debug("Response [" + status + "] for request ID " + requestId + " from " + source);
+        plugin.debug(getClass().getSimpleName(), "Response [" + status + "] for request ID " + requestId + " from " + source);
         if (status.equals("success")) {
             future.complete(null);
         } else {
-            future.completeExceptionally(new RuntimeException("Request failed: " + requestId));
+            future.completeExceptionally(new IllegalStateException("Request failed: " + requestId));
         }
     }
 
@@ -130,7 +136,7 @@ public class Broker {
         try {
             switch (operation) {
                 case "create":
-                    return localIslandOperation.createIsland(UUID.fromString(args[0]));
+                    return localIslandOperation.createIsland(UUID.fromString(args[0]), UUID.fromString(args[1]), args[2]);
                 case "delete":
                     return localIslandOperation.deleteIsland(UUID.fromString(args[0]));
                 case "load":

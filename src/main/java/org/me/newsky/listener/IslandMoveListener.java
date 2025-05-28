@@ -36,7 +36,6 @@ public class IslandMoveListener implements Listener {
     public void onPlayerMove(PlayerMoveEvent event) {
         // Check if the player has admin permissions
         if (event.getPlayer().hasPermission("newsky.admin.bypass")) {
-            plugin.debug("Player " + event.getPlayer().getName() + " has admin permissions, bypassing island move check.");
             return;
         }
 
@@ -57,7 +56,6 @@ public class IslandMoveListener implements Listener {
         if (cacheHandler.getPlayerBanned(islandUuid, playerUuid)) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(config.getPlayerBannedMessage());
-            plugin.debug("Player " + event.getPlayer().getName() + " is banned from island " + islandUuid);
             return;
         }
 
@@ -65,7 +63,6 @@ public class IslandMoveListener implements Listener {
         if (cacheHandler.getIslandLock(islandUuid) && !cacheHandler.getIslandPlayers(islandUuid).contains(playerUuid)) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(config.getIslandLockedMessage());
-            plugin.debug("Player " + event.getPlayer().getName() + " tried to move in a locked island " + islandUuid);
             return;
         }
 
@@ -78,7 +75,6 @@ public class IslandMoveListener implements Listener {
         if (to.getBlockX() < minX || to.getBlockX() > maxX || to.getBlockZ() < minZ || to.getBlockZ() > maxZ) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(config.getCannotLeaveIslandBoundaryMessage());
-            plugin.debug("Player " + event.getPlayer().getName() + " tried to leave the island boundary at " + to.getBlockX() + ", " + to.getBlockZ());
         }
     }
 }

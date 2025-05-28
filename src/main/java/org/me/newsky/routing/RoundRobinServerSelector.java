@@ -16,7 +16,6 @@ public class RoundRobinServerSelector implements ServerSelector {
     public String selectServer(Map<String, String> activeServers) {
         if (activeServers.isEmpty()) return null;
 
-        // Increment the round-robin counter and get the current index
         long index = cacheHandler.incrementAndGetRoundRobinCounter();
 
         if (index == -1) {

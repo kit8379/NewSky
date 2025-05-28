@@ -19,7 +19,6 @@ import java.util.UUID;
 import java.util.logging.Level;
 
 @CommandAlias("isadmin|islandadmin")
-@Description("Admin commands for island management")
 public class IslandAdminCommand extends BaseCommand {
 
     private final NewSky plugin;
@@ -35,7 +34,6 @@ public class IslandAdminCommand extends BaseCommand {
 
     @HelpCommand
     @CommandPermission("newsky.admin.island.help")
-    @Description("Displays the help page")
     @SuppressWarnings("unused")
     public void onHelp(CommandSender sender, CommandHelp help) {
         help.showHelp();
@@ -43,7 +41,6 @@ public class IslandAdminCommand extends BaseCommand {
 
     @Subcommand("reload")
     @CommandPermission("newsky.admin.island.reload")
-    @Description("Admin command to reload the configuration")
     @SuppressWarnings("unused")
     public void onAdminReload(CommandSender sender) {
         plugin.reload();
@@ -53,7 +50,6 @@ public class IslandAdminCommand extends BaseCommand {
 
     @Subcommand("create")
     @CommandPermission("newsky.admin.island.create")
-    @Description("Admin command to create an island for a player")
     @Syntax("<player>")
     @CommandCompletion("@globalplayers")
     @SuppressWarnings("unused")
@@ -76,7 +72,6 @@ public class IslandAdminCommand extends BaseCommand {
 
     @Subcommand("delete")
     @CommandPermission("newsky.admin.island.delete")
-    @Description("Admin command to delete a player's island")
     @Syntax("<player>")
     @CommandCompletion("@globalplayers")
     @SuppressWarnings("unused")
@@ -106,7 +101,6 @@ public class IslandAdminCommand extends BaseCommand {
 
     @Subcommand("addmember")
     @CommandPermission("newsky.admin.island.addmember")
-    @Description("Admin command to add a member to a player's island")
     @Syntax("<member> <owner>")
     @CommandCompletion("@globalplayers @globalplayers")
     @SuppressWarnings("unused")
@@ -131,7 +125,6 @@ public class IslandAdminCommand extends BaseCommand {
 
     @Subcommand("removemember")
     @CommandPermission("newsky.admin.island.removemember")
-    @Description("Admin command to remove a member from a player's island")
     @Syntax("<member> <owner>")
     @CommandCompletion("@globalplayers @globalplayers")
     @SuppressWarnings("unused")
@@ -156,7 +149,6 @@ public class IslandAdminCommand extends BaseCommand {
 
     @Subcommand("home")
     @CommandPermission("newsky.admin.island.home")
-    @Description("Admin command to teleport to a player's island home")
     @Syntax("<player> [home] [target]")
     @CommandCompletion("@globalplayers @homes @globalplayers")
     @SuppressWarnings("unused")
@@ -193,7 +185,6 @@ public class IslandAdminCommand extends BaseCommand {
 
     @Subcommand("sethome")
     @CommandPermission("newsky.admin.island.sethome")
-    @Description("Admin command to set a home on a player's island")
     @Syntax("<player> <home>")
     @CommandCompletion("@globalplayers @homes")
     @SuppressWarnings("unused")
@@ -222,7 +213,6 @@ public class IslandAdminCommand extends BaseCommand {
 
     @Subcommand("delhome")
     @CommandPermission("newsky.admin.island.delhome")
-    @Description("Admin command to delete a home on a player's island")
     @Syntax("<player> <home>")
     @CommandCompletion("@globalplayers @homes")
     @SuppressWarnings("unused")
@@ -250,7 +240,6 @@ public class IslandAdminCommand extends BaseCommand {
 
     @Subcommand("warp")
     @CommandPermission("newsky.admin.island.warp")
-    @Description("Admin command to teleport to a warp point on a player's island")
     @Syntax("<player> [warp] [target]")
     @CommandCompletion("@globalplayers @warps @globalplayers")
     @SuppressWarnings("unused")
@@ -291,7 +280,6 @@ public class IslandAdminCommand extends BaseCommand {
 
     @Subcommand("setwarp")
     @CommandPermission("newsky.admin.island.setwarp")
-    @Description("Admin command to set a warp point on a player's island")
     @Syntax("<player> <warp>")
     @CommandCompletion("@globalplayers @warps")
     @SuppressWarnings("unused")
@@ -320,7 +308,6 @@ public class IslandAdminCommand extends BaseCommand {
 
     @Subcommand("delwarp")
     @CommandPermission("newsky.admin.island.delwarp")
-    @Description("Admin command to delete a warp point on a player's island")
     @Syntax("<player> <warp>")
     @CommandCompletion("@globalplayers @warps")
     @SuppressWarnings("unused")
@@ -343,7 +330,6 @@ public class IslandAdminCommand extends BaseCommand {
 
     @Subcommand("lock")
     @CommandPermission("newsky.admin.island.lock")
-    @Description("Admin command to toggle the lock status of a player's island")
     @Syntax("<player>")
     @CommandCompletion("@globalplayers")
     @SuppressWarnings("unused")
@@ -370,7 +356,6 @@ public class IslandAdminCommand extends BaseCommand {
 
     @Subcommand("pvp")
     @CommandPermission("newsky.admin.island.pvp")
-    @Description("Admin command to toggle the PvP status on a player's island")
     @Syntax("<player>")
     @CommandCompletion("@globalplayers")
     @SuppressWarnings("unused")
@@ -397,7 +382,6 @@ public class IslandAdminCommand extends BaseCommand {
 
     @Subcommand("load")
     @CommandPermission("newsky.admin.island.load")
-    @Description("Admin command to load a player's island")
     @Syntax("<player>")
     @CommandCompletion("@globalplayers")
     @SuppressWarnings("unused")
@@ -422,7 +406,6 @@ public class IslandAdminCommand extends BaseCommand {
 
     @Subcommand("unload")
     @CommandPermission("newsky.admin.island.unload")
-    @Description("Admin command to unload a player's island")
     @Syntax("<player>")
     @CommandCompletion("@globalplayers")
     @SuppressWarnings("unused")
@@ -446,7 +429,6 @@ public class IslandAdminCommand extends BaseCommand {
     @Subcommand("adminban")
     @CommandPermission("newsky.admin.island.ban")
     @CommandCompletion("@globalplayers")
-    @Description("Admin command to ban a player from a specified island")
     @Syntax("<owner> <player>")
     @SuppressWarnings("unused")
     public void onAdminBan(CommandSender sender, @Single String islandOwnerName, @Single String banPlayerName) {
@@ -473,7 +455,6 @@ public class IslandAdminCommand extends BaseCommand {
     @Subcommand("adminunban")
     @CommandPermission("newsky.admin.island.unban")
     @CommandCompletion("@globalplayers")
-    @Description("Admin command to unban a player from a specified island")
     @Syntax("<owner> <player>")
     @SuppressWarnings("unused")
     public void onAdminUnban(CommandSender sender, @Single String islandOwnerName, @Single String banPlayerName) {

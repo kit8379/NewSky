@@ -45,7 +45,6 @@ public class IslandLimitListener implements Listener {
         if (!canPlace(islandUuid, type)) {
             player.sendMessage(config.getBlockLimitMessage(type.name()));
             event.setCancelled(true);
-            plugin.debug("Player " + player.getName() + " exceeded block limit on island " + islandUuid);
             return;
         }
 
@@ -66,7 +65,6 @@ public class IslandLimitListener implements Listener {
 
         if (!canSpawn(islandUuid, type)) {
             event.setCancelled(true);
-            plugin.debug("Entity " + type + " spawn cancelled on island " + islandUuid);
         } else {
             registerEntitySpawn(islandUuid, type);
         }

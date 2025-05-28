@@ -1,3 +1,6 @@
+# Whether the plugin is in debug mode. More detailed logs will be printed if this is set to true.
+debug: false
+
 # The settings for the plugin.
 # The plugin uses MySQL/MariaDB to store the island data.
 MySQL:
@@ -22,9 +25,12 @@ redis:
   host: "localhost"
   port: 6379
   password: ""
-
-# Whether the plugin is in debug mode. More detailed logs will be printed if this is set to true.
-debug: false
+  # The below two settings are usually not needed to change.
+  # The database index to use for centralized cache.
+  # The channel to use for pub/sub communication between servers.
+  # If you have different groups of servers under the same network, you can change the database and channel to separate them.
+  database: 0
+  channel: "newsky-channel"
 
 # The settings for the server.
 server:

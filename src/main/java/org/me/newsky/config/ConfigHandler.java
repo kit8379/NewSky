@@ -83,7 +83,7 @@ public class ConfigHandler {
         return config.getInt("MySQL.port");
     }
 
-    public String getMySQLName() {
+    public String getMySQLDB() {
         return config.getString("MySQL.database");
     }
 
@@ -129,6 +129,14 @@ public class ConfigHandler {
 
     public String getRedisPassword() {
         return config.getString("redis.password");
+    }
+
+    public int getRedisDatabase() {
+        return config.getInt("redis.database");
+    }
+
+    public String getRedisChannel() {
+        return config.getString("redis.channel");
     }
 
     public boolean isDebug() {

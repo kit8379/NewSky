@@ -1,4 +1,4 @@
-package org.me.newsky.island.middleware;
+package org.me.newsky.island.operation;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -34,108 +34,90 @@ public class LocalIslandOperation {
         this.serverID = serverID;
     }
 
-    public CompletableFuture<Void> createIsland(UUID islandUuid) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-
+    public CompletableFuture<Void> createIsland(UUID islandUuid, UUID ownerUuid, String spawnLocation) {
+        plugin.debug(getClass().getSimpleName(), "Creating island with UUID: " + islandUuid + " for owner: " + ownerUuid);
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        worldHandler.createWorld(islandName).thenRun(() -> {
+        return worldHandler.createWorld(islandName).thenRun(() -> {
+            cacheHandler.createIsland(islandUuid);
+            cacheHandler.updateIslandPlayer(islandUuid, ownerUuid, "owner");
+            cacheHandler.updateHomePoint(islandUuid, ownerUuid, "default", spawnLocation);
             cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
-            plugin.debug("Island " + islandName + " created and loaded on server " + serverID);
-            future.complete(null);
+            plugin.debug(getClass().getSimpleName(), "Island " + islandName + " created successfully with owner " + ownerUuid);
         });
-
-        return future;
     }
 
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-
+        plugin.debug(getClass().getSimpleName(), "Deleting island with UUID: " + islandUuid);
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        worldHandler.deleteWorld(islandName).thenRun(() -> {
-            cacheHandler.removeIslandLoadedServer(islandUuid);
-            plugin.debug("Island " + islandName + " deleted from server " + serverID);
-            future.complete(null);
+        return worldHandler.deleteWorld(islandName).thenRun(() -> {
+            cacheHandler.deleteIsland(islandUuid);
+            plugin.debug(getClass().getSimpleName(), "Island " + islandName + " deleted successfully");
         });
-
-        return future;
     }
 
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-
+        plugin.debug(getClass().getSimpleName(), "Loading island with UUID: " + islandUuid);
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        worldHandler.loadWorld(islandName).thenRun(() -> {
+        return worldHandler.loadWorld(islandName).thenRun(() -> {
             cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
-            plugin.debug("Island " + islandName + " loaded on server " + serverID);
-            future.complete(null);
+            plugin.debug(getClass().getSimpleName(), "Island " + islandName + " loaded on server " + serverID);
         });
-
-        return future;
     }
 
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-
+        plugin.debug(getClass().getSimpleName(), "Unloading island with UUID: " + islandUuid);
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        worldHandler.unloadWorld(islandName).thenRun(() -> {
+        return worldHandler.unloadWorld(islandName).thenRun(() -> {
             cacheHandler.removeIslandLoadedServer(islandUuid);
-            plugin.debug("Island " + islandName + " unloaded from server " + serverID);
-            future.complete(null);
+            plugin.debug(getClass().getSimpleName(), "Island " + islandName + " unloaded from server " + serverID);
         });
-
-        return future;
     }
 
     public CompletableFuture<Void> lockIsland(UUID islandUuid) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-
+        plugin.debug(getClass().getSimpleName(), "Locking island with UUID: " + islandUuid);
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         World world = Bukkit.getWorld(islandName);
         if (world != null) {
-            World safeWorld = Bukkit.getServer().getWorlds().get(0);
+            World safeWorld = Bukkit.getServer().getWorlds().getFirst();
             Set<UUID> islandPlayers = cacheHandler.getIslandPlayers(islandUuid);
             for (Player player : world.getPlayers()) {
                 UUID playerUuid = player.getUniqueId();
                 if (!islandPlayers.contains(playerUuid)) {
                     player.teleportAsync(safeWorld.getSpawnLocation());
-                    plugin.debug("Removed player " + playerUuid + " from island " + islandName + " because the island is locked");
+                    plugin.debug(getClass().getSimpleName(), "Player " + playerUuid + " teleported to safe location due to island lock");
                 }
             }
         }
-        future.complete(null);
 
-        return future;
+        return CompletableFuture.completedFuture(null);
     }
 
     public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-
+        plugin.debug(getClass().getSimpleName(), "Expelling player " + playerUuid + " from island " + islandUuid);
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         World world = Bukkit.getWorld(islandName);
         if (world != null) {
             Player player = Bukkit.getPlayer(playerUuid);
             if (player != null) {
-                player.teleportAsync(Bukkit.getServer().getWorlds().get(0).getSpawnLocation());
-                plugin.debug("Removed player " + playerUuid + " from island " + islandName);
+                player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
+                plugin.debug(getClass().getSimpleName(), "Player " + playerUuid + " expelled from island " + islandName);
             }
         }
-        future.complete(null);
 
-        return future;
+        return CompletableFuture.completedFuture(null);
     }
 
     public CompletableFuture<Void> teleportToIsland(UUID islandUuid, UUID playerUuid, String teleportLocation) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-
+        plugin.debug(getClass().getSimpleName(), "Teleporting player " + playerUuid + " to island " + islandUuid + " at location: " + teleportLocation);
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        loadIsland(islandUuid).thenRun(() -> {
+        return loadIsland(islandUuid).thenRun(() -> {
             String[] parts = teleportLocation.split(",");
             double x = Double.parseDouble(parts[0]);
             double y = Double.parseDouble(parts[1]);
@@ -147,15 +129,11 @@ public class LocalIslandOperation {
             Player player = Bukkit.getPlayer(playerUuid);
             if (player != null) {
                 player.teleportAsync(location);
-                plugin.debug("Player " + playerUuid + " is online, teleporting to " + location);
+                plugin.debug(getClass().getSimpleName(), "Player " + playerUuid + " teleported to island " + islandUuid + " at location: " + teleportLocation);
             } else {
                 teleportHandler.addPendingTeleport(playerUuid, location);
-                plugin.debug("Player " + playerUuid + " is not online, adding pending teleport to " + location);
+                plugin.debug(getClass().getSimpleName(), "Player " + playerUuid + " is offline, teleport will be processed when they log in");
             }
-
-            future.complete(null);
         });
-
-        return future;
     }
 }

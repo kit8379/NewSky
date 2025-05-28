@@ -23,12 +23,10 @@ public class OnlinePlayersListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     private void onPlayerJoin(PlayerJoinEvent event) {
         cacheHandler.addOnlinePlayer(event.getPlayer().getName(), serverID);
-        plugin.debug("Added player " + event.getPlayer().getName() + " to online players list");
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onPlayerQuit(PlayerQuitEvent event) {
         cacheHandler.removeOnlinePlayer(event.getPlayer().getName(), serverID);
-        plugin.debug("Removed player " + event.getPlayer().getName() + " from online players list");
     }
 }

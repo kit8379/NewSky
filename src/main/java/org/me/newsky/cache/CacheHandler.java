@@ -4,6 +4,7 @@ import org.me.newsky.NewSky;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.params.SetParams;
 
 import java.util.*;
 import java.util.logging.Level;
@@ -464,26 +465,6 @@ public class CacheHandler {
     }
 
     /**
-     * Atomically increments the round-robin counter and returns the new value.
-     *
-     * @return The incremented value, or -1 if an error occurs.
-     */
-    public long incrementAndGetRoundRobinCounter() {
-        try (Jedis jedis = redisHandler.getJedis()) {
-            long value = jedis.incr("round_robin_counter");
-            if (value >= 1_000_000_000) {
-                jedis.set("round_robin_counter", "0");
-                value = 0;
-            }
-            return value;
-        } catch (Exception e) {
-            plugin.getLogger().severe("Failed to increment round-robin counter");
-            return -1;
-        }
-    }
-
-
-    /**
      * Update the server name for a specific island UUID in Redis.
      *
      * @param islandUuid The UUID of the island.
@@ -550,6 +531,50 @@ public class CacheHandler {
     public Set<String> getOnlinePlayers() {
         try (Jedis jedis = redisHandler.getJedis()) {
             return jedis.hkeys("online_players");
+        }
+    }
+
+    /**
+     * Try to acquire a lock in Redis with a specified key and TTL.
+     *
+     * @param key        The key to use for the lock.
+     * @param ttlSeconds The time-to-live for the lock in seconds.
+     * @return true if the lock was acquired, false otherwise.
+     */
+    public boolean acquireLock(String key, int ttlSeconds) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            String result = jedis.set(key, "locked", SetParams.setParams().nx().ex(ttlSeconds));
+            return "OK".equals(result);
+        }
+    }
+
+    /**
+     * Release a lock in Redis by deleting the key.
+     *
+     * @param key The key to release the lock for.
+     */
+    public void releaseLock(String key) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.del(key);
+        }
+    }
+
+    /**
+     * Atomically increments the round-robin counter and returns the new value.
+     *
+     * @return The incremented value, or -1 if an error occurs.
+     */
+    public long incrementAndGetRoundRobinCounter() {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            long value = jedis.incr("round_robin_counter");
+            if (value >= 1_000_000_000) {
+                jedis.set("round_robin_counter", "0");
+                value = 0;
+            }
+            return value;
+        } catch (Exception e) {
+            plugin.getLogger().severe("Failed to increment round-robin counter");
+            return -1;
         }
     }
 }

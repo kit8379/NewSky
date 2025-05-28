@@ -23,36 +23,33 @@ public class HeartBeatHandler {
     }
 
     public void start() {
-        // Start the heartbeat
         heartbeatTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-            // Update the server's heartbeat in the cache
             if (!config.isLobby()) {
                 cacheHandler.updateActiveServer(serverID);
-                plugin.debug("Updated server heartbeat");
+                plugin.debug(getClass().getSimpleName(), "Updated heartbeat for server: " + serverID);
             }
 
-            // Check for inactive servers and remove them from the active list
-            plugin.debug("Active servers before checking: " + cacheHandler.getActiveServers().keySet());
+            plugin.debug(getClass().getSimpleName(), "Active servers before check: " + cacheHandler.getActiveServers().keySet());
+
             cacheHandler.getActiveServers().forEach((server, lastHeartbeat) -> {
-                if (System.currentTimeMillis() - Long.parseLong(lastHeartbeat) > heartbeatInterval * 1000L * 2) {
+                long lastSeen = Long.parseLong(lastHeartbeat);
+                long now = System.currentTimeMillis();
+                if (now - lastSeen > heartbeatInterval * 1000L * 2) {
                     cacheHandler.removeActiveServer(server);
-                    plugin.debug("Removed inactive server from active list: " + server);
+                    plugin.debug(getClass().getSimpleName(), "Removed inactive server: " + server + " (last seen " + lastSeen + ")");
                 }
             });
         }, 0, heartbeatInterval * 20L);
     }
 
-
     public void stop() {
-        // Stop the heartbeat
         if (heartbeatTask != null) {
             heartbeatTask.cancel();
         }
 
-        // Remove the server's heartbeat from the cache
         if (!config.isLobby()) {
             cacheHandler.removeActiveServer(serverID);
-            plugin.debug("Removed server from active list");
+            plugin.debug(getClass().getSimpleName(), "Stopped heartbeat and removed server from active list: " + serverID);
         }
     }
 }

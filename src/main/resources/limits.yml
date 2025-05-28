@@ -7,7 +7,6 @@ blocks:
   OBSIDIAN: 200
   BEACON: 3
   CHEST: 100
-  TNT: 0
 
 entities:
   COW: 10

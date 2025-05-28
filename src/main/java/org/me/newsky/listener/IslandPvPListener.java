@@ -39,7 +39,6 @@ public class IslandPvPListener implements Listener {
         if (!cacheHandler.getIslandPvp(islandUuid)) {
             event.setCancelled(true);
             attacker.sendMessage(config.getIslandPvpDisabledMessage());
-            plugin.debug("PvP is disabled on island " + islandUuid);
         }
     }
 }

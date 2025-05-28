@@ -27,11 +27,9 @@ public class TeleportRequestListener implements Listener {
         Player player = event.getPlayer();
         UUID playerUuid = player.getUniqueId();
         Location pendingLocation = teleportHandler.getPendingTeleport(playerUuid);
-        plugin.debug("Pending location for " + playerUuid + " is " + pendingLocation);
         if (pendingLocation != null) {
             player.teleportAsync(pendingLocation);
             teleportHandler.removePendingTeleport(playerUuid);
-            plugin.debug("Removed pending teleport for " + playerUuid);
         }
     }
 }

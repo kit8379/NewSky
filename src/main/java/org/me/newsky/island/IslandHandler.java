@@ -4,6 +4,8 @@ import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
+import org.me.newsky.exceptions.IslandCreationInProgressException;
+import org.me.newsky.exceptions.IslandDeletionInProgressException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.island.middleware.IslandServiceDistributor;
 
@@ -43,22 +45,31 @@ public class IslandHandler {
                 throw new IslandAlreadyExistException();
             }
 
+            String lockKey = "lock:island_create:" + ownerUuid;
+            if (!cacheHandler.acquireLock(lockKey, 30)) {
+                throw new IslandCreationInProgressException();
+            }
+
             UUID islandUuid = UUID.randomUUID();
             String spawnLocation = config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch();
-            cacheHandler.createIsland(islandUuid);
-            cacheHandler.updateIslandPlayer(islandUuid, ownerUuid, "owner");
-            cacheHandler.updateHomePoint(islandUuid, ownerUuid, "default", spawnLocation);
 
-            return islandServiceDistributor.createIsland(islandUuid);
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(voidFuture -> voidFuture);
+            return islandServiceDistributor.createIsland(islandUuid, ownerUuid, spawnLocation).whenComplete((res, ex) -> cacheHandler.releaseLock(lockKey));
+
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(f -> f);
     }
+
 
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            cacheHandler.deleteIsland(islandUuid);
-            return islandUuid;
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(islandServiceDistributor::deleteIsland);
+            String lockKey = "lock:island_delete:" + islandUuid;
+            if (!cacheHandler.acquireLock(lockKey, 30)) {
+                throw new IslandDeletionInProgressException();
+            }
+
+            return islandServiceDistributor.deleteIsland(islandUuid).whenComplete((res, ex) -> cacheHandler.releaseLock(lockKey));
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(f -> f);
     }
+
 
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
         return CompletableFuture.supplyAsync(() -> islandUuid, plugin.getBukkitAsyncExecutor()).thenCompose(islandServiceDistributor::loadIsland);
@@ -88,8 +99,6 @@ public class IslandHandler {
     }
 
     public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
-        return CompletableFuture.runAsync(() -> {
-            islandServiceDistributor.expelPlayer(islandUuid, playerUuid);
-        }, plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.runAsync(() -> islandServiceDistributor.expelPlayer(islandUuid, playerUuid), plugin.getBukkitAsyncExecutor());
     }
 }

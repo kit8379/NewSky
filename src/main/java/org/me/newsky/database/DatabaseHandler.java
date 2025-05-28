@@ -18,7 +18,7 @@ public class DatabaseHandler {
     public DatabaseHandler(ConfigHandler config) {
         String host = config.getMySQLHost();
         int port = config.getMySQLPort();
-        String database = config.getMySQLName();
+        String database = config.getMySQLDB();
         String username = config.getMySQLUsername();
         String password = config.getMySQLPassword();
         String properties = config.getMySQLProperties();

@@ -24,7 +24,6 @@ public class WorldInitListener implements Listener {
         // Check if the world is an island to set the spawn to not keep in memory
         if (IslandUtils.isIslandWorld(worldName)) {
             world.setKeepSpawnInMemory(false);
-            plugin.debug("Island world " + worldName + " set to not keep spawn in memory.");
         }
     }
 }
