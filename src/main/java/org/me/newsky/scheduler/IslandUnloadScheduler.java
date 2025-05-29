@@ -27,7 +27,7 @@ public class IslandUnloadScheduler {
     }
 
     public void start() {
-        unloadTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::checkAndUnloadWorlds, 0, unloadInterval * 20);
+        unloadTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::checkAndUnloadWorlds, 0, unloadInterval * 20L);
     }
 
     public void stop() {
@@ -57,5 +57,6 @@ public class IslandUnloadScheduler {
             }
         });
         plugin.debug(getClass().getSimpleName(), "Finished checking for inactive island worlds.");
+
     }
 }

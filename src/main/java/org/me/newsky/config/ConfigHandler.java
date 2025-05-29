@@ -159,6 +159,14 @@ public class ConfigHandler {
         return config.getString("server.selector");
     }
 
+    public int getMsptUpdateInterval() {
+        return config.getInt("server.mspt-update-interval");
+    }
+
+    public String getLobbyCommand(String playerName) {
+        return Objects.requireNonNull(config.getString("lobby.command")).replace("{player}", playerName);
+    }
+
     public String getTemplateWorldName() {
         return config.getString("island.template");
     }

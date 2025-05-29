@@ -534,6 +534,40 @@ public class CacheHandler {
         }
     }
 
+
+    /**
+     * Update the current server's MSPT value in Redis.
+     *
+     * @param serverName the name of the server
+     * @param mspt       the average milliseconds per tick (MSPT)
+     */
+    public void updateServerMSPT(String serverName, double mspt) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.hset("server_mspt", serverName, String.format("%.2f", mspt));
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to update MSPT for server: " + serverName, e);
+        }
+    }
+
+    /**
+     * Get the current MSPT value of a server from Redis.
+     *
+     * @param serverName the name of the server
+     * @return the MSPT value if available, or -1 if not found or invalid
+     */
+    public double getServerMSPT(String serverName) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            String value = jedis.hget("server_mspt", serverName);
+            if (value != null) {
+                return Double.parseDouble(value);
+            }
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to get MSPT for server: " + serverName, e);
+        }
+        return -1;
+    }
+
+
     /**
      * Try to acquire a lock in Redis with a specified key and TTL.
      *

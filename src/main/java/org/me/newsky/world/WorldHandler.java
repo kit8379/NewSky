@@ -153,6 +153,7 @@ public class WorldHandler {
         World safeWorld = Bukkit.getServer().getWorlds().getFirst();
         for (Player player : world.getPlayers()) {
             player.teleport(safeWorld.getSpawnLocation());
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), config.getLobbyCommand(player.getName()));
         }
     }
 

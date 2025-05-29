@@ -18,11 +18,13 @@ import org.me.newsky.listener.*;
 import org.me.newsky.network.Broker;
 import org.me.newsky.placeholder.NewSkyPlaceholderExpansion;
 import org.me.newsky.redis.RedisHandler;
+import org.me.newsky.routing.MSPTServerSelector;
 import org.me.newsky.routing.RandomServerSelector;
 import org.me.newsky.routing.RoundRobinServerSelector;
 import org.me.newsky.routing.ServerSelector;
 import org.me.newsky.scheduler.IslandUnloadScheduler;
 import org.me.newsky.scheduler.LevelUpdateScheduler;
+import org.me.newsky.scheduler.MSPTUpdateScheduler;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.thread.BukkitAsyncExecutor;
 import org.me.newsky.world.WorldHandler;
@@ -45,6 +47,7 @@ public class NewSky extends JavaPlugin {
     private HeartBeatHandler heartBeatHandler;
     private IslandUnloadScheduler islandUnloadScheduler;
     private LevelUpdateScheduler levelUpdateScheduler;
+    private MSPTUpdateScheduler msptUpdateScheduler;
     private Broker broker;
     private NewSkyAPI api;
     private BukkitAsyncExecutor bukkitAsyncExecutor;
@@ -113,16 +116,21 @@ public class NewSky extends JavaPlugin {
             switch (config.getServerSelector().toLowerCase()) {
                 case "round-robin":
                     serverSelector = new RoundRobinServerSelector(cacheHandler);
+                    info("Using Round Robin server selector");
+                    break;
+                case "mspt":
+                    serverSelector = new MSPTServerSelector(cacheHandler);
+                    info("Using MSPT server selector");
                     break;
                 case "random":
-
                 default:
                     serverSelector = new RandomServerSelector();
+                    info("Using Random server selector");
             }
             info("Server selector loaded");
 
             info("Starting handlers for remote requests");
-            LocalIslandOperation localIslandOperation = new LocalIslandOperation(this, cacheHandler, worldHandler, teleportHandler, serverID);
+            LocalIslandOperation localIslandOperation = new LocalIslandOperation(this, config, cacheHandler, worldHandler, teleportHandler, serverID);
             broker = new Broker(this, redisHandler, localIslandOperation, serverID, channelID);
             IslandServiceDistributor islandServiceDistributor = new IslandServiceDistributor(this, cacheHandler, broker, localIslandOperation, serverSelector, serverID);
             info("All handlers for remote requests loaded");
@@ -143,6 +151,7 @@ public class NewSky extends JavaPlugin {
             info("Starting all schedulers for the plugin");
             islandUnloadScheduler = new IslandUnloadScheduler(this, config, cacheHandler, worldHandler);
             levelUpdateScheduler = new LevelUpdateScheduler(this, config, levelHandler);
+            msptUpdateScheduler = new MSPTUpdateScheduler(this, config, cacheHandler, serverID);
             info("All schedulers loaded");
 
             info("Starting API");
@@ -168,6 +177,7 @@ public class NewSky extends JavaPlugin {
             heartBeatHandler.start();
             islandUnloadScheduler.start();
             levelUpdateScheduler.start();
+            msptUpdateScheduler.start();
             broker.subscribe();
         } catch (Exception e) {
             getLogger().log(Level.SEVERE, "An error occurred during plugin initialization", e);
@@ -248,6 +258,7 @@ public class NewSky extends JavaPlugin {
         broker.unsubscribe();
         levelUpdateScheduler.stop();
         islandUnloadScheduler.stop();
+        msptUpdateScheduler.stop();
         heartBeatHandler.stop();
         redisHandler.disconnect();
         databaseHandler.close();

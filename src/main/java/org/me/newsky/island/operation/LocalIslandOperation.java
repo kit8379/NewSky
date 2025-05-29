@@ -6,8 +6,10 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.util.IslandUtils;
+import org.me.newsky.util.LocationUtils;
 import org.me.newsky.world.WorldHandler;
 
 import java.util.Set;
@@ -21,13 +23,15 @@ import java.util.concurrent.CompletableFuture;
 public class LocalIslandOperation {
 
     private final NewSky plugin;
+    private final ConfigHandler config;
     private final CacheHandler cacheHandler;
     private final WorldHandler worldHandler;
     private final TeleportHandler teleportHandler;
     private final String serverID;
 
-    public LocalIslandOperation(NewSky plugin, CacheHandler cacheHandler, WorldHandler worldHandler, TeleportHandler teleportHandler, String serverID) {
+    public LocalIslandOperation(NewSky plugin, ConfigHandler config, CacheHandler cacheHandler, WorldHandler worldHandler, TeleportHandler teleportHandler, String serverID) {
         this.plugin = plugin;
+        this.config = config;
         this.cacheHandler = cacheHandler;
         this.worldHandler = worldHandler;
         this.teleportHandler = teleportHandler;
@@ -83,12 +87,12 @@ public class LocalIslandOperation {
 
         World world = Bukkit.getWorld(islandName);
         if (world != null) {
-            World safeWorld = Bukkit.getServer().getWorlds().getFirst();
             Set<UUID> islandPlayers = cacheHandler.getIslandPlayers(islandUuid);
             for (Player player : world.getPlayers()) {
                 UUID playerUuid = player.getUniqueId();
                 if (!islandPlayers.contains(playerUuid)) {
-                    player.teleportAsync(safeWorld.getSpawnLocation());
+                    player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
+                    Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), config.getLobbyCommand(player.getName())));
                     plugin.debug(getClass().getSimpleName(), "Player " + playerUuid + " teleported to safe location due to island lock");
                 }
             }
@@ -106,6 +110,7 @@ public class LocalIslandOperation {
             Player player = Bukkit.getPlayer(playerUuid);
             if (player != null) {
                 player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
+                Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), config.getLobbyCommand(player.getName())));
                 plugin.debug(getClass().getSimpleName(), "Player " + playerUuid + " expelled from island " + islandName);
             }
         }
@@ -118,14 +123,7 @@ public class LocalIslandOperation {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         return loadIsland(islandUuid).thenRun(() -> {
-            String[] parts = teleportLocation.split(",");
-            double x = Double.parseDouble(parts[0]);
-            double y = Double.parseDouble(parts[1]);
-            double z = Double.parseDouble(parts[2]);
-            float yaw = Float.parseFloat(parts[3]);
-            float pitch = Float.parseFloat(parts[4]);
-
-            Location location = new Location(Bukkit.getWorld(islandName), x, y, z, yaw, pitch);
+            Location location = LocationUtils.stringToLocation(islandName, teleportLocation);
             Player player = Bukkit.getPlayer(playerUuid);
             if (player != null) {
                 player.teleportAsync(location);

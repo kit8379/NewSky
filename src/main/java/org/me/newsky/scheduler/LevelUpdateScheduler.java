@@ -24,7 +24,7 @@ public class LevelUpdateScheduler {
     }
 
     public void start() {
-        updateTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::updateIslandLevels, 0, updateInterval * 20);
+        updateTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::updateIslandLevels, 0, updateInterval * 20L);
     }
 
     public void stop() {
