@@ -36,16 +36,19 @@ public class IslandMoveListener implements Listener {
     public void onPlayerMove(PlayerMoveEvent event) {
         // Check if the player has admin permissions
         if (event.getPlayer().hasPermission("newsky.admin.bypass")) {
+            plugin.debug(getClass().getSimpleName(), "Player " + event.getPlayer().getName() + " has admin permissions, bypassing island move checks.");
             return;
         }
 
         Location from = event.getFrom();
         Location to = event.getTo();
         if (from.getBlockX() - to.getBlockX() == 0 && from.getBlockZ() - to.getBlockZ() == 0) {
+            plugin.debug(getClass().getSimpleName(), "Player " + event.getPlayer().getName() + " did not move, skipping move checks.");
             return;
         }
 
         if (to.getWorld() == null || !IslandUtils.isIslandWorld(to.getWorld().getName())) {
+            plugin.debug(getClass().getSimpleName(), "Player " + event.getPlayer().getName() + " is not in an island world, skipping move checks.");
             return;
         }
 
@@ -56,6 +59,7 @@ public class IslandMoveListener implements Listener {
         if (cacheHandler.getPlayerBanned(islandUuid, playerUuid)) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(config.getPlayerBannedMessage());
+            plugin.debug(getClass().getSimpleName(), "Player " + event.getPlayer().getName() + " is banned from island " + islandUuid);
             return;
         }
 
@@ -63,6 +67,7 @@ public class IslandMoveListener implements Listener {
         if (cacheHandler.getIslandLock(islandUuid) && !cacheHandler.getIslandPlayers(islandUuid).contains(playerUuid)) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(config.getIslandLockedMessage());
+            plugin.debug(getClass().getSimpleName(), "Player " + event.getPlayer().getName() + " tried to enter locked island " + islandUuid);
             return;
         }
 
@@ -75,6 +80,7 @@ public class IslandMoveListener implements Listener {
         if (to.getBlockX() < minX || to.getBlockX() > maxX || to.getBlockZ() < minZ || to.getBlockZ() > maxZ) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(config.getCannotLeaveIslandBoundaryMessage());
+            plugin.debug(getClass().getSimpleName(), "Player " + event.getPlayer().getName() + " tried to leave island boundary of " + islandUuid);
         }
     }
 }

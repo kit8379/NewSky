@@ -39,7 +39,6 @@ public class LocalIslandOperation {
     }
 
     public CompletableFuture<Void> createIsland(UUID islandUuid, UUID ownerUuid, String spawnLocation) {
-        plugin.debug(getClass().getSimpleName(), "Creating island with UUID: " + islandUuid + " for owner: " + ownerUuid);
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         return worldHandler.createWorld(islandName).thenRun(() -> {
@@ -52,7 +51,6 @@ public class LocalIslandOperation {
     }
 
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
-        plugin.debug(getClass().getSimpleName(), "Deleting island with UUID: " + islandUuid);
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         return worldHandler.deleteWorld(islandName).thenRun(() -> {
@@ -62,7 +60,6 @@ public class LocalIslandOperation {
     }
 
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
-        plugin.debug(getClass().getSimpleName(), "Loading island with UUID: " + islandUuid);
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         return worldHandler.loadWorld(islandName).thenRun(() -> {
@@ -72,7 +69,6 @@ public class LocalIslandOperation {
     }
 
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
-        plugin.debug(getClass().getSimpleName(), "Unloading island with UUID: " + islandUuid);
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         return worldHandler.unloadWorld(islandName).thenRun(() -> {
@@ -82,7 +78,6 @@ public class LocalIslandOperation {
     }
 
     public CompletableFuture<Void> lockIsland(UUID islandUuid) {
-        plugin.debug(getClass().getSimpleName(), "Locking island with UUID: " + islandUuid);
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         World world = Bukkit.getWorld(islandName);
@@ -102,7 +97,6 @@ public class LocalIslandOperation {
     }
 
     public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
-        plugin.debug(getClass().getSimpleName(), "Expelling player " + playerUuid + " from island " + islandUuid);
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         World world = Bukkit.getWorld(islandName);
@@ -119,7 +113,6 @@ public class LocalIslandOperation {
     }
 
     public CompletableFuture<Void> teleportToIsland(UUID islandUuid, UUID playerUuid, String teleportLocation) {
-        plugin.debug(getClass().getSimpleName(), "Teleporting player " + playerUuid + " to island " + islandUuid + " at location: " + teleportLocation);
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         return loadIsland(islandUuid).thenRun(() -> {

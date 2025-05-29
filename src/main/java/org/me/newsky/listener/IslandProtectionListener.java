@@ -39,6 +39,7 @@ public class IslandProtectionListener implements Listener {
         if (!canPlayerEdit(event.getPlayer(), event.getBlock().getLocation())) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(config.getCannotEditIslandMessage());
+            plugin.debug(getClass().getSimpleName(), "Player " + event.getPlayer().getName() + " attempted to break a block outside their island.");
         }
     }
 
@@ -47,6 +48,7 @@ public class IslandProtectionListener implements Listener {
         if (!canPlayerEdit(event.getPlayer(), event.getBlockPlaced().getLocation())) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(config.getCannotEditIslandMessage());
+            plugin.debug(getClass().getSimpleName(), "Player " + event.getPlayer().getName() + " attempted to place a block outside their island.");
         }
     }
 
@@ -56,6 +58,7 @@ public class IslandProtectionListener implements Listener {
             if (event.getClickedBlock() != null && !canPlayerEdit(event.getPlayer(), event.getClickedBlock().getLocation())) {
                 event.setCancelled(true);
                 event.getPlayer().sendMessage(config.getCannotEditIslandMessage());
+                plugin.debug(getClass().getSimpleName(), "Player " + event.getPlayer().getName() + " attempted to interact with a block outside their island.");
             }
         }
     }
@@ -63,10 +66,12 @@ public class IslandProtectionListener implements Listener {
     private boolean canPlayerEdit(Player player, Location location) {
         // Check if the player has admin permissions
         if (player.hasPermission("newsky.admin.bypass")) {
+            plugin.debug(getClass().getSimpleName(), "Player " + player.getName() + " has admin permissions, bypassing island protection checks.");
             return true;
         }
 
         if (location.getWorld() == null || !IslandUtils.isIslandWorld(location.getWorld().getName())) {
+            plugin.debug(getClass().getSimpleName(), "Player " + player.getName() + " is in a non-island world, allowing edit.");
             return true;
         }
 
@@ -79,6 +84,7 @@ public class IslandProtectionListener implements Listener {
         int maxZ = islandCenterZ + halfSize;
 
         if (location.getBlockX() < minX || location.getBlockX() > maxX || location.getBlockZ() < minZ || location.getBlockZ() > maxZ) {
+            plugin.debug(getClass().getSimpleName(), "Player " + player.getName() + " attempted to edit a block outside their island boundaries.");
             return false;
         }
 

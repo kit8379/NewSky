@@ -27,10 +27,12 @@ public class IslandPvPListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         if (!(event.getEntity() instanceof Player victim) || !(event.getDamager() instanceof Player attacker)) {
+            plugin.debug(getClass().getSimpleName(), "Entity damage event is not between players, skipping.");
             return;
         }
 
         if (!IslandUtils.isIslandWorld(victim.getWorld().getName())) {
+            plugin.debug(getClass().getSimpleName(), "Victim is not in an island world, skipping.");
             return;
         }
 
@@ -39,6 +41,7 @@ public class IslandPvPListener implements Listener {
         if (!cacheHandler.getIslandPvp(islandUuid)) {
             event.setCancelled(true);
             attacker.sendMessage(config.getIslandPvpDisabledMessage());
+            plugin.debug(getClass().getSimpleName(), "PvP is disabled on island " + islandUuid + ", cancelling damage event.");
         }
     }
 }

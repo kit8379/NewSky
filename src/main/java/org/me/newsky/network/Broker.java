@@ -96,7 +96,7 @@ public class Broker {
             plugin.debug(getClass().getSimpleName(), "Sent success response for request " + operation + " [ID=" + requestId + "] to " + source);
         }).exceptionally(e -> {
             sendResponse("fail", requestId, source);
-            plugin.debug(getClass().getSimpleName(), "Failed to process request " + operation + " [ID=" + requestId + "] from " + source);
+            plugin.debug(getClass().getSimpleName(), "Sent failure response for request " + operation + " [ID=" + requestId + "] to " + source);
             plugin.getLogger().log(Level.SEVERE, "Failed to handle request " + operation, e);
             return null;
         });
@@ -123,11 +123,14 @@ public class Broker {
             return;
         }
 
-        plugin.debug(getClass().getSimpleName(), "Response [" + status + "] for request ID " + requestId + " from " + source);
+        plugin.debug(getClass().getSimpleName(), "Received response for request " + requestId + " from " + source + " with status: " + status);
+
         if (status.equals("success")) {
             future.complete(null);
+            plugin.debug(getClass().getSimpleName(), "Received success response for request " + requestId + " from " + source);
         } else {
             future.completeExceptionally(new IllegalStateException("Request failed: " + requestId));
+            plugin.debug(getClass().getSimpleName(), "Received failure response for request " + requestId + " from " + source);
         }
     }
 

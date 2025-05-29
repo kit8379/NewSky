@@ -45,11 +45,12 @@ public class HeartBeatHandler {
     public void stop() {
         if (heartbeatTask != null) {
             heartbeatTask.cancel();
+            plugin.debug(getClass().getSimpleName(), "Stopped heartbeat task for server: " + serverID);
         }
 
         if (!config.isLobby()) {
             cacheHandler.removeActiveServer(serverID);
-            plugin.debug(getClass().getSimpleName(), "Stopped heartbeat and removed server from active list: " + serverID);
+            plugin.debug(getClass().getSimpleName(), "Removed server from active servers: " + serverID);
         }
     }
 }

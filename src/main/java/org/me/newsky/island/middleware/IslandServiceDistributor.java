@@ -39,7 +39,6 @@ public class IslandServiceDistributor {
 
     public CompletableFuture<Void> createIsland(UUID islandUuid, UUID ownerUuid, String spawnLocation) {
         String targetServer = selectServer();
-        plugin.debug(getClass().getSimpleName(), "Creating island " + islandUuid + " for owner " + ownerUuid + " on server " + targetServer);
 
         if (targetServer == null) {
             plugin.debug(getClass().getSimpleName(), "No active server found to handle island creation");
@@ -57,7 +56,6 @@ public class IslandServiceDistributor {
 
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
         String islandServer = getServerByIsland(islandUuid);
-        plugin.debug(getClass().getSimpleName(), "Deleting island " + islandUuid + " found on server: " + islandServer);
 
         if (islandServer == null) {
             plugin.debug(getClass().getSimpleName(), "Island " + islandUuid + " is not currently loaded on any server");
@@ -88,7 +86,6 @@ public class IslandServiceDistributor {
 
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
         String islandServer = getServerByIsland(islandUuid);
-        plugin.debug(getClass().getSimpleName(), "Loading island " + islandUuid + " currently on server: " + islandServer);
 
         if (islandServer == null) {
             plugin.debug(getClass().getSimpleName(), "Island " + islandUuid + " is not currently loaded on any server");
@@ -113,7 +110,6 @@ public class IslandServiceDistributor {
 
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
         String islandServer = getServerByIsland(islandUuid);
-        plugin.debug(getClass().getSimpleName(), "Unloading island " + islandUuid + " from server: " + islandServer);
 
         if (islandServer == null) {
             plugin.debug(getClass().getSimpleName(), "Island " + islandUuid + " is not currently loaded on any server");
@@ -130,7 +126,6 @@ public class IslandServiceDistributor {
     }
 
     public void lockIsland(UUID islandUuid) {
-        plugin.debug(getClass().getSimpleName(), "Locking island " + islandUuid);
         String islandServer = getServerByIsland(islandUuid);
 
         if (islandServer == null) {
@@ -148,7 +143,6 @@ public class IslandServiceDistributor {
     }
 
     public void expelPlayer(UUID islandUuid, UUID playerUuid) {
-        plugin.debug(getClass().getSimpleName(), "Expelling player " + playerUuid + " from island " + islandUuid);
         String islandServer = getServerByIsland(islandUuid);
 
         if (islandServer == null) {
@@ -167,7 +161,6 @@ public class IslandServiceDistributor {
 
     public CompletableFuture<Void> teleportToIsland(UUID islandUuid, UUID playerUuid, String teleportLocation) {
         String islandServer = getServerByIsland(islandUuid);
-        plugin.debug(getClass().getSimpleName(), "Teleporting player " + playerUuid + " to island " + islandUuid + " at " + teleportLocation);
 
         if (islandServer == null) {
             plugin.debug(getClass().getSimpleName(), "Island " + islandUuid + " is not currently loaded on any server");

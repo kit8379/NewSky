@@ -30,6 +30,7 @@ public class TeleportRequestListener implements Listener {
         if (pendingLocation != null) {
             player.teleportAsync(pendingLocation);
             teleportHandler.removePendingTeleport(playerUuid);
+            plugin.debug(getClass().getSimpleName(), "Player " + player.getName() + " was teleported to their pending location upon joining.");
         }
     }
 }

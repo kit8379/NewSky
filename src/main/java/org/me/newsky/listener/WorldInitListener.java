@@ -1,5 +1,6 @@
 package org.me.newsky.listener;
 
+import org.bukkit.GameRule;
 import org.bukkit.World;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -21,9 +22,10 @@ public class WorldInitListener implements Listener {
         World world = event.getWorld();
         String worldName = world.getName();
 
-        // Check if the world is an island to set the spawn to not keep in memory
         if (IslandUtils.isIslandWorld(worldName)) {
-            world.setKeepSpawnInMemory(false);
+            // Disable spawn chunk loading by setting spawn radius to 0
+            world.setGameRule(GameRule.SPAWN_CHUNK_RADIUS, 0);
+            plugin.debug(getClass().getSimpleName(), "Disabled spawn chunk loading for island world: " + worldName);
         }
     }
 }

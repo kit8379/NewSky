@@ -43,8 +43,9 @@ public class IslandLimitListener implements Listener {
         Material type = event.getBlock().getType();
 
         if (!canPlace(islandUuid, type)) {
-            player.sendMessage(config.getBlockLimitMessage(type.name()));
             event.setCancelled(true);
+            player.sendMessage(config.getBlockLimitMessage(type.name()));
+            plugin.debug(getClass().getSimpleName(), "Block place cancelled for " + type.name() + " on island " + islandUuid);
             return;
         }
 
@@ -57,6 +58,7 @@ public class IslandLimitListener implements Listener {
         String worldName = event.getLocation().getWorld().getName();
 
         if (!IslandUtils.isIslandWorld(worldName)) {
+            plugin.debug(getClass().getSimpleName(), "Entity spawn in non-island world: " + worldName);
             return;
         }
 
@@ -65,9 +67,11 @@ public class IslandLimitListener implements Listener {
 
         if (!canSpawn(islandUuid, type)) {
             event.setCancelled(true);
-        } else {
-            registerEntitySpawn(islandUuid, type);
+            plugin.debug(getClass().getSimpleName(), "Entity spawn cancelled for " + type.name() + " on island " + islandUuid);
+            return;
         }
+
+        registerEntitySpawn(islandUuid, type);
     }
 
     private boolean canPlace(UUID islandUuid, Material type) {
