@@ -734,6 +734,105 @@ public class IslandCommand extends BaseCommand {
             }
             return null;
         });
+    }
 
+    @Subcommand("coop")
+    @CommandPermission("newsky.island.coop")
+    @Syntax("<player>")
+    @CommandCompletion("@globalplayers")
+    @SuppressWarnings("unused")
+    public void onCoop(CommandSender sender, @Single String targetPlayerName) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetPlayerName);
+        UUID playerUuid = player.getUniqueId();
+        UUID targetUuid = target.getUniqueId();
+
+        if (playerUuid.equals(targetUuid)) {
+            player.sendMessage(Component.text("You cannot coop yourself."));
+            return;
+        }
+
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.addCoop(islandUuid, targetUuid)).thenRun(() -> player.sendMessage(config.getPlayerCoopSuccessMessage(targetPlayerName))).exceptionally(ex -> {
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoIslandMessage());
+            } else if (ex.getCause() instanceof PlayerAlreadyCoopedException) {
+                player.sendMessage(config.getPlayerAlreadyCoopedMessage(targetPlayerName));
+            } else if (ex.getCause() instanceof CannotCoopIslandPlayerException) {
+                player.sendMessage(config.getPlayerCannotCoopIslandPlayerMessage());
+            } else {
+                player.sendMessage(Component.text("There was an error cooping the player."));
+                plugin.getLogger().log(Level.SEVERE, "Error cooping player " + targetPlayerName + " for " + player.getName(), ex);
+            }
+            return null;
+        });
+    }
+
+    @Subcommand("uncoop")
+    @CommandPermission("newsky.island.uncoop")
+    @Syntax("<player>")
+    @CommandCompletion("@globalplayers")
+    @SuppressWarnings("unused")
+    public void onUncoop(CommandSender sender, @Single String targetPlayerName) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetPlayerName);
+        UUID playerUuid = player.getUniqueId();
+        UUID targetUuid = target.getUniqueId();
+
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.removeCoop(islandUuid, targetUuid)).thenRun(() -> player.sendMessage(config.getPlayerUncoopSuccessMessage(targetPlayerName))).exceptionally(ex -> {
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoIslandMessage());
+            } else if (ex.getCause() instanceof PlayerNotCoopedException) {
+                player.sendMessage(config.getPlayerNotCoopedMessage(targetPlayerName));
+            } else {
+                player.sendMessage(Component.text("There was an error uncooping the player."));
+                plugin.getLogger().log(Level.SEVERE, "Error uncooping player " + targetPlayerName + " for " + player.getName(), ex);
+            }
+            return null;
+        });
+    }
+
+    @Subcommand("cooplist")
+    @CommandPermission("newsky.island.cooplist")
+    @SuppressWarnings("unused")
+    public void onCoopList(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return;
+        }
+
+        UUID playerUuid = player.getUniqueId();
+
+        api.getIslandUuid(playerUuid).thenCompose(api::getCoopedPlayers).thenAccept(coopedPlayers -> {
+            if (coopedPlayers.isEmpty()) {
+                player.sendMessage(config.getNoCoopedPlayersMessage());
+                return;
+            }
+
+            Component coopList = config.getCoopedPlayersHeaderMessage();
+            for (UUID coopedPlayerUuid : coopedPlayers) {
+                OfflinePlayer coopedPlayer = Bukkit.getOfflinePlayer(coopedPlayerUuid);
+                String name = coopedPlayer.getName() != null ? coopedPlayer.getName() : coopedPlayerUuid.toString();
+                coopList = coopList.append(config.getCoopedPlayerMessage(name));
+            }
+
+            player.sendMessage(coopList);
+
+        }).exceptionally(ex -> {
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoIslandMessage());
+            } else {
+                player.sendMessage(Component.text("There was an error retrieving the coop list."));
+                plugin.getLogger().log(Level.SEVERE, "Error retrieving coop list for " + player.getName(), ex);
+            }
+            return null;
+        });
     }
 }

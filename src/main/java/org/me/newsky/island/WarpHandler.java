@@ -61,12 +61,12 @@ public class WarpHandler {
             UUID islandUuid = islandUuidOpt.get();
 
             // Check if the target player is banned
-            if (cacheHandler.getPlayerBanned(islandUuid, targetPlayerUuid)) {
+            if (cacheHandler.isPlayerBanned(islandUuid, targetPlayerUuid)) {
                 throw new PlayerBannedException();
             }
 
             // Check if the island is locked and the player is not a member
-            boolean isLocked = cacheHandler.getIslandLock(islandUuid);
+            boolean isLocked = cacheHandler.isIslandLock(islandUuid);
             boolean isMember = cacheHandler.getIslandPlayers(islandUuid).contains(targetPlayerUuid);
             if (isLocked && !isMember) {
                 throw new IslandLockedException();

@@ -331,6 +331,49 @@ public class NewSkyAPI {
     }
 
     /**
+     * Add a coop player to the island
+     *
+     * @param islandUuid The UUID of the island
+     * @param playerUuid The UUID of the player to add as a coop
+     * @return A CompletableFuture that completes when the coop is added
+     */
+    public CompletableFuture<Void> addCoop(UUID islandUuid, UUID playerUuid) {
+        return playerHandler.addCoop(islandUuid, playerUuid);
+    }
+
+    /**
+     * Remove a coop player from the island
+     *
+     * @param islandUuid The UUID of the island
+     * @param playerUuid The UUID of the player to remove as a coop
+     * @return A CompletableFuture that completes when the coop is removed
+     */
+    public CompletableFuture<Void> removeCoop(UUID islandUuid, UUID playerUuid) {
+        return playerHandler.removeCoop(islandUuid, playerUuid);
+    }
+
+    /**
+     * Remove all coop players of a specific player
+     *
+     * @param playerUuid The UUID of the player whose coops are to be removed
+     */
+    public void removeAllCoopOfPlayer(UUID playerUuid) {
+        playerHandler.removeAllCoopOfPlayer(playerUuid);
+    }
+
+
+    /**
+     * Get the cooped players of the island
+     *
+     * @param islandUuid The UUID of the island
+     * @return A CompletableFuture that completes with the set of banned players
+     */
+    public CompletableFuture<Set<UUID>> getCoopedPlayers(UUID islandUuid) {
+        return playerHandler.getCoopedPlayers(islandUuid);
+    }
+
+
+    /**
      * Get the online players
      *
      * @return A set of online players

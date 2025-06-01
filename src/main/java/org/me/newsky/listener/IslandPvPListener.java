@@ -38,7 +38,7 @@ public class IslandPvPListener implements Listener {
 
         UUID islandUuid = IslandUtils.nameToUUID(victim.getWorld().getName());
 
-        if (!cacheHandler.getIslandPvp(islandUuid)) {
+        if (!cacheHandler.isIslandPvp(islandUuid)) {
             event.setCancelled(true);
             attacker.sendMessage(config.getIslandPvpDisabledMessage());
             plugin.debug(getClass().getSimpleName(), "PvP is disabled on island " + islandUuid + ", cancelling damage event.");

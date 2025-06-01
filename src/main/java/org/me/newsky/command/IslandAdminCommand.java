@@ -475,4 +475,55 @@ public class IslandAdminCommand extends BaseCommand {
             return null;
         });
     }
+
+    @Subcommand("admincoop")
+    @CommandPermission("newsky.admin.island.coop")
+    @Syntax("<owner> <player>")
+    @CommandCompletion("@globalplayers @globalplayers")
+    @SuppressWarnings("unused")
+    public void onAdminCoop(CommandSender sender, @Single String ownerName, @Single String targetName) {
+        OfflinePlayer owner = Bukkit.getOfflinePlayer(ownerName);
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
+        UUID ownerUuid = owner.getUniqueId();
+        UUID targetUuid = target.getUniqueId();
+
+        api.getIslandUuid(ownerUuid).thenCompose(islandUuid -> api.addCoop(islandUuid, targetUuid)).thenRun(() -> sender.sendMessage(config.getAdminCoopSuccessMessage(ownerName, targetName))).exceptionally(ex -> {
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                sender.sendMessage(config.getAdminNoIslandMessage(ownerName));
+            } else if (ex.getCause() instanceof PlayerAlreadyCoopedException) {
+                sender.sendMessage(config.getPlayerAlreadyCoopedMessage(targetName));
+            } else if (ex.getCause() instanceof CannotCoopIslandPlayerException) {
+                sender.sendMessage(config.getPlayerCannotCoopIslandPlayerMessage());
+            } else {
+                sender.sendMessage("There was an error cooping the player.");
+                plugin.getLogger().log(Level.SEVERE, "Error cooping player " + targetName + " to island of " + ownerName, ex);
+            }
+            return null;
+        });
+    }
+
+    @Subcommand("adminuncoop")
+    @CommandPermission("newsky.admin.island.uncoop")
+    @Syntax("<owner> <player>")
+    @CommandCompletion("@globalplayers @globalplayers")
+    @SuppressWarnings("unused")
+    public void onAdminUncoop(CommandSender sender, @Single String ownerName, @Single String targetName) {
+        OfflinePlayer owner = Bukkit.getOfflinePlayer(ownerName);
+        OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
+        UUID ownerUuid = owner.getUniqueId();
+        UUID targetUuid = target.getUniqueId();
+
+        api.getIslandUuid(ownerUuid).thenCompose(islandUuid -> api.removeCoop(islandUuid, targetUuid)).thenRun(() -> sender.sendMessage(config.getAdminUncoopSuccessMessage(ownerName, targetName))).exceptionally(ex -> {
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                sender.sendMessage(config.getAdminNoIslandMessage(ownerName));
+            } else if (ex.getCause() instanceof PlayerNotCoopedException) {
+                sender.sendMessage(config.getPlayerNotCoopedMessage(targetName));
+            } else {
+                sender.sendMessage("There was an error uncooping the player.");
+                plugin.getLogger().log(Level.SEVERE, "Error uncooping player " + targetName + " from island of " + ownerName, ex);
+            }
+            return null;
+        });
+    }
+
 }

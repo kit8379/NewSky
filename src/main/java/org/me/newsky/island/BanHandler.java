@@ -24,8 +24,8 @@ public class BanHandler {
     }
 
     public CompletableFuture<Void> banPlayer(UUID islandUuid, UUID playerUuid) {
-        return CompletableFuture.supplyAsync(() -> {
-            if (cacheHandler.getPlayerBanned(islandUuid, playerUuid)) {
+        return CompletableFuture.runAsync(() -> {
+            if (cacheHandler.isPlayerBanned(islandUuid, playerUuid)) {
                 throw new PlayerAlreadyBannedException();
             }
             if (cacheHandler.getIslandPlayers(islandUuid).contains(playerUuid)) {
@@ -33,22 +33,19 @@ public class BanHandler {
             }
             islandServiceDistributor.expelPlayer(islandUuid, playerUuid);
             cacheHandler.updateBanPlayer(islandUuid, playerUuid);
-            return null;
         }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> unbanPlayer(UUID islandUuid, UUID playerUuid) {
-        return CompletableFuture.supplyAsync(() -> {
-            if (!cacheHandler.getPlayerBanned(islandUuid, playerUuid)) {
+        return CompletableFuture.runAsync(() -> {
+            if (!cacheHandler.isPlayerBanned(islandUuid, playerUuid)) {
                 throw new PlayerNotBannedException();
             }
             cacheHandler.deleteBanPlayer(islandUuid, playerUuid);
-            return null;
         }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Set<UUID>> getBannedPlayers(UUID islandUuid) {
         return CompletableFuture.supplyAsync(() -> cacheHandler.getBannedPlayers(islandUuid), plugin.getBukkitAsyncExecutor());
     }
-
 }

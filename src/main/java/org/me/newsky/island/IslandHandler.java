@@ -81,7 +81,7 @@ public class IslandHandler {
 
     public CompletableFuture<Boolean> toggleIslandLock(UUID islandUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            boolean isLocked = cacheHandler.getIslandLock(islandUuid);
+            boolean isLocked = cacheHandler.isIslandLock(islandUuid);
             cacheHandler.updateIslandLock(islandUuid, !isLocked);
             if (!isLocked) {
                 islandServiceDistributor.lockIsland(islandUuid);
@@ -92,7 +92,7 @@ public class IslandHandler {
 
     public CompletableFuture<Boolean> toggleIslandPvp(UUID islandUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            boolean isPvpEnabled = cacheHandler.getIslandPvp(islandUuid);
+            boolean isPvpEnabled = cacheHandler.isIslandPvp(islandUuid);
             cacheHandler.updateIslandPvp(islandUuid, !isPvpEnabled);
             return !isPvpEnabled;
         }, plugin.getBukkitAsyncExecutor());

@@ -262,7 +262,7 @@ public class CacheHandler {
         databaseHandler.deleteBanPlayer(islandUuid, playerUuid);
     }
 
-    public boolean getIslandLock(UUID islandUuid) {
+    public boolean isIslandLock(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             String lock = jedis.hget("island_data:" + islandUuid.toString(), "lock");
             return Boolean.parseBoolean(lock);
@@ -272,7 +272,7 @@ public class CacheHandler {
         }
     }
 
-    public boolean getIslandPvp(UUID islandUuid) {
+    public boolean isIslandPvp(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             String pvp = jedis.hget("island_data:" + islandUuid.toString(), "pvp");
             return Boolean.parseBoolean(pvp);
@@ -343,7 +343,7 @@ public class CacheHandler {
     }
 
 
-    public boolean getPlayerBanned(UUID islandUuid, UUID playerUuid) {
+    public boolean isPlayerBanned(UUID islandUuid, UUID playerUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             return jedis.sismember("island_bans:" + islandUuid.toString(), playerUuid.toString());
         }
@@ -416,6 +416,43 @@ public class CacheHandler {
         }
     }
 
+    public void addCoopPlayer(UUID islandUuid, UUID playerUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.sadd("coop_players:" + islandUuid, playerUuid.toString());
+        }
+    }
+
+    public void removeCoopPlayer(UUID islandUuid, UUID playerUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.srem("coop_players:" + islandUuid, playerUuid.toString());
+        }
+    }
+
+    public void removeAllCoopOfPlayer(UUID playerUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            Set<String> keys = jedis.keys("coop_players:*");
+            for (String key : keys) {
+                jedis.srem(key, playerUuid.toString());
+            }
+        }
+    }
+
+    public boolean isPlayerCooped(UUID islandUuid, UUID playerUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            return jedis.sismember("coop_players:" + islandUuid, playerUuid.toString());
+        }
+    }
+
+    public Set<UUID> getCoopedPlayers(UUID islandUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            Set<String> raw = jedis.smembers("coop_players:" + islandUuid);
+            Set<UUID> result = new HashSet<>();
+            for (String uuidStr : raw) {
+                result.add(UUID.fromString(uuidStr));
+            }
+            return result;
+        }
+    }
 
     /**
      * Update the active server's heartbeat in Redis

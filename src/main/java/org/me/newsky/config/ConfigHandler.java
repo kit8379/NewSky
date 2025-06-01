@@ -163,8 +163,8 @@ public class ConfigHandler {
         return config.getInt("server.mspt-update-interval");
     }
 
-    public String getLobbyCommand(String playerName) {
-        return Objects.requireNonNull(config.getString("lobby.command")).replace("{player}", playerName);
+    public String getLobbyCommand(String player) {
+        return Objects.requireNonNull(config.getString("lobby.command")).replace("{player}", player);
     }
 
     public String getTemplateWorldName() {
@@ -244,12 +244,12 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-level")).replace("{level}", String.valueOf(level)));
     }
 
-    public Component getIslandLoadSuccessMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-load-success")).replace("{name}", name));
+    public Component getIslandLoadSuccessMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-load-success")).replace("{player}", player));
     }
 
-    public Component getIslandUnloadSuccessMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-unload-success")).replace("{name}", name));
+    public Component getIslandUnloadSuccessMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-unload-success")).replace("{player}", player));
     }
 
     public Component getIslandLockedMessage() {
@@ -264,12 +264,12 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.island-pvp-disabled"));
     }
 
-    public Component getIslandMemberExistsMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-member-exists")).replace("{name}", name));
+    public Component getIslandMemberExistsMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-member-exists")).replace("{player}", player));
     }
 
-    public Component getIslandMemberNotExistsMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.not-island-member")).replace("{name}", name));
+    public Component getIslandMemberNotExistsMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.not-island-member")).replace("{player}", player));
     }
 
     public Component getCannotEditIslandMessage() {
@@ -284,97 +284,113 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.warp-success")).replace("{warp}", warp));
     }
 
-    public Component getNoWarpMessage(String name, String warp) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.no-warp")).replace("{name}", name).replace("{warp}", warp));
+    public Component getNoWarpMessage(String player, String warp) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.no-warp")).replace("{player}", player).replace("{warp}", warp));
     }
 
-    public Component getNoIslandMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.no-island")).replace("{name}", name));
+    public Component getNoIslandMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.no-island")).replace("{player}", player));
     }
 
     // Admin Command Messages
-    public Component getAdminNoIslandMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-no-island")).replace("{name}", name));
+    public Component getAdminNoIslandMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-no-island")).replace("{player}", player));
     }
 
-    public Component getAdminAlreadyHasIslandMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-already-has-island")).replace("{name}", name));
+    public Component getAdminAlreadyHasIslandMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-already-has-island")).replace("{player}", player));
     }
 
-    public Component getAdminAddMemberSuccessMessage(String name, String member) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-add-member-success")).replace("{name}", name).replace("{member}", member));
+    public Component getAdminAddMemberSuccessMessage(String target, String owner) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-add-member-success")).replace("{target}", target).replace("{owner}", owner));
     }
 
-    public Component getAdminRemoveMemberSuccessMessage(String name, String member) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-remove-member-success")).replace("{name}", name).replace("{member}", member));
+    public Component getAdminRemoveMemberSuccessMessage(String target, String owner) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-remove-member-success")).replace("{target}", target).replace("{owner}", owner));
     }
 
-    public Component getAdminCreateSuccessMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-create-island-success")).replace("{name}", name));
+    public Component getAdminCreateSuccessMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-create-island-success")).replace("{player}", player));
     }
 
-    public Component getAdminDeleteWarningMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-delete-warning")).replace("{name}", name));
+    public Component getAdminDeleteWarningMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-delete-warning")).replace("{player}", player));
     }
 
-    public Component getAdminDeleteSuccessMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-delete-island-success")).replace("{name}", name));
+    public Component getAdminDeleteSuccessMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-delete-island-success")).replace("{player}", player));
     }
 
-    public Component getAdminCannotDeleteDefaultHomeMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-cannot-delete-default-home")).replace("{name}", name));
+    public Component getAdminCannotDeleteDefaultHomeMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-cannot-delete-default-home")).replace("{player}", player));
     }
 
-    public Component getAdminNoHomeMessage(String name, String home) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-no-home")).replace("{name}", name).replace("{home}", home));
+    public Component getAdminNoHomeMessage(String player, String home) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-no-home")).replace("{player}", player).replace("{home}", home));
     }
 
-    public Component getAdminHomeSuccessMessage(String name, String home) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-home-success")).replace("{home}", home).replace("{name}", name));
+    public Component getAdminHomeSuccessMessage(String player, String home) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-home-success")).replace("{player}", player).replace("{home}", home));
     }
 
-    public Component getAdminDelHomeSuccessMessage(String name, String home) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-delete-home-success")).replace("{name}", name).replace("{home}", home));
+    public Component getAdminDelHomeSuccessMessage(String player, String home) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-delete-home-success")).replace("{player}", player).replace("{home}", home));
     }
 
-    public Component getAdminNoWarpMessage(String name, String warp) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-no-warp")).replace("{name}", name).replace("{warp}", warp));
+    public Component getAdminNoWarpMessage(String player, String warp) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-no-warp")).replace("{player}", player).replace("{warp}", warp));
     }
 
-    public Component getAdminDelWarpSuccessMessage(String name, String warp) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-delete-warp-success")).replace("{name}", name).replace("{warp}", warp));
+    public Component getAdminDelWarpSuccessMessage(String player, String warp) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-delete-warp-success")).replace("{player}", player).replace("{warp}", warp));
     }
 
-    public Component getAdminLockSuccessMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-lock-success")).replace("{name}", name));
+    public Component getAdminLockSuccessMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-lock-success")).replace("{player}", player));
     }
 
-    public Component getAdminUnLockSuccessMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-unlock-success")).replace("{name}", name));
+    public Component getAdminUnLockSuccessMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-unlock-success")).replace("{player}", player));
     }
 
-    public Component getAdminMustInIslandSetHomeMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-must-in-island-set-home")).replace("{name}", name));
+    public Component getAdminMustInIslandSetHomeMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-must-in-island-set-home")).replace("{player}", player));
     }
 
-    public Component getAdminMustInIslandSetWarpMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-must-in-island-set-warp")).replace("{name}", name));
+    public Component getAdminMustInIslandSetWarpMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-must-in-island-set-warp")).replace("{player}", player));
     }
 
-    public Component getAdminSetHomeSuccessMessage(String name, String home) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-set-home-success")).replace("{name}", name).replace("{home}", home));
+    public Component getAdminSetHomeSuccessMessage(String player, String home) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-set-home-success")).replace("{player}", player).replace("{home}", home));
     }
 
-    public Component getAdminSetWarpSuccessMessage(String name, String warp) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-set-warp-success")).replace("{name}", name).replace("{warp}", warp));
+    public Component getAdminSetWarpSuccessMessage(String player, String warp) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-set-warp-success")).replace("{player}", player).replace("{warp}", warp));
     }
 
-    public Component getAdminPvpEnableSuccessMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-pvp-enable-success")).replace("{name}", name));
+    public Component getAdminPvpEnableSuccessMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-pvp-enable-success")).replace("{player}", player));
     }
 
-    public Component getAdminPvpDisableSuccessMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-pvp-disable-success")).replace("{name}", name));
+    public Component getAdminPvpDisableSuccessMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-pvp-disable-success")).replace("{player}", player));
+    }
+
+    public Component getAdminBanSuccessMessage(String owner, String target) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-ban-success")).replace("{owner}", owner).replace("{target}", target));
+    }
+
+    public Component getAdminUnbanSuccessMessage(String owner, String target) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-unban-success")).replace("{owner}", owner).replace("{target}", target));
+    }
+
+    public Component getAdminCoopSuccessMessage(String owner, String target) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-coop-success")).replace("{owner}", owner).replace("{target}", target));
+    }
+
+    public Component getAdminUncoopSuccessMessage(String owner, String target) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-uncoop-success")).replace("{owner}", owner).replace("{target}", target));
     }
 
     // Player Command Messages
@@ -386,8 +402,8 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.player-already-has-island"));
     }
 
-    public Component getPlayerAlreadyHasIslandOtherMessage(String playerName) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-already-has-island-other")).replace("{player}", playerName));
+    public Component getPlayerAlreadyHasIslandOtherMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-already-has-island-other")).replace("{player}", player));
     }
 
     public Component getPlayerMustInIslandSetHomeMessage() {
@@ -398,12 +414,12 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.player-must-in-island-set-warp"));
     }
 
-    public Component getPlayerAddMemberSuccessMessage(String member) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-add-member-success")).replace("{member}", member));
+    public Component getPlayerAddMemberSuccessMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-add-member-success")).replace("{player}", player));
     }
 
-    public Component getPlayerRemoveMemberSuccessMessage(String member) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-remove-member-success")).replace("{member}", member));
+    public Component getPlayerRemoveMemberSuccessMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-remove-member-success")).replace("{player}", player));
     }
 
     public Component getPlayerCreateSuccessMessage() {
@@ -466,12 +482,12 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-home-success")).replace("{home}", home));
     }
 
-    public Component getPlayerSetOwnerSuccessMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-set-owner-success")).replace("{name}", name));
+    public Component getPlayerSetOwnerSuccessMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-set-owner-success")).replace("{player}", player));
     }
 
-    public Component getPlayerAlreadyOwnerMessage(String name) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-already-owner")).replace("{name}", name));
+    public Component getPlayerAlreadyOwnerMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-already-owner")).replace("{player}", player));
     }
 
     public Component getPlayerCannotLeaveAsOwnerMessage() {
@@ -482,6 +498,61 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.player-leave-success"));
     }
 
+    public Component getPlayerExpelSuccessMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-expel-success")).replace("{player}", player));
+    }
+
+    public Component getPlayerBanSuccessMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-ban-success")).replace("{player}", player));
+    }
+
+    public Component getPlayerUnbanSuccessMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-unban-success")).replace("{player}", player));
+    }
+
+    public Component getPlayerAlreadyBannedMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-already-banned")).replace("{player}", player));
+    }
+
+    public Component getPlayerNotBannedMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-not-banned")).replace("{player}", player));
+    }
+
+    public Component getPlayerCannotBanIslandPlayerMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-cannot-ban-island-player"));
+    }
+
+    public Component getPlayerCoopSuccessMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-coop-success")).replace("{player}", player));
+    }
+
+    public Component getPlayerUncoopSuccessMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-uncoop-success")).replace("{player}", player));
+    }
+
+    public Component getPlayerAlreadyCoopedMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-already-cooped")).replace("{player}", player));
+    }
+
+    public Component getPlayerNotCoopedMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-not-cooped")).replace("{player}", player));
+    }
+
+    public Component getPlayerCannotCoopIslandPlayerMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-cannot-coop-island-player"));
+    }
+
+    public Component getPlayerNoItemInHandMessage() {
+        return ColorUtils.colorize(messages.getString("messages.no-item-in-hand"));
+    }
+
+    public Component getPlayerBlockValueCommandMessage(String block, int value) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.block-value")).replace("{block}", block).replace("{value}", String.valueOf(value)));
+    }
+
+    public Component getPlayerNotOnlineMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-not-online")).replace("{player}", player));
+    }
 
     // Info
     public Component getIslandInfoHeaderMessage() {
@@ -496,12 +567,12 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-level")).replace("{level}", String.valueOf(level)));
     }
 
-    public Component getIslandInfoOwnerMessage(String ownerName) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-owner")).replace("{owner}", ownerName));
+    public Component getIslandInfoOwnerMessage(String owner) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-owner")).replace("{owner}", owner));
     }
 
-    public Component getIslandInfoMembersMessage(String membersString) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-members")).replace("{members}", membersString));
+    public Component getIslandInfoMembersMessage(String members) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-members")).replace("{members}", members));
     }
 
     public Component getIslandInfoNoMembersMessage() {
@@ -513,68 +584,36 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.top-islands-header"));
     }
 
-    public Component getTopIslandMessage(int rank, String ownerName, String memberNames, int level) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.top-islands-message")).replace("{rank}", String.valueOf(rank)).replace("{owner}", ownerName).replace("{members}", memberNames).replace("{level}", String.valueOf(level)));
+    public Component getTopIslandMessage(int rank, String owner, String members, int level) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.top-islands-message")).replace("{rank}", String.valueOf(rank)).replace("{owner}", owner).replace("{members}", members).replace("{level}", String.valueOf(level)));
     }
 
     public Component getNoIslandsFoundMessage() {
         return ColorUtils.colorize(messages.getString("messages.top-islands-no-island"));
     }
 
-    public Component getPlayerExpelSuccessMessage(String playerName) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-expel-success")).replace("{player}", playerName));
-    }
-
-    public Component getPlayerBanSuccessMessage(String playerName) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-ban-success")).replace("{player}", playerName));
-    }
-
-    public Component getPlayerUnbanSuccessMessage(String playerName) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-unban-success")).replace("{player}", playerName));
-    }
-
-    public Component getPlayerAlreadyBannedMessage(String playerName) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-already-banned")).replace("{player}", playerName));
-    }
-
-    public Component getPlayerNotBannedMessage(String playerName) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-not-banned")).replace("{player}", playerName));
-    }
-
-    public Component getPlayerCannotBanIslandPlayerMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-cannot-ban-island-player"));
-    }
-
     public Component getBannedPlayersHeaderMessage() {
         return ColorUtils.colorize(messages.getString("messages.banned-players-header"));
     }
 
-    public Component getBannedPlayerMessage(String playerName) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.banned-player-message")).replace("{player}", playerName));
+    public Component getBannedPlayerMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.banned-player-message")).replace("{player}", player));
     }
 
     public Component getNoBannedPlayersMessage() {
         return ColorUtils.colorize(messages.getString("messages.banned-player-no-banned"));
     }
 
-    public Component getAdminBanSuccessMessage(String name, String playerName) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-ban-success")).replace("{player}", playerName).replace("{name}", name));
+    public Component getCoopedPlayersHeaderMessage() {
+        return ColorUtils.colorize(messages.getString("messages.cooped-players-header"));
     }
 
-    public Component getAdminUnbanSuccessMessage(String name, String playerName) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-unban-success")).replace("{player}", playerName).replace("{name}", name));
+    public Component getCoopedPlayerMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.cooped-player-message")).replace("{player}", player));
     }
 
-    public Component getPlayerNoItemInHandMessage() {
-        return ColorUtils.colorize(messages.getString("messages.no-item-in-hand"));
-    }
-
-    public Component getPlayerBlockValueCommandMessage(String blockName, int value) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.block-value")).replace("{blockName}", blockName).replace("{value}", String.valueOf(value)));
-    }
-
-    public Component getPlayerNotOnlineMessage(String playerName) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-not-online")).replace("{player}", playerName));
+    public Component getNoCoopedPlayersMessage() {
+        return ColorUtils.colorize(messages.getString("messages.cooped-players-no-cooped"));
     }
 
     public Component getBlockLimitMessage(String block) {
