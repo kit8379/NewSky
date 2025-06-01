@@ -52,6 +52,7 @@ messages:
   command.is.banlist.description: "Lists the players banned from your island"
   player-no-island: "&cYou do not have an island!"
   player-already-has-island: "&cYou already have an island!"
+  player-already-has-island-other: "&{player} already has an island!"
   player-must-in-island-set-home: "&cYou must be on your island to set a home!"
   player-must-in-island-set-warp: "&cYou must be on your island to set a warp!"
   player-add-member-success: "&aAdded member '{member}' to your island!"

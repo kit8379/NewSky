@@ -386,6 +386,10 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.player-already-has-island"));
     }
 
+    public Component getPlayerAlreadyHasIslandOtherMessage(String playerName) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-already-has-island-other")).replace("{player}", playerName));
+    }
+
     public Component getPlayerMustInIslandSetHomeMessage() {
         return ColorUtils.colorize(messages.getString("messages.player-must-in-island-set-home"));
     }
@@ -477,6 +481,7 @@ public class ConfigHandler {
     public Component getPlayerLeaveSuccessMessage() {
         return ColorUtils.colorize(messages.getString("messages.player-leave-success"));
     }
+
 
     // Info
     public Component getIslandInfoHeaderMessage() {

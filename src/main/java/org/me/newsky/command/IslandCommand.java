@@ -142,6 +142,8 @@ public class IslandCommand extends BaseCommand {
         api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.addMember(islandUuid, targetPlayerUuid, "member")).thenRun(() -> player.sendMessage(config.getPlayerAddMemberSuccessMessage(targetPlayerName))).exceptionally(ex -> {
             if (ex.getCause() instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
+            } else if (ex.getCause() instanceof PlayerAlreadyInAnotherIslandException) {
+                player.sendMessage(config.getPlayerAlreadyHasIslandOtherMessage(targetPlayerName));
             } else if (ex.getCause() instanceof IslandPlayerAlreadyExistsException) {
                 player.sendMessage(config.getIslandMemberExistsMessage(targetPlayerName));
             } else {

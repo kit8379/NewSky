@@ -5,7 +5,9 @@ import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.exceptions.AlreadyOwnerException;
 import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
 import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
+import org.me.newsky.exceptions.PlayerAlreadyInAnotherIslandException;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -23,7 +25,16 @@ public class PlayerHandler {
 
     public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role) {
         return CompletableFuture.runAsync(() -> {
+            Optional<UUID> existingIsland = cacheHandler.getIslandUuid(playerUuid);
+
+            if (existingIsland.isPresent()) {
+                if (!existingIsland.get().equals(islandUuid)) {
+                    throw new PlayerAlreadyInAnotherIslandException();
+                }
+            }
+
             Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
+
             if (members.contains(playerUuid)) {
                 throw new IslandPlayerAlreadyExistsException();
             }
@@ -35,6 +46,7 @@ public class PlayerHandler {
     public CompletableFuture<Void> removeMember(UUID islandUuid, UUID playerUuid) {
         return CompletableFuture.runAsync(() -> {
             Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
+
             if (!members.contains(playerUuid)) {
                 throw new IslandPlayerDoesNotExistException();
             }
