@@ -1,7 +1,4 @@
 messages:
-  # Prefixes
-  usage-prefix: "&eUsage: &r"
-
   # General Messages
   plugin-reloaded: "&aPlugin reloaded successfully!"
   only-player-can-run-command: "&cOnly players can run this command!"
@@ -112,6 +109,8 @@ messages:
   command.isadmin.unload.description: "Admin command to unload a player's island"
   command.isadmin.adminban.description: "Admin command to ban a player from a specified island"
   command.isadmin.adminunban.description: "Admin command to unban a player from a specified island"
+  command.isadmin.admincoop.description: "Admin command to coop a player from a specified island"
+  command.isadmin.adminuncoop.description: "Admin command to uncoop a player from a specified island"
   admin-no-island: "&cPlayer '{player}' does not have an island!"
   admin-already-has-island: "&cPlayer '{player}' already has an island!"
   admin-add-member-success: "&aAdded member '{target}' to island '{owner}'!"
