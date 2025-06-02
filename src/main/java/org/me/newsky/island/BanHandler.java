@@ -23,6 +23,10 @@ public class BanHandler {
         this.islandServiceDistributor = islandServiceDistributor;
     }
 
+    public CompletableFuture<Set<UUID>> getBannedPlayers(UUID islandUuid) {
+        return CompletableFuture.supplyAsync(() -> cacheHandler.getBannedPlayers(islandUuid), plugin.getBukkitAsyncExecutor());
+    }
+
     public CompletableFuture<Void> banPlayer(UUID islandUuid, UUID playerUuid) {
         return CompletableFuture.runAsync(() -> {
             if (cacheHandler.isPlayerBanned(islandUuid, playerUuid)) {
@@ -43,9 +47,5 @@ public class BanHandler {
             }
             cacheHandler.deleteBanPlayer(islandUuid, playerUuid);
         }, plugin.getBukkitAsyncExecutor());
-    }
-
-    public CompletableFuture<Set<UUID>> getBannedPlayers(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> cacheHandler.getBannedPlayers(islandUuid), plugin.getBukkitAsyncExecutor());
     }
 }

@@ -18,8 +18,9 @@ public class NewSkyAPI {
     private final WarpHandler warpHandler;
     private final LevelHandler levelHandler;
     private final BanHandler banHandler;
+    private final CoopHandler coopHandler;
 
-    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler) {
+    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler) {
         this.plugin = plugin;
         this.islandHandler = islandHandler;
         this.playerHandler = playerHandler;
@@ -27,6 +28,7 @@ public class NewSkyAPI {
         this.warpHandler = warpHandler;
         this.levelHandler = levelHandler;
         this.banHandler = banHandler;
+        this.coopHandler = coopHandler;
     }
 
     // Island Operation API methods
@@ -338,7 +340,7 @@ public class NewSkyAPI {
      * @return A CompletableFuture that completes when the coop is added
      */
     public CompletableFuture<Void> addCoop(UUID islandUuid, UUID playerUuid) {
-        return playerHandler.addCoop(islandUuid, playerUuid);
+        return coopHandler.addCoop(islandUuid, playerUuid);
     }
 
     /**
@@ -349,7 +351,7 @@ public class NewSkyAPI {
      * @return A CompletableFuture that completes when the coop is removed
      */
     public CompletableFuture<Void> removeCoop(UUID islandUuid, UUID playerUuid) {
-        return playerHandler.removeCoop(islandUuid, playerUuid);
+        return coopHandler.removeCoop(islandUuid, playerUuid);
     }
 
     /**
@@ -358,7 +360,7 @@ public class NewSkyAPI {
      * @param playerUuid The UUID of the player whose coops are to be removed
      */
     public void removeAllCoopOfPlayer(UUID playerUuid) {
-        playerHandler.removeAllCoopOfPlayer(playerUuid);
+        coopHandler.removeAllCoopOfPlayer(playerUuid);
     }
 
 
@@ -369,7 +371,7 @@ public class NewSkyAPI {
      * @return A CompletableFuture that completes with the set of banned players
      */
     public CompletableFuture<Set<UUID>> getCoopedPlayers(UUID islandUuid) {
-        return playerHandler.getCoopedPlayers(islandUuid);
+        return coopHandler.getCoopedPlayers(islandUuid);
     }
 
 

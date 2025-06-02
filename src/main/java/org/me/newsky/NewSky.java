@@ -142,6 +142,7 @@ public class NewSky extends JavaPlugin {
             WarpHandler warpHandler = new WarpHandler(this, cacheHandler, islandServiceDistributor);
             LevelHandler levelHandler = new LevelHandler(this, config, cacheHandler);
             BanHandler banHandler = new BanHandler(this, cacheHandler, islandServiceDistributor);
+            CoopHandler coopHandler = new CoopHandler(this, cacheHandler);
             info("All main handlers loaded");
 
             info("Starting plugin messaging");
@@ -155,7 +156,7 @@ public class NewSky extends JavaPlugin {
             info("All schedulers loaded");
 
             info("Starting API");
-            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler);
+            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler);
             info("API loaded");
 
             info("Starting listeners and commands");

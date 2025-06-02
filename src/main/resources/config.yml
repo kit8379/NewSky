@@ -59,6 +59,7 @@ server:
 # The fallback lobby configuration for when players need to be teleported out of an island.
 lobby:
   # Command to execute when a player is teleported to the spawn during island unload or get kicked.
+  # Recommend to use HuskHomes to control the global spawn point.
   command: "spawn {player}"
 
 # The settings for the island.

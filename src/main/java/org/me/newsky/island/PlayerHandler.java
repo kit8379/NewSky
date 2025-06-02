@@ -60,36 +60,4 @@ public class PlayerHandler {
             cacheHandler.updateIslandOwner(islandUuid, newOwnerId);
         }, plugin.getBukkitAsyncExecutor());
     }
-
-    public CompletableFuture<Void> addCoop(UUID islandUuid, UUID playerUuid) {
-        return CompletableFuture.runAsync(() -> {
-            if (cacheHandler.isPlayerCooped(islandUuid, playerUuid)) {
-                throw new PlayerAlreadyCoopedException();
-            }
-
-            if (cacheHandler.getIslandPlayers(islandUuid).contains(playerUuid)) {
-                throw new CannotCoopIslandPlayerException();
-            }
-
-            cacheHandler.addCoopPlayer(islandUuid, playerUuid);
-        }, plugin.getBukkitAsyncExecutor());
-    }
-
-
-    public CompletableFuture<Void> removeCoop(UUID islandUuid, UUID playerUuid) {
-        return CompletableFuture.runAsync(() -> {
-            if (!cacheHandler.isPlayerCooped(islandUuid, playerUuid)) {
-                throw new PlayerNotCoopedException();
-            }
-            cacheHandler.removeCoopPlayer(islandUuid, playerUuid);
-        }, plugin.getBukkitAsyncExecutor());
-    }
-
-    public void removeAllCoopOfPlayer(UUID playerUuid) {
-        CompletableFuture.runAsync(() -> cacheHandler.removeAllCoopOfPlayer(playerUuid), plugin.getBukkitAsyncExecutor());
-    }
-
-    public CompletableFuture<Set<UUID>> getCoopedPlayers(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> cacheHandler.getCoopedPlayers(islandUuid), plugin.getBukkitAsyncExecutor());
-    }
 }
