@@ -22,16 +22,12 @@ public class IslandProtectionListener implements Listener {
     private final ConfigHandler config;
     private final CacheHandler cacheHandler;
     private final int halfSize;
-    private final int islandCenterX;
-    private final int islandCenterZ;
 
     public IslandProtectionListener(NewSky plugin, ConfigHandler config, CacheHandler cacheHandler) {
         this.plugin = plugin;
         this.config = config;
         this.cacheHandler = cacheHandler;
         this.halfSize = config.getIslandSize() / 2;
-        this.islandCenterX = 0;
-        this.islandCenterZ = 0;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -78,10 +74,12 @@ public class IslandProtectionListener implements Listener {
         UUID islandUuid = IslandUtils.nameToUUID(location.getWorld().getName());
 
         // Assuming islandCenter and halfSize are cached or constants
-        int minX = islandCenterX - halfSize;
-        int maxX = islandCenterX + halfSize;
-        int minZ = islandCenterZ - halfSize;
-        int maxZ = islandCenterZ + halfSize;
+        int centerX = 0;
+        int centerZ = 0;
+        int minX = centerX - halfSize;
+        int maxX = centerX + halfSize;
+        int minZ = centerZ - halfSize;
+        int maxZ = centerZ + halfSize;
 
         if (location.getBlockX() < minX || location.getBlockX() > maxX || location.getBlockZ() < minZ || location.getBlockZ() > maxZ) {
             plugin.debug(getClass().getSimpleName(), "Player " + player.getName() + " attempted to edit a block outside their island boundaries.");

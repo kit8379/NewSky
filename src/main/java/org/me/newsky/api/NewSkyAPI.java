@@ -175,7 +175,7 @@ public class NewSkyAPI {
      * @param playerUuid The UUID of the player
      * @param homeName   The name of the home
      * @param location   The location of the home
-     * @return A CompletableFuture that completes when the home is set
+     * @return A CompletableFuture fthat completes when the home is set
      */
     public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, Location location) {
         return homeHandler.setHome(playerUuid, homeName, location);

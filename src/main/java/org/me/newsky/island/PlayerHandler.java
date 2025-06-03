@@ -51,6 +51,13 @@ public class PlayerHandler {
 
     public CompletableFuture<Void> setOwner(UUID islandUuid, UUID newOwnerId) {
         return CompletableFuture.runAsync(() -> {
+            // Check if the new owner is already a member of the island
+            Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
+            if (!members.contains(newOwnerId)) {
+                throw new IslandPlayerDoesNotExistException();
+            }
+
+            // Check if the new owner is the current owner
             UUID currentOwner = cacheHandler.getIslandOwner(islandUuid);
             if (currentOwner.equals(newOwnerId)) {
                 throw new AlreadyOwnerException();

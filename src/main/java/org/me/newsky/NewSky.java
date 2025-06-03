@@ -1,6 +1,7 @@
 package org.me.newsky;
 
 import co.aikar.commands.PaperCommandManager;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -30,10 +31,9 @@ import org.me.newsky.thread.BukkitAsyncExecutor;
 import org.me.newsky.world.WorldHandler;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Locale;
-import java.util.Set;
+import java.util.*;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 public class NewSky extends JavaPlugin {
 
@@ -191,15 +191,18 @@ public class NewSky extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new WorldInitListener(this), this);
         getServer().getPluginManager().registerEvents(new TeleportRequestListener(this, teleportHandler), this);
         getServer().getPluginManager().registerEvents(new IslandProtectionListener(this, config, cacheHandler), this);
-        getServer().getPluginManager().registerEvents(new IslandMoveListener(this, config, cacheHandler), this);
+        getServer().getPluginManager().registerEvents(new IslandBoundaryListener(this, config), this);
+        getServer().getPluginManager().registerEvents(new IslandBanListener(this, config, cacheHandler), this);
+        getServer().getPluginManager().registerEvents(new IslandLockListener(this, config, cacheHandler), this);
         getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config, cacheHandler), this);
     }
 
     private void registerCommands() throws IOException, InvalidConfigurationException {
         commandManager = new PaperCommandManager(this);
         commandManager.enableUnstableAPI("help");
-        commandManager.getLocales().setDefaultLocale(Locale.ENGLISH);
-        commandManager.getLocales().loadYamlLanguageFile("messages.yml", Locale.ENGLISH);
+        commandManager.getLocales().setDefaultLocale(Locale.TRADITIONAL_CHINESE);
+        commandManager.getLocales().loadYamlLanguageFile("messages.yml", Locale.TRADITIONAL_CHINESE);
+        commandManager.getLocales().addMessageBundle("commands", Locale.TRADITIONAL_CHINESE);
 
         // Register the IslandCommand
         IslandCommand islandCommand = new IslandCommand(this, config, api);
@@ -220,6 +223,52 @@ public class NewSky extends JavaPlugin {
                 return Collections.emptyList();
             }
         });
+
+        // Register a dynamic completion for island member names
+        commandManager.getCommandCompletions().registerAsyncCompletion("islandmembers", context -> {
+            Player player = context.getPlayer();
+            if (player != null) {
+                try {
+                    UUID islandUuid = api.getIslandUuid(player.getUniqueId()).join();
+                    Set<UUID> members = api.getIslandMembers(islandUuid).join();
+                    return members.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).filter(Objects::nonNull).collect(Collectors.toList());
+                } catch (Exception e) {
+                    return Collections.emptyList();
+                }
+            }
+            return Collections.emptyList();
+        });
+
+        // Register a dynamic completion for banned player names
+        commandManager.getCommandCompletions().registerAsyncCompletion("bannedplayers", context -> {
+            Player player = context.getPlayer();
+            if (player != null) {
+                try {
+                    UUID islandUuid = api.getIslandUuid(player.getUniqueId()).join();
+                    Set<UUID> banned = api.getBannedPlayers(islandUuid).join();
+                    return banned.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).filter(Objects::nonNull).collect(Collectors.toList());
+                } catch (Exception e) {
+                    return Collections.emptyList();
+                }
+            }
+            return Collections.emptyList();
+        });
+
+        // Register a dynamic completion for cooped player names
+        commandManager.getCommandCompletions().registerAsyncCompletion("coopedplayers", context -> {
+            Player player = context.getPlayer();
+            if (player != null) {
+                try {
+                    UUID islandUuid = api.getIslandUuid(player.getUniqueId()).join();
+                    Set<UUID> coops = api.getCoopedPlayers(islandUuid).join();
+                    return coops.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).filter(Objects::nonNull).collect(Collectors.toList());
+                } catch (Exception e) {
+                    return Collections.emptyList();
+                }
+            }
+            return Collections.emptyList();
+        });
+
 
         // Register a dynamic completion for home names
         commandManager.getCommandCompletions().registerAsyncCompletion("homes", context -> {

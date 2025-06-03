@@ -19,6 +19,7 @@ import java.util.UUID;
 import java.util.logging.Level;
 
 @CommandAlias("isadmin|islandadmin")
+@Description("Admin commands for managing islands")
 public class IslandAdminCommand extends BaseCommand {
 
     private final NewSky plugin;
@@ -34,6 +35,7 @@ public class IslandAdminCommand extends BaseCommand {
 
     @HelpCommand
     @CommandPermission("newsky.admin.island.help")
+    @Description("{@@command-description.admin.help}")
     @SuppressWarnings("unused")
     public void onHelp(CommandSender sender, CommandHelp help) {
         help.showHelp();
@@ -41,6 +43,7 @@ public class IslandAdminCommand extends BaseCommand {
 
     @Subcommand("reload")
     @CommandPermission("newsky.admin.island.reload")
+    @Description("{@@command-description.admin.reload}")
     @SuppressWarnings("unused")
     public void onAdminReload(CommandSender sender) {
         plugin.reload();
@@ -52,6 +55,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.create")
     @Syntax("<player>")
     @CommandCompletion("@globalplayers")
+    @Description("{@@command-description.admin.create}")
     @SuppressWarnings("unused")
     public void onAdminCreate(CommandSender sender, @Single String targetPlayerName) {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
@@ -74,6 +78,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.delete")
     @Syntax("<player>")
     @CommandCompletion("@globalplayers")
+    @Description("{@@command-description.admin.delete}")
     @SuppressWarnings("unused")
     public void onAdminDelete(CommandSender sender, @Single String targetPlayerName) {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
@@ -103,6 +108,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.addmember")
     @Syntax("<member> <owner>")
     @CommandCompletion("@globalplayers @globalplayers")
+    @Description("{@@command-description.admin.addmember}")
     @SuppressWarnings("unused")
     public void onAdminAddMember(CommandSender sender, @Single String targetMemberName, @Single String islandOwnerName) {
         OfflinePlayer targetMember = Bukkit.getOfflinePlayer(targetMemberName);
@@ -126,7 +132,8 @@ public class IslandAdminCommand extends BaseCommand {
     @Subcommand("removemember")
     @CommandPermission("newsky.admin.island.removemember")
     @Syntax("<member> <owner>")
-    @CommandCompletion("@globalplayers @globalplayers")
+    @CommandCompletion("@globalplayers @islandmembers")
+    @Description("{@@command-description.admin.removemember}")
     @SuppressWarnings("unused")
     public void onAdminRemoveMember(CommandSender sender, @Single String targetMemberName, @Single String islandOwnerName) {
         OfflinePlayer targetMember = Bukkit.getOfflinePlayer(targetMemberName);
@@ -151,6 +158,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.home")
     @Syntax("<player> [home] [target]")
     @CommandCompletion("@globalplayers @homes @globalplayers")
+    @Description("{@@command-description.admin.home}")
     @SuppressWarnings("unused")
     public void onAdminHome(CommandSender sender, @Single String homePlayerName, @Default("default") @Single String homeName, @Optional @Single String teleportPlayerName) {
         OfflinePlayer homePlayer = Bukkit.getOfflinePlayer(homePlayerName);
@@ -187,6 +195,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.sethome")
     @Syntax("<player> <home>")
     @CommandCompletion("@globalplayers @homes")
+    @Description("{@@command-description.admin.sethome}")
     @SuppressWarnings("unused")
     public void onAdminSetHome(CommandSender sender, @Single String homePlayerName, @Single String homeName) {
         if (!(sender instanceof Player player)) {
@@ -215,6 +224,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.delhome")
     @Syntax("<player> <home>")
     @CommandCompletion("@globalplayers @homes")
+    @Description("{@@command-description.admin.delhome}")
     @SuppressWarnings("unused")
     public void onAdminDelHome(CommandSender sender, @Single String homePlayerName, @Single String homeName) {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(homePlayerName);
@@ -242,6 +252,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.warp")
     @Syntax("<player> [warp] [target]")
     @CommandCompletion("@globalplayers @warps @globalplayers")
+    @Description("{@@command-description.admin.warp}")
     @SuppressWarnings("unused")
     public void onAdminWarp(CommandSender sender, @Single String warpPlayerName, @Default("default") @Single String warpName, @Optional @Single String teleportPlayerName) {
         OfflinePlayer warpPlayer = Bukkit.getOfflinePlayer(warpPlayerName);
@@ -282,6 +293,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.setwarp")
     @Syntax("<player> <warp>")
     @CommandCompletion("@globalplayers @warps")
+    @Description("{@@command-description.admin.setwarp}")
     @SuppressWarnings("unused")
     public void onAdminSetWarp(CommandSender sender, @Single String warpPlayerName, @Single String warpName) {
         if (!(sender instanceof Player player)) {
@@ -310,6 +322,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.delwarp")
     @Syntax("<player> <warp>")
     @CommandCompletion("@globalplayers @warps")
+    @Description("{@@command-description.admin.delwarp}")
     @SuppressWarnings("unused")
     public void onAdminDelWarp(CommandSender sender, @Single String warpPlayerName, @Single String warpName) {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(warpPlayerName);
@@ -332,6 +345,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.lock")
     @Syntax("<player>")
     @CommandCompletion("@globalplayers")
+    @Description("{@@command-description.admin.lock}")
     @SuppressWarnings("unused")
     public void onAdminLock(CommandSender sender, @Single String targetPlayerName) {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
@@ -358,6 +372,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.pvp")
     @Syntax("<player>")
     @CommandCompletion("@globalplayers")
+    @Description("{@@command-description.admin.pvp}")
     @SuppressWarnings("unused")
     public void onAdminPvp(CommandSender sender, @Single String targetPlayerName) {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
@@ -384,6 +399,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.load")
     @Syntax("<player>")
     @CommandCompletion("@globalplayers")
+    @Description("{@@command-description.admin.load}")
     @SuppressWarnings("unused")
     public void onAdminLoadIsland(CommandSender sender, @Single String targetPlayerName) {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
@@ -408,6 +424,7 @@ public class IslandAdminCommand extends BaseCommand {
     @CommandPermission("newsky.admin.island.unload")
     @Syntax("<player>")
     @CommandCompletion("@globalplayers")
+    @Description("{@@command-description.admin.unload}")
     @SuppressWarnings("unused")
     public void onAdminUnloadIsland(CommandSender sender, @Single String targetPlayerName) {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
@@ -426,10 +443,11 @@ public class IslandAdminCommand extends BaseCommand {
         });
     }
 
-    @Subcommand("adminban")
+    @Subcommand("ban")
     @CommandPermission("newsky.admin.island.ban")
-    @CommandCompletion("@globalplayers")
     @Syntax("<owner> <player>")
+    @CommandCompletion("@globalplayers @globalplayers")
+    @Description("{@@command-description.admin.ban}")
     @SuppressWarnings("unused")
     public void onAdminBan(CommandSender sender, @Single String islandOwnerName, @Single String banPlayerName) {
         OfflinePlayer islandOwner = Bukkit.getOfflinePlayer(islandOwnerName);
@@ -452,10 +470,11 @@ public class IslandAdminCommand extends BaseCommand {
         });
     }
 
-    @Subcommand("adminunban")
+    @Subcommand("unban")
     @CommandPermission("newsky.admin.island.unban")
-    @CommandCompletion("@globalplayers")
     @Syntax("<owner> <player>")
+    @CommandCompletion("@globalplayers @bannedplayers")
+    @Description("{@@command-description.admin.unban}")
     @SuppressWarnings("unused")
     public void onAdminUnban(CommandSender sender, @Single String islandOwnerName, @Single String banPlayerName) {
         OfflinePlayer islandOwner = Bukkit.getOfflinePlayer(islandOwnerName);
@@ -476,10 +495,11 @@ public class IslandAdminCommand extends BaseCommand {
         });
     }
 
-    @Subcommand("admincoop")
+    @Subcommand("coop")
     @CommandPermission("newsky.admin.island.coop")
     @Syntax("<owner> <player>")
     @CommandCompletion("@globalplayers @globalplayers")
+    @Description("{@@command-description.admin.coop}")
     @SuppressWarnings("unused")
     public void onAdminCoop(CommandSender sender, @Single String ownerName, @Single String targetName) {
         OfflinePlayer owner = Bukkit.getOfflinePlayer(ownerName);
@@ -502,10 +522,11 @@ public class IslandAdminCommand extends BaseCommand {
         });
     }
 
-    @Subcommand("adminuncoop")
+    @Subcommand("uncoop")
     @CommandPermission("newsky.admin.island.uncoop")
     @Syntax("<owner> <player>")
-    @CommandCompletion("@globalplayers @globalplayers")
+    @CommandCompletion("@globalplayers @coopedplayers")
+    @Description("{@@command-description.admin.uncoop}")
     @SuppressWarnings("unused")
     public void onAdminUncoop(CommandSender sender, @Single String ownerName, @Single String targetName) {
         OfflinePlayer owner = Bukkit.getOfflinePlayer(ownerName);

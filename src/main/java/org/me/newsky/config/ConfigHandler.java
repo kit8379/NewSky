@@ -592,6 +592,7 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.top-islands-no-island"));
     }
 
+    // Ban
     public Component getBannedPlayersHeaderMessage() {
         return ColorUtils.colorize(messages.getString("messages.banned-players-header"));
     }
@@ -604,6 +605,7 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.banned-player-no-banned"));
     }
 
+    // Coop
     public Component getCoopedPlayersHeaderMessage() {
         return ColorUtils.colorize(messages.getString("messages.cooped-players-header"));
     }
