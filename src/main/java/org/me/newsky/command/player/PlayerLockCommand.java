@@ -1,0 +1,80 @@
+package org.me.newsky.command.player;
+
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.me.newsky.NewSky;
+import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.command.SubCommand;
+import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.IslandDoesNotExistException;
+
+import java.util.UUID;
+import java.util.logging.Level;
+
+/**
+ * /is lock
+ */
+public class PlayerLockCommand implements SubCommand {
+    private final NewSky plugin;
+    private final NewSkyAPI api;
+    private final ConfigHandler config;
+
+    public PlayerLockCommand(NewSky plugin, NewSkyAPI api, ConfigHandler config) {
+        this.plugin = plugin;
+        this.api = api;
+        this.config = config;
+    }
+
+    @Override
+    public String getName() {
+        return "lock";
+    }
+
+    @Override
+    public String[] getAliases() {
+        return config.getPlayerLockAliases();
+    }
+
+    @Override
+    public String getPermission() {
+        return config.getPlayerLockPermission();
+    }
+
+    @Override
+    public String getSyntax() {
+        return config.getPlayerLockSyntax();
+    }
+
+    @Override
+    public String getDescription() {
+        return config.getPlayerLockDescription();
+    }
+
+    @Override
+    public boolean execute(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return true;
+        }
+
+        UUID playerUuid = player.getUniqueId();
+
+        api.getIslandUuid(playerUuid).thenCompose(api::toggleIslandLock).thenAccept(isLocked -> {
+            if (isLocked) {
+                player.sendMessage(config.getPlayerLockSuccessMessage());
+            } else {
+                player.sendMessage(config.getPlayerUnLockSuccessMessage());
+            }
+        }).exceptionally(ex -> {
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoIslandMessage());
+            } else {
+                player.sendMessage("There was an error toggling the island lock status.");
+                plugin.getLogger().log(Level.SEVERE, "Error toggling island lock status for player " + player.getName(), ex);
+            }
+            return null;
+        });
+
+        return true;
+    }
+}

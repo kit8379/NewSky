@@ -15,6 +15,7 @@ public class ConfigHandler {
     private final NewSky plugin;
     private FileConfiguration config;
     private FileConfiguration messages;
+    private FileConfiguration commands;
     private FileConfiguration levels;
     private FileConfiguration limits;
 
@@ -27,6 +28,7 @@ public class ConfigHandler {
     private void loadConfigs() {
         config = loadConfig("config.yml");
         messages = loadConfig("messages.yml");
+        commands = loadConfig("commands.yml");
         levels = loadConfig("levels.yml");
         limits = loadConfig("limits.yml");
     }
@@ -42,6 +44,7 @@ public class ConfigHandler {
     private void updateConfigs() {
         updateConfig(config, "config.yml");
         updateConfig(messages, "messages.yml");
+        updateConfig(commands, "commands.yml");
         updateConfig(levels, "levels.yml");
         updateConfig(limits, "limits.yml");
     }
@@ -219,6 +222,750 @@ public class ConfigHandler {
         return limits.getInt("entities." + entity, -1);
     }
 
+    // ================================================================================================================
+    // Commands Section
+    // ================================================================================================================
+
+    public String[] getPlayerAddMemberAliases() {
+        return commands.getStringList("commands.player.addmember.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerAddMemberPermission() {
+        return commands.getString("commands.player.addmember.permission");
+    }
+
+    public String getPlayerAddMemberSyntax() {
+        return commands.getString("commands.player.addmember.syntax");
+    }
+
+    public String getPlayerAddMemberDescription() {
+        return commands.getString("commands.player.addmember.description");
+    }
+
+    public String[] getPlayerBanAliases() {
+        return commands.getStringList("commands.player.ban.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerBanPermission() {
+        return commands.getString("commands.player.ban.permission");
+    }
+
+    public String getPlayerBanSyntax() {
+        return commands.getString("commands.player.ban.syntax");
+    }
+
+    public String getPlayerBanDescription() {
+        return commands.getString("commands.player.ban.description");
+    }
+
+    public String[] getPlayerBanListAliases() {
+        return commands.getStringList("commands.player.banlist.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerBanListPermission() {
+        return commands.getString("commands.player.banlist.permission");
+    }
+
+    public String getPlayerBanListSyntax() {
+        return commands.getString("commands.player.banlist.syntax");
+    }
+
+    public String getPlayerBanListDescription() {
+        return commands.getString("commands.player.banlist.description");
+    }
+
+    public String[] getPlayerCoopAliases() {
+        return commands.getStringList("commands.player.coop.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerCoopPermission() {
+        return commands.getString("commands.player.coop.permission");
+    }
+
+    public String getPlayerCoopSyntax() {
+        return commands.getString("commands.player.coop.syntax");
+    }
+
+    public String getPlayerCoopDescription() {
+        return commands.getString("commands.player.coop.description");
+    }
+
+    public String[] getPlayerCoopListAliases() {
+        return commands.getStringList("commands.player.cooplist.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerCoopListPermission() {
+        return commands.getString("commands.player.cooplist.permission");
+    }
+
+    public String getPlayerCoopListSyntax() {
+        return commands.getString("commands.player.cooplist.syntax");
+    }
+
+    public String getPlayerCoopListDescription() {
+        return commands.getString("commands.player.cooplist.description");
+    }
+
+    public String[] getPlayerCreateAliases() {
+        return commands.getStringList("commands.player.create.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerCreatePermission() {
+        return commands.getString("commands.player.create.permission");
+    }
+
+    public String getPlayerCreateSyntax() {
+        return commands.getString("commands.player.create.syntax");
+    }
+
+    public String getPlayerCreateDescription() {
+        return commands.getString("commands.player.create.description");
+    }
+
+    public String[] getPlayerDeleteAliases() {
+        return commands.getStringList("commands.player.delete.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerDeletePermission() {
+        return commands.getString("commands.player.delete.permission");
+    }
+
+    public String getPlayerDeleteSyntax() {
+        return commands.getString("commands.player.delete.syntax");
+    }
+
+    public String getPlayerDeleteDescription() {
+        return commands.getString("commands.player.delete.description");
+    }
+
+    public String[] getPlayerDelHomeAliases() {
+        return commands.getStringList("commands.player.delhome.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerDelHomePermission() {
+        return commands.getString("commands.player.delhome.permission");
+    }
+
+    public String getPlayerDelHomeSyntax() {
+        return commands.getString("commands.player.delhome.syntax");
+    }
+
+    public String getPlayerDelHomeDescription() {
+        return commands.getString("commands.player.delhome.description");
+    }
+
+    public String[] getPlayerDelWarpAliases() {
+        return commands.getStringList("commands.player.delwarp.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerDelWarpPermission() {
+        return commands.getString("commands.player.delwarp.permission");
+    }
+
+    public String getPlayerDelWarpSyntax() {
+        return commands.getString("commands.player.delwarp.syntax");
+    }
+
+    public String getPlayerDelWarpDescription() {
+        return commands.getString("commands.player.delwarp.description");
+    }
+
+    public String[] getPlayerExpelAliases() {
+        return commands.getStringList("commands.player.expel.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerExpelPermission() {
+        return commands.getString("commands.player.expel.permission");
+    }
+
+    public String getPlayerExpelSyntax() {
+        return commands.getString("commands.player.expel.syntax");
+    }
+
+    public String getPlayerExpelDescription() {
+        return commands.getString("commands.player.expel.description");
+    }
+
+    public String[] getPlayerHelpAliases() {
+        return commands.getStringList("commands.player.help.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerHelpPermission() {
+        return commands.getString("commands.player.help.permission");
+    }
+
+    public String getPlayerHelpSyntax() {
+        return commands.getString("commands.player.help.syntax");
+    }
+
+    public String getPlayerHelpDescription() {
+        return commands.getString("commands.player.help.description");
+    }
+
+    public String[] getPlayerHomeAliases() {
+        return commands.getStringList("commands.player.home.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerHomePermission() {
+        return commands.getString("commands.player.home.permission");
+    }
+
+    public String getPlayerHomeSyntax() {
+        return commands.getString("commands.player.home.syntax");
+    }
+
+    public String getPlayerHomeDescription() {
+        return commands.getString("commands.player.home.description");
+    }
+
+    public String[] getPlayerInfoAliases() {
+        return commands.getStringList("commands.player.info.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerInfoPermission() {
+        return commands.getString("commands.player.info.permission");
+    }
+
+    public String getPlayerInfoSyntax() {
+        return commands.getString("commands.player.info.syntax");
+    }
+
+    public String getPlayerInfoDescription() {
+        return commands.getString("commands.player.info.description");
+    }
+
+    public String[] getPlayerLeaveAliases() {
+        return commands.getStringList("commands.player.leave.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerLeavePermission() {
+        return commands.getString("commands.player.leave.permission");
+    }
+
+    public String getPlayerLeaveSyntax() {
+        return commands.getString("commands.player.leave.syntax");
+    }
+
+    public String getPlayerLeaveDescription() {
+        return commands.getString("commands.player.leave.description");
+    }
+
+    public String[] getPlayerLevelAliases() {
+        return commands.getStringList("commands.player.level.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerLevelPermission() {
+        return commands.getString("commands.player.level.permission");
+    }
+
+    public String getPlayerLevelSyntax() {
+        return commands.getString("commands.player.level.syntax");
+    }
+
+    public String getPlayerLevelDescription() {
+        return commands.getString("commands.player.level.description");
+    }
+
+    public String[] getPlayerLockAliases() {
+        return commands.getStringList("commands.player.lock.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerLockPermission() {
+        return commands.getString("commands.player.lock.permission");
+    }
+
+    public String getPlayerLockSyntax() {
+        return commands.getString("commands.player.lock.syntax");
+    }
+
+    public String getPlayerLockDescription() {
+        return commands.getString("commands.player.lock.description");
+    }
+
+    public String[] getPlayerPvpAliases() {
+        return commands.getStringList("commands.player.pvp.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerPvpPermission() {
+        return commands.getString("commands.player.pvp.permission");
+    }
+
+    public String getPlayerPvpSyntax() {
+        return commands.getString("commands.player.pvp.syntax");
+    }
+
+    public String getPlayerPvpDescription() {
+        return commands.getString("commands.player.pvp.description");
+    }
+
+    public String[] getPlayerRemoveMemberAliases() {
+        return commands.getStringList("commands.player.removemember.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerRemoveMemberPermission() {
+        return commands.getString("commands.player.removemember.permission");
+    }
+
+    public String getPlayerRemoveMemberSyntax() {
+        return commands.getString("commands.player.removemember.syntax");
+    }
+
+    public String getPlayerRemoveMemberDescription() {
+        return commands.getString("commands.player.removemember.description");
+    }
+
+    public String[] getPlayerSetHomeAliases() {
+        return commands.getStringList("commands.player.sethome.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerSetHomePermission() {
+        return commands.getString("commands.player.sethome.permission");
+    }
+
+    public String getPlayerSetHomeSyntax() {
+        return commands.getString("commands.player.sethome.syntax");
+    }
+
+    public String getPlayerSetHomeDescription() {
+        return commands.getString("commands.player.sethome.description");
+    }
+
+    public String[] getPlayerSetOwnerAliases() {
+        return commands.getStringList("commands.player.setowner.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerSetOwnerPermission() {
+        return commands.getString("commands.player.setowner.permission");
+    }
+
+    public String getPlayerSetOwnerSyntax() {
+        return commands.getString("commands.player.setowner.syntax");
+    }
+
+    public String getPlayerSetOwnerDescription() {
+        return commands.getString("commands.player.setowner.description");
+    }
+
+    public String[] getPlayerSetWarpAliases() {
+        return commands.getStringList("commands.player.setwarp.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerSetWarpPermission() {
+        return commands.getString("commands.player.setwarp.permission");
+    }
+
+    public String getPlayerSetWarpSyntax() {
+        return commands.getString("commands.player.setwarp.syntax");
+    }
+
+    public String getPlayerSetWarpDescription() {
+        return commands.getString("commands.player.setwarp.description");
+    }
+
+    public String[] getPlayerTopAliases() {
+        return commands.getStringList("commands.player.top.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerTopPermission() {
+        return commands.getString("commands.player.top.permission");
+    }
+
+    public String getPlayerTopSyntax() {
+        return commands.getString("commands.player.top.syntax");
+    }
+
+    public String getPlayerTopDescription() {
+        return commands.getString("commands.player.top.description");
+    }
+
+    public String[] getPlayerUnbanAliases() {
+        return commands.getStringList("commands.player.unban.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerUnbanPermission() {
+        return commands.getString("commands.player.unban.permission");
+    }
+
+    public String getPlayerUnbanSyntax() {
+        return commands.getString("commands.player.unban.syntax");
+    }
+
+    public String getPlayerUnbanDescription() {
+        return commands.getString("commands.player.unban.description");
+    }
+
+    public String[] getPlayerUncoopAliases() {
+        return commands.getStringList("commands.player.uncoop.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerUncoopPermission() {
+        return commands.getString("commands.player.uncoop.permission");
+    }
+
+    public String getPlayerUncoopSyntax() {
+        return commands.getString("commands.player.uncoop.syntax");
+    }
+
+    public String getPlayerUncoopDescription() {
+        return commands.getString("commands.player.uncoop.description");
+    }
+
+    public String[] getPlayerValueAliases() {
+        return commands.getStringList("commands.player.value.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerValuePermission() {
+        return commands.getString("commands.player.value.permission");
+    }
+
+    public String getPlayerValueSyntax() {
+        return commands.getString("commands.player.value.syntax");
+    }
+
+    public String getPlayerValueDescription() {
+        return commands.getString("commands.player.value.description");
+    }
+
+    public String[] getPlayerWarpAliases() {
+        return commands.getStringList("commands.player.warp.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerWarpPermission() {
+        return commands.getString("commands.player.warp.permission");
+    }
+
+    public String getPlayerWarpSyntax() {
+        return commands.getString("commands.player.warp.syntax");
+    }
+
+    public String getPlayerWarpDescription() {
+        return commands.getString("commands.player.warp.description");
+    }
+
+    public String[] getAdminAddMemberAliases() {
+        return commands.getStringList("commands.admin.addmember.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminAddMemberPermission() {
+        return commands.getString("commands.admin.addmember.permission");
+    }
+
+    public String getAdminAddMemberSyntax() {
+        return commands.getString("commands.admin.addmember.syntax");
+    }
+
+    public String getAdminAddMemberDescription() {
+        return commands.getString("commands.admin.addmember.description");
+    }
+
+    public String[] getAdminBanAliases() {
+        return commands.getStringList("commands.admin.ban.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminBanPermission() {
+        return commands.getString("commands.admin.ban.permission");
+    }
+
+    public String getAdminBanSyntax() {
+        return commands.getString("commands.admin.ban.syntax");
+    }
+
+    public String getAdminBanDescription() {
+        return commands.getString("commands.admin.ban.description");
+    }
+
+    public String[] getAdminCoopAliases() {
+        return commands.getStringList("commands.admin.coop.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminCoopPermission() {
+        return commands.getString("commands.admin.coop.permission");
+    }
+
+    public String getAdminCoopSyntax() {
+        return commands.getString("commands.admin.coop.syntax");
+    }
+
+    public String getAdminCoopDescription() {
+        return commands.getString("commands.admin.coop.description");
+    }
+
+    public String[] getAdminCreateAliases() {
+        return commands.getStringList("commands.admin.create.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminCreatePermission() {
+        return commands.getString("commands.admin.create.permission");
+    }
+
+    public String getAdminCreateSyntax() {
+        return commands.getString("commands.admin.create.syntax");
+    }
+
+    public String getAdminCreateDescription() {
+        return commands.getString("commands.admin.create.description");
+    }
+
+    public String[] getAdminDeleteAliases() {
+        return commands.getStringList("commands.admin.delete.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminDeletePermission() {
+        return commands.getString("commands.admin.delete.permission");
+    }
+
+    public String getAdminDeleteSyntax() {
+        return commands.getString("commands.admin.delete.syntax");
+    }
+
+    public String getAdminDeleteDescription() {
+        return commands.getString("commands.admin.delete.description");
+    }
+
+    public String[] getAdminDelHomeAliases() {
+        return commands.getStringList("commands.admin.delhome.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminDelHomePermission() {
+        return commands.getString("commands.admin.delhome.permission");
+    }
+
+    public String getAdminDelHomeSyntax() {
+        return commands.getString("commands.admin.delhome.syntax");
+    }
+
+    public String getAdminDelHomeDescription() {
+        return commands.getString("commands.admin.delhome.description");
+    }
+
+    public String[] getAdminDelWarpAliases() {
+        return commands.getStringList("commands.admin.delwarp.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminDelWarpPermission() {
+        return commands.getString("commands.admin.delwarp.permission");
+    }
+
+    public String getAdminDelWarpSyntax() {
+        return commands.getString("commands.admin.delwarp.syntax");
+    }
+
+    public String getAdminDelWarpDescription() {
+        return commands.getString("commands.admin.delwarp.description");
+    }
+
+    public String[] getAdminHelpAliases() {
+        return commands.getStringList("commands.admin.help.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminHelpPermission() {
+        return commands.getString("commands.admin.help.permission");
+    }
+
+    public String getAdminHelpSyntax() {
+        return commands.getString("commands.admin.help.syntax");
+    }
+
+    public String getAdminHelpDescription() {
+        return commands.getString("commands.admin.help.description");
+    }
+
+    public String[] getAdminHomeAliases() {
+        return commands.getStringList("commands.admin.home.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminHomePermission() {
+        return commands.getString("commands.admin.home.permission");
+    }
+
+    public String getAdminHomeSyntax() {
+        return commands.getString("commands.admin.home.syntax");
+    }
+
+    public String getAdminHomeDescription() {
+        return commands.getString("commands.admin.home.description");
+    }
+
+    public String[] getAdminLoadAliases() {
+        return commands.getStringList("commands.admin.load.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminLoadPermission() {
+        return commands.getString("commands.admin.load.permission");
+    }
+
+    public String getAdminLoadSyntax() {
+        return commands.getString("commands.admin.load.syntax");
+    }
+
+    public String getAdminLoadDescription() {
+        return commands.getString("commands.admin.load.description");
+    }
+
+    public String[] getAdminLockAliases() {
+        return commands.getStringList("commands.admin.lock.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminLockPermission() {
+        return commands.getString("commands.admin.lock.permission");
+    }
+
+    public String getAdminLockSyntax() {
+        return commands.getString("commands.admin.lock.syntax");
+    }
+
+    public String getAdminLockDescription() {
+        return commands.getString("commands.admin.lock.description");
+    }
+
+    public String[] getAdminPvpAliases() {
+        return commands.getStringList("commands.admin.pvp.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminPvpPermission() {
+        return commands.getString("commands.admin.pvp.permission");
+    }
+
+    public String getAdminPvpSyntax() {
+        return commands.getString("commands.admin.pvp.syntax");
+    }
+
+    public String getAdminPvpDescription() {
+        return commands.getString("commands.admin.pvp.description");
+    }
+
+    public String[] getAdminReloadAliases() {
+        return commands.getStringList("commands.admin.reload.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminReloadPermission() {
+        return commands.getString("commands.admin.reload.permission");
+    }
+
+    public String getAdminReloadSyntax() {
+        return commands.getString("commands.admin.reload.syntax");
+    }
+
+    public String getAdminReloadDescription() {
+        return commands.getString("commands.admin.reload.description");
+    }
+
+    public String[] getAdminRemoveMemberAliases() {
+        return commands.getStringList("commands.admin.removemember.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminRemoveMemberPermission() {
+        return commands.getString("commands.admin.removemember.permission");
+    }
+
+    public String getAdminRemoveMemberSyntax() {
+        return commands.getString("commands.admin.removemember.syntax");
+    }
+
+    public String getAdminRemoveMemberDescription() {
+        return commands.getString("commands.admin.removemember.description");
+    }
+
+    public String[] getAdminSetHomeAliases() {
+        return commands.getStringList("commands.admin.sethome.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminSetHomePermission() {
+        return commands.getString("commands.admin.sethome.permission");
+    }
+
+    public String getAdminSetHomeSyntax() {
+        return commands.getString("commands.admin.sethome.syntax");
+    }
+
+    public String getAdminSetHomeDescription() {
+        return commands.getString("commands.admin.sethome.description");
+    }
+
+    public String[] getAdminSetWarpAliases() {
+        return commands.getStringList("commands.admin.setwarp.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminSetWarpPermission() {
+        return commands.getString("commands.admin.setwarp.permission");
+    }
+
+    public String getAdminSetWarpSyntax() {
+        return commands.getString("commands.admin.setwarp.syntax");
+    }
+
+    public String getAdminSetWarpDescription() {
+        return commands.getString("commands.admin.setwarp.description");
+    }
+
+    public String[] getAdminUnbanAliases() {
+        return commands.getStringList("commands.admin.unban.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminUnbanPermission() {
+        return commands.getString("commands.admin.unban.permission");
+    }
+
+    public String getAdminUnbanSyntax() {
+        return commands.getString("commands.admin.unban.syntax");
+    }
+
+    public String getAdminUnbanDescription() {
+        return commands.getString("commands.admin.unban.description");
+    }
+
+    public String[] getAdminUncoopAliases() {
+        return commands.getStringList("commands.admin.uncoop.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminUncoopPermission() {
+        return commands.getString("commands.admin.uncoop.permission");
+    }
+
+    public String getAdminUncoopSyntax() {
+        return commands.getString("commands.admin.uncoop.syntax");
+    }
+
+    public String getAdminUncoopDescription() {
+        return commands.getString("commands.admin.uncoop.description");
+    }
+
+    public String[] getAdminUnloadAliases() {
+        return commands.getStringList("commands.admin.unload.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminUnloadPermission() {
+        return commands.getString("commands.admin.unload.permission");
+    }
+
+    public String getAdminUnloadSyntax() {
+        return commands.getString("commands.admin.unload.syntax");
+    }
+
+    public String getAdminUnloadDescription() {
+        return commands.getString("commands.admin.unload.description");
+    }
+
+    public String[] getAdminWarpAliases() {
+        return commands.getStringList("commands.admin.warp.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminWarpPermission() {
+        return commands.getString("commands.admin.warp.permission");
+    }
+
+    public String getAdminWarpSyntax() {
+        return commands.getString("commands.admin.warp.syntax");
+    }
+
+    public String getAdminWarpDescription() {
+        return commands.getString("commands.admin.warp.description");
+    }
+
+    // =========================================================
+    // Messages Section
+    // =========================================================
+
     // General Messages
     public Component getPluginReloadedMessage() {
         return ColorUtils.colorize(messages.getString("messages.plugin-reloaded"));
@@ -227,6 +974,19 @@ public class ConfigHandler {
     public Component getOnlyPlayerCanRunCommandMessage() {
         return ColorUtils.colorize(messages.getString("messages.only-player-can-run-command"));
     }
+
+    public Component getUnknownSubCommandMessage() {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.unknown-sub-command")));
+    }
+
+    public Component getNoPermissionCommandMessage() {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.no-permission-command")));
+    }
+
+    public Component getCommandUsageMessage(String command, String syntax) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.usage-command")).replace("{command}", command).replace("{syntax}", syntax));
+    }
+
 
     public Component getNoActiveServerMessage() {
         return ColorUtils.colorize(messages.getString("messages.no-active-server"));
@@ -620,5 +1380,19 @@ public class ConfigHandler {
 
     public Component getBlockLimitMessage(String block) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.block-limit-reached")).replace("{block}", block));
+    }
+
+    // Help
+    public Component getHelpHeader() {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("help-header")));
+    }
+
+    public Component getHelpEntry(String command, String syntax, String description) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("help-entry")).replace("{command}", command).replace("{syntax}", syntax).replace("{description}", description));
+    }
+
+    public Component getHelpFooter(String command, String syntax, int page, int total) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("help-footer")).replace("{command}", command).replace("{syntax}", syntax).replace("{page}", String.valueOf(page)).replace("{total}", String.valueOf(total)))
+        ;
     }
 }

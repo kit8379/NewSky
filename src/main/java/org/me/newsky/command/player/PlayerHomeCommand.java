@@ -1,0 +1,98 @@
+package org.me.newsky.command.player;
+
+import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
+import org.me.newsky.NewSky;
+import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.command.SubCommand;
+import org.me.newsky.command.TabComplete;
+import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.HomeDoesNotExistException;
+import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.exceptions.NoActiveServerException;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.logging.Level;
+import java.util.stream.Collectors;
+
+/**
+ * /is home [homeName]
+ */
+public class PlayerHomeCommand implements SubCommand, TabComplete {
+    private final NewSky plugin;
+    private final NewSkyAPI api;
+    private final ConfigHandler config;
+
+    public PlayerHomeCommand(NewSky plugin, NewSkyAPI api, ConfigHandler config) {
+        this.plugin = plugin;
+        this.api = api;
+        this.config = config;
+    }
+
+    @Override
+    public String getName() {
+        return "home";
+    }
+
+    @Override
+    public String[] getAliases() {
+        return config.getPlayerHomeAliases();
+    }
+
+    @Override
+    public String getPermission() {
+        return config.getPlayerHomePermission();
+    }
+
+    @Override
+    public String getSyntax() {
+        return config.getPlayerHomeSyntax();
+    }
+
+    @Override
+    public String getDescription() {
+        return config.getPlayerHomeDescription();
+    }
+
+    @Override
+    public boolean execute(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+            return true;
+        }
+
+        String homeName = (args.length >= 2) ? args[1] : "default";
+
+        api.home(player.getUniqueId(), homeName, player.getUniqueId()).thenRun(() -> player.sendMessage(config.getPlayerHomeSuccessMessage(homeName))).exceptionally(ex -> {
+            if (ex.getCause() instanceof IslandDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoIslandMessage());
+            } else if (ex.getCause() instanceof HomeDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoHomeMessage(homeName));
+            } else if (ex.getCause() instanceof NoActiveServerException) {
+                player.sendMessage(config.getNoActiveServerMessage());
+            } else {
+                player.sendMessage("There was an error teleporting to the home.");
+                plugin.getLogger().log(Level.SEVERE, "Error teleporting to home for player " + player.getName(), ex);
+            }
+            return null;
+        });
+
+        return true;
+    }
+
+    @Override
+    public List<String> tabComplete(CommandSender sender, String label, String[] args) {
+        if (args.length == 2 && sender instanceof Player player) {
+            try {
+                Set<String> homes = api.getHomeNames(player.getUniqueId()).get();
+                return homes.stream().filter(name -> name.toLowerCase().startsWith(args[1].toLowerCase())).collect(Collectors.toList());
+            } catch (InterruptedException | ExecutionException e) {
+                return Collections.emptyList();
+            }
+        }
+        return Collections.emptyList();
+    }
+}

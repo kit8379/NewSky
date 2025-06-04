@@ -1,14 +1,10 @@
 package org.me.newsky;
 
-import co.aikar.commands.PaperCommandManager;
-import org.bukkit.Bukkit;
-import org.bukkit.configuration.InvalidConfigurationException;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.command.IslandAdminCommand;
-import org.me.newsky.command.IslandCommand;
+import org.me.newsky.command.IslandPlayerCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.heartbeat.HeartBeatHandler;
@@ -30,15 +26,11 @@ import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.thread.BukkitAsyncExecutor;
 import org.me.newsky.world.WorldHandler;
 
-import java.io.IOException;
 import java.util.*;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
 
 public class NewSky extends JavaPlugin {
 
-
-    private PaperCommandManager commandManager;
     private ConfigHandler config;
     private RedisHandler redisHandler;
     private DatabaseHandler databaseHandler;
@@ -197,104 +189,16 @@ public class NewSky extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config, cacheHandler), this);
     }
 
-    private void registerCommands() throws IOException, InvalidConfigurationException {
-        commandManager = new PaperCommandManager(this);
-        commandManager.enableUnstableAPI("help");
-        commandManager.getLocales().setDefaultLocale(Locale.TRADITIONAL_CHINESE);
-        commandManager.getLocales().loadYamlLanguageFile("messages.yml", Locale.TRADITIONAL_CHINESE);
-        commandManager.getLocales().addMessageBundle("commands", Locale.TRADITIONAL_CHINESE);
+    private void registerCommands() {
+        // Create and register the /is (player) command
+        IslandPlayerCommand playerExecutor = new IslandPlayerCommand(this, api, config);
+        Objects.requireNonNull(getCommand("is")).setExecutor(playerExecutor);
+        Objects.requireNonNull(getCommand("is")).setTabCompleter(playerExecutor);
 
-        // Register the IslandCommand
-        IslandCommand islandCommand = new IslandCommand(this, config, api);
-        IslandAdminCommand islandAdminCommand = new IslandAdminCommand(this, config, api);
-        commandManager.registerCommand(islandCommand);
-        commandManager.registerCommand(islandAdminCommand);
-
-        // Setup command completions
-        setupCommandCompletions();
-    }
-
-    private void setupCommandCompletions() {
-        // Register a dynamic completion for global online player names
-        commandManager.getCommandCompletions().registerAsyncCompletion("globalplayers", context -> {
-            try {
-                return api.getOnlinePlayers();
-            } catch (Exception e) {
-                return Collections.emptyList();
-            }
-        });
-
-        // Register a dynamic completion for island member names
-        commandManager.getCommandCompletions().registerAsyncCompletion("islandmembers", context -> {
-            Player player = context.getPlayer();
-            if (player != null) {
-                try {
-                    UUID islandUuid = api.getIslandUuid(player.getUniqueId()).join();
-                    Set<UUID> members = api.getIslandMembers(islandUuid).join();
-                    return members.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).filter(Objects::nonNull).collect(Collectors.toList());
-                } catch (Exception e) {
-                    return Collections.emptyList();
-                }
-            }
-            return Collections.emptyList();
-        });
-
-        // Register a dynamic completion for banned player names
-        commandManager.getCommandCompletions().registerAsyncCompletion("bannedplayers", context -> {
-            Player player = context.getPlayer();
-            if (player != null) {
-                try {
-                    UUID islandUuid = api.getIslandUuid(player.getUniqueId()).join();
-                    Set<UUID> banned = api.getBannedPlayers(islandUuid).join();
-                    return banned.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).filter(Objects::nonNull).collect(Collectors.toList());
-                } catch (Exception e) {
-                    return Collections.emptyList();
-                }
-            }
-            return Collections.emptyList();
-        });
-
-        // Register a dynamic completion for cooped player names
-        commandManager.getCommandCompletions().registerAsyncCompletion("coopedplayers", context -> {
-            Player player = context.getPlayer();
-            if (player != null) {
-                try {
-                    UUID islandUuid = api.getIslandUuid(player.getUniqueId()).join();
-                    Set<UUID> coops = api.getCoopedPlayers(islandUuid).join();
-                    return coops.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).filter(Objects::nonNull).collect(Collectors.toList());
-                } catch (Exception e) {
-                    return Collections.emptyList();
-                }
-            }
-            return Collections.emptyList();
-        });
-
-
-        // Register a dynamic completion for home names
-        commandManager.getCommandCompletions().registerAsyncCompletion("homes", context -> {
-            Player player = context.getPlayer();
-            if (player != null) {
-                try {
-                    return api.getHomeNames(player.getUniqueId()).join();
-                } catch (Exception e) {
-                    return Collections.emptyList();
-                }
-            }
-            return Collections.emptyList();
-        });
-
-        // Register a dynamic completion for warp names
-        commandManager.getCommandCompletions().registerAsyncCompletion("warps", context -> {
-            Player player = context.getPlayer();
-            if (player != null) {
-                try {
-                    return api.getWarpNames(player.getUniqueId()).join();
-                } catch (Exception e) {
-                    return Collections.emptyList();
-                }
-            }
-            return Collections.emptyList();
-        });
+        // Create and register the /isadmin (admin) command
+        IslandAdminCommand adminExecutor = new IslandAdminCommand(this, api, config);
+        Objects.requireNonNull(getCommand("isadmin")).setExecutor(adminExecutor);
+        Objects.requireNonNull(getCommand("isadmin")).setTabCompleter(adminExecutor);
     }
 
     @Override

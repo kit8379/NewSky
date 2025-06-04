@@ -2,6 +2,9 @@ messages:
   # General Messages
   plugin-reloaded: "&a插件已成功重新載入！"
   only-player-can-run-command: "&c只有玩家可以執行此指令！"
+  unknown-sub-command: "&c指令不存在，輸入 /is help 以查看可用指令。"
+  no-permission-command: "&c你沒有權限使用此指令。"
+  usage-command: "&c正確用法：/is {command} {syntax}"
   no-active-server: "&c找不到啟用中的伺服器！"
   island-not-loaded: "&c島嶼未載入！"
   island-already-loaded: "&c島嶼已載入！"
@@ -111,3 +114,9 @@ messages:
   cooped-players-header: "&a協作成員："
   cooped-player-message: "&7- {player}"
   cooped-player-no-cooped: "&a你的島嶼沒有協作成員。"
+
+  # Help Messages
+  help-header: "&e幫助頁面:"
+  help-entry: "&6/{command} {syntax} &7{description}"
+  help-footer: "&e輸入 &6/{command} {syntax} &e以檢視其他頁面 (頁面 {page}/{total})"
+
