@@ -1,12 +1,12 @@
 package org.me.newsky.listener;
 
-import org.bukkit.Location;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.util.IslandUtils;
 
 public class IslandBoundaryListener implements Listener {
 
@@ -24,9 +24,11 @@ public class IslandBoundaryListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onPlayerMove(PlayerMoveEvent event) {
-        Location to = event.getTo();
+        if (event.getTo().getWorld() == null) {
+            return;
+        }
 
-        if (to.getWorld() == null) {
+        if (!IslandUtils.isIslandWorld(event.getTo().getWorld().getName())) {
             return;
         }
 
@@ -37,7 +39,7 @@ public class IslandBoundaryListener implements Listener {
         int minZ = centerZ - (islandSize / 2) - bufferSize;
         int maxZ = centerZ + (islandSize / 2) + bufferSize;
 
-        if (to.getBlockX() < minX || to.getBlockX() > maxX || to.getBlockZ() < minZ || to.getBlockZ() > maxZ) {
+        if (event.getTo().getBlockX() < minX || event.getTo().getBlockX() > maxX || event.getTo().getBlockZ() < minZ || event.getTo().getBlockZ() > maxZ) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(config.getCannotLeaveIslandBoundaryMessage());
             plugin.debug(getClass().getSimpleName(), "Player " + event.getPlayer().getName() + " tried to leave island boundary.");

@@ -1383,16 +1383,27 @@ public class ConfigHandler {
     }
 
     // Help
-    public Component getHelpHeader() {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("help-header")));
+    public Component getPlayerHelpHeader() {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-help-header")));
     }
 
-    public Component getHelpEntry(String command, String syntax, String description) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("help-entry")).replace("{command}", command).replace("{syntax}", syntax).replace("{description}", description));
+    public Component getPlayerHelpEntry(String command, String syntax, String description) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-help-entry")).replace("{command}", command).replace("{syntax}", syntax).replace("{description}", description));
     }
 
-    public Component getHelpFooter(String command, String syntax, int page, int total) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("help-footer")).replace("{command}", command).replace("{syntax}", syntax).replace("{page}", String.valueOf(page)).replace("{total}", String.valueOf(total)))
-        ;
+    public Component getPlayerHelpFooter(int page, int total) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-help-footer")).replace("{page}", String.valueOf(page)).replace("{total}", String.valueOf(total)));
+    }
+
+    public Component getAdminHelpHeader() {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-help-header")));
+    }
+
+    public Component getAdminHelpEntry(String command, String syntax, String description) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-help-entry")).replace("{command}", command).replace("{syntax}", syntax).replace("{description}", description));
+    }
+
+    public Component getAdminHelpFooter(int page, int total) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-help-footer")).replace("{page}", String.valueOf(page)).replace("{total}", String.valueOf(total)));
     }
 }

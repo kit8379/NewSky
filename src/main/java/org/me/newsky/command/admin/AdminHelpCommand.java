@@ -78,14 +78,14 @@ public class AdminHelpCommand implements SubCommand {
         int startIndex = (page - 1) * COMMANDS_PER_PAGE;
         int endIndex = Math.min(startIndex + COMMANDS_PER_PAGE, totalCommands);
 
-        sender.sendMessage(config.getHelpHeader());
+        sender.sendMessage(config.getAdminHelpHeader());
 
         for (int i = startIndex; i < endIndex; i++) {
             SubCommand cmd = visible.get(i);
-            sender.sendMessage(config.getHelpEntry(cmd.getName(), cmd.getSyntax(), cmd.getDescription()));
+            sender.sendMessage(config.getAdminHelpEntry(cmd.getName(), cmd.getSyntax(), cmd.getDescription()));
         }
 
-        sender.sendMessage(config.getHelpFooter(this.getName(), this.getSyntax(), page, totalPages));
+        sender.sendMessage(config.getAdminHelpFooter(page, totalPages));
 
         return true;
     }

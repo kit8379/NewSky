@@ -1,8 +1,10 @@
+# No color codes, no formatting, just plain text in this file.
+# Color codes and formatting will be handled in messages.yml.
 commands:
   player:
     addmember:
       aliases: [ ]
-      permission: island.player.addmember
+      permission: "island.player.addmember"
       syntax: "<玩家名稱>"
       description: "邀請一位玩家加入你的島嶼"
 
