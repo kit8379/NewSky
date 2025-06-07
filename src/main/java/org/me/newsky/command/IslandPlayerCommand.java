@@ -3,7 +3,7 @@ package org.me.newsky.command;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabExecutor;
+import org.bukkit.command.AsyncTabCompleter;
 import org.jetbrains.annotations.NotNull;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
@@ -36,16 +36,19 @@ import org.me.newsky.command.player.PlayerWarpCommand;
 import org.me.newsky.config.ConfigHandler;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * /is 主指令，負責將子指令委派給 player 目錄下的各類 SubCommand
  */
-public class IslandPlayerCommand implements CommandExecutor, TabExecutor {
+public class IslandPlayerCommand implements CommandExecutor, AsyncTabCompleter {
+    private final NewSky plugin;
     private final ConfigHandler config;
     private final Map<String, SubCommand> subCommandMap = new HashMap<>();
     private final Set<SubCommand> subCommands = new HashSet<>();
 
     public IslandPlayerCommand(NewSky plugin, NewSkyAPI api, ConfigHandler config) {
+        this.plugin = plugin;
         this.config = config;
         subCommands.add(new PlayerCreateIslandCommand(plugin, api, config));
         subCommands.add(new PlayerDeleteIslandCommand(plugin, api, config));
@@ -115,29 +118,31 @@ public class IslandPlayerCommand implements CommandExecutor, TabExecutor {
     }
 
     @Override
-    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
-        if (args.length == 1) {
-            List<String> suggestions = new ArrayList<>();
-            for (SubCommand cmd : subCommands) {
-                String perm = cmd.getPermission();
-                if (perm == null || perm.isEmpty() || sender.hasPermission(perm)) {
-                    if (cmd.getName().startsWith(args[0].toLowerCase())) {
-                        suggestions.add(cmd.getName());
-                    }
-                    for (String alias : cmd.getAliases()) {
-                        if (alias.startsWith(args[0].toLowerCase())) {
-                            suggestions.add(alias);
+    public CompletableFuture<List<String>> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
+        return CompletableFuture.supplyAsync(() -> {
+            if (args.length == 1) {
+                List<String> suggestions = new ArrayList<>();
+                for (SubCommand cmd : subCommands) {
+                    String perm = cmd.getPermission();
+                    if (perm == null || perm.isEmpty() || sender.hasPermission(perm)) {
+                        if (cmd.getName().startsWith(args[0].toLowerCase())) {
+                            suggestions.add(cmd.getName());
+                        }
+                        for (String alias : cmd.getAliases()) {
+                            if (alias.startsWith(args[0].toLowerCase())) {
+                                suggestions.add(alias);
+                            }
                         }
                     }
                 }
+                return suggestions;
             }
-            return suggestions;
-        }
 
-        SubCommand target = subCommandMap.get(args[0].toLowerCase());
-        if (target instanceof TabComplete) {
-            return ((TabComplete) target).tabComplete(sender, label, args);
-        }
-        return Collections.emptyList();
+            SubCommand target = subCommandMap.get(args[0].toLowerCase());
+            if (target instanceof TabComplete) {
+                return ((TabComplete) target).tabComplete(sender, label, args);
+            }
+            return Collections.emptyList();
+        }, plugin.getBukkitAsyncExecutor());
     }
 }

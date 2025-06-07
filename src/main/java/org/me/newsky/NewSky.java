@@ -193,12 +193,12 @@ public class NewSky extends JavaPlugin {
         // Create and register the /is (player) command
         IslandPlayerCommand playerExecutor = new IslandPlayerCommand(this, api, config);
         Objects.requireNonNull(getCommand("island")).setExecutor(playerExecutor);
-        Objects.requireNonNull(getCommand("island")).setTabCompleter(playerExecutor);
+        Objects.requireNonNull(getCommand("island")).setAsyncTabCompleter(playerExecutor);
 
         // Create and register the /isadmin (admin) command
         IslandAdminCommand adminExecutor = new IslandAdminCommand(this, api, config);
         Objects.requireNonNull(getCommand("islandadmin")).setExecutor(adminExecutor);
-        Objects.requireNonNull(getCommand("islandadmin")).setTabCompleter(adminExecutor);
+        Objects.requireNonNull(getCommand("islandadmin")).setAsyncTabCompleter(adminExecutor);
     }
 
     @Override
