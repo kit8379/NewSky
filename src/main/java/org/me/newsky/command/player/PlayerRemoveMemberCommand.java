@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -71,15 +70,26 @@ public class PlayerRemoveMemberCommand implements SubCommand, TabComplete {
         }
 
         String targetPlayerName = args[1];
-
-        UUID playerUuid = player.getUniqueId();
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
         UUID targetPlayerUuid = targetPlayer.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.removeMember(islandUuid, targetPlayerUuid)).thenRun(() -> player.sendMessage(config.getPlayerRemoveMemberSuccessMessage(targetPlayerName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                player.sendMessage(config.getPlayerNoIslandMessage());
-            } else if (ex.getCause() instanceof IslandPlayerDoesNotExistException) {
+        UUID playerUuid = player.getUniqueId();
+        UUID islandUuid;
+
+        try {
+            islandUuid = api.getIslandUuid(playerUuid);
+        } catch (IslandDoesNotExistException ex) {
+            player.sendMessage(config.getPlayerNoIslandMessage());
+            return true;
+        } catch (Exception ex) {
+            player.sendMessage("There was an error checking your island.");
+            plugin.getLogger().log(Level.SEVERE, "Error checking island for player " + player.getName(), ex);
+            return true;
+        }
+
+        api.removeMember(islandUuid, targetPlayerUuid).thenRun(() -> player.sendMessage(config.getPlayerRemoveMemberSuccessMessage(targetPlayerName))).exceptionally(ex -> {
+            Throwable cause = ex.getCause();
+            if (cause instanceof IslandPlayerDoesNotExistException) {
                 player.sendMessage(config.getIslandMemberNotExistsMessage(targetPlayerName));
             } else {
                 player.sendMessage("There was an error removing the member.");
@@ -95,13 +105,15 @@ public class PlayerRemoveMemberCommand implements SubCommand, TabComplete {
     public List<String> tabComplete(CommandSender sender, String label, String[] args) {
         if (args.length == 2 && sender instanceof Player player) {
             try {
-                UUID islandUuid = api.getIslandUuid(player.getUniqueId()).get();
-                Set<UUID> members = api.getIslandMembers(islandUuid).get();
+                UUID islandUuid = api.getIslandUuid(player.getUniqueId());
+                Set<UUID> members = api.getIslandMembers(islandUuid);
+
                 return members.stream().map(uuid -> {
                     OfflinePlayer op = Bukkit.getOfflinePlayer(uuid);
                     return op.getName() != null ? op.getName() : uuid.toString();
                 }).filter(name -> name.toLowerCase().startsWith(args[1].toLowerCase())).collect(Collectors.toList());
-            } catch (InterruptedException | ExecutionException e) {
+
+            } catch (Exception e) {
                 return Collections.emptyList();
             }
         }

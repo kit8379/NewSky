@@ -61,12 +61,23 @@ public class PlayerLeaveCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.removeMember(islandUuid, playerUuid)).thenRun(() -> player.sendMessage(config.getPlayerLeaveSuccessMessage())).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                player.sendMessage(config.getPlayerNoIslandMessage());
-            } else if (ex.getCause() instanceof CannotRemoveOwnerException) {
+        UUID islandUuid;
+        try {
+            islandUuid = api.getIslandUuid(playerUuid);
+        } catch (IslandDoesNotExistException ex) {
+            player.sendMessage(config.getPlayerNoIslandMessage());
+            return true;
+        } catch (Exception ex) {
+            player.sendMessage("There was an error retrieving your island.");
+            plugin.getLogger().log(Level.SEVERE, "Error retrieving island UUID for player " + player.getName(), ex);
+            return true;
+        }
+
+        api.removeMember(islandUuid, playerUuid).thenRun(() -> player.sendMessage(config.getPlayerLeaveSuccessMessage())).exceptionally(ex -> {
+            Throwable cause = ex.getCause();
+            if (cause instanceof CannotRemoveOwnerException) {
                 player.sendMessage(config.getPlayerCannotLeaveAsOwnerMessage());
-            } else if (ex.getCause() instanceof IslandPlayerDoesNotExistException) {
+            } else if (cause instanceof IslandPlayerDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else {
                 player.sendMessage("There was an error leaving the island");

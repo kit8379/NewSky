@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -71,15 +70,21 @@ public class PlayerUnbanCommand implements SubCommand, TabComplete {
         }
 
         String targetPlayerName = args[1];
-
         UUID playerUuid = player.getUniqueId();
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
         UUID targetPlayerUuid = targetPlayer.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.unbanPlayer(islandUuid, targetPlayerUuid)).thenRun(() -> player.sendMessage(config.getPlayerUnbanSuccessMessage(targetPlayerName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                player.sendMessage(config.getPlayerNoIslandMessage());
-            } else if (ex.getCause() instanceof PlayerNotBannedException) {
+        UUID islandUuid;
+        try {
+            islandUuid = api.getIslandUuid(playerUuid);
+        } catch (IslandDoesNotExistException e) {
+            player.sendMessage(config.getPlayerNoIslandMessage());
+            return true;
+        }
+
+        api.unbanPlayer(islandUuid, targetPlayerUuid).thenRun(() -> player.sendMessage(config.getPlayerUnbanSuccessMessage(targetPlayerName))).exceptionally(ex -> {
+            Throwable cause = ex.getCause();
+            if (cause instanceof PlayerNotBannedException) {
                 player.sendMessage(config.getPlayerNotBannedMessage(targetPlayerName));
             } else {
                 player.sendMessage("There was an error unbanning the player.");
@@ -95,14 +100,14 @@ public class PlayerUnbanCommand implements SubCommand, TabComplete {
     public List<String> tabComplete(CommandSender sender, String label, String[] args) {
         if (args.length == 2 && sender instanceof Player player) {
             try {
-                UUID islandUuid = api.getIslandUuid(player.getUniqueId()).get();
-                Set<UUID> banned = api.getBannedPlayers(islandUuid).get();
+                UUID islandUuid = api.getIslandUuid(player.getUniqueId());
+                Set<UUID> banned = api.getBannedPlayers(islandUuid);
                 String prefix = args[1].toLowerCase();
                 return banned.stream().map(uuid -> {
                     OfflinePlayer op = Bukkit.getOfflinePlayer(uuid);
                     return op.getName() != null ? op.getName() : uuid.toString();
                 }).filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
-            } catch (InterruptedException | ExecutionException e) {
+            } catch (IslandDoesNotExistException e) {
                 return Collections.emptyList();
             }
         }

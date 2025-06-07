@@ -80,12 +80,19 @@ public class PlayerAddMemberCommand implements SubCommand, TabComplete {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
         UUID targetPlayerUuid = targetPlayer.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.addMember(islandUuid, targetPlayerUuid, "member")).thenRun(() -> player.sendMessage(config.getPlayerAddMemberSuccessMessage(targetPlayerName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                player.sendMessage(config.getPlayerNoIslandMessage());
-            } else if (ex.getCause() instanceof PlayerAlreadyInAnotherIslandException) {
+        UUID islandUuid;
+        try {
+            islandUuid = api.getIslandUuid(playerUuid);
+        } catch (IslandDoesNotExistException e) {
+            player.sendMessage(config.getPlayerNoIslandMessage());
+            return true;
+        }
+
+        api.addMember(islandUuid, targetPlayerUuid, "member").thenRun(() -> player.sendMessage(config.getPlayerAddMemberSuccessMessage(targetPlayerName))).exceptionally(ex -> {
+            Throwable cause = ex.getCause();
+            if (cause instanceof PlayerAlreadyInAnotherIslandException) {
                 player.sendMessage(config.getPlayerAlreadyHasIslandOtherMessage(targetPlayerName));
-            } else if (ex.getCause() instanceof IslandPlayerAlreadyExistsException) {
+            } else if (cause instanceof IslandPlayerAlreadyExistsException) {
                 player.sendMessage(config.getIslandMemberExistsMessage(targetPlayerName));
             } else {
                 player.sendMessage("There was an error adding the member.");

@@ -63,35 +63,32 @@ public class PlayerDeleteIslandCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenAccept(islandUuid -> {
-            if (islandUuid == null) {
-                player.sendMessage(config.getPlayerNoIslandMessage());
-                return;
-            }
+        UUID islandUuid;
+        try {
+            islandUuid = api.getIslandUuid(playerUuid);
+        } catch (IslandDoesNotExistException ex) {
+            player.sendMessage(config.getPlayerNoIslandMessage());
+            return true;
+        } catch (Exception ex) {
+            player.sendMessage("There was an error checking your island");
+            plugin.getLogger().log(Level.SEVERE, "Error checking island for player " + player.getName(), ex);
+            return true;
+        }
 
-            if (!confirmationTimes.containsKey(playerUuid) || System.currentTimeMillis() - confirmationTimes.get(playerUuid) >= 15000) {
-                confirmationTimes.put(playerUuid, System.currentTimeMillis());
-                player.sendMessage(config.getPlayerDeleteWarningMessage());
-                return;
-            }
-            confirmationTimes.remove(playerUuid);
+        if (!confirmationTimes.containsKey(playerUuid) || System.currentTimeMillis() - confirmationTimes.get(playerUuid) >= 15000) {
+            confirmationTimes.put(playerUuid, System.currentTimeMillis());
+            player.sendMessage(config.getPlayerDeleteWarningMessage());
+            return true;
+        }
 
-            api.deleteIsland(islandUuid).thenRun(() -> player.sendMessage(config.getPlayerDeleteSuccessMessage())).exceptionally(ex -> {
-                if (ex.getCause() instanceof NoActiveServerException) {
-                    player.sendMessage(config.getNoActiveServerMessage());
-                } else {
-                    player.sendMessage("There was an error deleting the island");
-                    plugin.getLogger().log(Level.SEVERE, "Error deleting island for player " + player.getName(), ex);
-                }
-                return null;
-            });
+        confirmationTimes.remove(playerUuid);
 
-        }).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                player.sendMessage(config.getPlayerNoIslandMessage());
+        api.deleteIsland(islandUuid).thenRun(() -> player.sendMessage(config.getPlayerDeleteSuccessMessage())).exceptionally(ex -> {
+            if (ex.getCause() instanceof NoActiveServerException) {
+                player.sendMessage(config.getNoActiveServerMessage());
             } else {
-                player.sendMessage("There was an error checking your island");
-                plugin.getLogger().log(Level.SEVERE, "Error checking island for player " + player.getName(), ex);
+                player.sendMessage("There was an error deleting the island");
+                plugin.getLogger().log(Level.SEVERE, "Error deleting island for player " + player.getName(), ex);
             }
             return null;
         });

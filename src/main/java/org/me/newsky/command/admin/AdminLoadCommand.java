@@ -64,12 +64,19 @@ public class AdminLoadCommand implements SubCommand {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
         UUID targetUuid = targetPlayer.getUniqueId();
 
-        api.getIslandUuid(targetUuid).thenCompose(api::loadIsland).thenRun(() -> sender.sendMessage(config.getIslandLoadSuccessMessage(targetPlayerName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                sender.sendMessage(config.getNoIslandMessage(targetPlayerName));
-            } else if (ex.getCause() instanceof NoActiveServerException) {
+        UUID islandUuid;
+        try {
+            islandUuid = api.getIslandUuid(targetUuid);
+        } catch (IslandDoesNotExistException e) {
+            sender.sendMessage(config.getNoIslandMessage(targetPlayerName));
+            return true;
+        }
+
+        api.loadIsland(islandUuid).thenRun(() -> sender.sendMessage(config.getIslandLoadSuccessMessage(targetPlayerName))).exceptionally(ex -> {
+            Throwable cause = ex.getCause();
+            if (cause instanceof NoActiveServerException) {
                 sender.sendMessage(config.getNoActiveServerMessage());
-            } else if (ex.getCause() instanceof IslandAlreadyLoadedException) {
+            } else if (cause instanceof IslandAlreadyLoadedException) {
                 sender.sendMessage(config.getIslandAlreadyLoadedMessage());
             } else {
                 sender.sendMessage("There was an error loading the island.");

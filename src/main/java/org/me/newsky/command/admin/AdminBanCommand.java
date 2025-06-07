@@ -67,12 +67,19 @@ public class AdminBanCommand implements SubCommand {
         UUID islandOwnerUuid = islandOwner.getUniqueId();
         UUID targetPlayerUuid = targetPlayer.getUniqueId();
 
-        api.getIslandUuid(islandOwnerUuid).thenCompose(islandUuid -> api.banPlayer(islandUuid, targetPlayerUuid)).thenRun(() -> sender.sendMessage(config.getAdminBanSuccessMessage(islandOwnerName, banPlayerName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                sender.sendMessage(config.getAdminNoIslandMessage(islandOwnerName));
-            } else if (ex.getCause() instanceof PlayerAlreadyBannedException) {
+        UUID islandUuid;
+        try {
+            islandUuid = api.getIslandUuid(islandOwnerUuid);
+        } catch (IslandDoesNotExistException e) {
+            sender.sendMessage(config.getAdminNoIslandMessage(islandOwnerName));
+            return true;
+        }
+
+        api.banPlayer(islandUuid, targetPlayerUuid).thenRun(() -> sender.sendMessage(config.getAdminBanSuccessMessage(islandOwnerName, banPlayerName))).exceptionally(ex -> {
+            Throwable cause = ex.getCause();
+            if (cause instanceof PlayerAlreadyBannedException) {
                 sender.sendMessage(config.getPlayerAlreadyBannedMessage(banPlayerName));
-            } else if (ex.getCause() instanceof CannotBanIslandPlayerException) {
+            } else if (cause instanceof CannotBanIslandPlayerException) {
                 sender.sendMessage(config.getPlayerCannotBanIslandPlayerMessage());
             } else {
                 sender.sendMessage("There was an error banning the player.");

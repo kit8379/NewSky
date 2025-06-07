@@ -15,7 +15,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -71,9 +70,10 @@ public class PlayerSetWarpCommand implements SubCommand, TabComplete {
         Location loc = player.getLocation();
 
         api.setWarp(playerUuid, warpName, loc).thenRun(() -> player.sendMessage(config.getPlayerSetWarpSuccessMessage(warpName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
+            Throwable cause = ex.getCause();
+            if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
-            } else if (ex.getCause() instanceof LocationNotInIslandException) {
+            } else if (cause instanceof LocationNotInIslandException) {
                 player.sendMessage(config.getPlayerMustInIslandSetWarpMessage());
             } else {
                 player.sendMessage("There was an error setting the warp");
@@ -89,10 +89,10 @@ public class PlayerSetWarpCommand implements SubCommand, TabComplete {
     public List<String> tabComplete(CommandSender sender, String label, String[] args) {
         if (args.length == 2 && sender instanceof Player player) {
             try {
-                Set<String> warps = api.getWarpNames(player.getUniqueId()).get();
+                Set<String> warps = api.getWarpNames(player.getUniqueId());
                 String prefix = args[1].toLowerCase();
                 return warps.stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
-            } catch (InterruptedException | ExecutionException e) {
+            } catch (Exception e) {
                 return Collections.emptyList();
             }
         }

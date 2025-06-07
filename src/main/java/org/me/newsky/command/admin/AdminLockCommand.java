@@ -62,19 +62,23 @@ public class AdminLockCommand implements SubCommand {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
         UUID targetUuid = targetPlayer.getUniqueId();
 
-        api.getIslandUuid(targetUuid).thenCompose(api::toggleIslandLock).thenAccept(isLocked -> {
+        UUID islandUuid;
+        try {
+            islandUuid = api.getIslandUuid(targetUuid);
+        } catch (IslandDoesNotExistException e) {
+            sender.sendMessage(config.getAdminNoIslandMessage(targetPlayerName));
+            return true;
+        }
+
+        api.toggleIslandLock(islandUuid).thenAccept(isLocked -> {
             if (isLocked) {
                 sender.sendMessage(config.getAdminLockSuccessMessage(targetPlayerName));
             } else {
                 sender.sendMessage(config.getAdminUnLockSuccessMessage(targetPlayerName));
             }
         }).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                sender.sendMessage(config.getAdminNoIslandMessage(targetPlayerName));
-            } else {
-                sender.sendMessage("There was an error toggling the island lock status.");
-                plugin.getLogger().log(Level.SEVERE, "Error toggling island lock for " + targetPlayerName, ex);
-            }
+            sender.sendMessage("There was an error toggling the island lock status.");
+            plugin.getLogger().log(Level.SEVERE, "Error toggling island lock for " + targetPlayerName, ex);
             return null;
         });
 

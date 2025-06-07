@@ -24,6 +24,17 @@ public class WarpHandler {
         this.islandServiceDistributor = islandServiceDistributor;
     }
 
+    // Sync Getter
+    public Set<String> getWarpNames(UUID playerUuid) {
+        Optional<UUID> islandUuidOpt = cacheHandler.getIslandUuid(playerUuid);
+        if (islandUuidOpt.isEmpty()) {
+            throw new IslandDoesNotExistException();
+        }
+        UUID islandUuid = islandUuidOpt.get();
+        return cacheHandler.getWarpNames(islandUuid, playerUuid);
+    }
+
+    // Async Operations
     public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, Location location) {
         return CompletableFuture.supplyAsync(() -> cacheHandler.getIslandUuid(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
@@ -60,12 +71,10 @@ public class WarpHandler {
             }
             UUID islandUuid = islandUuidOpt.get();
 
-            // Check if the target player is banned
             if (cacheHandler.isPlayerBanned(islandUuid, targetPlayerUuid)) {
                 throw new PlayerBannedException();
             }
 
-            // Check if the island is locked and the player is not a member
             boolean isLocked = cacheHandler.isIslandLock(islandUuid);
             boolean isMember = cacheHandler.getIslandPlayers(islandUuid).contains(targetPlayerUuid);
             if (isLocked && !isMember) {
@@ -78,17 +87,6 @@ public class WarpHandler {
             }
             String warpLocation = warpLocationOpt.get();
             return islandServiceDistributor.teleportToIsland(islandUuid, targetPlayerUuid, warpLocation);
-        });
-    }
-
-
-    public CompletableFuture<Set<String>> getWarpNames(UUID playerUuid) {
-        return CompletableFuture.supplyAsync(() -> cacheHandler.getIslandUuid(playerUuid), plugin.getBukkitAsyncExecutor()).thenApply(islandUuidOpt -> {
-            if (islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException();
-            }
-            UUID islandUuid = islandUuidOpt.get();
-            return cacheHandler.getWarpNames(islandUuid, playerUuid);
         });
     }
 }

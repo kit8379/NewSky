@@ -66,10 +66,17 @@ public class AdminAddMemberCommand implements SubCommand {
         UUID targetMemberUuid = targetMember.getUniqueId();
         UUID islandOwnerUuid = islandOwner.getUniqueId();
 
-        api.getIslandUuid(islandOwnerUuid).thenCompose(islandUuid -> api.addMember(islandUuid, targetMemberUuid, "member")).thenRun(() -> sender.sendMessage(config.getAdminAddMemberSuccessMessage(targetMemberName, islandOwnerName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                sender.sendMessage(config.getAdminNoIslandMessage(islandOwnerName));
-            } else if (ex.getCause() instanceof IslandPlayerAlreadyExistsException) {
+        UUID islandUuid;
+        try {
+            islandUuid = api.getIslandUuid(islandOwnerUuid);
+        } catch (IslandDoesNotExistException e) {
+            sender.sendMessage(config.getAdminNoIslandMessage(islandOwnerName));
+            return true;
+        }
+
+        api.addMember(islandUuid, targetMemberUuid, "member").thenRun(() -> sender.sendMessage(config.getAdminAddMemberSuccessMessage(targetMemberName, islandOwnerName))).exceptionally(ex -> {
+            Throwable cause = ex.getCause();
+            if (cause instanceof IslandPlayerAlreadyExistsException) {
                 sender.sendMessage(config.getIslandMemberExistsMessage(targetMemberName));
             } else {
                 sender.sendMessage("There was an error adding the member");

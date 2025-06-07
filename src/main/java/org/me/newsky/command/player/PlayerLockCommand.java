@@ -59,19 +59,27 @@ public class PlayerLockCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(api::toggleIslandLock).thenAccept(isLocked -> {
+        UUID islandUuid;
+        try {
+            islandUuid = api.getIslandUuid(playerUuid);
+        } catch (IslandDoesNotExistException ex) {
+            player.sendMessage(config.getPlayerNoIslandMessage());
+            return true;
+        } catch (Exception ex) {
+            player.sendMessage("There was an error retrieving your island.");
+            plugin.getLogger().log(Level.SEVERE, "Error retrieving island UUID for player " + player.getName(), ex);
+            return true;
+        }
+
+        api.toggleIslandLock(islandUuid).thenAccept(isLocked -> {
             if (isLocked) {
                 player.sendMessage(config.getPlayerLockSuccessMessage());
             } else {
                 player.sendMessage(config.getPlayerUnLockSuccessMessage());
             }
         }).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                player.sendMessage(config.getPlayerNoIslandMessage());
-            } else {
-                player.sendMessage("There was an error toggling the island lock status.");
-                plugin.getLogger().log(Level.SEVERE, "Error toggling island lock status for player " + player.getName(), ex);
-            }
+            player.sendMessage("There was an error toggling the island lock status.");
+            plugin.getLogger().log(Level.SEVERE, "Error toggling island lock status for player " + player.getName(), ex);
             return null;
         });
 

@@ -10,7 +10,6 @@ import java.util.concurrent.CompletableFuture;
 
 public class CoopHandler {
 
-
     private final NewSky plugin;
     private final CacheHandler cacheHandler;
 
@@ -19,8 +18,8 @@ public class CoopHandler {
         this.cacheHandler = cacheHandler;
     }
 
-    public CompletableFuture<Set<UUID>> getCoopedPlayers(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> cacheHandler.getCoopedPlayers(islandUuid), plugin.getBukkitAsyncExecutor());
+    public Set<UUID> getCoopedPlayers(UUID islandUuid) {
+        return cacheHandler.getCoopedPlayers(islandUuid);
     }
 
     public CompletableFuture<Void> addCoop(UUID islandUuid, UUID playerUuid) {
@@ -36,7 +35,6 @@ public class CoopHandler {
             cacheHandler.addCoopPlayer(islandUuid, playerUuid);
         }, plugin.getBukkitAsyncExecutor());
     }
-
 
     public CompletableFuture<Void> removeCoop(UUID islandUuid, UUID playerUuid) {
         return CompletableFuture.runAsync(() -> {

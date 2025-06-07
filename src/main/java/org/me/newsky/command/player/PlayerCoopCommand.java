@@ -59,7 +59,6 @@ public class PlayerCoopCommand implements SubCommand, TabComplete {
         return config.getPlayerCoopDescription();
     }
 
-
     @Override
     public boolean execute(CommandSender sender, String[] args) {
         if (!(sender instanceof Player player)) {
@@ -87,12 +86,19 @@ public class PlayerCoopCommand implements SubCommand, TabComplete {
             return true;
         }
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.addCoop(islandUuid, targetPlayerUuid)).thenRun(() -> player.sendMessage(config.getPlayerCoopSuccessMessage(targetPlayerName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                player.sendMessage(config.getPlayerNoIslandMessage());
-            } else if (ex.getCause() instanceof PlayerAlreadyCoopedException) {
+        UUID islandUuid;
+        try {
+            islandUuid = api.getIslandUuid(playerUuid);
+        } catch (IslandDoesNotExistException ex) {
+            player.sendMessage(config.getPlayerNoIslandMessage());
+            return true;
+        }
+
+        api.addCoop(islandUuid, targetPlayerUuid).thenRun(() -> player.sendMessage(config.getPlayerCoopSuccessMessage(targetPlayerName))).exceptionally(ex -> {
+            Throwable cause = ex.getCause();
+            if (cause instanceof PlayerAlreadyCoopedException) {
                 player.sendMessage(config.getPlayerAlreadyCoopedMessage(targetPlayerName));
-            } else if (ex.getCause() instanceof CannotCoopIslandPlayerException) {
+            } else if (cause instanceof CannotCoopIslandPlayerException) {
                 player.sendMessage(config.getPlayerCannotCoopIslandPlayerMessage());
             } else {
                 player.sendMessage(Component.text("There was an error cooping the player."));

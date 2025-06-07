@@ -2,7 +2,6 @@ package org.me.newsky.command.player;
 
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
@@ -16,7 +15,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -66,46 +64,37 @@ public class PlayerInfoCommand implements SubCommand, TabComplete {
             return true;
         }
 
-        UUID playerUuid;
-        if (args.length < 2) {
-            playerUuid = player.getUniqueId();
-        } else {
-            OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(args[1]);
-            playerUuid = targetPlayer.getUniqueId();
-        }
+        UUID playerUuid = (args.length < 2) ? player.getUniqueId() : Bukkit.getOfflinePlayer(args[1]).getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> {
-            CompletableFuture<UUID> ownerFuture = api.getIslandOwner(islandUuid);
-            CompletableFuture<Set<UUID>> membersFuture = api.getIslandMembers(islandUuid);
-            CompletableFuture<Integer> levelFuture = api.getIslandLevel(islandUuid);
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                UUID islandUuid = api.getIslandUuid(playerUuid);
+                UUID ownerUuid = api.getIslandOwner(islandUuid);
+                Set<UUID> members = api.getIslandMembers(islandUuid);
+                int level = api.getIslandLevel(islandUuid);
 
-            return CompletableFuture.allOf(ownerFuture, membersFuture, levelFuture).thenApply(v -> {
-                try {
-                    UUID ownerUuid = ownerFuture.get();
-                    Set<UUID> members = membersFuture.get();
-                    int level = levelFuture.get();
+                String ownerName = Bukkit.getOfflinePlayer(ownerUuid).getName();
+                String memberNames = members.stream().map(uuid -> {
+                    String name = Bukkit.getOfflinePlayer(uuid).getName();
+                    return (name != null) ? name : uuid.toString();
+                }).collect(Collectors.joining(", "));
 
-                    String ownerName = Bukkit.getOfflinePlayer(ownerUuid).getName();
-                    String memberNames = members.stream().map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).reduce((a, b) -> a + ", " + b).orElse(LegacyComponentSerializer.legacyAmpersand().serialize(config.getIslandInfoNoMembersMessage()));
-
-                    sender.sendMessage(config.getIslandInfoHeaderMessage());
-                    sender.sendMessage(config.getIslandInfoUUIDMessage(islandUuid));
-                    sender.sendMessage(config.getIslandInfoOwnerMessage(ownerName));
-                    sender.sendMessage(config.getIslandInfoMembersMessage(memberNames));
-                    sender.sendMessage(config.getIslandInfoLevelMessage(level));
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
+                if (memberNames.isEmpty()) {
+                    memberNames = LegacyComponentSerializer.legacyAmpersand().serialize(config.getIslandInfoNoMembersMessage());
                 }
-                return null;
-            });
-        }).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
+
+                sender.sendMessage(config.getIslandInfoHeaderMessage());
+                sender.sendMessage(config.getIslandInfoUUIDMessage(islandUuid));
+                sender.sendMessage(config.getIslandInfoOwnerMessage(ownerName));
+                sender.sendMessage(config.getIslandInfoMembersMessage(memberNames));
+                sender.sendMessage(config.getIslandInfoLevelMessage(level));
+
+            } catch (IslandDoesNotExistException ex) {
                 sender.sendMessage(config.getPlayerNoIslandMessage());
-            } else {
+            } catch (Exception ex) {
                 sender.sendMessage("There was an error getting the island information.");
                 plugin.getLogger().log(Level.SEVERE, "Error getting island information for player " + player.getName(), ex);
             }
-            return null;
         });
 
         return true;

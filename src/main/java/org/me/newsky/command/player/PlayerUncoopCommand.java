@@ -17,7 +17,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -72,15 +71,20 @@ public class PlayerUncoopCommand implements SubCommand, TabComplete {
         }
 
         String targetPlayerName = args[1];
-
         UUID playerUuid = player.getUniqueId();
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
         UUID targetPlayerUuid = targetPlayer.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.removeCoop(islandUuid, targetPlayerUuid)).thenRun(() -> player.sendMessage(config.getPlayerUncoopSuccessMessage(targetPlayerName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                player.sendMessage(config.getPlayerNoIslandMessage());
-            } else if (ex.getCause() instanceof PlayerNotCoopedException) {
+        UUID islandUuid;
+        try {
+            islandUuid = api.getIslandUuid(playerUuid);
+        } catch (IslandDoesNotExistException e) {
+            player.sendMessage(config.getPlayerNoIslandMessage());
+            return true;
+        }
+
+        api.removeCoop(islandUuid, targetPlayerUuid).thenRun(() -> player.sendMessage(config.getPlayerUncoopSuccessMessage(targetPlayerName))).exceptionally(ex -> {
+            if (ex.getCause() instanceof PlayerNotCoopedException) {
                 player.sendMessage(config.getPlayerNotCoopedMessage(targetPlayerName));
             } else {
                 player.sendMessage(Component.text("There was an error uncooping the player."));
@@ -96,14 +100,14 @@ public class PlayerUncoopCommand implements SubCommand, TabComplete {
     public List<String> tabComplete(CommandSender sender, String label, String[] args) {
         if (args.length == 2 && sender instanceof Player player) {
             try {
-                UUID islandUuid = api.getIslandUuid(player.getUniqueId()).get();
-                Set<UUID> coops = api.getCoopedPlayers(islandUuid).get();
+                UUID islandUuid = api.getIslandUuid(player.getUniqueId());
+                Set<UUID> coops = api.getCoopedPlayers(islandUuid);
                 String prefix = args[1].toLowerCase();
                 return coops.stream().map(uuid -> {
                     OfflinePlayer op = Bukkit.getOfflinePlayer(uuid);
                     return op.getName() != null ? op.getName() : uuid.toString();
                 }).filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
-            } catch (InterruptedException | ExecutionException e) {
+            } catch (IslandDoesNotExistException e) {
                 return Collections.emptyList();
             }
         }

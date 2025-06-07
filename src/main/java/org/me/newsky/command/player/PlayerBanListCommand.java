@@ -11,6 +11,7 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -62,10 +63,13 @@ public class PlayerBanListCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(api::getBannedPlayers).thenAccept(bannedPlayers -> {
+        try {
+            UUID islandUuid = api.getIslandUuid(playerUuid);
+            Set<UUID> bannedPlayers = api.getBannedPlayers(islandUuid);
+
             if (bannedPlayers.isEmpty()) {
                 player.sendMessage(config.getNoBannedPlayersMessage());
-                return;
+                return true;
             }
 
             Component bannedList = config.getBannedPlayersHeaderMessage();
@@ -79,15 +83,13 @@ public class PlayerBanListCommand implements SubCommand {
             }
 
             player.sendMessage(bannedList);
-        }).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                player.sendMessage(config.getPlayerNoIslandMessage());
-            } else {
-                player.sendMessage(Component.text("There was an error retrieving the ban list."));
-                plugin.getLogger().log(Level.SEVERE, "Error retrieving ban list for " + player.getName(), ex);
-            }
-            return null;
-        });
+
+        } catch (IslandDoesNotExistException ex) {
+            player.sendMessage(config.getPlayerNoIslandMessage());
+        } catch (Exception ex) {
+            player.sendMessage(Component.text("There was an error retrieving the ban list."));
+            plugin.getLogger().log(Level.SEVERE, "Error retrieving ban list for " + player.getName(), ex);
+        }
 
         return true;
     }

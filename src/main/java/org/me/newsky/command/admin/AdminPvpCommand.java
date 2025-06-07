@@ -62,19 +62,23 @@ public class AdminPvpCommand implements SubCommand {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
         UUID targetUuid = targetPlayer.getUniqueId();
 
-        api.getIslandUuid(targetUuid).thenCompose(api::toggleIslandPvp).thenAccept(isPvpEnabled -> {
+        UUID islandUuid;
+        try {
+            islandUuid = api.getIslandUuid(targetUuid);
+        } catch (IslandDoesNotExistException e) {
+            sender.sendMessage(config.getAdminNoIslandMessage(targetPlayerName));
+            return true;
+        }
+
+        api.toggleIslandPvp(islandUuid).thenAccept(isPvpEnabled -> {
             if (isPvpEnabled) {
                 sender.sendMessage(config.getAdminPvpEnableSuccessMessage(targetPlayerName));
             } else {
                 sender.sendMessage(config.getAdminPvpDisableSuccessMessage(targetPlayerName));
             }
         }).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                sender.sendMessage(config.getAdminNoIslandMessage(targetPlayerName));
-            } else {
-                sender.sendMessage("There was an error toggling the PvP status.");
-                plugin.getLogger().log(Level.SEVERE, "Error toggling PvP status for " + targetPlayerName, ex);
-            }
+            sender.sendMessage("There was an error toggling the PvP status.");
+            plugin.getLogger().log(Level.SEVERE, "Error toggling PvP status for " + targetPlayerName, ex);
             return null;
         });
 

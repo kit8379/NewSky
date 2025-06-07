@@ -59,14 +59,20 @@ public class AdminUnloadCommand implements SubCommand {
         }
 
         String targetPlayerName = args[1];
-
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
         UUID targetUuid = targetPlayer.getUniqueId();
 
-        api.getIslandUuid(targetUuid).thenCompose(api::unloadIsland).thenRun(() -> sender.sendMessage(config.getIslandUnloadSuccessMessage(targetPlayerName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                sender.sendMessage(config.getNoIslandMessage(targetPlayerName));
-            } else if (ex.getCause() instanceof IslandNotLoadedException) {
+        UUID islandUuid;
+        try {
+            islandUuid = api.getIslandUuid(targetUuid);
+        } catch (IslandDoesNotExistException e) {
+            sender.sendMessage(config.getNoIslandMessage(targetPlayerName));
+            return true;
+        }
+
+        api.unloadIsland(islandUuid).thenRun(() -> sender.sendMessage(config.getIslandUnloadSuccessMessage(targetPlayerName))).exceptionally(ex -> {
+            Throwable cause = ex.getCause();
+            if (cause instanceof IslandNotLoadedException) {
                 sender.sendMessage(config.getIslandNotLoadedMessage());
             } else {
                 sender.sendMessage("There was an error unloading the island.");

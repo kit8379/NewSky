@@ -66,10 +66,17 @@ public class AdminUncoopCommand implements SubCommand {
         UUID ownerUuid = owner.getUniqueId();
         UUID targetUuid = target.getUniqueId();
 
-        api.getIslandUuid(ownerUuid).thenCompose(islandUuid -> api.removeCoop(islandUuid, targetUuid)).thenRun(() -> sender.sendMessage(config.getAdminUncoopSuccessMessage(ownerName, targetName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                sender.sendMessage(config.getAdminNoIslandMessage(ownerName));
-            } else if (ex.getCause() instanceof PlayerNotCoopedException) {
+        UUID islandUuid;
+        try {
+            islandUuid = api.getIslandUuid(ownerUuid);
+        } catch (IslandDoesNotExistException e) {
+            sender.sendMessage(config.getAdminNoIslandMessage(ownerName));
+            return true;
+        }
+
+        api.removeCoop(islandUuid, targetUuid).thenRun(() -> sender.sendMessage(config.getAdminUncoopSuccessMessage(ownerName, targetName))).exceptionally(ex -> {
+            Throwable cause = ex.getCause();
+            if (cause instanceof PlayerNotCoopedException) {
                 sender.sendMessage(config.getPlayerNotCoopedMessage(targetName));
             } else {
                 sender.sendMessage("There was an error uncooping the player.");

@@ -66,10 +66,17 @@ public class AdminUnbanCommand implements SubCommand {
         UUID islandOwnerUuid = islandOwner.getUniqueId();
         UUID targetPlayerUuid = targetPlayer.getUniqueId();
 
-        api.getIslandUuid(islandOwnerUuid).thenCompose(islandUuid -> api.unbanPlayer(islandUuid, targetPlayerUuid)).thenRun(() -> sender.sendMessage(config.getAdminUnbanSuccessMessage(islandOwnerName, banPlayerName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                sender.sendMessage(config.getAdminNoIslandMessage(islandOwnerName));
-            } else if (ex.getCause() instanceof PlayerNotBannedException) {
+        UUID islandUuid;
+        try {
+            islandUuid = api.getIslandUuid(islandOwnerUuid);
+        } catch (IslandDoesNotExistException e) {
+            sender.sendMessage(config.getAdminNoIslandMessage(islandOwnerName));
+            return true;
+        }
+
+        api.unbanPlayer(islandUuid, targetPlayerUuid).thenRun(() -> sender.sendMessage(config.getAdminUnbanSuccessMessage(islandOwnerName, banPlayerName))).exceptionally(ex -> {
+            Throwable cause = ex.getCause();
+            if (cause instanceof PlayerNotBannedException) {
                 sender.sendMessage(config.getPlayerNotBannedMessage(banPlayerName));
             } else {
                 sender.sendMessage("There was an error unbanning the player.");

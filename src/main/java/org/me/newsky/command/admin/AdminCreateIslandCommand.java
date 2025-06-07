@@ -64,9 +64,10 @@ public class AdminCreateIslandCommand implements SubCommand {
         UUID targetUuid = targetPlayer.getUniqueId();
 
         api.createIsland(targetUuid).thenRun(() -> sender.sendMessage(config.getAdminCreateSuccessMessage(targetPlayerName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandAlreadyExistException) {
+            Throwable cause = ex.getCause();
+            if (cause instanceof IslandAlreadyExistException) {
                 sender.sendMessage(config.getAdminAlreadyHasIslandMessage(targetPlayerName));
-            } else if (ex.getCause() instanceof NoActiveServerException) {
+            } else if (cause instanceof NoActiveServerException) {
                 sender.sendMessage(config.getNoActiveServerMessage());
             } else {
                 sender.sendMessage("There was an error creating the island");

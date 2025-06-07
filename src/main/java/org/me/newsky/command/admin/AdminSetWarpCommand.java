@@ -72,10 +72,13 @@ public class AdminSetWarpCommand implements SubCommand {
         UUID targetUuid = targetPlayer.getUniqueId();
         Location loc = player.getLocation();
 
-        api.setWarp(targetUuid, warpName, loc).thenRun(() -> sender.sendMessage(config.getAdminSetWarpSuccessMessage(warpPlayerName, warpName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
+        api.setWarp(targetUuid, warpName, loc).thenRun(() ->
+                sender.sendMessage(config.getAdminSetWarpSuccessMessage(warpPlayerName, warpName))
+        ).exceptionally(ex -> {
+            Throwable cause = ex.getCause();
+            if (cause instanceof IslandDoesNotExistException) {
                 sender.sendMessage(config.getAdminNoIslandMessage(warpPlayerName));
-            } else if (ex.getCause() instanceof LocationNotInIslandException) {
+            } else if (cause instanceof LocationNotInIslandException) {
                 sender.sendMessage(config.getAdminMustInIslandSetWarpMessage(warpPlayerName));
             } else {
                 sender.sendMessage("There was an error setting the warp.");

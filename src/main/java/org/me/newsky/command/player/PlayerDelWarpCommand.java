@@ -14,7 +14,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -57,7 +56,6 @@ public class PlayerDelWarpCommand implements SubCommand, TabComplete {
         return config.getPlayerDelWarpDescription();
     }
 
-
     @Override
     public boolean execute(CommandSender sender, String[] args) {
         if (!(sender instanceof Player player)) {
@@ -70,13 +68,13 @@ public class PlayerDelWarpCommand implements SubCommand, TabComplete {
         }
 
         String warpName = args[1];
-
         UUID playerUuid = player.getUniqueId();
 
         api.delWarp(playerUuid, warpName).thenRun(() -> player.sendMessage(config.getPlayerDelWarpSuccessMessage(warpName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
+            Throwable cause = ex.getCause();
+            if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
-            } else if (ex.getCause() instanceof WarpDoesNotExistException) {
+            } else if (cause instanceof WarpDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoWarpMessage(warpName));
             } else {
                 player.sendMessage("There was an error deleting the warp.");
@@ -91,13 +89,9 @@ public class PlayerDelWarpCommand implements SubCommand, TabComplete {
     @Override
     public List<String> tabComplete(CommandSender sender, String label, String[] args) {
         if (args.length == 2 && sender instanceof Player player) {
-            try {
-                Set<String> warps = api.getWarpNames(player.getUniqueId()).get();
-                String prefix = args[1].toLowerCase();
-                return warps.stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
-            } catch (InterruptedException | ExecutionException e) {
-                return Collections.emptyList();
-            }
+            Set<String> warps = api.getWarpNames(player.getUniqueId());
+            String prefix = args[1].toLowerCase();
+            return warps.stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
         }
         return Collections.emptyList();
     }

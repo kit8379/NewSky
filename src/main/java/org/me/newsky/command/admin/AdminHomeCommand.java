@@ -80,11 +80,12 @@ public class AdminHomeCommand implements SubCommand {
         }
 
         api.home(homePlayerUuid, homeName, teleportPlayerUuid).thenRun(() -> sender.sendMessage(config.getAdminHomeSuccessMessage(homePlayerName, homeName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
+            Throwable cause = ex.getCause();
+            if (cause instanceof IslandDoesNotExistException) {
                 sender.sendMessage(config.getAdminNoIslandMessage(homePlayerName));
-            } else if (ex.getCause() instanceof HomeDoesNotExistException) {
+            } else if (cause instanceof HomeDoesNotExistException) {
                 sender.sendMessage(config.getAdminNoHomeMessage(homePlayerName, homeName));
-            } else if (ex.getCause() instanceof NoActiveServerException) {
+            } else if (cause instanceof NoActiveServerException) {
                 sender.sendMessage(config.getNoActiveServerMessage());
             } else {
                 sender.sendMessage("There was an error teleporting to the home.");

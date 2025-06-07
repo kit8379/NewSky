@@ -65,9 +65,10 @@ public class AdminDelWarpCommand implements SubCommand {
         UUID targetUuid = targetPlayer.getUniqueId();
 
         api.delWarp(targetUuid, warpName).thenRun(() -> sender.sendMessage(config.getAdminDelWarpSuccessMessage(warpPlayerName, warpName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
+            Throwable cause = ex.getCause();
+            if (cause instanceof IslandDoesNotExistException) {
                 sender.sendMessage(config.getAdminNoIslandMessage(warpPlayerName));
-            } else if (ex.getCause() instanceof WarpDoesNotExistException) {
+            } else if (cause instanceof WarpDoesNotExistException) {
                 sender.sendMessage(config.getAdminNoWarpMessage(warpPlayerName, warpName));
             } else {
                 sender.sendMessage("There was an error deleting the warp.");

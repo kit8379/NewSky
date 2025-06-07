@@ -19,7 +19,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -108,21 +107,19 @@ public class PlayerWarpCommand implements SubCommand, TabComplete {
             return Collections.emptyList();
         }
 
-        // Complete online player names for args.length == 2
         if (args.length == 2) {
             String prefix = args[1].toLowerCase();
             return api.getOnlinePlayers().stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
         }
 
-        // Complete warp names of the target player's island for args.length == 3
         if (args.length == 3) {
             String warpPlayerName = args[1];
             OfflinePlayer target = Bukkit.getOfflinePlayer(warpPlayerName);
             try {
-                Set<String> warps = api.getWarpNames(target.getUniqueId()).get();
+                Set<String> warps = api.getWarpNames(target.getUniqueId());
                 String prefix = args[2].toLowerCase();
                 return warps.stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
-            } catch (InterruptedException | ExecutionException e) {
+            } catch (Exception e) {
                 return Collections.emptyList();
             }
         }

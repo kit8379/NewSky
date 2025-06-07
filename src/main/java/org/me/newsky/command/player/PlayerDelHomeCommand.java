@@ -13,7 +13,6 @@ import org.me.newsky.exceptions.IslandDoesNotExistException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
@@ -75,9 +74,10 @@ public class PlayerDelHomeCommand implements SubCommand, TabComplete {
         }
 
         api.delHome(player.getUniqueId(), homeName).thenRun(() -> player.sendMessage(config.getPlayerDelHomeSuccessMessage(homeName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
+            Throwable cause = ex.getCause();
+            if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
-            } else if (ex.getCause() instanceof HomeDoesNotExistException) {
+            } else if (cause instanceof HomeDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoHomeMessage(homeName));
             } else {
                 player.sendMessage("There was an error deleting the home.");
@@ -92,12 +92,8 @@ public class PlayerDelHomeCommand implements SubCommand, TabComplete {
     @Override
     public List<String> tabComplete(CommandSender sender, String label, String[] args) {
         if (args.length == 2 && sender instanceof Player player) {
-            try {
-                Set<String> homes = api.getHomeNames(player.getUniqueId()).get();
-                return homes.stream().filter(name -> name.toLowerCase().startsWith(args[1].toLowerCase())).collect(Collectors.toList());
-            } catch (InterruptedException | ExecutionException e) {
-                return Collections.emptyList();
-            }
+            Set<String> homes = api.getHomeNames(player.getUniqueId());
+            return homes.stream().filter(name -> name.toLowerCase().startsWith(args[1].toLowerCase())).collect(Collectors.toList());
         }
         return Collections.emptyList();
     }

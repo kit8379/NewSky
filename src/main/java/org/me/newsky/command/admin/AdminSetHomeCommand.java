@@ -73,9 +73,10 @@ public class AdminSetHomeCommand implements SubCommand {
         Location loc = player.getLocation();
 
         api.setHome(targetUuid, homeName, loc).thenRun(() -> sender.sendMessage(config.getAdminSetHomeSuccessMessage(homePlayerName, homeName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
+            Throwable cause = ex.getCause();
+            if (cause instanceof IslandDoesNotExistException) {
                 sender.sendMessage(config.getAdminNoIslandMessage(homePlayerName));
-            } else if (ex.getCause() instanceof LocationNotInIslandException) {
+            } else if (cause instanceof LocationNotInIslandException) {
                 sender.sendMessage(config.getAdminMustInIslandSetHomeMessage(homePlayerName));
             } else {
                 sender.sendMessage("There was an error setting the home.");

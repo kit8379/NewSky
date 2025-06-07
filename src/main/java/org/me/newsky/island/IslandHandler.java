@@ -27,16 +27,16 @@ public class IslandHandler {
         this.islandServiceDistributor = islandServiceDistributor;
     }
 
-    public CompletableFuture<UUID> getIslandUuid(UUID playerUuid) {
-        return CompletableFuture.supplyAsync(() -> cacheHandler.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new), plugin.getBukkitAsyncExecutor());
+    public UUID getIslandUuid(UUID playerUuid) {
+        return cacheHandler.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
     }
 
-    public CompletableFuture<UUID> getIslandOwner(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> cacheHandler.getIslandOwner(islandUuid), plugin.getBukkitAsyncExecutor());
+    public UUID getIslandOwner(UUID islandUuid) {
+        return cacheHandler.getIslandOwner(islandUuid);
     }
 
-    public CompletableFuture<Set<UUID>> getIslandMembers(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> cacheHandler.getIslandMembers(islandUuid), plugin.getBukkitAsyncExecutor());
+    public Set<UUID> getIslandMembers(UUID islandUuid) {
+        return cacheHandler.getIslandMembers(islandUuid);
     }
 
     public CompletableFuture<Void> createIsland(UUID ownerUuid) {
@@ -54,10 +54,8 @@ public class IslandHandler {
             String spawnLocation = config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch();
 
             return islandServiceDistributor.createIsland(islandUuid, ownerUuid, spawnLocation).whenComplete((res, ex) -> cacheHandler.releaseLock(lockKey));
-
         }, plugin.getBukkitAsyncExecutor()).thenCompose(f -> f);
     }
-
 
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
         return CompletableFuture.supplyAsync(() -> {
@@ -70,13 +68,16 @@ public class IslandHandler {
         }, plugin.getBukkitAsyncExecutor()).thenCompose(f -> f);
     }
 
-
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
         return CompletableFuture.supplyAsync(() -> islandUuid, plugin.getBukkitAsyncExecutor()).thenCompose(islandServiceDistributor::loadIsland);
     }
 
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
         return CompletableFuture.supplyAsync(() -> islandUuid, plugin.getBukkitAsyncExecutor()).thenCompose(islandServiceDistributor::unloadIsland);
+    }
+
+    public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
+        return CompletableFuture.runAsync(() -> islandServiceDistributor.expelPlayer(islandUuid, playerUuid), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Boolean> toggleIslandLock(UUID islandUuid) {
@@ -96,9 +97,5 @@ public class IslandHandler {
             cacheHandler.updateIslandPvp(islandUuid, !isPvpEnabled);
             return !isPvpEnabled;
         }, plugin.getBukkitAsyncExecutor());
-    }
-
-    public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
-        return CompletableFuture.runAsync(() -> islandServiceDistributor.expelPlayer(islandUuid, playerUuid), plugin.getBukkitAsyncExecutor());
     }
 }

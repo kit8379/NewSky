@@ -64,7 +64,7 @@ public class PlayerExpelCommand implements SubCommand, TabComplete {
         }
 
         if (args.length < 2) {
-            return false; // show usage
+            return false;
         }
 
         String targetPlayerName = args[1];
@@ -77,13 +77,21 @@ public class PlayerExpelCommand implements SubCommand, TabComplete {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
         UUID targetPlayerUuid = targetPlayer.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.expelPlayer(islandUuid, targetPlayerUuid).thenRun(() -> sender.sendMessage(config.getPlayerExpelSuccessMessage(targetPlayerName)))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                sender.sendMessage(config.getPlayerNoIslandMessage());
-            } else {
-                sender.sendMessage("There was an error expelling the player.");
-                plugin.getLogger().log(Level.SEVERE, "Error expelling player " + targetPlayerName + " from island of player " + player.getName(), ex);
-            }
+        UUID islandUuid;
+        try {
+            islandUuid = api.getIslandUuid(playerUuid);
+        } catch (IslandDoesNotExistException ex) {
+            player.sendMessage(config.getPlayerNoIslandMessage());
+            return true;
+        } catch (Exception ex) {
+            player.sendMessage("There was an error checking your island.");
+            plugin.getLogger().log(Level.SEVERE, "Error getting island UUID for player " + player.getName(), ex);
+            return true;
+        }
+
+        api.expelPlayer(islandUuid, targetPlayerUuid).thenRun(() -> sender.sendMessage(config.getPlayerExpelSuccessMessage(targetPlayerName))).exceptionally(ex -> {
+            sender.sendMessage("There was an error expelling the player.");
+            plugin.getLogger().log(Level.SEVERE, "Error expelling player " + targetPlayerName + " from island of player " + player.getName(), ex);
             return null;
         });
 

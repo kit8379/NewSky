@@ -67,12 +67,19 @@ public class AdminCoopCommand implements SubCommand {
         UUID ownerUuid = owner.getUniqueId();
         UUID targetUuid = target.getUniqueId();
 
-        api.getIslandUuid(ownerUuid).thenCompose(islandUuid -> api.addCoop(islandUuid, targetUuid)).thenRun(() -> sender.sendMessage(config.getAdminCoopSuccessMessage(ownerName, targetName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                sender.sendMessage(config.getAdminNoIslandMessage(ownerName));
-            } else if (ex.getCause() instanceof PlayerAlreadyCoopedException) {
+        UUID islandUuid;
+        try {
+            islandUuid = api.getIslandUuid(ownerUuid);
+        } catch (IslandDoesNotExistException e) {
+            sender.sendMessage(config.getAdminNoIslandMessage(ownerName));
+            return true;
+        }
+
+        api.addCoop(islandUuid, targetUuid).thenRun(() -> sender.sendMessage(config.getAdminCoopSuccessMessage(ownerName, targetName))).exceptionally(ex -> {
+            Throwable cause = ex.getCause();
+            if (cause instanceof PlayerAlreadyCoopedException) {
                 sender.sendMessage(config.getPlayerAlreadyCoopedMessage(targetName));
-            } else if (ex.getCause() instanceof CannotCoopIslandPlayerException) {
+            } else if (cause instanceof CannotCoopIslandPlayerException) {
                 sender.sendMessage(config.getPlayerCannotCoopIslandPlayerMessage());
             } else {
                 sender.sendMessage("There was an error cooping the player.");

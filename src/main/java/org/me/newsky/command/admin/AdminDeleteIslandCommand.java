@@ -72,10 +72,17 @@ public class AdminDeleteIslandCommand implements SubCommand {
         }
         confirmationTimes.remove(targetUuid);
 
-        api.getIslandUuid(targetUuid).thenCompose(api::deleteIsland).thenRun(() -> sender.sendMessage(config.getAdminDeleteSuccessMessage(targetPlayerName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                sender.sendMessage(config.getAdminNoIslandMessage(targetPlayerName));
-            } else if (ex.getCause() instanceof NoActiveServerException) {
+        UUID islandUuid;
+        try {
+            islandUuid = api.getIslandUuid(targetUuid);
+        } catch (IslandDoesNotExistException e) {
+            sender.sendMessage(config.getAdminNoIslandMessage(targetPlayerName));
+            return true;
+        }
+
+        api.deleteIsland(islandUuid).thenRun(() -> sender.sendMessage(config.getAdminDeleteSuccessMessage(targetPlayerName))).exceptionally(ex -> {
+            Throwable cause = ex.getCause();
+            if (cause instanceof NoActiveServerException) {
                 sender.sendMessage(config.getNoActiveServerMessage());
             } else {
                 sender.sendMessage("There was an error deleting the island");

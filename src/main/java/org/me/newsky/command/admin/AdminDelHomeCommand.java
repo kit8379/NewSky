@@ -70,9 +70,10 @@ public class AdminDelHomeCommand implements SubCommand {
         }
 
         api.delHome(targetUuid, homeName).thenRun(() -> sender.sendMessage(config.getAdminDelHomeSuccessMessage(homePlayerName, homeName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
+            Throwable cause = ex.getCause();
+            if (cause instanceof IslandDoesNotExistException) {
                 sender.sendMessage(config.getAdminNoIslandMessage(homePlayerName));
-            } else if (ex.getCause() instanceof HomeDoesNotExistException) {
+            } else if (cause instanceof HomeDoesNotExistException) {
                 sender.sendMessage(config.getAdminNoHomeMessage(homePlayerName, homeName));
             } else {
                 sender.sendMessage("There was an error deleting the home.");

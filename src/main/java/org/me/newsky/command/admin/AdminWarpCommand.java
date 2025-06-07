@@ -82,15 +82,16 @@ public class AdminWarpCommand implements SubCommand {
         }
 
         api.warp(warpPlayerUuid, warpName, senderUuid).thenRun(() -> sender.sendMessage(config.getWarpSuccessMessage(warpName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
+            Throwable cause = ex.getCause();
+            if (cause instanceof IslandDoesNotExistException) {
                 sender.sendMessage(config.getNoIslandMessage(warpPlayerName));
-            } else if (ex.getCause() instanceof WarpDoesNotExistException) {
+            } else if (cause instanceof WarpDoesNotExistException) {
                 sender.sendMessage(config.getNoWarpMessage(warpPlayerName, warpName));
-            } else if (ex.getCause() instanceof PlayerBannedException) {
+            } else if (cause instanceof PlayerBannedException) {
                 sender.sendMessage(config.getPlayerBannedMessage());
-            } else if (ex.getCause() instanceof IslandLockedException) {
+            } else if (cause instanceof IslandLockedException) {
                 sender.sendMessage(config.getIslandLockedMessage());
-            } else if (ex.getCause() instanceof NoActiveServerException) {
+            } else if (cause instanceof NoActiveServerException) {
                 sender.sendMessage(config.getNoActiveServerMessage());
             } else {
                 sender.sendMessage("There was an error teleporting to the warp.");

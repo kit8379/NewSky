@@ -27,7 +27,6 @@ public class PlayerBanCommand implements SubCommand, TabComplete {
     private final NewSkyAPI api;
     private final ConfigHandler config;
 
-
     public PlayerBanCommand(NewSky plugin, NewSkyAPI api, ConfigHandler config) {
         this.plugin = plugin;
         this.api = api;
@@ -76,12 +75,19 @@ public class PlayerBanCommand implements SubCommand, TabComplete {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
         UUID targetPlayerUuid = targetPlayer.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.banPlayer(islandUuid, targetPlayerUuid)).thenRun(() -> player.sendMessage(config.getPlayerBanSuccessMessage(targetPlayerName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                player.sendMessage(config.getPlayerNoIslandMessage());
-            } else if (ex.getCause() instanceof PlayerAlreadyBannedException) {
+        UUID islandUuid;
+        try {
+            islandUuid = api.getIslandUuid(playerUuid);
+        } catch (IslandDoesNotExistException e) {
+            player.sendMessage(config.getPlayerNoIslandMessage());
+            return true;
+        }
+
+        api.banPlayer(islandUuid, targetPlayerUuid).thenRun(() -> player.sendMessage(config.getPlayerBanSuccessMessage(targetPlayerName))).exceptionally(ex -> {
+            Throwable cause = ex.getCause();
+            if (cause instanceof PlayerAlreadyBannedException) {
                 player.sendMessage(config.getPlayerAlreadyBannedMessage(targetPlayerName));
-            } else if (ex.getCause() instanceof CannotBanIslandPlayerException) {
+            } else if (cause instanceof CannotBanIslandPlayerException) {
                 player.sendMessage(config.getPlayerCannotBanIslandPlayerMessage());
             } else {
                 player.sendMessage("There was an error banning the player.");

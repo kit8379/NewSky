@@ -58,20 +58,28 @@ public class PlayerPvpCommand implements SubCommand {
         }
 
         UUID playerUuid = player.getUniqueId();
+        UUID islandUuid;
 
-        api.getIslandUuid(playerUuid).thenCompose(api::toggleIslandPvp).thenAccept(isPvpEnabled -> {
+        try {
+            islandUuid = api.getIslandUuid(playerUuid);
+        } catch (IslandDoesNotExistException ex) {
+            player.sendMessage(config.getPlayerNoIslandMessage());
+            return true;
+        } catch (Exception ex) {
+            player.sendMessage("There was an error retrieving your island.");
+            plugin.getLogger().log(Level.SEVERE, "Error retrieving island UUID for player " + player.getName(), ex);
+            return true;
+        }
+
+        api.toggleIslandPvp(islandUuid).thenAccept(isPvpEnabled -> {
             if (isPvpEnabled) {
                 player.sendMessage(config.getPlayerPvpEnableSuccessMessage());
             } else {
                 player.sendMessage(config.getPlayerPvpDisableSuccessMessage());
             }
         }).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                player.sendMessage(config.getPlayerNoIslandMessage());
-            } else {
-                player.sendMessage("There was an error toggling the PvP status.");
-                plugin.getLogger().log(Level.SEVERE, "Error toggling PvP status for player " + player.getName(), ex);
-            }
+            player.sendMessage("There was an error toggling the PvP status.");
+            plugin.getLogger().log(Level.SEVERE, "Error toggling PvP status for player " + player.getName(), ex);
             return null;
         });
 

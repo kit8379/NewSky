@@ -11,6 +11,7 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
 
@@ -53,7 +54,6 @@ public class PlayerCoopListCommand implements SubCommand {
         return config.getPlayerCoopListDescription();
     }
 
-
     @Override
     public boolean execute(CommandSender sender, String[] args) {
         if (!(sender instanceof Player player)) {
@@ -63,10 +63,13 @@ public class PlayerCoopListCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(api::getCoopedPlayers).thenAccept(coopedPlayers -> {
+        try {
+            UUID islandUuid = api.getIslandUuid(playerUuid);
+            Set<UUID> coopedPlayers = api.getCoopedPlayers(islandUuid);
+
             if (coopedPlayers.isEmpty()) {
                 player.sendMessage(config.getNoCoopedPlayersMessage());
-                return;
+                return true;
             }
 
             Component coopList = config.getCoopedPlayersHeaderMessage();
@@ -77,15 +80,13 @@ public class PlayerCoopListCommand implements SubCommand {
             }
 
             player.sendMessage(coopList);
-        }).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandDoesNotExistException) {
-                player.sendMessage(config.getPlayerNoIslandMessage());
-            } else {
-                player.sendMessage(Component.text("There was an error retrieving the coop list."));
-                plugin.getLogger().log(Level.SEVERE, "Error retrieving coop list for " + player.getName(), ex);
-            }
-            return null;
-        });
+
+        } catch (IslandDoesNotExistException ex) {
+            player.sendMessage(config.getPlayerNoIslandMessage());
+        } catch (Exception ex) {
+            player.sendMessage(Component.text("There was an error retrieving the coop list."));
+            plugin.getLogger().log(Level.SEVERE, "Error retrieving coop list for " + player.getName(), ex);
+        }
 
         return true;
     }

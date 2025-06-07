@@ -2,6 +2,7 @@ package org.me.newsky.command.player;
 
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
@@ -10,10 +11,8 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
 /**
@@ -64,7 +63,16 @@ public class PlayerTopCommand implements SubCommand {
 
         int size = 10;
 
-        api.getTopIslandLevels(size).thenAccept(topIslands -> {
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            Map<UUID, Integer> topIslands;
+            try {
+                topIslands = api.getTopIslandLevels(size);
+            } catch (Exception e) {
+                plugin.getLogger().log(Level.SEVERE, "Error retrieving top islands", e);
+                player.sendMessage(Component.text("There was an error retrieving the top islands."));
+                return;
+            }
+
             if (topIslands.isEmpty()) {
                 player.sendMessage(config.getNoIslandsFoundMessage());
                 return;
@@ -72,35 +80,29 @@ public class PlayerTopCommand implements SubCommand {
 
             player.sendMessage(config.getTopIslandsHeaderMessage());
 
-            int[] rank = {1};
+            int rank = 1;
 
             for (Map.Entry<UUID, Integer> entry : topIslands.entrySet()) {
                 UUID islandUuid = entry.getKey();
                 int level = entry.getValue();
-                int currentRank = rank[0]++;
 
-                CompletableFuture<UUID> ownerFuture = api.getIslandOwner(islandUuid);
-                CompletableFuture<Set<UUID>> membersFuture = api.getIslandMembers(islandUuid);
+                try {
+                    UUID ownerUuid = api.getIslandOwner(islandUuid);
+                    Set<UUID> members = api.getIslandMembers(islandUuid);
+                    OfflinePlayer owner = Bukkit.getOfflinePlayer(ownerUuid);
+                    String ownerName = owner.getName() != null ? owner.getName() : ownerUuid.toString();
 
-                CompletableFuture.allOf(ownerFuture, membersFuture).thenAccept(v -> {
-                    try {
-                        UUID ownerUuid = ownerFuture.get();
-                        Set<UUID> members = membersFuture.get();
-                        String ownerName = Bukkit.getOfflinePlayer(ownerUuid).getName();
+                    String membersStr = members.stream().filter(uuid -> !uuid.equals(ownerUuid)).map(uuid -> {
+                        String name = Bukkit.getOfflinePlayer(uuid).getName();
+                        return name != null ? name : uuid.toString();
+                    }).reduce((a, b) -> a + ", " + b).orElse("-");
 
-                        String membersStr = members.stream().filter(uuid -> !uuid.equals(ownerUuid)).map(uuid -> Bukkit.getOfflinePlayer(uuid).getName()).filter(Objects::nonNull).reduce((a, b) -> a + ", " + b).orElse("-");
-
-                        player.sendMessage(config.getTopIslandMessage(currentRank, ownerName != null ? ownerName : ownerUuid.toString(), membersStr, level));
-                    } catch (Exception e) {
-                        player.sendMessage("There was an error processing the island info for the top list.");
-                        plugin.getLogger().log(Level.SEVERE, "Error processing island info for top list", e);
-                    }
-                });
+                    player.sendMessage(config.getTopIslandMessage(rank++, ownerName, membersStr, level));
+                } catch (Exception e) {
+                    plugin.getLogger().log(Level.SEVERE, "Error processing island info for top list", e);
+                    player.sendMessage("There was an error processing the island info for the top list.");
+                }
             }
-        }).exceptionally(ex -> {
-            player.sendMessage(Component.text("There was an error retrieving the top islands."));
-            plugin.getLogger().log(Level.SEVERE, "Error retrieving top islands for player " + player.getName(), ex);
-            return null;
         });
 
         return true;

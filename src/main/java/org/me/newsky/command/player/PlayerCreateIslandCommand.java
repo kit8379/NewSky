@@ -48,7 +48,6 @@ public class PlayerCreateIslandCommand implements SubCommand {
         return config.getPlayerCreateDescription();
     }
 
-
     @Override
     public boolean execute(CommandSender sender, String[] args) {
         if (!(sender instanceof Player player)) {
@@ -62,9 +61,10 @@ public class PlayerCreateIslandCommand implements SubCommand {
             player.sendMessage(config.getPlayerCreateSuccessMessage());
             api.home(playerUuid, "default", playerUuid).thenRun(() -> player.sendMessage(config.getPlayerHomeSuccessMessage("default")));
         }).exceptionally(ex -> {
-            if (ex.getCause() instanceof IslandAlreadyExistException) {
+            Throwable cause = ex.getCause();
+            if (cause instanceof IslandAlreadyExistException) {
                 player.sendMessage(config.getPlayerAlreadyHasIslandMessage());
-            } else if (ex.getCause() instanceof NoActiveServerException) {
+            } else if (cause instanceof NoActiveServerException) {
                 player.sendMessage(config.getNoActiveServerMessage());
             } else {
                 player.sendMessage("There was an error creating the island");
