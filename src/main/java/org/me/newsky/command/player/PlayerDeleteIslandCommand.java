@@ -66,12 +66,8 @@ public class PlayerDeleteIslandCommand implements SubCommand {
         UUID islandUuid;
         try {
             islandUuid = api.getIslandUuid(playerUuid);
-        } catch (IslandDoesNotExistException ex) {
+        } catch (IslandDoesNotExistException e) {
             player.sendMessage(config.getPlayerNoIslandMessage());
-            return true;
-        } catch (Exception ex) {
-            player.sendMessage("There was an error checking your island");
-            plugin.getLogger().log(Level.SEVERE, "Error checking island for player " + player.getName(), ex);
             return true;
         }
 

@@ -45,6 +45,11 @@ public class PlayerHandler {
                 throw new IslandPlayerDoesNotExistException();
             }
 
+            UUID ownerUuid = cacheHandler.getIslandOwner(islandUuid);
+            if (ownerUuid.equals(playerUuid)) {
+                throw new CannotRemoveOwnerException();
+            }
+
             cacheHandler.deleteIslandPlayer(islandUuid, playerUuid);
         }, plugin.getBukkitAsyncExecutor());
     }

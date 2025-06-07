@@ -84,7 +84,8 @@ public class PlayerUncoopCommand implements SubCommand, TabComplete {
         }
 
         api.removeCoop(islandUuid, targetPlayerUuid).thenRun(() -> player.sendMessage(config.getPlayerUncoopSuccessMessage(targetPlayerName))).exceptionally(ex -> {
-            if (ex.getCause() instanceof PlayerNotCoopedException) {
+            Throwable cause = ex.getCause();
+            if (cause instanceof PlayerNotCoopedException) {
                 player.sendMessage(config.getPlayerNotCoopedMessage(targetPlayerName));
             } else {
                 player.sendMessage(Component.text("There was an error uncooping the player."));

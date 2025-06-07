@@ -72,14 +72,17 @@ public class PlayerCoopListCommand implements SubCommand {
                 return true;
             }
 
-            Component coopList = config.getCoopedPlayersHeaderMessage();
+            Component coopedList = config.getBannedPlayersHeaderMessage();
             for (UUID coopedPlayerUuid : coopedPlayers) {
                 OfflinePlayer coopedPlayer = Bukkit.getOfflinePlayer(coopedPlayerUuid);
-                String name = coopedPlayer.getName() != null ? coopedPlayer.getName() : coopedPlayerUuid.toString();
-                coopList = coopList.append(config.getCoopedPlayerMessage(name));
+                String playerName = coopedPlayer.getName();
+                if (playerName == null) {
+                    playerName = coopedPlayerUuid.toString();
+                }
+                coopedList = coopedList.append(config.getCoopedPlayerMessage(playerName));
             }
 
-            player.sendMessage(coopList);
+            player.sendMessage(coopedList);
 
         } catch (IslandDoesNotExistException ex) {
             player.sendMessage(config.getPlayerNoIslandMessage());
