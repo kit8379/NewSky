@@ -1395,7 +1395,7 @@ public class ConfigHandler {
     }
 
     public Component getNoCoopedPlayersMessage() {
-        return ColorUtils.colorize(messages.getString("messages.cooped-players-no-cooped"));
+        return ColorUtils.colorize(messages.getString("messages.cooped-player-no-cooped"));
     }
 
     public Component getBlockLimitMessage(String block) {
