@@ -72,7 +72,7 @@ public class PlayerCoopListCommand implements SubCommand {
                 return true;
             }
 
-            Component coopedList = config.getBannedPlayersHeaderMessage();
+            Component coopedList = config.getCoopedPlayersHeaderMessage();
             for (UUID coopedPlayerUuid : coopedPlayers) {
                 OfflinePlayer coopedPlayer = Bukkit.getOfflinePlayer(coopedPlayerUuid);
                 String playerName = coopedPlayer.getName();
