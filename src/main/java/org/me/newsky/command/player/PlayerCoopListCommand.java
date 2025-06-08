@@ -1,6 +1,7 @@
 package org.me.newsky.command.player;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -72,17 +73,19 @@ public class PlayerCoopListCommand implements SubCommand {
                 return true;
             }
 
-            Component coopedList = config.getCoopedPlayersHeaderMessage();
+            TextComponent.Builder coopedList = Component.text().append(config.getCoopedPlayersHeaderMessage());
+
             for (UUID coopedPlayerUuid : coopedPlayers) {
                 OfflinePlayer coopedPlayer = Bukkit.getOfflinePlayer(coopedPlayerUuid);
                 String playerName = coopedPlayer.getName();
                 if (playerName == null) {
                     playerName = coopedPlayerUuid.toString();
                 }
-                coopedList = coopedList.append(config.getCoopedPlayerMessage(playerName));
+                coopedList.append(Component.text("\n"));
+                coopedList.append(config.getCoopedPlayerMessage(playerName));
             }
 
-            player.sendMessage(coopedList);
+            player.sendMessage(coopedList.build());
 
         } catch (IslandDoesNotExistException ex) {
             player.sendMessage(config.getPlayerNoIslandMessage());

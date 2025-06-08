@@ -1,6 +1,5 @@
 package org.me.newsky.command.player;
 
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -79,14 +78,14 @@ public class PlayerInfoCommand implements SubCommand, TabComplete {
                     return (name != null) ? name : uuid.toString();
                 }).collect(Collectors.joining(", "));
 
-                if (memberNames.isEmpty()) {
-                    memberNames = LegacyComponentSerializer.legacyAmpersand().serialize(config.getIslandInfoNoMembersMessage());
-                }
-
                 sender.sendMessage(config.getIslandInfoHeaderMessage());
                 sender.sendMessage(config.getIslandInfoUUIDMessage(islandUuid));
                 sender.sendMessage(config.getIslandInfoOwnerMessage(ownerName));
-                sender.sendMessage(config.getIslandInfoMembersMessage(memberNames));
+                if (memberNames.isEmpty()) {
+                    sender.sendMessage(config.getIslandInfoNoMembersMessage());
+                } else {
+                    sender.sendMessage(config.getIslandInfoMembersMessage(memberNames));
+                }
                 sender.sendMessage(config.getIslandInfoLevelMessage(level));
 
             } catch (IslandDoesNotExistException ex) {

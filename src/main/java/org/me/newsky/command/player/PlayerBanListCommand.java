@@ -1,6 +1,7 @@
 package org.me.newsky.command.player;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -72,17 +73,19 @@ public class PlayerBanListCommand implements SubCommand {
                 return true;
             }
 
-            Component bannedList = config.getBannedPlayersHeaderMessage();
+            TextComponent.Builder bannedList = Component.text().append(config.getBannedPlayersHeaderMessage());
+
             for (UUID bannedPlayerUuid : bannedPlayers) {
                 OfflinePlayer bannedPlayer = Bukkit.getOfflinePlayer(bannedPlayerUuid);
                 String playerName = bannedPlayer.getName();
                 if (playerName == null) {
                     playerName = bannedPlayerUuid.toString();
                 }
-                bannedList = bannedList.append(config.getBannedPlayerMessage(playerName));
+                bannedList.append(Component.text("\n"));
+                bannedList.append(config.getBannedPlayerMessage(playerName));
             }
 
-            player.sendMessage(bannedList);
+            player.sendMessage(bannedList.build());
 
         } catch (IslandDoesNotExistException ex) {
             player.sendMessage(config.getPlayerNoIslandMessage());
