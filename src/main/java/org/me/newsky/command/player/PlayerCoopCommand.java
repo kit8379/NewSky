@@ -81,11 +81,6 @@ public class PlayerCoopCommand implements SubCommand, TabComplete {
         OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
         UUID targetPlayerUuid = targetPlayer.getUniqueId();
 
-        if (playerUuid.equals(targetPlayerUuid)) {
-            player.sendMessage(Component.text("You cannot coop yourself."));
-            return true;
-        }
-
         UUID islandUuid;
         try {
             islandUuid = api.getIslandUuid(playerUuid);

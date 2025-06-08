@@ -1424,6 +1424,6 @@ public class ConfigHandler {
     }
 
     public Component getAdminHelpFooter(int page, int total) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-help-footer")).replace("{prev}", String.valueOf(page - 1)).replace("{next}", String.valueOf(page + 1)).replace("{page}", String.valueOf(page)).replace("{total}", String.valueOf(total)));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-help-footer")).replace("{prev}", String.valueOf(page - 1)).replace("{next}", String.valueOf(page + 1)).replace("{page}", String.valueOf(page)).replace("{total}", String.valueOf(total)));
     }
 }

@@ -81,12 +81,12 @@ public class PlayerInfoCommand implements SubCommand, TabComplete {
                 sender.sendMessage(config.getIslandInfoHeaderMessage());
                 sender.sendMessage(config.getIslandInfoUUIDMessage(islandUuid));
                 sender.sendMessage(config.getIslandInfoOwnerMessage(ownerName));
+                sender.sendMessage(config.getIslandInfoLevelMessage(level));
                 if (memberNames.isEmpty()) {
                     sender.sendMessage(config.getIslandInfoNoMembersMessage());
                 } else {
                     sender.sendMessage(config.getIslandInfoMembersMessage(memberNames));
                 }
-                sender.sendMessage(config.getIslandInfoLevelMessage(level));
 
             } catch (IslandDoesNotExistException ex) {
                 sender.sendMessage(config.getPlayerNoIslandMessage());
