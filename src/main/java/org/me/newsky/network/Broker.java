@@ -18,8 +18,10 @@ public class Broker {
     private final RedisHandler redisHandler;
     private final LocalIslandOperation localIslandOperation;
     private final String serverID;
-    private JedisPubSub subscriber;
     private final String channelID;
+    private JedisPubSub subscriber;
+
+    private static final String DELIMITER = "§§§";
 
     public Broker(NewSky plugin, RedisHandler redisHandler, LocalIslandOperation localIslandOperation, String serverID, String channelID) {
         this.plugin = plugin;
@@ -33,7 +35,7 @@ public class Broker {
         subscriber = new JedisPubSub() {
             @Override
             public void onMessage(String channel, String message) {
-                String[] parts = message.split(":");
+                String[] parts = message.split(DELIMITER);
                 if (parts.length < 5) {
                     return;
                 }
@@ -62,9 +64,9 @@ public class Broker {
         String requestId = UUID.randomUUID().toString();
         pendingRequests.put(requestId, future);
 
-        StringBuilder message = new StringBuilder("request:" + requestId + ":" + serverID + ":" + targetServer + ":" + operation);
+        StringBuilder message = new StringBuilder(String.join(DELIMITER, "request", requestId, serverID, targetServer, operation));
         for (String arg : args) {
-            message.append(":").append(arg);
+            message.append(DELIMITER).append(arg);
         }
 
         redisHandler.publish(channelID, message.toString());
@@ -104,7 +106,7 @@ public class Broker {
     }
 
     private void sendResponse(String status, String requestId, String destination) {
-        String msg = String.join(":", "response", status, requestId, serverID, destination);
+        String msg = String.join(DELIMITER, "response", status, requestId, serverID, destination);
         redisHandler.publish(channelID, msg);
     }
 
@@ -119,10 +121,7 @@ public class Broker {
         }
 
         CompletableFuture<Void> future = pendingRequests.remove(requestId);
-
-        if (future == null) {
-            return;
-        }
+        if (future == null) return;
 
         plugin.debug(getClass().getSimpleName(), "Received response for request " + requestId + " from " + source + " with status: " + status);
 
@@ -134,7 +133,6 @@ public class Broker {
             plugin.debug(getClass().getSimpleName(), "Received failure response for request " + requestId + " from " + source);
         }
     }
-
 
     private CompletableFuture<Void> processRequest(String operation, String... args) {
         try {

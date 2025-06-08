@@ -1,7 +1,7 @@
 name: NewSky
 main: org.me.newsky.NewSky
 version: '${project.version}'
-api-version: 1.21
+api-version: '1.21'
 authors: [ kit8379 ]
 depend:
   - 'ASPaperPlugin'
@@ -25,8 +25,57 @@ commands:
     aliases: [ isadmin ]
 permissions:
   island.player:
-    description: Allows the user to use the /island command
+    description: Allows the user to use /island and all related player subcommands
     default: true
+    children:
+      island.player.addmember: true
+      island.player.removemember: true
+      island.player.setowner: true
+      island.player.ban: true
+      island.player.unban: true
+      island.player.banlist: true
+      island.player.coop: true
+      island.player.uncoop: true
+      island.player.cooplist: true
+      island.player.create: true
+      island.player.delete: true
+      island.player.delhome: true
+      island.player.delwarp: true
+      island.player.expel: true
+      island.player.help: true
+      island.player.home: true
+      island.player.info: true
+      island.player.leave: true
+      island.player.level: true
+      island.player.lock: true
+      island.player.pvp: true
+      island.player.sethome: true
+      island.player.setwarp: true
+      island.player.top: true
+      island.player.value: true
+      island.player.warp: true
+
   island.admin:
-    description: Allows the user to use the /islandadmin command
+    description: Allows the user to use /islandadmin and all related admin subcommands
     default: op
+    children:
+      newsky.admin.addmember: true
+      newsky.admin.ban: true
+      newsky.admin.coop: true
+      newsky.admin.create: true
+      newsky.admin.delete: true
+      newsky.admin.delhome: true
+      newsky.admin.delwarp: true
+      newsky.admin.help: true
+      newsky.admin.home: true
+      newsky.admin.load: true
+      newsky.admin.lock: true
+      newsky.admin.pvp: true
+      newsky.admin.reload: true
+      newsky.admin.removemember: true
+      newsky.admin.sethome: true
+      newsky.admin.setwarp: true
+      newsky.admin.unban: true
+      newsky.admin.uncoop: true
+      newsky.admin.unload: true
+      newsky.admin.warp: true

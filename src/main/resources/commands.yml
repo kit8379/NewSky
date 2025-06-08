@@ -1,5 +1,7 @@
 # No color codes, no formatting, just plain text in this file.
 # Color codes and formatting will be handled in messages.yml.
+# The permission nodes are the default permission nodes for the commands and the name that use in plugins.yml.
+# If you want to change the permission nodes, you need to manually add them to your permissions plugin.
 commands:
   player:
     addmember:
@@ -10,271 +12,271 @@ commands:
 
     ban:
       aliases: [ ]
-      permission: "newsky.island.ban"
+      permission: "island.player.ban"
       syntax: "<player>"
       description: "從你的島嶼中封鎖一位玩家"
 
     banlist:
       aliases: [ ]
-      permission: "newsky.island.banlist"
+      permission: "island.player.banlist"
       syntax: ""
       description: "顯示你島嶼上已封鎖玩家的清單"
 
     coop:
       aliases: [ ]
-      permission: "newsky.island.coop"
+      permission: "island.player.coop"
       syntax: "<player>"
       description: "將一位玩家設為你的島嶼合作夥伴"
 
     cooplist:
       aliases: [ ]
-      permission: "newsky.island.cooplist"
+      permission: "island.player.cooplist"
       syntax: ""
       description: "顯示你島嶼上的合作夥伴清單"
 
     create:
       aliases: [ ]
-      permission: "newsky.island.create"
+      permission: "island.player.create"
       syntax: ""
       description: "建立一個新的島嶼"
 
     delete:
       aliases: [ ]
-      permission: "newsky.island.delete"
+      permission: "island.player.delete"
       syntax: ""
       description: "刪除你的島嶼"
 
     delhome:
       aliases: [ ]
-      permission: "newsky.island.delhome"
+      permission: "island.player.delhome"
       syntax: "<homeName>"
       description: "刪除你島嶼中已存在的家"
 
     delwarp:
       aliases: [ ]
-      permission: "newsky.island.delwarp"
+      permission: "island.player.delwarp"
       syntax: "<warpName>"
       description: "刪除你島嶼中已存在的傳送點"
 
     expel:
       aliases: [ ]
-      permission: "newsky.island.expel"
+      permission: "island.player.expel"
       syntax: "<player>"
       description: "將一位玩家驅逐出你的島嶼"
 
     help:
       aliases: [ ]
-      permission: "newsky.island.help"
+      permission: "island.player.help"
       syntax: "[page]"
       description: "顯示可用的島嶼指令"
 
     home:
       aliases: [ ]
-      permission: "newsky.island.home"
+      permission: "island.player.home"
       syntax: "[homeName]"
       description: "傳送到你的島嶼家"
 
     info:
       aliases: [ ]
-      permission: "newsky.island.info"
+      permission: "island.player.info"
       syntax: "[player]"
       description: "顯示島嶼資訊"
 
     leave:
       aliases: [ ]
-      permission: "newsky.island.leave"
+      permission: "island.player.leave"
       syntax: ""
       description: "離開你的島嶼"
 
     level:
       aliases: [ ]
-      permission: "newsky.island.level"
+      permission: "island.player.level"
       syntax: ""
       description: "顯示你的島嶼等級"
 
     lock:
       aliases: [ ]
-      permission: "newsky.island.togglelock"
+      permission: "island.player.lock"
       syntax: ""
       description: "切換你的島嶼鎖定狀態"
 
     pvp:
       aliases: [ ]
-      permission: "newsky.island.togglepvp"
+      permission: "island.player.pvp"
       syntax: ""
       description: "切換你的島嶼 PvP 狀態"
 
     removemember:
       aliases: [ ]
-      permission: "newsky.island.removemember"
+      permission: "island.player.removemember"
       syntax: "<player>"
       description: "移除你島嶼中的成員"
 
     sethome:
       aliases: [ ]
-      permission: "newsky.island.sethome"
+      permission: "island.player.sethome"
       syntax: "[homeName]"
       description: "為你的島嶼設定一個新的家"
 
     setowner:
       aliases: [ ]
-      permission: "newsky.island.setowner"
+      permission: "island.player.setowner"
       syntax: "<player>"
       description: "設定你的島嶼新擁有者"
 
     setwarp:
       aliases: [ ]
-      permission: "newsky.island.setwarp"
+      permission: "island.player.setwarp"
       syntax: "[warpName]"
       description: "為你的島嶼設定一個新的傳送點"
 
     top:
       aliases: [ ]
-      permission: "newsky.island.top"
+      permission: "island.player.top"
       syntax: ""
       description: "顯示依等級排序的頂級島嶼"
 
     unban:
       aliases: [ ]
-      permission: "newsky.island.unban"
+      permission: "island.player.unban"
       syntax: "<player>"
       description: "解除封鎖你島嶼中的玩家"
 
     uncoop:
       aliases: [ ]
-      permission: "newsky.island.uncoop"
+      permission: "island.player.uncoop"
       syntax: "<player>"
       description: "移除你島嶼中的合作夥伴"
 
     value:
       aliases: [ ]
-      permission: "newsky.island.value"
+      permission: "island.player.value"
       syntax: ""
       description: "顯示你手中方塊的價值"
 
     warp:
       aliases: [ ]
-      permission: "newsky.island.warp"
+      permission: "island.player.warp"
       syntax: "<player> [warpName]"
       description: "傳送到其他玩家島嶼的傳送點"
 
   admin:
     addmember:
       aliases: [ ]
-      permission: "newsky.admin.island.addmember"
+      permission: "newsky.admin.addmember"
       syntax: "<member> <owner>"
       description: "強制將一位成員加入到其他玩家的島嶼"
 
     ban:
       aliases: [ ]
-      permission: "newsky.admin.island.ban"
+      permission: "newsky.admin.ban"
       syntax: "<owner> <player>"
       description: "將一位玩家從其他玩家的島嶼中封鎖"
 
     coop:
       aliases: [ ]
-      permission: "newsky.admin.island.coop"
+      permission: "newsky.admin.coop"
       syntax: "<owner> <player>"
       description: "將一位合作夥伴加入到其他玩家的島嶼"
 
     create:
       aliases: [ ]
-      permission: "newsky.admin.island.create"
+      permission: "newsky.admin.create"
       syntax: "<player>"
       description: "為一位玩家建立島嶼"
 
     delete:
       aliases: [ ]
-      permission: "newsky.admin.island.delete"
+      permission: "newsky.admin.delete"
       syntax: "<player>"
       description: "刪除一位玩家的島嶼"
 
     delhome:
       aliases: [ ]
-      permission: "newsky.admin.island.delhome"
+      permission: "newsky.admin.delhome"
       syntax: "<player> <home>"
       description: "從其他玩家的島嶼中刪除一個家"
 
     delwarp:
       aliases: [ ]
-      permission: "newsky.admin.island.delwarp"
+      permission: "newsky.admin.delwarp"
       syntax: "<player> <warp>"
       description: "從其他玩家的島嶼中刪除一個傳送點"
 
     help:
       aliases: [ ]
-      permission: "newsky.admin.island.help"
+      permission: "newsky.admin.help"
       syntax: "[page]"
       description: "顯示可用的管理員指令"
 
     home:
       aliases: [ ]
-      permission: "newsky.admin.island.home"
+      permission: "newsky.admin.home"
       syntax: "<player> [home] [target]"
       description: "將玩家傳送到另一玩家的家"
 
     load:
       aliases: [ ]
-      permission: "newsky.admin.island.load"
+      permission: "newsky.admin.load"
       syntax: "<player>"
       description: "載入另一位玩家的島嶼"
 
     lock:
       aliases: [ ]
-      permission: "newsky.admin.island.lock"
+      permission: "newsky.admin.lock"
       syntax: "<player>"
       description: "切換另一位玩家島嶼的鎖定狀態"
 
     pvp:
       aliases: [ ]
-      permission: "newsky.admin.island.pvp"
+      permission: "newsky.admin.pvp"
       syntax: "<player>"
       description: "切換另一位玩家島嶼的 PvP 狀態"
 
     reload:
       aliases: [ ]
-      permission: "newsky.admin.island.reload"
+      permission: "newsky.admin.reload"
       syntax: ""
       description: "重新載入外掛設定檔"
 
     removemember:
       aliases: [ ]
-      permission: "newsky.admin.island.removemember"
+      permission: "newsky.admin.removemember"
       syntax: "<member> <owner>"
       description: "強制將成員從其他玩家的島嶼移除"
 
     sethome:
       aliases: [ ]
-      permission: "newsky.admin.island.sethome"
+      permission: "newsky.admin.sethome"
       syntax: "<player> <home>"
       description: "在你所在位置為其他玩家的島嶼設定家"
 
     setwarp:
       aliases: [ ]
-      permission: "newsky.admin.island.setwarp"
+      permission: "newsky.admin.setwarp"
       syntax: "<player> <warp>"
       description: "在你所在位置為其他玩家的島嶼設定傳送點"
 
     unban:
       aliases: [ ]
-      permission: "newsky.admin.island.unban"
+      permission: "newsky.admin.unban"
       syntax: "<owner> <player>"
       description: "解除封鎖其他玩家島嶼中的玩家"
 
     uncoop:
       aliases: [ ]
-      permission: "newsky.admin.island.uncoop"
+      permission: "newsky.admin.uncoop"
       syntax: "<owner> <player>"
       description: "將合作夥伴從其他玩家的島嶼中移除"
 
     unload:
       aliases: [ ]
-      permission: "newsky.admin.island.unload"
+      permission: "newsky.admin.unload"
       syntax: "<player>"
       description: "卸載另一位玩家的島嶼"
 
     warp:
       aliases: [ ]
-      permission: "newsky.admin.island.warp"
+      permission: "newsky.admin.warp"
       syntax: "<player> [warp] [target]"
       description: "將玩家傳送到其他玩家的傳送點"

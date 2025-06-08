@@ -46,26 +46,6 @@
                         </goals>
                         <configuration>
                             <createDependencyReducedPom>false</createDependencyReducedPom>
-
-                            <artifactSet>
-                                <excludes>
-                                    <exclude>net.gmcbm.dependencies:acf-core</exclude>
-                                    <exclude>net.gmcbm.dependencies:acf-bukkit</exclude>
-                                    <exclude>net.gmcbm.dependencies:acf-brigadier</exclude>
-                                    <exclude>net.gmcbm.dependencies:locales</exclude>
-                                </excludes>
-                            </artifactSet>
-
-                            <relocations>
-                                <relocation>
-                                    <pattern>co.aikar.commands</pattern>
-                                    <shadedPattern>org.me.newsky.acf</shadedPattern>
-                                </relocation>
-                                <relocation>
-                                    <pattern>co.aikar.locales</pattern>
-                                    <shadedPattern>org.me.newsky.locales</shadedPattern>
-                                </relocation>
-                            </relocations>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
@@ -123,11 +103,6 @@
             <artifactId>paper-api</artifactId>
             <version>1.21.4-R0.1-SNAPSHOT</version>
             <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>co.aikar</groupId>
-            <artifactId>acf-paper</artifactId>
-            <version>0.5.1-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.mysql</groupId>
