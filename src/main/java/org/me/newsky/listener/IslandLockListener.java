@@ -1,5 +1,7 @@
 package org.me.newsky.listener;
 
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -25,7 +27,9 @@ public class IslandLockListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlayerMove(PlayerMoveEvent event) {
-        if (event.getPlayer().hasPermission("newsky.admin.bypass")) {
+        Player player = event.getPlayer();
+
+        if (player.hasPermission("newsky.admin.bypass")) {
             return;
         }
 
@@ -38,12 +42,14 @@ public class IslandLockListener implements Listener {
         }
 
         UUID islandUuid = IslandUtils.nameToUUID(event.getTo().getWorld().getName());
-        UUID playerUuid = event.getPlayer().getUniqueId();
+        UUID playerUuid = player.getUniqueId();
 
         if (cacheHandler.isIslandLock(islandUuid) && !cacheHandler.getIslandPlayers(islandUuid).contains(playerUuid)) {
             event.setCancelled(true);
-            event.getPlayer().sendMessage(config.getIslandLockedMessage());
-            plugin.debug(getClass().getSimpleName(), "Player " + event.getPlayer().getName() + " tried to enter locked island " + islandUuid);
+            player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), config.getLobbyCommand(player.getName()));
+            player.sendMessage(config.getIslandLockedMessage());
+            plugin.debug(getClass().getSimpleName(), "Player " + player.getName() + " tried to enter locked island " + islandUuid);
         }
     }
 }

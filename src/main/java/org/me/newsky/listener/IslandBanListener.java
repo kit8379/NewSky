@@ -1,5 +1,6 @@
 package org.me.newsky.listener;
 
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -25,7 +26,9 @@ public class IslandBanListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlayerMove(PlayerMoveEvent event) {
-        if (event.getPlayer().hasPermission("newsky.admin.bypass")) {
+        Player player = event.getPlayer();
+
+        if (player.hasPermission("newsky.admin.bypass")) {
             return;
         }
         if (event.getTo().getWorld() == null) {
@@ -37,12 +40,12 @@ public class IslandBanListener implements Listener {
         }
 
         UUID islandUuid = IslandUtils.nameToUUID(event.getTo().getWorld().getName());
-        UUID playerUuid = event.getPlayer().getUniqueId();
+        UUID playerUuid = player.getUniqueId();
 
         if (cacheHandler.isPlayerBanned(islandUuid, playerUuid)) {
             event.setCancelled(true);
-            event.getPlayer().sendMessage(config.getPlayerBannedMessage());
-            plugin.debug(getClass().getSimpleName(), "Player " + event.getPlayer().getName() + " is banned from island " + islandUuid);
+            player.sendMessage(config.getPlayerBannedMessage());
+            plugin.debug(getClass().getSimpleName(), "Player " + player.getName() + " is banned from island " + islandUuid);
         }
     }
 }

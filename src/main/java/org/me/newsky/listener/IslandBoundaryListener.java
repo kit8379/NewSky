@@ -1,5 +1,6 @@
 package org.me.newsky.listener;
 
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -24,6 +25,8 @@ public class IslandBoundaryListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onPlayerMove(PlayerMoveEvent event) {
+        Player player = event.getPlayer();
+
         if (event.getTo().getWorld() == null) {
             return;
         }
@@ -41,8 +44,8 @@ public class IslandBoundaryListener implements Listener {
 
         if (event.getTo().getBlockX() < minX || event.getTo().getBlockX() > maxX || event.getTo().getBlockZ() < minZ || event.getTo().getBlockZ() > maxZ) {
             event.setCancelled(true);
-            event.getPlayer().sendMessage(config.getCannotLeaveIslandBoundaryMessage());
-            plugin.debug(getClass().getSimpleName(), "Player " + event.getPlayer().getName() + " tried to leave island boundary.");
+            player.sendMessage(config.getCannotLeaveIslandBoundaryMessage());
+            plugin.debug(getClass().getSimpleName(), "Player " + player.getName() + " tried to leave island boundary.");
         }
     }
 }

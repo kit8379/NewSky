@@ -33,6 +33,7 @@ public class IslandLimitListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
         Player player = event.getPlayer();
+
         String worldName = player.getWorld().getName();
 
         if (!IslandUtils.isIslandWorld(worldName)) {

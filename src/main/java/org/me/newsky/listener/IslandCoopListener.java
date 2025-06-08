@@ -1,5 +1,6 @@
 package org.me.newsky.listener;
 
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -22,8 +23,10 @@ public class IslandCoopListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerQuit(PlayerQuitEvent event) {
-        UUID playerUuid = event.getPlayer().getUniqueId();
-        String playerName = event.getPlayer().getName();
+        Player player = event.getPlayer();
+
+        UUID playerUuid = player.getUniqueId();
+        String playerName = player.getName();
 
         // Delay to allow proxy switch to complete if applicable
         plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> {
