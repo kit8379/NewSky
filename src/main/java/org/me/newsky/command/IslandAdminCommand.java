@@ -16,10 +16,12 @@ import java.util.*;
  * /isadmin 主指令，負責將子指令委派給 admin 目錄下的各類 SubCommand
  */
 public class IslandAdminCommand implements CommandExecutor, TabExecutor {
+    private final ConfigHandler config;
     private final Map<String, SubCommand> subCommandMap = new HashMap<>();
     private final Set<SubCommand> subCommands = new HashSet<>();
 
     public IslandAdminCommand(NewSky plugin, NewSkyAPI api, ConfigHandler config) {
+        this.config = config;
         subCommands.add(new AdminReloadCommand(plugin, config));
         subCommands.add(new AdminCreateIslandCommand(plugin, api, config));
         subCommands.add(new AdminDeleteIslandCommand(plugin, api, config));
@@ -54,7 +56,13 @@ public class IslandAdminCommand implements CommandExecutor, TabExecutor {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String @NotNull [] args) {
+        // Check permission for the main command
+        if (!sender.hasPermission("newsky.island.admin")) {
+            sender.sendMessage(config.getNoPermissionCommandMessage());
+            return true;
+        }
+
         // If no arguments are provided, show help
         if (args.length == 0) {
             SubCommand helpCmd = subCommandMap.get("help");

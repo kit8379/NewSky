@@ -15,7 +15,7 @@ import java.util.Set;
 public class PlayerHelpCommand implements SubCommand {
     private final ConfigHandler config;
     private final Set<SubCommand> allSubs;
-    private static final int COMMANDS_PER_PAGE = 6;
+    private static final int COMMANDS_PER_PAGE = 8;
 
     public PlayerHelpCommand(ConfigHandler config, Set<SubCommand> allSubs) {
         this.config = config;

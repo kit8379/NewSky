@@ -1,0 +1,4 @@
+libraries:
+  - 'com.mysql:mysql-connector-j:${mysql.version}'
+  - 'com.zaxxer:HikariCP:${hikari.version}'
+  - 'redis.clients:jedis:${jedis.version}'

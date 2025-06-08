@@ -1,5 +1,8 @@
 package org.me.newsky;
 
+import org.bukkit.Bukkit;
+import org.bukkit.command.PluginCommand;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.cache.CacheHandler;
@@ -26,6 +29,7 @@ import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.thread.BukkitAsyncExecutor;
 import org.me.newsky.world.WorldHandler;
 
+import java.lang.reflect.Constructor;
 import java.util.*;
 import java.util.logging.Level;
 
@@ -190,15 +194,29 @@ public class NewSky extends JavaPlugin {
     }
 
     private void registerCommands() {
-        // Create and register the /is (player) command
-        IslandPlayerCommand playerExecutor = new IslandPlayerCommand(this, api, config);
-        Objects.requireNonNull(getCommand("island")).setExecutor(playerExecutor);
-        Objects.requireNonNull(getCommand("island")).setTabCompleter(playerExecutor);
+        // /island and alias /is
+        PluginCommand islandCommand = createCommand("island");
+        islandCommand.setAliases(Collections.singletonList("is")); // <-- Set alias here
+        islandCommand.setExecutor(new IslandPlayerCommand(this, api, config));
+        islandCommand.setTabCompleter(new IslandPlayerCommand(this, api, config));
+        Bukkit.getCommandMap().register("island", islandCommand);
 
-        // Create and register the /isadmin (admin) command
-        IslandAdminCommand adminExecutor = new IslandAdminCommand(this, api, config);
-        Objects.requireNonNull(getCommand("islandadmin")).setExecutor(adminExecutor);
-        Objects.requireNonNull(getCommand("islandadmin")).setTabCompleter(adminExecutor);
+        // /islandadmin and alias /isadmin
+        PluginCommand adminCommand = createCommand("islandadmin");
+        adminCommand.setAliases(Collections.singletonList("isadmin")); // <-- Set alias here
+        adminCommand.setExecutor(new IslandAdminCommand(this, api, config));
+        adminCommand.setTabCompleter(new IslandAdminCommand(this, api, config));
+        Bukkit.getCommandMap().register("islandadmin", adminCommand);
+    }
+
+    private PluginCommand createCommand(String name) {
+        try {
+            Constructor<PluginCommand> c = PluginCommand.class.getDeclaredConstructor(String.class, Plugin.class);
+            c.setAccessible(true);
+            return c.newInstance(name, this);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to create command: " + name, e);
+        }
     }
 
     @Override

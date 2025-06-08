@@ -1,0 +1,22 @@
+name: 'NewSky'
+version: '${project.version}'
+main: 'org.me.newsky.NewSky'
+loader: 'org.me.newsky.loader.NewSkyLoader'
+api-version: '1.21'
+authors: [ kit8379 ]
+folia-supported: false
+
+dependencies:
+  server:
+    ASPaperPlugin:
+      load: BEFORE
+      required: true
+      join-classpath: false
+    Vault:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+      join-classpath: true

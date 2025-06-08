@@ -87,7 +87,13 @@ public class IslandPlayerCommand implements CommandExecutor, TabExecutor {
     }
 
     @Override
-    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
+    public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String @NotNull [] args) {
+        // Check permission for the main command
+        if (!sender.hasPermission("newsky.island")) {
+            sender.sendMessage(config.getNoPermissionCommandMessage());
+            return true;
+        }
+
         // If no arguments are provided, show help command by default
         if (args.length == 0) {
             SubCommand helpCmd = subCommandMap.get("help");
