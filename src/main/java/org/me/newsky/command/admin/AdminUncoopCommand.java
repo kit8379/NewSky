@@ -74,7 +74,10 @@ public class AdminUncoopCommand implements SubCommand {
             return true;
         }
 
-        api.removeCoop(islandUuid, targetUuid).thenRun(() -> sender.sendMessage(config.getAdminUncoopSuccessMessage(ownerName, targetName))).exceptionally(ex -> {
+        api.removeCoop(islandUuid, targetUuid).thenRun(() -> {
+            sender.sendMessage(config.getAdminUncoopSuccessMessage(ownerName, targetName));
+            api.sendPlayerMessage(targetUuid, config.getWasUncoopedFromIslandMessage(ownerName));
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof PlayerNotCoopedException) {
                 sender.sendMessage(config.getPlayerNotCoopedMessage(targetName));

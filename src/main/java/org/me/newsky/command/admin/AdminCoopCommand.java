@@ -75,7 +75,10 @@ public class AdminCoopCommand implements SubCommand {
             return true;
         }
 
-        api.addCoop(islandUuid, targetUuid).thenRun(() -> sender.sendMessage(config.getAdminCoopSuccessMessage(ownerName, targetName))).exceptionally(ex -> {
+        api.addCoop(islandUuid, targetUuid).thenRun(() -> {
+            sender.sendMessage(config.getAdminCoopSuccessMessage(ownerName, targetName));
+            api.sendPlayerMessage(targetUuid, config.getWasCoopedToIslandMessage(ownerName));
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof PlayerAlreadyCoopedException) {
                 sender.sendMessage(config.getPlayerAlreadyCoopedMessage(targetName));

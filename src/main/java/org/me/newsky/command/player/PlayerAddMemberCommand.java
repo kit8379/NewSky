@@ -9,9 +9,9 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
-import org.me.newsky.exceptions.PlayerAlreadyInAnotherIslandException;
 
 import java.util.Collections;
 import java.util.List;
@@ -88,10 +88,13 @@ public class PlayerAddMemberCommand implements SubCommand, TabComplete {
             return true;
         }
 
-        api.addMember(islandUuid, targetPlayerUuid, "member").thenRun(() -> player.sendMessage(config.getPlayerAddMemberSuccessMessage(targetPlayerName))).exceptionally(ex -> {
+        api.addMember(islandUuid, targetPlayerUuid, "member").thenRun(() -> {
+            player.sendMessage(config.getPlayerAddMemberSuccessMessage(targetPlayerName));
+            api.sendPlayerMessage(targetPlayerUuid, config.getWasAddedToIslandMessage(player.getName()));
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
-            if (cause instanceof PlayerAlreadyInAnotherIslandException) {
-                player.sendMessage(config.getPlayerAlreadyHasIslandOtherMessage(targetPlayerName));
+            if (cause instanceof IslandAlreadyExistException) {
+                player.sendMessage(config.getAlreadyHasIslandMessage(targetPlayerName));
             } else if (cause instanceof IslandPlayerAlreadyExistsException) {
                 player.sendMessage(config.getIslandMemberExistsMessage(targetPlayerName));
             } else {

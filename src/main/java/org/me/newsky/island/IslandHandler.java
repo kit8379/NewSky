@@ -1,5 +1,6 @@
 package org.me.newsky.island;
 
+import net.kyori.adventure.text.Component;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.config.ConfigHandler;
@@ -37,6 +38,10 @@ public class IslandHandler {
 
     public Set<UUID> getIslandMembers(UUID islandUuid) {
         return cacheHandler.getIslandMembers(islandUuid);
+    }
+
+    public void sendPlayerMessage(UUID playerUuid, Component message) {
+        CompletableFuture.runAsync(() -> islandServiceDistributor.sendPlayerMessage(playerUuid, message));
     }
 
     public CompletableFuture<Void> createIsland(UUID ownerUuid) {

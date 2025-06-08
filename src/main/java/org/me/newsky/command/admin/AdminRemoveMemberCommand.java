@@ -74,7 +74,10 @@ public class AdminRemoveMemberCommand implements SubCommand {
             return true;
         }
 
-        api.removeMember(islandUuid, targetMemberUuid).thenRun(() -> sender.sendMessage(config.getAdminRemoveMemberSuccessMessage(targetMemberName, islandOwnerName))).exceptionally(ex -> {
+        api.removeMember(islandUuid, targetMemberUuid).thenRun(() -> {
+            sender.sendMessage(config.getAdminRemoveMemberSuccessMessage(targetMemberName, islandOwnerName));
+            api.sendPlayerMessage(targetMemberUuid, config.getWasRemovedFromIslandMessage(islandOwnerName));
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandPlayerDoesNotExistException) {
                 sender.sendMessage(config.getIslandMemberNotExistsMessage(targetMemberName));

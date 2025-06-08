@@ -1052,13 +1052,37 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.no-island")).replace("{player}", player));
     }
 
+    public Component getAlreadyHasIslandMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.already-has-island")).replace("{player}", player));
+    }
+
+    public Component getWasAddedToIslandMessage(String owner) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.was-added-to-island")).replace("{owner}", owner));
+    }
+
+    public Component getWasRemovedFromIslandMessage(String owner) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.was-removed-from-island")).replace("{owner}", owner));
+    }
+
+    public Component getWasBannedFromIslandMessage(String owner) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.was-banned-from-island")).replace("{owner}", owner));
+    }
+
+    public Component getWasUnbannedFromIslandMessage(String owner) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.was-unbanned-from-island")).replace("{owner}", owner));
+    }
+
+    public Component getWasCoopedToIslandMessage(String owner) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.was-cooped-from-island")).replace("{owner}", owner));
+    }
+
+    public Component getWasUncoopedFromIslandMessage(String owner) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.was-uncooped-from-island")).replace("{owner}", owner));
+    }
+
     // Admin Command Messages
     public Component getAdminNoIslandMessage(String player) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-no-island")).replace("{player}", player));
-    }
-
-    public Component getAdminAlreadyHasIslandMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-already-has-island")).replace("{player}", player));
     }
 
     public Component getAdminAddMemberSuccessMessage(String target, String owner) {
@@ -1160,10 +1184,6 @@ public class ConfigHandler {
 
     public Component getPlayerAlreadyHasIslandMessage() {
         return ColorUtils.colorize(messages.getString("messages.player-already-has-island"));
-    }
-
-    public Component getPlayerAlreadyHasIslandOtherMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-already-has-island-other")).replace("{player}", player));
     }
 
     public Component getPlayerMustInIslandSetHomeMessage() {

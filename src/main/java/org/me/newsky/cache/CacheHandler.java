@@ -530,9 +530,10 @@ public class CacheHandler {
      * @param islandUuid The UUID of the island.
      * @return The name of the server where the island is loaded, or null if not found.
      */
-    public String getIslandLoadedServer(UUID islandUuid) {
+    public Optional<String> getIslandLoadedServer(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            return jedis.hget("island_server", islandUuid.toString());
+            String server = jedis.hget("island_server", islandUuid.toString());
+            return Optional.ofNullable(server);
         }
     }
 
@@ -571,6 +572,18 @@ public class CacheHandler {
         }
     }
 
+    /**
+     * Get the server name where the player is currently online.
+     *
+     * @param playerName The name of the player.
+     * @return An Optional containing the server name if the player is online, otherwise empty.
+     */
+    public Optional<String> getOnlinePlayerServer(String playerName) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            String server = jedis.hget("online_players", playerName);
+            return Optional.ofNullable(server);
+        }
+    }
 
     /**
      * Update the current server's MSPT value in Redis.

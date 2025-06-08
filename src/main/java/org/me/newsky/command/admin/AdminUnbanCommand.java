@@ -74,7 +74,10 @@ public class AdminUnbanCommand implements SubCommand {
             return true;
         }
 
-        api.unbanPlayer(islandUuid, targetPlayerUuid).thenRun(() -> sender.sendMessage(config.getAdminUnbanSuccessMessage(islandOwnerName, banPlayerName))).exceptionally(ex -> {
+        api.unbanPlayer(islandUuid, targetPlayerUuid).thenRun(() -> {
+            sender.sendMessage(config.getAdminUnbanSuccessMessage(islandOwnerName, banPlayerName));
+            api.sendPlayerMessage(targetPlayerUuid, config.getWasUnbannedFromIslandMessage(islandOwnerName));
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof PlayerNotBannedException) {
                 sender.sendMessage(config.getPlayerNotBannedMessage(banPlayerName));

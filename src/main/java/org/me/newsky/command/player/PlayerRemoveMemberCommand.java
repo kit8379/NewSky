@@ -82,7 +82,10 @@ public class PlayerRemoveMemberCommand implements SubCommand, TabComplete {
             return true;
         }
 
-        api.removeMember(islandUuid, targetPlayerUuid).thenRun(() -> player.sendMessage(config.getPlayerRemoveMemberSuccessMessage(targetPlayerName))).exceptionally(ex -> {
+        api.removeMember(islandUuid, targetPlayerUuid).thenRun(() -> {
+            player.sendMessage(config.getPlayerRemoveMemberSuccessMessage(targetPlayerName));
+            api.sendPlayerMessage(targetPlayerUuid, config.getWasRemovedFromIslandMessage(player.getName()));
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandPlayerDoesNotExistException) {
                 player.sendMessage(config.getIslandMemberNotExistsMessage(targetPlayerName));

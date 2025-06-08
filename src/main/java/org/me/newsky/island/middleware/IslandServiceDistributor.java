@@ -1,5 +1,6 @@
 package org.me.newsky.island.middleware;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
@@ -10,6 +11,7 @@ import org.me.newsky.exceptions.NoActiveServerException;
 import org.me.newsky.island.operation.LocalIslandOperation;
 import org.me.newsky.network.Broker;
 import org.me.newsky.routing.ServerSelector;
+import org.me.newsky.util.ComponentUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -142,23 +144,6 @@ public class IslandServiceDistributor {
         }
     }
 
-    public void expelPlayer(UUID islandUuid, UUID playerUuid) {
-        String islandServer = getServerByIsland(islandUuid);
-
-        if (islandServer == null) {
-            plugin.debug(getClass().getSimpleName(), "Island " + islandUuid + " is not currently loaded on any server");
-            CompletableFuture.completedFuture(null);
-        } else {
-            if (islandServer.equals(serverID)) {
-                plugin.debug(getClass().getSimpleName(), "Expelling player in current server " + serverID);
-                localIslandOperation.expelPlayer(islandUuid, playerUuid);
-            } else {
-                plugin.debug(getClass().getSimpleName(), "Forwarding expel request to server " + islandServer);
-                broker.sendRequest(islandServer, "expel", islandUuid.toString(), playerUuid.toString());
-            }
-        }
-    }
-
     public CompletableFuture<Void> teleportToIsland(UUID islandUuid, UUID playerUuid, String teleportLocation) {
         String islandServer = getServerByIsland(islandUuid);
 
@@ -188,13 +173,52 @@ public class IslandServiceDistributor {
         }
     }
 
+    public void expelPlayer(UUID islandUuid, UUID playerUuid) {
+        String islandServer = getServerByIsland(islandUuid);
+
+        if (islandServer == null) {
+            plugin.debug(getClass().getSimpleName(), "Island " + islandUuid + " is not currently loaded on any server");
+            CompletableFuture.completedFuture(null);
+        } else {
+            if (islandServer.equals(serverID)) {
+                plugin.debug(getClass().getSimpleName(), "Expelling player in current server " + serverID);
+                localIslandOperation.expelPlayer(islandUuid, playerUuid);
+            } else {
+                plugin.debug(getClass().getSimpleName(), "Forwarding expel request to server " + islandServer);
+                broker.sendRequest(islandServer, "expel", islandUuid.toString(), playerUuid.toString());
+            }
+        }
+    }
+
+    public void sendPlayerMessage(UUID playerUuid, Component message) {
+        String playerName = Bukkit.getOfflinePlayer(playerUuid).getName();
+
+        String playerServer = getServerByPlayer(playerName);
+
+        if (playerServer == null) {
+            plugin.debug(getClass().getSimpleName(), "Player is not currently online on any server");
+        } else {
+            if (playerServer.equals(serverID)) {
+                plugin.debug(getClass().getSimpleName(), "Sending message to player on current server " + serverID);
+                localIslandOperation.sendPlayerMessage(playerUuid, message);
+            } else {
+                plugin.debug(getClass().getSimpleName(), "Forwarding message to player on server " + playerServer);
+                broker.sendRequest(playerServer, "message", playerUuid.toString(), ComponentUtils.serialize(message));
+            }
+        }
+    }
+
     private String selectServer() {
         Map<String, String> activeServers = cacheHandler.getActiveServers();
         return serverSelector.selectServer(activeServers);
     }
 
     private String getServerByIsland(UUID islandUuid) {
-        return cacheHandler.getIslandLoadedServer(islandUuid);
+        return cacheHandler.getIslandLoadedServer(islandUuid).orElse(null);
+    }
+
+    public String getServerByPlayer(String playerName) {
+        return cacheHandler.getOnlinePlayerServer(playerName).orElse(null);
     }
 
     private void connectToServer(UUID playerUuid, String serverName) {

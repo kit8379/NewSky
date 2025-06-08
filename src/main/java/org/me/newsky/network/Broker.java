@@ -3,6 +3,7 @@ package org.me.newsky.network;
 import org.me.newsky.NewSky;
 import org.me.newsky.island.operation.LocalIslandOperation;
 import org.me.newsky.redis.RedisHandler;
+import org.me.newsky.util.ComponentUtils;
 import redis.clients.jedis.JedisPubSub;
 
 import java.util.UUID;
@@ -152,6 +153,8 @@ public class Broker {
                     return localIslandOperation.expelPlayer(UUID.fromString(args[0]), UUID.fromString(args[1]));
                 case "teleport":
                     return localIslandOperation.teleportToIsland(UUID.fromString(args[0]), UUID.fromString(args[1]), args[2]);
+                case "message":
+                    return localIslandOperation.sendPlayerMessage(UUID.fromString(args[0]), ComponentUtils.deserialize(args[1]));
                 default:
                     return CompletableFuture.failedFuture(new IllegalArgumentException("Unknown operation: " + operation));
             }

@@ -82,7 +82,10 @@ public class PlayerUnbanCommand implements SubCommand, TabComplete {
             return true;
         }
 
-        api.unbanPlayer(islandUuid, targetPlayerUuid).thenRun(() -> player.sendMessage(config.getPlayerUnbanSuccessMessage(targetPlayerName))).exceptionally(ex -> {
+        api.unbanPlayer(islandUuid, targetPlayerUuid).thenRun(() -> {
+            player.sendMessage(config.getPlayerUnbanSuccessMessage(targetPlayerName));
+            api.sendPlayerMessage(targetPlayerUuid, config.getWasUnbannedFromIslandMessage(player.getName()));
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof PlayerNotBannedException) {
                 player.sendMessage(config.getPlayerNotBannedMessage(targetPlayerName));

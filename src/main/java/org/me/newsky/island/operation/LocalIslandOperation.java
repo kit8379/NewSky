@@ -1,5 +1,6 @@
 package org.me.newsky.island.operation;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -96,6 +97,22 @@ public class LocalIslandOperation {
         return CompletableFuture.completedFuture(null);
     }
 
+    public CompletableFuture<Void> teleportToIsland(UUID islandUuid, UUID playerUuid, String teleportLocation) {
+        String islandName = IslandUtils.UUIDToName(islandUuid);
+
+        return loadIsland(islandUuid).thenRun(() -> {
+            Location location = LocationUtils.stringToLocation(islandName, teleportLocation);
+            Player player = Bukkit.getPlayer(playerUuid);
+            if (player != null) {
+                player.teleportAsync(location);
+                plugin.debug(getClass().getSimpleName(), "Player " + playerUuid + " teleported to island " + islandUuid + " at location: " + teleportLocation);
+            } else {
+                teleportHandler.addPendingTeleport(playerUuid, location);
+                plugin.debug(getClass().getSimpleName(), "Player " + playerUuid + " is offline, teleport will be processed when they log in");
+            }
+        });
+    }
+
     public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
@@ -112,19 +129,13 @@ public class LocalIslandOperation {
         return CompletableFuture.completedFuture(null);
     }
 
-    public CompletableFuture<Void> teleportToIsland(UUID islandUuid, UUID playerUuid, String teleportLocation) {
-        String islandName = IslandUtils.UUIDToName(islandUuid);
+    public CompletableFuture<Void> sendPlayerMessage(UUID playerUuid, Component message) {
+        Player player = Bukkit.getPlayer(playerUuid);
+        if (player != null) {
+            player.sendMessage(message);
+            plugin.debug(getClass().getSimpleName(), "Sent message to player " + playerUuid);
+        }
 
-        return loadIsland(islandUuid).thenRun(() -> {
-            Location location = LocationUtils.stringToLocation(islandName, teleportLocation);
-            Player player = Bukkit.getPlayer(playerUuid);
-            if (player != null) {
-                player.teleportAsync(location);
-                plugin.debug(getClass().getSimpleName(), "Player " + playerUuid + " teleported to island " + islandUuid + " at location: " + teleportLocation);
-            } else {
-                teleportHandler.addPendingTeleport(playerUuid, location);
-                plugin.debug(getClass().getSimpleName(), "Player " + playerUuid + " is offline, teleport will be processed when they log in");
-            }
-        });
+        return CompletableFuture.completedFuture(null);
     }
 }

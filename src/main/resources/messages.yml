@@ -25,11 +25,17 @@ messages:
   block-value: "&#00FF00方塊價值：&#FFFFFF{value}"
   no-item-in-hand: "&#FF5555你必須手持一個物品！"
   block-limit-reached: "&#FF5555你的島嶼已達成方塊 &#00FFFF{block} &#FF5555的最大限制！"
+  already-has-island: "&#FF5555玩家 &#00FFFF{player} &#FF5555已經擁有一個島嶼！"
+  was-added-to-island: "&#00FF00你已被添加到島嶼 &#00FFFF{owner}&#00FF00！"
+  was-removed-from-island: "&#00FF00你已從島嶼 &#00FFFF{owner}&#00FF00 中移除！"
+  was-banned-from-island: "&#00FF00你已被島嶼 &#00FFFF{owner}&#00FF00 封鎖！"
+  was-unbanned-from-island: "&#00FF00你已從島嶼 &#00FFFF{owner}&#00FF00 中解除封鎖！"
+  was-cooped-from-island: "&#00FF00你已被島嶼 &#00FFFF{owner}&#00FF00 設為協作成員！"
+  was-uncooped-from-island: "&#00FF00你已從島嶼 &#00FFFF{owner}&#00FF00 中移除協作成員身份！"
 
   # Player Command Messages
   player-no-island: "&#FF5555你還沒有島嶼！"
   player-already-has-island: "&#FF5555你已經擁有一個島嶼了！"
-  player-already-has-island-other: "&#FF5555玩家 &#00FFFF{player} &#FF5555已經擁有島嶼！"
   player-must-in-island-set-home: "&#FF5555你必須在自己的島上才能設定家園！"
   player-must-in-island-set-warp: "&#FF5555你必須在自己的島上才能設定傳送點！"
   player-add-member-success: "&#00FF00已成功新增玩家 &#00FFFF{player} &#00FF00成為你的島嶼成員！"
@@ -67,7 +73,6 @@ messages:
 
   # Admin Command Messages
   admin-no-island: "&#FF5555玩家 &#00FFFF{player} &#FF5555沒有島嶼！"
-  admin-already-has-island: "&#FF5555玩家 &#00FFFF{player} &#FF5555已經擁有島嶼！"
   admin-add-member-success: "&#00FF00已成功將玩家 &#00FFFF{target} &#00FF00加入 &#00FFFF{owner} &#00FF00的島嶼！"
   admin-remove-member-success: "&#00FF00已成功將玩家 &#00FFFF{target} &#00FF00從 &#00FFFF{owner} &#00FF00的島嶼移除！"
   admin-create-island-success: "&#00FF00已成功為玩家 &#00FFFF{player} &#00FF00建立島嶼！"

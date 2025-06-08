@@ -74,7 +74,10 @@ public class AdminAddMemberCommand implements SubCommand {
             return true;
         }
 
-        api.addMember(islandUuid, targetMemberUuid, "member").thenRun(() -> sender.sendMessage(config.getAdminAddMemberSuccessMessage(targetMemberName, islandOwnerName))).exceptionally(ex -> {
+        api.addMember(islandUuid, targetMemberUuid, "member").thenRun(() -> {
+            sender.sendMessage(config.getAdminAddMemberSuccessMessage(targetMemberName, islandOwnerName));
+            api.sendPlayerMessage(targetMemberUuid, config.getWasAddedToIslandMessage(islandOwnerName));
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandPlayerAlreadyExistsException) {
                 sender.sendMessage(config.getIslandMemberExistsMessage(targetMemberName));

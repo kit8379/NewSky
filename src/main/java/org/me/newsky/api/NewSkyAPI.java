@@ -1,5 +1,6 @@
 package org.me.newsky.api;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.me.newsky.NewSky;
 import org.me.newsky.island.*;
@@ -31,7 +32,6 @@ public class NewSkyAPI {
         this.coopHandler = coopHandler;
     }
 
-    // Async Operations
     public CompletableFuture<Void> createIsland(UUID ownerPlayerUuid) {
         return islandHandler.createIsland(ownerPlayerUuid);
     }
@@ -116,7 +116,6 @@ public class NewSkyAPI {
         return islandHandler.toggleIslandPvp(islandUuid);
     }
 
-    // Getters
     public UUID getIslandUuid(UUID playerUuid) {
         return islandHandler.getIslandUuid(playerUuid);
     }
@@ -155,5 +154,9 @@ public class NewSkyAPI {
 
     public Set<String> getOnlinePlayers() {
         return plugin.getOnlinePlayers();
+    }
+
+    public void sendPlayerMessage(UUID playerUuid, Component message) {
+        islandHandler.sendPlayerMessage(playerUuid, message);
     }
 }

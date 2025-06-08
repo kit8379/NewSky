@@ -75,7 +75,10 @@ public class AdminBanCommand implements SubCommand {
             return true;
         }
 
-        api.banPlayer(islandUuid, targetPlayerUuid).thenRun(() -> sender.sendMessage(config.getAdminBanSuccessMessage(islandOwnerName, banPlayerName))).exceptionally(ex -> {
+        api.banPlayer(islandUuid, targetPlayerUuid).thenRun(() -> {
+            sender.sendMessage(config.getAdminBanSuccessMessage(islandOwnerName, banPlayerName));
+            api.sendPlayerMessage(targetPlayerUuid, config.getWasBannedFromIslandMessage(islandOwnerName));
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof PlayerAlreadyBannedException) {
                 sender.sendMessage(config.getPlayerAlreadyBannedMessage(banPlayerName));

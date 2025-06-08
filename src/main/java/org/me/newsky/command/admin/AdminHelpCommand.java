@@ -15,7 +15,7 @@ import java.util.Set;
 public class AdminHelpCommand implements SubCommand {
     private final ConfigHandler config;
     private final Set<SubCommand> allSubs;
-    private static final int COMMANDS_PER_PAGE = 6;
+    private static final int COMMANDS_PER_PAGE = 10;
 
     public AdminHelpCommand(ConfigHandler config, Set<SubCommand> allSubs) {
         this.config = config;

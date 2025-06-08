@@ -25,7 +25,7 @@ public class PlayerHandler {
             Optional<UUID> existingIsland = cacheHandler.getIslandUuid(playerUuid);
             if (existingIsland.isPresent()) {
                 if (!existingIsland.get().equals(islandUuid)) {
-                    throw new PlayerAlreadyInAnotherIslandException();
+                    throw new IslandAlreadyExistException();
                 }
             }
 
@@ -40,14 +40,14 @@ public class PlayerHandler {
 
     public CompletableFuture<Void> removeMember(UUID islandUuid, UUID playerUuid) {
         return CompletableFuture.runAsync(() -> {
-            Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
-            if (!members.contains(playerUuid)) {
-                throw new IslandPlayerDoesNotExistException();
-            }
-
             UUID ownerUuid = cacheHandler.getIslandOwner(islandUuid);
             if (ownerUuid.equals(playerUuid)) {
                 throw new CannotRemoveOwnerException();
+            }
+
+            Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
+            if (!members.contains(playerUuid)) {
+                throw new IslandPlayerDoesNotExistException();
             }
 
             cacheHandler.deleteIslandPlayer(islandUuid, playerUuid);
@@ -56,19 +56,16 @@ public class PlayerHandler {
 
     public CompletableFuture<Void> setOwner(UUID islandUuid, UUID newOwnerId) {
         return CompletableFuture.runAsync(() -> {
-            // Check if the new owner is already a member of the island
             Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
             if (!members.contains(newOwnerId)) {
                 throw new IslandPlayerDoesNotExistException();
             }
 
-            // Check if the new owner is the current owner
             UUID currentOwner = cacheHandler.getIslandOwner(islandUuid);
             if (currentOwner.equals(newOwnerId)) {
                 throw new AlreadyOwnerException();
             }
 
-            // Set the new owner
             cacheHandler.updateIslandOwner(islandUuid, newOwnerId);
         }, plugin.getBukkitAsyncExecutor());
     }

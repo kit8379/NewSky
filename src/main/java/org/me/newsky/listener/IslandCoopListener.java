@@ -35,6 +35,6 @@ public class IslandCoopListener implements Listener {
             } else {
                 plugin.debug(getClass().getSimpleName(), "Skipped coop clear for " + playerName + ", still online on another server.");
             }
-        }, 40L);
+        }, 60L);
     }
 }
