@@ -40,7 +40,7 @@ public class IslandUnloadScheduler {
         plugin.debug(getClass().getSimpleName(), "Starting scheduled task to check for inactive island worlds.");
         long currentTime = System.currentTimeMillis();
         plugin.getServer().getWorlds().forEach(world -> {
-            if (world.getName().startsWith("island-") && world.getPlayers().isEmpty()) {
+            if (IslandUtils.isIslandWorld(world.getName()) && world.getPlayers().isEmpty()) {
                 long inactiveTime = inactiveWorlds.getOrDefault(world.getName(), currentTime);
                 if (currentTime - inactiveTime > unloadInterval) {
                     worldHandler.unloadWorld(world.getName()).thenRun(() -> {
