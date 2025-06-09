@@ -144,7 +144,7 @@ public class WorldHandler {
 
     public void removePlayersFromWorld(World world) {
         for (Player player : world.getPlayers()) {
-            player.teleport(Bukkit.getWorlds().getFirst().getSpawnLocation());
+            player.teleportAsync(Bukkit.getWorlds().getFirst().getSpawnLocation());
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), config.getLobbyCommand(player.getName()));
         }
     }
