@@ -196,14 +196,14 @@ public class NewSky extends JavaPlugin {
     private void registerCommands() {
         // /island and alias /is
         PluginCommand islandCommand = createCommand("island");
-        islandCommand.setAliases(Collections.singletonList("is")); // <-- Set alias here
+        islandCommand.setAliases(Collections.singletonList("is"));
         islandCommand.setExecutor(new IslandPlayerCommand(this, api, config));
         islandCommand.setTabCompleter(new IslandPlayerCommand(this, api, config));
         Bukkit.getCommandMap().register("island", islandCommand);
 
         // /islandadmin and alias /isadmin
         PluginCommand adminCommand = createCommand("islandadmin");
-        adminCommand.setAliases(Collections.singletonList("isadmin")); // <-- Set alias here
+        adminCommand.setAliases(Collections.singletonList("isadmin"));
         adminCommand.setExecutor(new IslandAdminCommand(this, api, config));
         adminCommand.setTabCompleter(new IslandAdminCommand(this, api, config));
         Bukkit.getCommandMap().register("islandadmin", adminCommand);
