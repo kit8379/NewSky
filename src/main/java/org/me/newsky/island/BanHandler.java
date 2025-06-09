@@ -5,7 +5,7 @@ import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.exceptions.CannotBanIslandPlayerException;
 import org.me.newsky.exceptions.PlayerAlreadyBannedException;
 import org.me.newsky.exceptions.PlayerNotBannedException;
-import org.me.newsky.island.middleware.IslandServiceDistributor;
+import org.me.newsky.island.distributor.IslandServiceDistributor;
 
 import java.util.Set;
 import java.util.UUID;

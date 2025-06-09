@@ -16,7 +16,7 @@ public class RoundRobinServerSelector implements ServerSelector {
     public String selectServer(Map<String, String> activeServers) {
         if (activeServers.isEmpty()) return null;
 
-        long index = cacheHandler.incrementAndGetRoundRobinCounter();
+        long index = cacheHandler.getRoundRobinCounter();
 
         if (index == -1) {
             return null;

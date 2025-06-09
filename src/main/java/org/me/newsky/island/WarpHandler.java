@@ -4,7 +4,7 @@ import org.bukkit.Location;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.CacheHandler;
 import org.me.newsky.exceptions.*;
-import org.me.newsky.island.middleware.IslandServiceDistributor;
+import org.me.newsky.island.distributor.IslandServiceDistributor;
 import org.me.newsky.util.LocationUtils;
 
 import java.util.Optional;
@@ -86,7 +86,7 @@ public class WarpHandler {
                 throw new WarpDoesNotExistException();
             }
             String warpLocation = warpLocationOpt.get();
-            return islandServiceDistributor.teleportToIsland(islandUuid, targetPlayerUuid, warpLocation);
+            return islandServiceDistributor.teleportIsland(islandUuid, targetPlayerUuid, warpLocation);
         });
     }
 }

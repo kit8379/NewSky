@@ -43,10 +43,10 @@ public class LocalIslandOperation {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         return worldHandler.createWorld(islandName).thenRun(() -> {
+            cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
             cacheHandler.createIsland(islandUuid);
             cacheHandler.updateIslandPlayer(islandUuid, ownerUuid, "owner");
             cacheHandler.updateHomePoint(islandUuid, ownerUuid, "default", spawnLocation);
-            cacheHandler.updateIslandLoadedServer(islandUuid, serverID);
             plugin.debug(getClass().getSimpleName(), "Island " + islandName + " created successfully with owner " + ownerUuid);
         });
     }
@@ -55,6 +55,7 @@ public class LocalIslandOperation {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         return worldHandler.deleteWorld(islandName).thenRun(() -> {
+            cacheHandler.removeIslandLoadedServer(islandUuid);
             cacheHandler.deleteIsland(islandUuid);
             plugin.debug(getClass().getSimpleName(), "Island " + islandName + " deleted successfully");
         });
@@ -97,7 +98,7 @@ public class LocalIslandOperation {
         return CompletableFuture.completedFuture(null);
     }
 
-    public CompletableFuture<Void> teleportToIsland(UUID islandUuid, UUID playerUuid, String teleportLocation) {
+    public CompletableFuture<Void> teleportIsland(UUID islandUuid, UUID playerUuid, String teleportLocation) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         return loadIsland(islandUuid).thenRun(() -> {

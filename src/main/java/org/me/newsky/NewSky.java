@@ -13,7 +13,7 @@ import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.island.*;
 import org.me.newsky.island.operation.LocalIslandOperation;
-import org.me.newsky.island.middleware.IslandServiceDistributor;
+import org.me.newsky.island.distributor.IslandServiceDistributor;
 import org.me.newsky.listener.*;
 import org.me.newsky.network.Broker;
 import org.me.newsky.placeholder.NewSkyPlaceholderExpansion;

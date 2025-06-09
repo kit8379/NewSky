@@ -21,7 +21,7 @@ public class Broker {
     private final String channelID;
     private JedisPubSub subscriber;
 
-    private static final String DELIMITER = "§§§";
+    private static final String DELIMITER = "§/§";
 
     public Broker(NewSky plugin, RedisHandler redisHandler, LocalIslandOperation localIslandOperation, String serverID, String channelID) {
         this.plugin = plugin;
@@ -87,7 +87,9 @@ public class Broker {
         String target = parts[3];
         String operation = parts[4];
 
-        if (!target.equals(serverID)) return;
+        if (!target.equals(serverID)) {
+            return;
+        }
 
         String[] args = new String[parts.length - 5];
         System.arraycopy(parts, 5, args, 0, args.length);
@@ -150,7 +152,7 @@ public class Broker {
                 case "expel":
                     return localIslandOperation.expelPlayer(UUID.fromString(args[0]), UUID.fromString(args[1]));
                 case "teleport":
-                    return localIslandOperation.teleportToIsland(UUID.fromString(args[0]), UUID.fromString(args[1]), args[2]);
+                    return localIslandOperation.teleportIsland(UUID.fromString(args[0]), UUID.fromString(args[1]), args[2]);
                 case "message":
                     return localIslandOperation.sendPlayerMessage(UUID.fromString(args[0]), ComponentUtils.deserialize(args[1]));
                 default:
