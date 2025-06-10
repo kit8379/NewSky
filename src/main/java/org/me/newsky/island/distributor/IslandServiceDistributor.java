@@ -203,7 +203,7 @@ public class IslandServiceDistributor {
     }
 
     private String selectServer() {
-        Map<String, String> activeServers = cacheHandler.getActiveServers();
+        Map<String, String> activeServers = cacheHandler.getActiveGameServers();
         return serverSelector.selectServer(activeServers);
     }
 

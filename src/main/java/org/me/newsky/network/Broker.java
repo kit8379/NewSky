@@ -1,5 +1,7 @@
 package org.me.newsky.network;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.me.newsky.NewSky;
 import org.me.newsky.island.operation.LocalIslandOperation;
 import org.me.newsky.redis.RedisHandler;
@@ -7,7 +9,9 @@ import org.me.newsky.util.ComponentUtils;
 import redis.clients.jedis.JedisPubSub;
 
 import java.util.UUID;
-import java.util.concurrent.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 public class Broker {
@@ -21,8 +25,6 @@ public class Broker {
     private final String channelID;
     private JedisPubSub subscriber;
 
-    private static final String DELIMITER = "§/§";
-
     public Broker(NewSky plugin, RedisHandler redisHandler, LocalIslandOperation localIslandOperation, String serverID, String channelID) {
         this.plugin = plugin;
         this.redisHandler = redisHandler;
@@ -35,17 +37,19 @@ public class Broker {
         subscriber = new JedisPubSub() {
             @Override
             public void onMessage(String channel, String message) {
-                String[] parts = message.split(DELIMITER);
-                if (parts.length < 5) {
-                    return;
-                }
+                try {
+                    JSONObject json = new JSONObject(message);
+                    String type = json.getString("type");
 
-                String type = parts[0];
-                plugin.debug(getClass().getSimpleName(), "Received message on channel " + channel + ": " + message);
-                if (type.equals("request")) {
-                    handleRequest(parts);
-                } else if (type.equals("response")) {
-                    handleResponse(parts);
+                    plugin.debug(getClass().getSimpleName(), "Received message on channel " + channel + ": " + message);
+
+                    if ("request".equals(type)) {
+                        handleRequest(json);
+                    } else if ("response".equals(type)) {
+                        handleResponse(json);
+                    }
+                } catch (Exception e) {
+                    plugin.getLogger().log(Level.SEVERE, "Failed to parse broker JSON message", e);
                 }
             }
         };
@@ -64,12 +68,15 @@ public class Broker {
         String requestId = UUID.randomUUID().toString();
         pendingRequests.put(requestId, future);
 
-        StringBuilder message = new StringBuilder(String.join(DELIMITER, "request", requestId, serverID, targetServer, operation));
-        for (String arg : args) {
-            message.append(DELIMITER).append(arg);
-        }
+        JSONObject json = new JSONObject();
+        json.put("type", "request");
+        json.put("requestId", requestId);
+        json.put("source", serverID);
+        json.put("target", targetServer);
+        json.put("operation", operation);
+        json.put("args", args);
 
-        redisHandler.publish(channelID, message.toString());
+        redisHandler.publish(channelID, json.toString());
         plugin.debug(getClass().getSimpleName(), "Sent request " + operation + " to " + targetServer + " [ID=" + requestId + "]");
 
         future.orTimeout(30, TimeUnit.SECONDS).exceptionally(error -> {
@@ -81,18 +88,19 @@ public class Broker {
         return future;
     }
 
-    private void handleRequest(String[] parts) {
-        String requestId = parts[1];
-        String source = parts[2];
-        String target = parts[3];
-        String operation = parts[4];
+    private void handleRequest(JSONObject json) {
+        String requestId = json.getString("requestId");
+        String source = json.getString("source");
+        String target = json.getString("target");
+        String operation = json.getString("operation");
 
-        if (!target.equals(serverID)) {
-            return;
+        if (!serverID.equals(target)) return;
+
+        JSONArray jsonArgs = json.getJSONArray("args");
+        String[] args = new String[jsonArgs.length()];
+        for (int i = 0; i < jsonArgs.length(); i++) {
+            args[i] = jsonArgs.getString(i);
         }
-
-        String[] args = new String[parts.length - 5];
-        System.arraycopy(parts, 5, args, 0, args.length);
 
         plugin.debug(getClass().getSimpleName(), "Received request " + operation + " [ID=" + requestId + "] from " + source);
 
@@ -108,31 +116,38 @@ public class Broker {
     }
 
     private void sendResponse(String status, String requestId, String destination) {
-        String msg = String.join(DELIMITER, "response", status, requestId, serverID, destination);
-        redisHandler.publish(channelID, msg);
+        JSONObject json = new JSONObject();
+        json.put("type", "response");
+        json.put("status", status);
+        json.put("requestId", requestId);
+        json.put("source", serverID);
+        json.put("target", destination);
+
+        redisHandler.publish(channelID, json.toString());
     }
 
-    private void handleResponse(String[] parts) {
-        String status = parts[1];
-        String requestId = parts[2];
-        String source = parts[3];
-        String target = parts[4];
+    private void handleResponse(JSONObject json) {
+        String status = json.getString("status");
+        String requestId = json.getString("requestId");
+        String source = json.getString("source");
+        String target = json.getString("target");
 
-        if (!target.equals(serverID)) {
+        if (!serverID.equals(target)) {
             return;
         }
 
         CompletableFuture<Void> future = pendingRequests.remove(requestId);
-        if (future == null) return;
+
+        if (future == null) {
+            return;
+        }
 
         plugin.debug(getClass().getSimpleName(), "Received response for request " + requestId + " from " + source + " with status: " + status);
 
-        if (status.equals("success")) {
+        if ("success".equals(status)) {
             future.complete(null);
-            plugin.debug(getClass().getSimpleName(), "Received success response for request " + requestId + " from " + source);
         } else {
             future.completeExceptionally(new IllegalStateException("Request failed: " + requestId));
-            plugin.debug(getClass().getSimpleName(), "Received failure response for request " + requestId + " from " + source);
         }
     }
 

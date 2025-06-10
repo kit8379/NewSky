@@ -24,14 +24,13 @@ public class HeartBeatHandler {
 
     public void start() {
         heartbeatTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-            if (!config.isLobby()) {
-                cacheHandler.updateActiveServer(serverID);
-                plugin.debug(getClass().getSimpleName(), "Updated heartbeat for server: " + serverID);
-            }
+            cacheHandler.updateActiveServer(serverID, config.isLobby());
+            plugin.debug(getClass().getSimpleName(), "Updated heartbeat for server: " + serverID);
 
             plugin.debug(getClass().getSimpleName(), "Active servers before check: " + cacheHandler.getActiveServers().keySet());
+            plugin.debug(getClass().getSimpleName(), "Active game servers before check: " + cacheHandler.getActiveGameServers().keySet());
 
-            cacheHandler.getActiveServers().forEach((server, lastHeartbeat) -> {
+            cacheHandler.getActiveGameServers().forEach((server, lastHeartbeat) -> {
                 long lastSeen = Long.parseLong(lastHeartbeat);
                 long now = System.currentTimeMillis();
                 if (now - lastSeen > heartbeatInterval * 1000L * 2) {
@@ -48,9 +47,7 @@ public class HeartBeatHandler {
             plugin.debug(getClass().getSimpleName(), "Stopped heartbeat task for server: " + serverID);
         }
 
-        if (!config.isLobby()) {
-            cacheHandler.removeActiveServer(serverID);
-            plugin.debug(getClass().getSimpleName(), "Removed server from active servers: " + serverID);
-        }
+        cacheHandler.removeActiveServer(serverID);
+        plugin.debug(getClass().getSimpleName(), "Removed server from active servers: " + serverID);
     }
 }

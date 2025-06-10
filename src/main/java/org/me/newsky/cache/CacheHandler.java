@@ -20,6 +20,13 @@ public class CacheHandler {
         this.databaseHandler = databaseHandler;
     }
 
+    private void batchDelete(Jedis jedis, String pattern) {
+        Set<String> keys = jedis.keys(pattern);
+        if (!keys.isEmpty()) {
+            jedis.del(keys.toArray(new String[0]));
+        }
+    }
+
     public void cacheAllDataToRedis() {
         flushAllDataFromRedis();
         cacheIslandDataToRedis();
@@ -30,19 +37,22 @@ public class CacheHandler {
         cacheIslandBansToRedis();
     }
 
-    // Check is there online server
-    // If not, then this server is the first server startup in the network
-    // Then we can flush all data related to this plugin before cache in
-    // This can prevent data inconsistency if the user directly modify the database data
+    /**
+     * Flushes all island-related data from Redis.
+     * This method is used to clear the cache before reloading or updating data.
+     */
     public void flushAllDataFromRedis() {
         if (getActiveServers().isEmpty()) {
             try (Jedis jedis = redisHandler.getJedis()) {
-                jedis.keys("island_bans:*").forEach(jedis::del);
+                // Database Data
                 jedis.del("island_levels");
-                jedis.keys("island_warps:*").forEach(jedis::del);
-                jedis.keys("island_homes:*").forEach(jedis::del);
-                jedis.keys("island_players:*").forEach(jedis::del);
-                jedis.keys("island_data:*").forEach(jedis::del);
+                batchDelete(jedis, "island_bans:*");
+                batchDelete(jedis, "island_warps:*");
+                batchDelete(jedis, "island_homes:*");
+                batchDelete(jedis, "island_players:*");
+                batchDelete(jedis, "island_data:*");
+                // Redis Only Data
+                batchDelete(jedis, "coop_players:*");
             }
         }
     }
@@ -224,13 +234,14 @@ public class CacheHandler {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.del("island_bans:" + islandUuid.toString());
             jedis.hdel("island_levels", islandUuid.toString());
-            jedis.keys("island_warps:" + islandUuid + ":*").forEach(jedis::del);
-            jedis.keys("island_homes:" + islandUuid + ":*").forEach(jedis::del);
-            jedis.keys("island_players:" + islandUuid + ":*").forEach(jedis::del);
+            batchDelete(jedis, "island_warps:" + islandUuid + ":*");
+            batchDelete(jedis, "island_homes:" + islandUuid + ":*");
+            batchDelete(jedis, "island_players:" + islandUuid + ":*");
             jedis.del("island_data:" + islandUuid);
             databaseHandler.deleteIsland(islandUuid);
         }
     }
+
 
     public void deleteIslandPlayer(UUID islandUuid, UUID playerUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
@@ -415,6 +426,13 @@ public class CacheHandler {
         }
     }
 
+    // ===============================================================
+    // BELOW METHODS ARE STORED **ONLY IN REDIS** — NO DATABASE LINK
+    // These operations manage temporary or server-wide data that do
+    // not require persistence in SQL, such as coop players, server
+    // heartbeats, online players, and round-robin counters.
+    // ===============================================================
+
     public void addCoopPlayer(UUID islandUuid, UUID playerUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.sadd("coop_players:" + islandUuid, playerUuid.toString());
@@ -453,25 +471,20 @@ public class CacheHandler {
         }
     }
 
-    /**
-     * Update the active server's heartbeat in Redis
-     *
-     * @param serverName The name of the server to update
-     */
-    public void updateActiveServer(String serverName) {
+    public void updateActiveServer(String serverName, boolean lobby) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.hset("server_heartbeats", serverName, String.valueOf(System.currentTimeMillis()));
+            String timestamp = String.valueOf(System.currentTimeMillis());
+            jedis.hset("server_heartbeats", serverName, timestamp);
+            if (!lobby) {
+                jedis.hset("active_game_servers", serverName, timestamp);
+            }
         }
     }
 
-    /**
-     * Remove the active server from Redis
-     *
-     * @param serverName The name of the server to remove
-     */
     public void removeActiveServer(String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hdel("server_heartbeats", serverName);
+            jedis.hdel("active_game_servers", serverName);
             // Remove island server association
             Map<String, String> islandServerMap = jedis.hgetAll("island_server");
             for (Map.Entry<String, String> entry : islandServerMap.entrySet()) {
@@ -489,46 +502,30 @@ public class CacheHandler {
         }
     }
 
-    /**
-     * Get all active servers from Redis
-     *
-     * @return A map of server names and their last heartbeat timestamps
-     */
     public Map<String, String> getActiveServers() {
         try (Jedis jedis = redisHandler.getJedis()) {
             return jedis.hgetAll("server_heartbeats");
         }
     }
 
-    /**
-     * Update the server name for a specific island UUID in Redis.
-     *
-     * @param islandUuid The UUID of the island.
-     * @param serverName The name of the server where the island is loaded.
-     */
+    public Map<String, String> getActiveGameServers() {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            return jedis.hgetAll("active_game_servers");
+        }
+    }
+
     public void updateIslandLoadedServer(UUID islandUuid, String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset("island_server", islandUuid.toString(), serverName);
         }
     }
 
-    /**
-     * Remove the server name for a specific island UUID in Redis.
-     *
-     * @param islandUuid The UUID of the island.
-     */
     public void removeIslandLoadedServer(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hdel("island_server", islandUuid.toString());
         }
     }
 
-    /**
-     * Get the server name for a specific island UUID from Redis.
-     *
-     * @param islandUuid The UUID of the island.
-     * @return The name of the server where the island is loaded, or null if not found.
-     */
     public Optional<String> getIslandLoadedServer(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             String server = jedis.hget("island_server", islandUuid.toString());
@@ -536,47 +533,24 @@ public class CacheHandler {
         }
     }
 
-    /**
-     * Add an online player to the Redis cache.
-     *
-     * @param playerName The name of the player.
-     * @param serverName The name of the server where the player is online.
-     */
     public void addOnlinePlayer(String playerName, String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset("online_players", playerName, serverName);
         }
     }
 
-    /**
-     * Remove an online player from the Redis cache.
-     *
-     * @param playerName The name of the player.
-     * @param serverName The name of the server where the playerwas online.
-     */
     public void removeOnlinePlayer(String playerName, String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hdel("online_players", playerName, serverName);
         }
     }
 
-    /**
-     * Get the set of online players from Redis.
-     *
-     * @return A set of player names currently online.
-     */
     public Set<String> getOnlinePlayers() {
         try (Jedis jedis = redisHandler.getJedis()) {
             return jedis.hkeys("online_players");
         }
     }
 
-    /**
-     * Get the server name where the player is currently online.
-     *
-     * @param playerName The name of the player.
-     * @return An Optional containing the server name if the player is online, otherwise empty.
-     */
     public Optional<String> getOnlinePlayerServer(String playerName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             String server = jedis.hget("online_players", playerName);
@@ -584,12 +558,6 @@ public class CacheHandler {
         }
     }
 
-    /**
-     * Update the current server's MSPT value in Redis.
-     *
-     * @param serverName the name of the server
-     * @param mspt       the average milliseconds per tick (MSPT)
-     */
     public void updateServerMSPT(String serverName, double mspt) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset("server_mspt", serverName, String.format("%.2f", mspt));
@@ -598,12 +566,6 @@ public class CacheHandler {
         }
     }
 
-    /**
-     * Get the current MSPT value of a server from Redis.
-     *
-     * @param serverName the name of the server
-     * @return the MSPT value if available, or -1 if not found or invalid
-     */
     public double getServerMSPT(String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             String value = jedis.hget("server_mspt", serverName);
@@ -616,11 +578,6 @@ public class CacheHandler {
         return -1;
     }
 
-    /**
-     * Atomically increments the round-robin counter and returns the new value.
-     *
-     * @return The incremented value, or -1 if an error occurs.
-     */
     public long getRoundRobinCounter() {
         try (Jedis jedis = redisHandler.getJedis()) {
             long value = jedis.incr("round_robin_counter");

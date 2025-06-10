@@ -110,15 +110,13 @@ public class WorldHandler {
         try {
             SlimeWorld world = asp.getLoadedWorld(worldName);
             asp.saveWorld(world);
-            plugin.debug(getClass().getSimpleName(), "World saved via ASP API: " + worldName);
+            plugin.debug(getClass().getSimpleName(), "Slime world saved successfully: " + worldName);
+            return unloadWorldFromBukkit(worldName);
         } catch (Exception e) {
             plugin.getLogger().log(Level.SEVERE, "Failed to save slime world before unload: " + worldName, e);
             future.completeExceptionally(e);
             return future;
         }
-
-        unloadWorldFromBukkit(worldName).thenRun(() -> future.complete(null));
-        return future;
     }
 
     public CompletableFuture<Void> deleteWorld(String worldName) {
@@ -170,13 +168,18 @@ public class WorldHandler {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
         Bukkit.getScheduler().runTask(plugin, () -> {
-            World world = Bukkit.getWorld(worldName);
-            if (world != null) {
-                removePlayersFromWorld(world);
-                Bukkit.unloadWorld(world, false);
+            try {
+                World world = Bukkit.getWorld(worldName);
+                if (world != null) {
+                    removePlayersFromWorld(world);
+                    Bukkit.unloadWorld(world, false);
+                }
+                plugin.debug(getClass().getSimpleName(), "World unloaded successfully from Bukkit: " + worldName);
+                future.complete(null);
+            } catch (Exception e) {
+                plugin.getLogger().log(Level.SEVERE, "Failed to unload world from Bukkit: " + worldName, e);
+                future.completeExceptionally(e);
             }
-            plugin.debug(getClass().getSimpleName(), "World unloaded successfully from Bukkit: " + worldName);
-            future.complete(null);
         });
 
         return future;
