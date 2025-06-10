@@ -75,8 +75,8 @@ public class DatabaseHandler {
         createIslandPlayersTable();
         createIslandHomesTable();
         createIslandWarpsTable();
-        createIslandLevelsTable();
         createIslandBanTable();
+        createIslandLevelsTable();
     }
 
     private void createIslandDataTable() {
@@ -95,12 +95,12 @@ public class DatabaseHandler {
         executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_warps (" + "player_uuid VARCHAR(56), " + "warp_name VARCHAR(56), " + "warp_location VARCHAR(256), " + "island_uuid VARCHAR(56), " + "PRIMARY KEY (player_uuid, warp_name), " + "FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid));").join();
     }
 
-    public void createIslandLevelsTable() {
-        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_levels (" + "island_uuid VARCHAR(36) PRIMARY KEY, " + "level INT NOT NULL);").join();
-    }
-
     private void createIslandBanTable() {
         executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_bans (" + "island_uuid VARCHAR(56), " + "banned_player VARCHAR(56), " + "PRIMARY KEY (island_uuid, banned_player), " + "FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid));").join();
+    }
+
+    public void createIslandLevelsTable() {
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_levels (" + "island_uuid VARCHAR(36) PRIMARY KEY, " + "level INT NOT NULL);").join();
     }
 
     public void selectAllIslandData(ResultProcessor processor) {
@@ -119,12 +119,12 @@ public class DatabaseHandler {
         executeQuery("SELECT * FROM island_homes", processor);
     }
 
-    public void selectAllIslandLevels(ResultProcessor processor) {
-        executeQuery("SELECT * FROM island_levels", processor);
-    }
-
     public void selectAllIslandBans(ResultProcessor processor) {
         executeQuery("SELECT * FROM island_bans", processor);
+    }
+
+    public void selectAllIslandLevels(ResultProcessor processor) {
+        executeQuery("SELECT * FROM island_levels", processor);
     }
 
     public void addIslandData(UUID islandUuid) {
@@ -182,6 +182,12 @@ public class DatabaseHandler {
         }, "UPDATE island_players SET role = 'owner' WHERE player_uuid = ? AND island_uuid = ?;");
     }
 
+    public void updateBanPlayer(UUID islandUuid, UUID playerUuid) {
+        executeUpdate(statement -> {
+            statement.setString(1, islandUuid.toString());
+            statement.setString(2, playerUuid.toString());
+        }, "INSERT INTO island_bans (island_uuid, banned_player) VALUES (?, ?);");
+    }
 
     public void updateIslandLevel(UUID islandUuid, int level) {
         executeUpdate(statement -> {
@@ -191,16 +197,10 @@ public class DatabaseHandler {
         }, "INSERT INTO island_levels (island_uuid, level) VALUES (?, ?) ON DUPLICATE KEY UPDATE level = ?;");
     }
 
-    public void updateBanPlayer(UUID islandUuid, UUID playerUuid) {
-        executeUpdate(statement -> {
-            statement.setString(1, islandUuid.toString());
-            statement.setString(2, playerUuid.toString());
-        }, "INSERT INTO island_bans (island_uuid, banned_player) VALUES (?, ?);");
+    public void deleteIsland(UUID islandUuid) {
+        executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM island_levels WHERE island_uuid = ?;").thenCompose(v -> executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM island_bans WHERE island_uuid = ?;")).thenCompose(v -> executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM island_warps WHERE island_uuid = ?;")).thenCompose(v -> executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM island_homes WHERE island_uuid = ?;")).thenCompose(v -> executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM island_players WHERE island_uuid = ?;")).thenCompose(v -> executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM islands WHERE island_uuid = ?;"));
     }
 
-    public void deleteIsland(UUID islandUuid) {
-        executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM island_bans WHERE island_uuid = ?;").thenCompose(v -> executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM island_levels WHERE island_uuid = ?;")).thenCompose(v -> executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM island_warps WHERE island_uuid = ?;")).thenCompose(v -> executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM island_homes WHERE island_uuid = ?;")).thenCompose(v -> executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM island_players WHERE island_uuid = ?;")).thenCompose(v -> executeUpdate(statement -> statement.setString(1, islandUuid.toString()), "DELETE FROM islands WHERE island_uuid = ?;"));
-    }
 
     public void deleteIslandPlayer(UUID islandUuid, UUID playerUuid) {
         executeUpdate(statement -> statement.setString(1, playerUuid.toString()), "DELETE FROM island_warps WHERE player_uuid = ?;").thenCompose(v -> executeUpdate(statement -> statement.setString(1, playerUuid.toString()), "DELETE FROM island_homes WHERE player_uuid = ?;")).thenCompose(v -> executeUpdate(statement -> {

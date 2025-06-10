@@ -33,8 +33,8 @@ public class CacheHandler {
         cacheIslandPlayersToRedis();
         cacheIslandHomesToRedis();
         cacheIslandWarpsToRedis();
-        cacheIslandLevelsToRedis();
         cacheIslandBansToRedis();
+        cacheIslandLevelsToRedis();
     }
 
     /**
@@ -44,15 +44,13 @@ public class CacheHandler {
     public void flushAllDataFromRedis() {
         if (getActiveServers().isEmpty()) {
             try (Jedis jedis = redisHandler.getJedis()) {
-                // Database Data
+                batchDelete(jedis, "coop_players:*");
                 jedis.del("island_levels");
                 batchDelete(jedis, "island_bans:*");
                 batchDelete(jedis, "island_warps:*");
                 batchDelete(jedis, "island_homes:*");
                 batchDelete(jedis, "island_players:*");
                 batchDelete(jedis, "island_data:*");
-                // Redis Only Data
-                batchDelete(jedis, "coop_players:*");
             }
         }
     }
@@ -122,20 +120,6 @@ public class CacheHandler {
         });
     }
 
-    private void cacheIslandLevelsToRedis() {
-        databaseHandler.selectAllIslandLevels(resultSet -> {
-            try (Jedis jedis = redisHandler.getJedis()) {
-                while (resultSet.next()) {
-                    String islandUuid = resultSet.getString("island_uuid");
-                    int level = resultSet.getInt("level");
-                    jedis.hset("island_levels", islandUuid, String.valueOf(level));
-                }
-            } catch (Exception e) {
-                plugin.getLogger().log(Level.SEVERE, "Error while caching island levels to Redis", e);
-            }
-        });
-    }
-
     public void cacheIslandBansToRedis() {
         databaseHandler.selectAllIslandBans(resultSet -> {
             try (Jedis jedis = redisHandler.getJedis()) {
@@ -146,6 +130,20 @@ public class CacheHandler {
                 }
             } catch (Exception e) {
                 plugin.getLogger().log(Level.SEVERE, "Error while caching island bans to Redis", e);
+            }
+        });
+    }
+
+    private void cacheIslandLevelsToRedis() {
+        databaseHandler.selectAllIslandLevels(resultSet -> {
+            try (Jedis jedis = redisHandler.getJedis()) {
+                while (resultSet.next()) {
+                    String islandUuid = resultSet.getString("island_uuid");
+                    int level = resultSet.getInt("level");
+                    jedis.hset("island_levels", islandUuid, String.valueOf(level));
+                }
+            } catch (Exception e) {
+                plugin.getLogger().log(Level.SEVERE, "Error while caching island levels to Redis", e);
             }
         });
     }
@@ -216,13 +214,6 @@ public class CacheHandler {
         databaseHandler.updateIslandPvp(islandUuid, pvp);
     }
 
-    public void updateIslandLevel(UUID islandUuid, int level) {
-        try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.hset("island_levels", islandUuid.toString(), String.valueOf(level));
-        }
-        databaseHandler.updateIslandLevel(islandUuid, level);
-    }
-
     public void updateBanPlayer(UUID islandUuid, UUID playerUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.sadd("island_bans:" + islandUuid.toString(), playerUuid.toString());
@@ -230,10 +221,17 @@ public class CacheHandler {
         databaseHandler.updateBanPlayer(islandUuid, playerUuid);
     }
 
+    public void updateIslandLevel(UUID islandUuid, int level) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.hset("island_levels", islandUuid.toString(), String.valueOf(level));
+        }
+        databaseHandler.updateIslandLevel(islandUuid, level);
+    }
+
     public void deleteIsland(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.del("island_bans:" + islandUuid.toString());
             jedis.hdel("island_levels", islandUuid.toString());
+            jedis.del("island_bans:" + islandUuid);
             batchDelete(jedis, "island_warps:" + islandUuid + ":*");
             batchDelete(jedis, "island_homes:" + islandUuid + ":*");
             batchDelete(jedis, "island_players:" + islandUuid + ":*");
@@ -338,21 +336,6 @@ public class CacheHandler {
         }
     }
 
-    public int getIslandLevel(UUID islandUuid) {
-        try (Jedis jedis = redisHandler.getJedis()) {
-            String level = jedis.hget("island_levels", islandUuid.toString());
-            return level != null ? Integer.parseInt(level) : 0;
-        }
-    }
-
-    public Map<UUID, Integer> getTopIslandLevels(int size) {
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Map<String, String> islandLevels = jedis.hgetAll("island_levels");
-            return islandLevels.entrySet().stream().map(entry -> new AbstractMap.SimpleEntry<>(UUID.fromString(entry.getKey()), Integer.parseInt(entry.getValue()))).sorted(Map.Entry.<UUID, Integer>comparingByValue().reversed()).limit(size).collect(LinkedHashMap::new, (map, entry) -> map.put(entry.getKey(), entry.getValue()), LinkedHashMap::putAll);
-        }
-    }
-
-
     public boolean isPlayerBanned(UUID islandUuid, UUID playerUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             return jedis.sismember("island_bans:" + islandUuid.toString(), playerUuid.toString());
@@ -367,6 +350,20 @@ public class CacheHandler {
                 bannedPlayerUuids.add(UUID.fromString(bannedPlayer));
             }
             return bannedPlayerUuids;
+        }
+    }
+
+    public int getIslandLevel(UUID islandUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            String level = jedis.hget("island_levels", islandUuid.toString());
+            return level != null ? Integer.parseInt(level) : 0;
+        }
+    }
+
+    public Map<UUID, Integer> getTopIslandLevels(int size) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            Map<String, String> islandLevels = jedis.hgetAll("island_levels");
+            return islandLevels.entrySet().stream().map(entry -> new AbstractMap.SimpleEntry<>(UUID.fromString(entry.getKey()), Integer.parseInt(entry.getValue()))).sorted(Map.Entry.<UUID, Integer>comparingByValue().reversed()).limit(size).collect(LinkedHashMap::new, (map, entry) -> map.put(entry.getKey(), entry.getValue()), LinkedHashMap::putAll);
         }
     }
 
