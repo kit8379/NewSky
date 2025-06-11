@@ -33,7 +33,6 @@ public class IslandLimitListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
         Player player = event.getPlayer();
-
         String worldName = player.getWorld().getName();
 
         if (!IslandUtils.isIslandWorld(worldName)) {
@@ -59,7 +58,6 @@ public class IslandLimitListener implements Listener {
         String worldName = event.getLocation().getWorld().getName();
 
         if (!IslandUtils.isIslandWorld(worldName)) {
-            plugin.debug(getClass().getSimpleName(), "Entity spawn in non-island world: " + worldName);
             return;
         }
 

@@ -24,7 +24,6 @@ public class IslandCoopListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-
         UUID playerUuid = player.getUniqueId();
         String playerName = player.getName();
 

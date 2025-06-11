@@ -4,10 +4,19 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
-import org.bukkit.entity.*;
-import org.bukkit.event.*;
-import org.bukkit.event.block.*;
-import org.bukkit.event.entity.*;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.Monster;
+import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.block.Action;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockFromToEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityChangeBlockEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.InventoryHolder;
@@ -31,8 +40,13 @@ public class IslandProtectionListener implements Listener {
     }
 
     private boolean canPlayerEdit(Player player, Location location) {
-        if (player.hasPermission("newsky.admin.bypass")) return true;
-        if (location.getWorld() == null || !IslandUtils.isIslandWorld(location.getWorld().getName())) return true;
+        if (player.isOp()) {
+            return true;
+        }
+
+        if (location.getWorld() == null || !IslandUtils.isIslandWorld(location.getWorld().getName())) {
+            return true;
+        }
 
         UUID islandUuid = IslandUtils.nameToUUID(location.getWorld().getName());
         int centerX = 0, centerZ = 0;
@@ -40,7 +54,9 @@ public class IslandProtectionListener implements Listener {
         int minZ = centerZ - halfSize, maxZ = centerZ + halfSize;
         int x = location.getBlockX(), z = location.getBlockZ();
 
-        if (x < minX || x > maxX || z < minZ || z > maxZ) return false;
+        if (x < minX || x > maxX || z < minZ || z > maxZ) {
+            return false;
+        }
 
         UUID playerUuid = player.getUniqueId();
         return cacheHandler.getIslandPlayers(islandUuid).contains(playerUuid) || cacheHandler.isPlayerCooped(islandUuid, playerUuid);
@@ -150,7 +166,6 @@ public class IslandProtectionListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onFluidSpread(BlockFromToEvent event) {
         if (!IslandUtils.isIslandWorld(event.getBlock().getWorld().getName())) return;
-        if (!event.getBlock().getWorld().equals(event.getToBlock().getWorld())) return;
 
         int x = event.getToBlock().getX();
         int z = event.getToBlock().getZ();

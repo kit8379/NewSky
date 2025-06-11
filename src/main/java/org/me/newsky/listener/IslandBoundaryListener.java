@@ -25,15 +25,15 @@ public class IslandBoundaryListener implements Listener {
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onPlayerMove(PlayerMoveEvent event) {
-        Player player = event.getPlayer();
-
-        if (event.getTo().getWorld() == null) {
+        if (event.getFrom().getBlockX() == event.getTo().getBlockX() && event.getFrom().getBlockZ() == event.getTo().getBlockZ()) {
             return;
         }
 
         if (!IslandUtils.isIslandWorld(event.getTo().getWorld().getName())) {
             return;
         }
+
+        Player player = event.getPlayer();
 
         int centerX = 0;
         int centerZ = 0;
