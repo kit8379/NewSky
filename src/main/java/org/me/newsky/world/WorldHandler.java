@@ -3,6 +3,7 @@ package org.me.newsky.world;
 import com.infernalsuite.asp.api.AdvancedSlimePaperAPI;
 import com.infernalsuite.asp.api.loaders.SlimeLoader;
 import com.infernalsuite.asp.api.world.SlimeWorld;
+import com.infernalsuite.asp.api.world.SlimeWorldInstance;
 import com.infernalsuite.asp.api.world.properties.SlimeProperties;
 import com.infernalsuite.asp.api.world.properties.SlimePropertyMap;
 import com.infernalsuite.asp.loaders.mysql.MysqlLoader;
@@ -15,6 +16,7 @@ import org.me.newsky.teleport.TeleportHandler;
 
 import java.io.File;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
@@ -183,5 +185,18 @@ public class WorldHandler {
         });
 
         return future;
+    }
+
+    public void unloadAllWorldsOnShutdown() {
+        List<SlimeWorldInstance> loadedWorlds = asp.getLoadedWorlds();
+        for (SlimeWorldInstance worldInstance : loadedWorlds) {
+            try {
+                asp.saveWorld(worldInstance);
+                Bukkit.unloadWorld(worldInstance.getName(), false);
+                plugin.getLogger().info("Saved and unloaded slime world: " + worldInstance.getName());
+            } catch (Exception e) {
+                plugin.getLogger().log(Level.SEVERE, "Failed to save/unload world: " + worldInstance.getName(), e);
+            }
+        }
     }
 }

@@ -12,8 +12,8 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.island.*;
-import org.me.newsky.island.operation.LocalIslandOperation;
 import org.me.newsky.island.distributor.IslandServiceDistributor;
+import org.me.newsky.island.operation.LocalIslandOperation;
 import org.me.newsky.listener.*;
 import org.me.newsky.network.Broker;
 import org.me.newsky.placeholder.NewSkyPlaceholderExpansion;
@@ -30,12 +30,14 @@ import org.me.newsky.thread.BukkitAsyncExecutor;
 import org.me.newsky.world.WorldHandler;
 
 import java.lang.reflect.Constructor;
-import java.util.*;
+import java.util.Collections;
+import java.util.Set;
 import java.util.logging.Level;
 
 public class NewSky extends JavaPlugin {
 
     private ConfigHandler config;
+    private WorldHandler worldHandler;
     private RedisHandler redisHandler;
     private DatabaseHandler databaseHandler;
     private CacheHandler cacheHandler;
@@ -84,7 +86,7 @@ public class NewSky extends JavaPlugin {
             info("This server using Redis Pub/Sub channel name: " + channelID);
 
             info("Starting World handler");
-            WorldHandler worldHandler = new WorldHandler(this, config, teleportHandler);
+            worldHandler = new WorldHandler(this, config, teleportHandler);
             info("World handler loaded");
 
             info("Start connecting to Redis now...");
@@ -227,13 +229,31 @@ public class NewSky extends JavaPlugin {
     }
 
     public void shutdown() {
-        broker.unsubscribe();
+        info("Stopping all schedulers...");
         levelUpdateScheduler.stop();
         islandUnloadScheduler.stop();
         msptUpdateScheduler.stop();
+        info("All schedulers stopped");
+
+        info("Saving and unloading all slime worlds...");
+        worldHandler.unloadAllWorldsOnShutdown();
+        info("All slime worlds saved and unloaded");
+
+        info("Stopping Heart Beat handler...");
         heartBeatHandler.stop();
+        info("Heart Beat handler stopped");
+
+        info("Unsubscribing from Redis broker...");
+        broker.unsubscribe();
+        info("Redis broker unsubscribed");
+
+        info("Disconnecting from Redis...");
         redisHandler.disconnect();
+        info("Redis disconnected");
+
+        info("Disconnecting from Database...");
         databaseHandler.close();
+        info("Database disconnected");
     }
 
     public void reload() {
