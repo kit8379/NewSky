@@ -36,7 +36,7 @@ public class LevelUpdateScheduler {
     private void updateIslandLevels() {
         plugin.debug(getClass().getSimpleName(), "Starting scheduled task to update island levels.");
         for (World world : Bukkit.getServer().getWorlds()) {
-            if (world.getName().startsWith("island-")) {
+            if (IslandUtils.isIslandWorld(world.getName())) {
                 UUID islandUuid = IslandUtils.nameToUUID(world.getName());
                 levelHandler.calIslandLevel(islandUuid);
                 plugin.debug(getClass().getSimpleName(), "Level updated for island: " + world.getName());
