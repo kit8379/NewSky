@@ -37,12 +37,22 @@ public class IslandBoundaryListener implements Listener {
 
         int centerX = 0;
         int centerZ = 0;
-        int minX = centerX - (islandSize / 2) - bufferSize;
-        int maxX = centerX + (islandSize / 2) + bufferSize;
-        int minZ = centerZ - (islandSize / 2) - bufferSize;
-        int maxZ = centerZ + (islandSize / 2) + bufferSize;
+        int half = islandSize / 2;
 
-        if (event.getTo().getBlockX() < minX || event.getTo().getBlockX() > maxX || event.getTo().getBlockZ() < minZ || event.getTo().getBlockZ() > maxZ) {
+        int minX = centerX - half;
+        int maxX = centerX + half - 1;
+        int minZ = centerZ - half;
+        int maxZ = centerZ + half - 1;
+
+        minX -= bufferSize;
+        maxX += bufferSize;
+        minZ -= bufferSize;
+        maxZ += bufferSize;
+
+        int toX = event.getTo().getBlockX();
+        int toZ = event.getTo().getBlockZ();
+
+        if (toX < minX || toX > maxX || toZ < minZ || toZ > maxZ) {
             event.setCancelled(true);
             player.sendMessage(config.getCannotLeaveIslandBoundaryMessage());
             plugin.debug(getClass().getSimpleName(), "Player " + player.getName() + " tried to leave island boundary.");

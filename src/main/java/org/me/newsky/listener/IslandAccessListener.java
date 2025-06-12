@@ -31,13 +31,13 @@ public class IslandAccessListener implements Listener {
             return;
         }
 
-        Player player = event.getPlayer();
-        if (player.isOp()) {
+        String worldName = event.getTo().getWorld().getName();
+        if (!IslandUtils.isIslandWorld(worldName)) {
             return;
         }
 
-        String worldName = event.getTo().getWorld().getName();
-        if (!IslandUtils.isIslandWorld(worldName)) {
+        Player player = event.getPlayer();
+        if (player.isOp()) {
             return;
         }
 

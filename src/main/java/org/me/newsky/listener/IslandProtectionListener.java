@@ -31,12 +31,12 @@ public class IslandProtectionListener implements Listener {
 
     private final ConfigHandler config;
     private final CacheHandler cacheHandler;
-    private final int halfSize;
+    private final int islandSize;
 
     public IslandProtectionListener(ConfigHandler config, CacheHandler cacheHandler) {
         this.config = config;
         this.cacheHandler = cacheHandler;
-        this.halfSize = config.getIslandSize() / 2;
+        this.islandSize = config.getIslandSize();
     }
 
     private boolean canPlayerEdit(Player player, Location location) {
@@ -49,10 +49,18 @@ public class IslandProtectionListener implements Listener {
         }
 
         UUID islandUuid = IslandUtils.nameToUUID(location.getWorld().getName());
-        int centerX = 0, centerZ = 0;
-        int minX = centerX - halfSize, maxX = centerX + halfSize;
-        int minZ = centerZ - halfSize, maxZ = centerZ + halfSize;
-        int x = location.getBlockX(), z = location.getBlockZ();
+
+        int centerX = 0;
+        int centerZ = 0;
+        int half = islandSize / 2;
+
+        int minX = centerX - half;
+        int maxX = centerX + half - 1;
+        int minZ = centerZ - half;
+        int maxZ = centerZ + half - 1;
+
+        int x = location.getBlockX();
+        int z = location.getBlockZ();
 
         if (x < minX || x > maxX || z < minZ || z > maxZ) {
             return false;
@@ -61,7 +69,6 @@ public class IslandProtectionListener implements Listener {
         UUID playerUuid = player.getUniqueId();
         return cacheHandler.getIslandPlayers(islandUuid).contains(playerUuid) || cacheHandler.isPlayerCooped(islandUuid, playerUuid);
     }
-
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
@@ -100,8 +107,12 @@ public class IslandProtectionListener implements Listener {
             if (blockType.name().endsWith("PRESSURE_PLATE")) return;
 
             if (!canPlayerEdit(player, event.getClickedBlock().getLocation())) {
-                if (itemType.isEdible()) return;
-                if (blockType == Material.ENDER_CHEST) return;
+                if (itemType.isEdible()) {
+                    return;
+                }
+                if (blockType == Material.ENDER_CHEST) {
+                    return;
+                }
                 event.setCancelled(true);
             }
         }
@@ -142,15 +153,18 @@ public class IslandProtectionListener implements Listener {
             damager = p;
         }
 
-        if (damager == null) return;
+        if (damager == null) {
+            return;
+        }
 
-        // PvP is handled by IslandPvPListener
-        if (event.getEntity() instanceof Player) return;
+        if (event.getEntity() instanceof Player) {
+            return;
+        }
 
-        // Allow visitors to attack monsters freely
-        if (event.getEntity() instanceof Monster) return;
+        if (event.getEntity() instanceof Monster) {
+            return;
+        }
 
-        // Block damaging passive mobs (e.g. cow, sheep, villager) unless editor
         if (!canPlayerEdit(damager, event.getEntity().getLocation())) {
             event.setCancelled(true);
         }
@@ -165,20 +179,27 @@ public class IslandProtectionListener implements Listener {
 
     @EventHandler(ignoreCancelled = true)
     public void onFluidSpread(BlockFromToEvent event) {
-        if (!IslandUtils.isIslandWorld(event.getBlock().getWorld().getName())) return;
+        if (!IslandUtils.isIslandWorld(event.getBlock().getWorld().getName())) {
+            return;
+        }
+
+        int half = islandSize / 2;
+        int min = -half;
+        int max = half - 1;
 
         int x = event.getToBlock().getX();
         int z = event.getToBlock().getZ();
-        int minX = -halfSize, minZ = -halfSize;
 
-        if (x < minX || x > halfSize || z < minZ || z > halfSize) {
+        if (x < min || x > max || z < min || z > max) {
             event.setCancelled(true);
         }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onOpenInventory(InventoryOpenEvent event) {
-        if (!(event.getPlayer() instanceof Player player)) return;
+        if (!(event.getPlayer() instanceof Player player)) {
+            return;
+        }
 
         InventoryHolder holder = event.getInventory().getHolder();
         if (holder instanceof BlockState state) {
