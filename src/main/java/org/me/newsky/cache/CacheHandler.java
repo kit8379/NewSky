@@ -173,7 +173,6 @@ public class CacheHandler {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset("island_homes:" + islandUuid + ":" + playerUuid, homeName, homeLocation);
         }
-        // Update database call to include islandUuid
         databaseHandler.updateHomePoint(islandUuid, playerUuid, homeName, homeLocation);
     }
 
