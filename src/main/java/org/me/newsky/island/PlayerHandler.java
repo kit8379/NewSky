@@ -29,12 +29,19 @@ public class PlayerHandler {
                 }
             }
 
+            UUID ownerUuid = cacheHandler.getIslandOwner(islandUuid);
+            if (ownerUuid.equals(playerUuid)) {
+                throw new AlreadyOwnerException();
+            }
+
             Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
             if (members.contains(playerUuid)) {
                 throw new IslandPlayerAlreadyExistsException();
             }
 
             cacheHandler.updateIslandPlayer(islandUuid, playerUuid, role);
+            Optional<String> homePoint = cacheHandler.getHomeLocation(islandUuid, ownerUuid, "default");
+            homePoint.ifPresent(s -> cacheHandler.updateHomePoint(islandUuid, playerUuid, "default", s));
         }, plugin.getBukkitAsyncExecutor());
     }
 
