@@ -2,7 +2,7 @@ package org.me.newsky.scheduler;
 
 import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.cache.RedisCache;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.world.WorldHandler;
@@ -13,15 +13,15 @@ import java.util.Map;
 public class IslandUnloadScheduler {
 
     private final NewSky plugin;
-    private final CacheHandler cacheHandler;
+    private final RedisCache redisCache;
     private final WorldHandler worldHandler;
     private final long unloadInterval;
     private final Map<String, Long> inactiveWorlds = new HashMap<>();
     private BukkitTask unloadTask;
 
-    public IslandUnloadScheduler(NewSky plugin, ConfigHandler config, CacheHandler cacheHandler, WorldHandler worldHandler) {
+    public IslandUnloadScheduler(NewSky plugin, ConfigHandler config, RedisCache redisCache, WorldHandler worldHandler) {
         this.plugin = plugin;
-        this.cacheHandler = cacheHandler;
+        this.redisCache = redisCache;
         this.worldHandler = worldHandler;
         this.unloadInterval = config.getIslandUnloadInterval();
     }
@@ -45,7 +45,7 @@ public class IslandUnloadScheduler {
                 if (currentTime - inactiveTime > unloadInterval) {
                     worldHandler.unloadWorld(world.getName()).thenRun(() -> {
                         inactiveWorlds.remove(world.getName());
-                        cacheHandler.removeIslandLoadedServer(IslandUtils.nameToUUID(world.getName()));
+                        redisCache.removeIslandLoadedServer(IslandUtils.nameToUUID(world.getName()));
                         plugin.debug(getClass().getSimpleName(), "Unloaded inactive island world: " + world.getName());
                     });
                 } else {

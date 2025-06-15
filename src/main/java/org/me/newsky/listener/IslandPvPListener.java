@@ -6,7 +6,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.cache.Cache;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.util.IslandUtils;
 
@@ -16,12 +16,12 @@ public class IslandPvPListener implements Listener {
 
     private final NewSky plugin;
     private final ConfigHandler config;
-    private final CacheHandler cacheHandler;
+    private final Cache cache;
 
-    public IslandPvPListener(NewSky plugin, ConfigHandler config, CacheHandler cacheHandler) {
+    public IslandPvPListener(NewSky plugin, ConfigHandler config, Cache cache) {
         this.plugin = plugin;
         this.config = config;
-        this.cacheHandler = cacheHandler;
+        this.cache = cache;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -38,7 +38,7 @@ public class IslandPvPListener implements Listener {
 
         UUID islandUuid = IslandUtils.nameToUUID(victim.getWorld().getName());
 
-        if (!cacheHandler.isIslandPvp(islandUuid)) {
+        if (!cache.isIslandPvp(islandUuid)) {
             event.setCancelled(true);
             attacker.sendMessage(config.getIslandPvpDisabledMessage());
             plugin.debug(getClass().getSimpleName(), "PvP is disabled on island " + islandUuid + ", cancelling damage event.");

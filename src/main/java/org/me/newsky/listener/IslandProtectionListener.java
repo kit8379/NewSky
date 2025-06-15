@@ -21,7 +21,7 @@ import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
-import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.cache.Cache;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.util.IslandUtils;
 
@@ -30,12 +30,12 @@ import java.util.UUID;
 public class IslandProtectionListener implements Listener {
 
     private final ConfigHandler config;
-    private final CacheHandler cacheHandler;
+    private final Cache cache;
     private final int islandSize;
 
-    public IslandProtectionListener(ConfigHandler config, CacheHandler cacheHandler) {
+    public IslandProtectionListener(ConfigHandler config, Cache cache) {
         this.config = config;
-        this.cacheHandler = cacheHandler;
+        this.cache = cache;
         this.islandSize = config.getIslandSize();
     }
 
@@ -67,7 +67,7 @@ public class IslandProtectionListener implements Listener {
         }
 
         UUID playerUuid = player.getUniqueId();
-        return cacheHandler.getIslandPlayers(islandUuid).contains(playerUuid) || cacheHandler.isPlayerCooped(islandUuid, playerUuid);
+        return cache.getIslandPlayers(islandUuid).contains(playerUuid) || cache.isPlayerCooped(islandUuid, playerUuid);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

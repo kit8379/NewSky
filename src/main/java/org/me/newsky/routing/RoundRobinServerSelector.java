@@ -1,22 +1,22 @@
 package org.me.newsky.routing;
 
-import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.cache.RedisCache;
 
 import java.util.Map;
 
 public class RoundRobinServerSelector implements ServerSelector {
 
-    private final CacheHandler cacheHandler;
+    private final RedisCache redisCache;
 
-    public RoundRobinServerSelector(CacheHandler cacheHandler) {
-        this.cacheHandler = cacheHandler;
+    public RoundRobinServerSelector(RedisCache redisCache) {
+        this.redisCache = redisCache;
     }
 
     @Override
     public String selectServer(Map<String, String> activeServers) {
         if (activeServers.isEmpty()) return null;
 
-        long index = cacheHandler.getRoundRobinCounter();
+        long index = redisCache.getRoundRobinCounter();
 
         if (index == -1) {
             return null;

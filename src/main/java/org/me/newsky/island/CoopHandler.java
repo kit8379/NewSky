@@ -1,8 +1,10 @@
 package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.CacheHandler;
-import org.me.newsky.exceptions.*;
+import org.me.newsky.cache.Cache;
+import org.me.newsky.exceptions.CannotCoopIslandPlayerException;
+import org.me.newsky.exceptions.PlayerAlreadyCoopedException;
+import org.me.newsky.exceptions.PlayerNotCoopedException;
 
 import java.util.Set;
 import java.util.UUID;
@@ -11,41 +13,41 @@ import java.util.concurrent.CompletableFuture;
 public class CoopHandler {
 
     private final NewSky plugin;
-    private final CacheHandler cacheHandler;
+    private final Cache cache;
 
-    public CoopHandler(NewSky plugin, CacheHandler cacheHandler) {
+    public CoopHandler(NewSky plugin, Cache cache) {
         this.plugin = plugin;
-        this.cacheHandler = cacheHandler;
+        this.cache = cache;
     }
 
     public Set<UUID> getCoopedPlayers(UUID islandUuid) {
-        return cacheHandler.getCoopedPlayers(islandUuid);
+        return cache.getCoopedPlayers(islandUuid);
     }
 
-    public CompletableFuture<Void> addCoop(UUID islandUuid, UUID playerUuid) {
+    public CompletableFuture<Void> coopPlayer(UUID islandUuid, UUID playerUuid) {
         return CompletableFuture.runAsync(() -> {
-            if (cacheHandler.isPlayerCooped(islandUuid, playerUuid)) {
+            if (cache.isPlayerCooped(islandUuid, playerUuid)) {
                 throw new PlayerAlreadyCoopedException();
             }
 
-            if (cacheHandler.getIslandPlayers(islandUuid).contains(playerUuid)) {
+            if (cache.getIslandPlayers(islandUuid).contains(playerUuid)) {
                 throw new CannotCoopIslandPlayerException();
             }
 
-            cacheHandler.addCoopPlayer(islandUuid, playerUuid);
+            cache.updateCoopPlayer(islandUuid, playerUuid);
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    public CompletableFuture<Void> removeCoop(UUID islandUuid, UUID playerUuid) {
+    public CompletableFuture<Void> unCoopPlayer(UUID islandUuid, UUID playerUuid) {
         return CompletableFuture.runAsync(() -> {
-            if (!cacheHandler.isPlayerCooped(islandUuid, playerUuid)) {
+            if (!cache.isPlayerCooped(islandUuid, playerUuid)) {
                 throw new PlayerNotCoopedException();
             }
-            cacheHandler.removeCoopPlayer(islandUuid, playerUuid);
+            cache.deleteCoopPlayer(islandUuid, playerUuid);
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    public void removeAllCoopOfPlayer(UUID playerUuid) {
-        CompletableFuture.runAsync(() -> cacheHandler.removeAllCoopOfPlayer(playerUuid), plugin.getBukkitAsyncExecutor());
+    public void deleteAllCoopOfPlayer(UUID playerUuid) {
+        CompletableFuture.runAsync(() -> cache.deleteAllCoopOfPlayer(playerUuid), plugin.getBukkitAsyncExecutor());
     }
 }

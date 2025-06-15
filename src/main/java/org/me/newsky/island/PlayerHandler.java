@@ -1,7 +1,7 @@
 package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.cache.Cache;
 import org.me.newsky.exceptions.*;
 
 import java.util.Optional;
@@ -13,67 +13,67 @@ public class PlayerHandler {
 
 
     private final NewSky plugin;
-    private final CacheHandler cacheHandler;
+    private final Cache cache;
 
-    public PlayerHandler(NewSky plugin, CacheHandler cacheHandler) {
+    public PlayerHandler(NewSky plugin, Cache cache) {
         this.plugin = plugin;
-        this.cacheHandler = cacheHandler;
+        this.cache = cache;
     }
 
     public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role) {
         return CompletableFuture.runAsync(() -> {
-            Optional<UUID> existingIsland = cacheHandler.getIslandUuid(playerUuid);
+            Optional<UUID> existingIsland = cache.getIslandUuid(playerUuid);
             if (existingIsland.isPresent()) {
                 if (!existingIsland.get().equals(islandUuid)) {
                     throw new IslandAlreadyExistException();
                 }
             }
 
-            UUID ownerUuid = cacheHandler.getIslandOwner(islandUuid);
+            UUID ownerUuid = cache.getIslandOwner(islandUuid);
             if (ownerUuid.equals(playerUuid)) {
                 throw new AlreadyOwnerException();
             }
 
-            Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
+            Set<UUID> members = cache.getIslandPlayers(islandUuid);
             if (members.contains(playerUuid)) {
                 throw new IslandPlayerAlreadyExistsException();
             }
 
-            cacheHandler.updateIslandPlayer(islandUuid, playerUuid, role);
-            Optional<String> homePoint = cacheHandler.getHomeLocation(islandUuid, ownerUuid, "default");
-            homePoint.ifPresent(s -> cacheHandler.updateHomePoint(islandUuid, playerUuid, "default", s));
+            cache.updateIslandPlayer(islandUuid, playerUuid, role);
+            Optional<String> homePoint = cache.getHomeLocation(islandUuid, ownerUuid, "default");
+            homePoint.ifPresent(s -> cache.updateHomePoint(islandUuid, playerUuid, "default", s));
         }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> removeMember(UUID islandUuid, UUID playerUuid) {
         return CompletableFuture.runAsync(() -> {
-            UUID ownerUuid = cacheHandler.getIslandOwner(islandUuid);
+            UUID ownerUuid = cache.getIslandOwner(islandUuid);
             if (ownerUuid.equals(playerUuid)) {
                 throw new CannotRemoveOwnerException();
             }
 
-            Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
+            Set<UUID> members = cache.getIslandPlayers(islandUuid);
             if (!members.contains(playerUuid)) {
                 throw new IslandPlayerDoesNotExistException();
             }
 
-            cacheHandler.deleteIslandPlayer(islandUuid, playerUuid);
+            cache.deleteIslandPlayer(islandUuid, playerUuid);
         }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> setOwner(UUID islandUuid, UUID newOwnerId) {
         return CompletableFuture.runAsync(() -> {
-            Set<UUID> members = cacheHandler.getIslandPlayers(islandUuid);
+            Set<UUID> members = cache.getIslandPlayers(islandUuid);
             if (!members.contains(newOwnerId)) {
                 throw new IslandPlayerDoesNotExistException();
             }
 
-            UUID currentOwner = cacheHandler.getIslandOwner(islandUuid);
+            UUID currentOwner = cache.getIslandOwner(islandUuid);
             if (currentOwner.equals(newOwnerId)) {
                 throw new AlreadyOwnerException();
             }
 
-            cacheHandler.updateIslandOwner(islandUuid, newOwnerId);
+            cache.updateIslandOwner(islandUuid, newOwnerId);
         }, plugin.getBukkitAsyncExecutor());
     }
 }

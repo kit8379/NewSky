@@ -1,9 +1,9 @@
-package org.me.newsky.network;
+package org.me.newsky.broker;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.me.newsky.NewSky;
-import org.me.newsky.island.operation.LocalIslandOperation;
+import org.me.newsky.island.operation.IslandOperation;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.util.ComponentUtils;
 import redis.clients.jedis.JedisPubSub;
@@ -14,21 +14,21 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
-public class Broker {
+public class IslandBroker {
 
     private static final ConcurrentHashMap<String, CompletableFuture<Void>> pendingRequests = new ConcurrentHashMap<>();
 
     private final NewSky plugin;
     private final RedisHandler redisHandler;
-    private final LocalIslandOperation localIslandOperation;
+    private final IslandOperation islandOperation;
     private final String serverID;
     private final String channelID;
     private JedisPubSub subscriber;
 
-    public Broker(NewSky plugin, RedisHandler redisHandler, LocalIslandOperation localIslandOperation, String serverID, String channelID) {
+    public IslandBroker(NewSky plugin, RedisHandler redisHandler, IslandOperation islandOperation, String serverID, String channelID) {
         this.plugin = plugin;
         this.redisHandler = redisHandler;
-        this.localIslandOperation = localIslandOperation;
+        this.islandOperation = islandOperation;
         this.serverID = serverID;
         this.channelID = channelID;
     }
@@ -155,21 +155,21 @@ public class Broker {
         try {
             switch (operation) {
                 case "create":
-                    return localIslandOperation.createIsland(UUID.fromString(args[0]), UUID.fromString(args[1]), args[2]);
+                    return islandOperation.createIsland(UUID.fromString(args[0]), UUID.fromString(args[1]), args[2]);
                 case "delete":
-                    return localIslandOperation.deleteIsland(UUID.fromString(args[0]));
+                    return islandOperation.deleteIsland(UUID.fromString(args[0]));
                 case "load":
-                    return localIslandOperation.loadIsland(UUID.fromString(args[0]));
+                    return islandOperation.loadIsland(UUID.fromString(args[0]));
                 case "unload":
-                    return localIslandOperation.unloadIsland(UUID.fromString(args[0]));
+                    return islandOperation.unloadIsland(UUID.fromString(args[0]));
                 case "lock":
-                    return localIslandOperation.lockIsland(UUID.fromString(args[0]));
+                    return islandOperation.lockIsland(UUID.fromString(args[0]));
                 case "expel":
-                    return localIslandOperation.expelPlayer(UUID.fromString(args[0]), UUID.fromString(args[1]));
+                    return islandOperation.expelPlayer(UUID.fromString(args[0]), UUID.fromString(args[1]));
                 case "teleport":
-                    return localIslandOperation.teleportIsland(UUID.fromString(args[0]), UUID.fromString(args[1]), args[2]);
+                    return islandOperation.teleportIsland(UUID.fromString(args[0]), UUID.fromString(args[1]), args[2]);
                 case "message":
-                    return localIslandOperation.sendPlayerMessage(UUID.fromString(args[0]), ComponentUtils.deserialize(args[1]));
+                    return islandOperation.sendPlayerMessage(UUID.fromString(args[0]), ComponentUtils.deserialize(args[1]));
                 default:
                     return CompletableFuture.failedFuture(new IllegalArgumentException("Unknown operation: " + operation));
             }

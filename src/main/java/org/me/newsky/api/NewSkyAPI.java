@@ -216,7 +216,7 @@ public class NewSkyAPI {
      * @return A CompletableFuture that completes when the co-op is added.
      */
     public CompletableFuture<Void> addCoop(UUID islandUuid, UUID playerUuid) {
-        return coopHandler.addCoop(islandUuid, playerUuid);
+        return coopHandler.coopPlayer(islandUuid, playerUuid);
     }
 
     /**
@@ -227,7 +227,7 @@ public class NewSkyAPI {
      * @return A CompletableFuture that completes when the co-op is removed.
      */
     public CompletableFuture<Void> removeCoop(UUID islandUuid, UUID playerUuid) {
-        return coopHandler.removeCoop(islandUuid, playerUuid);
+        return coopHandler.unCoopPlayer(islandUuid, playerUuid);
     }
 
     /**
@@ -236,7 +236,7 @@ public class NewSkyAPI {
      * @param playerUuid The UUID of the player whose co-ops will be removed.
      */
     public void removeAllCoopOfPlayer(UUID playerUuid) {
-        coopHandler.removeAllCoopOfPlayer(playerUuid);
+        coopHandler.deleteAllCoopOfPlayer(playerUuid);
     }
 
     /**

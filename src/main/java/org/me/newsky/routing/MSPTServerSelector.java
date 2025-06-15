@@ -1,17 +1,17 @@
 package org.me.newsky.routing;
 
-import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.cache.RedisCache;
 
 import java.security.SecureRandom;
 import java.util.*;
 
 public class MSPTServerSelector implements ServerSelector {
 
-    private final CacheHandler cacheHandler;
+    private final RedisCache redisCache;
     private final SecureRandom random = new SecureRandom();
 
-    public MSPTServerSelector(CacheHandler cacheHandler) {
-        this.cacheHandler = cacheHandler;
+    public MSPTServerSelector(RedisCache redisCache) {
+        this.redisCache = redisCache;
     }
 
     @Override
@@ -22,7 +22,7 @@ public class MSPTServerSelector implements ServerSelector {
         double minMspt = Double.MAX_VALUE;
 
         for (String server : activeServers.keySet()) {
-            double mspt = cacheHandler.getServerMSPT(server);
+            double mspt = redisCache.getServerMSPT(server);
             if (mspt == -1) continue;
 
             if (mspt < minMspt) {

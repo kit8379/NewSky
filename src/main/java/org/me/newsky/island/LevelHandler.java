@@ -3,7 +3,7 @@ package org.me.newsky.island;
 import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
-import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.cache.Cache;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.util.LocationUtils;
@@ -16,19 +16,19 @@ import java.util.UUID;
 public class LevelHandler {
 
     private final ConfigHandler config;
-    private final CacheHandler cacheHandler;
+    private final Cache cache;
 
-    public LevelHandler(ConfigHandler config, CacheHandler cacheHandler) {
+    public LevelHandler(ConfigHandler config, Cache cache) {
         this.config = config;
-        this.cacheHandler = cacheHandler;
+        this.cache = cache;
     }
 
     public int getIslandLevel(UUID islandUuid) {
-        return cacheHandler.getIslandLevel(islandUuid);
+        return cache.getIslandLevel(islandUuid);
     }
 
     public Map<UUID, Integer> getTopIslandLevels(int size) {
-        return cacheHandler.getTopIslandLevels(size);
+        return cache.getTopIslandLevels(size);
     }
 
     public void calIslandLevel(UUID islandUuid) {
@@ -55,7 +55,7 @@ public class LevelHandler {
 
         int totalLevel = (int) Math.round((double) totalPoints / 100);
 
-        cacheHandler.updateIslandLevel(islandUuid, totalLevel);
+        cache.updateIslandLevel(islandUuid, totalLevel);
     }
 
     private List<Chunk> getChunksForIsland(Location center, int size) {

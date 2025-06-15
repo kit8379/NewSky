@@ -22,7 +22,7 @@ quality but also discouraged long-term player retention due to unstable performa
 
 NewSky addresses this by enabling **horizontal scaling**—the ability to distribute island worlds across multiple servers
 in a cluster. Each server handles a subset of island worlds, reducing load and isolating lag. Redis acts as the central
-message broker and sync layer, allowing servers to share island metadata, player presence, teleport requests, and more
+message islandBroker and sync layer, allowing servers to share island metadata, player presence, teleport requests, and more
 in real time.
 
 This approach provides:

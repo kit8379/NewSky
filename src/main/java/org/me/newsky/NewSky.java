@@ -5,17 +5,19 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.me.newsky.api.NewSkyAPI;
-import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.broker.CacheBroker;
+import org.me.newsky.broker.IslandBroker;
+import org.me.newsky.cache.Cache;
+import org.me.newsky.cache.RedisCache;
 import org.me.newsky.command.IslandAdminCommand;
 import org.me.newsky.command.IslandPlayerCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.island.*;
-import org.me.newsky.island.distributor.IslandServiceDistributor;
-import org.me.newsky.island.operation.LocalIslandOperation;
+import org.me.newsky.island.distributor.IslandDistributor;
+import org.me.newsky.island.operation.IslandOperation;
 import org.me.newsky.listener.*;
-import org.me.newsky.network.Broker;
 import org.me.newsky.placeholder.NewSkyPlaceholderExpansion;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.routing.MSPTServerSelector;
@@ -40,13 +42,15 @@ public class NewSky extends JavaPlugin {
     private WorldHandler worldHandler;
     private RedisHandler redisHandler;
     private DatabaseHandler databaseHandler;
-    private CacheHandler cacheHandler;
+    private Cache cache;
+    private RedisCache redisCache;
     private TeleportHandler teleportHandler;
     private HeartBeatHandler heartBeatHandler;
     private IslandUnloadScheduler islandUnloadScheduler;
     private LevelUpdateScheduler levelUpdateScheduler;
     private MSPTUpdateScheduler msptUpdateScheduler;
-    private Broker broker;
+    private CacheBroker cacheBroker;
+    private IslandBroker islandBroker;
     private NewSkyAPI api;
     private BukkitAsyncExecutor bukkitAsyncExecutor;
     private String serverID;
@@ -80,11 +84,6 @@ public class NewSky extends JavaPlugin {
             info("Server ID loaded success!");
             info("This Server ID: " + serverID);
 
-            info("Start loading Redis Pub/Sub channel name now...");
-            String channelID = config.getRedisChannel();
-            info("Redis Pub/Sub channel name loaded success!");
-            info("This server using Redis Pub/Sub channel name: " + channelID);
-
             info("Starting World handler");
             worldHandler = new WorldHandler(this, config, teleportHandler);
             info("World handler loaded");
@@ -98,26 +97,30 @@ public class NewSky extends JavaPlugin {
             info("Database connection success!");
 
             info("Starting cache handler");
-            cacheHandler = new CacheHandler(this, redisHandler, databaseHandler);
+            cache = new Cache(databaseHandler);
             info("Cache handler loaded");
+
+            info("Starting Redis cache");
+            redisCache = new RedisCache(this, redisHandler);
+            info("Redis cache loaded");
 
             info("Starting teleport handler");
             teleportHandler = new TeleportHandler();
             info("Teleport handler loaded");
 
             info("Start connecting to Heart Beat system now...");
-            heartBeatHandler = new HeartBeatHandler(this, config, cacheHandler, serverID);
+            heartBeatHandler = new HeartBeatHandler(this, config, redisCache, serverID);
             info("Heart Beat started!");
 
             info("Starting server selector");
             ServerSelector serverSelector;
             switch (config.getServerSelector().toLowerCase()) {
                 case "round-robin":
-                    serverSelector = new RoundRobinServerSelector(cacheHandler);
+                    serverSelector = new RoundRobinServerSelector(redisCache);
                     info("Using Round Robin server selector");
                     break;
                 case "mspt":
-                    serverSelector = new MSPTServerSelector(cacheHandler);
+                    serverSelector = new MSPTServerSelector(redisCache);
                     info("Using MSPT server selector");
                     break;
                 case "random":
@@ -127,20 +130,26 @@ public class NewSky extends JavaPlugin {
             }
             info("Server selector loaded");
 
-            info("Starting handlers for remote requests");
-            LocalIslandOperation localIslandOperation = new LocalIslandOperation(this, config, cacheHandler, worldHandler, teleportHandler, serverID);
-            broker = new Broker(this, redisHandler, localIslandOperation, serverID, channelID);
-            IslandServiceDistributor islandServiceDistributor = new IslandServiceDistributor(this, cacheHandler, broker, localIslandOperation, serverSelector, serverID);
+            info("Starting handlers for island remote requests");
+            IslandOperation islandOperation = new IslandOperation(this, config, cache, redisCache, worldHandler, teleportHandler, serverID);
+            IslandDistributor islandDistributor = new IslandDistributor(this, redisCache, islandOperation, serverSelector, serverID);
             info("All handlers for remote requests loaded");
 
+            info("Starting message broker");
+            cacheBroker = new CacheBroker(this, redisHandler, cache, serverID, config.getRedisCacheChannel());
+            cache.setCacheBroker(cacheBroker);
+            islandBroker = new IslandBroker(this, redisHandler, islandOperation, serverID, config.getRedisIslandChannel());
+            islandDistributor.setIslandBroker(islandBroker);
+            info("Message broker loaded");
+
             info("Starting main handlers for the plugin");
-            IslandHandler islandHandler = new IslandHandler(this, config, cacheHandler, islandServiceDistributor);
-            PlayerHandler playerHandler = new PlayerHandler(this, cacheHandler);
-            HomeHandler homeHandler = new HomeHandler(this, cacheHandler, islandServiceDistributor);
-            WarpHandler warpHandler = new WarpHandler(this, cacheHandler, islandServiceDistributor);
-            LevelHandler levelHandler = new LevelHandler(config, cacheHandler);
-            BanHandler banHandler = new BanHandler(this, cacheHandler, islandServiceDistributor);
-            CoopHandler coopHandler = new CoopHandler(this, cacheHandler);
+            IslandHandler islandHandler = new IslandHandler(this, config, cache, islandDistributor);
+            PlayerHandler playerHandler = new PlayerHandler(this, cache);
+            HomeHandler homeHandler = new HomeHandler(this, cache, islandDistributor);
+            WarpHandler warpHandler = new WarpHandler(this, cache, islandDistributor);
+            LevelHandler levelHandler = new LevelHandler(config, cache);
+            BanHandler banHandler = new BanHandler(this, cache, islandDistributor);
+            CoopHandler coopHandler = new CoopHandler(this, cache);
             info("All main handlers loaded");
 
             info("Starting plugin messaging");
@@ -148,9 +157,9 @@ public class NewSky extends JavaPlugin {
             info("Plugin messaging loaded");
 
             info("Starting all schedulers for the plugin");
-            islandUnloadScheduler = new IslandUnloadScheduler(this, config, cacheHandler, worldHandler);
+            islandUnloadScheduler = new IslandUnloadScheduler(this, config, redisCache, worldHandler);
             levelUpdateScheduler = new LevelUpdateScheduler(this, config, levelHandler);
-            msptUpdateScheduler = new MSPTUpdateScheduler(this, config, cacheHandler, serverID);
+            msptUpdateScheduler = new MSPTUpdateScheduler(this, config, redisCache, serverID);
             info("All schedulers loaded");
 
             info("Starting API");
@@ -165,19 +174,20 @@ public class NewSky extends JavaPlugin {
             info("Registering placeholder");
             if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
                 info("PlaceholderAPI found, registering placeholders");
-                new NewSkyPlaceholderExpansion(this, cacheHandler).register();
+                new NewSkyPlaceholderExpansion(this, cache).register();
                 info("Placeholder registered");
             } else {
                 info("PlaceholderAPI not found, skipping placeholder registration");
             }
 
             databaseHandler.createTables();
-            cacheHandler.cacheAllDataToRedis();
+            cacheBroker.subscribe();
+            islandBroker.subscribe();
+            cache.cacheAllData();
             heartBeatHandler.start();
             islandUnloadScheduler.start();
             levelUpdateScheduler.start();
             msptUpdateScheduler.start();
-            broker.subscribe();
         } catch (Exception e) {
             getLogger().log(Level.SEVERE, "An error occurred during plugin initialization", e);
             getServer().getPluginManager().disablePlugin(this);
@@ -185,13 +195,13 @@ public class NewSky extends JavaPlugin {
     }
 
     private void registerListeners() {
-        getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, cacheHandler, serverID), this);
+        getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, redisCache, serverID), this);
         getServer().getPluginManager().registerEvents(new WorldInitListener(this), this);
         getServer().getPluginManager().registerEvents(new TeleportRequestListener(this, teleportHandler), this);
-        getServer().getPluginManager().registerEvents(new IslandProtectionListener(config, cacheHandler), this);
+        getServer().getPluginManager().registerEvents(new IslandProtectionListener(config, cache), this);
         getServer().getPluginManager().registerEvents(new IslandBoundaryListener(this, config), this);
-        getServer().getPluginManager().registerEvents(new IslandAccessListener(this, config, cacheHandler), this);
-        getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config, cacheHandler), this);
+        getServer().getPluginManager().registerEvents(new IslandAccessListener(this, config, cache), this);
+        getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config, cache), this);
     }
 
     private void registerCommands() {
@@ -228,31 +238,15 @@ public class NewSky extends JavaPlugin {
     }
 
     public void shutdown() {
-        info("Stopping all schedulers...");
         levelUpdateScheduler.stop();
         islandUnloadScheduler.stop();
         msptUpdateScheduler.stop();
-        info("All schedulers stopped");
-
-        info("Saving and unloading all slime worlds...");
         worldHandler.unloadAllWorldsOnShutdown();
-        info("All slime worlds saved and unloaded");
-
-        info("Stopping Heart Beat handler...");
         heartBeatHandler.stop();
-        info("Heart Beat handler stopped");
-
-        info("Unsubscribing from Redis broker...");
-        broker.unsubscribe();
-        info("Redis broker unsubscribed");
-
-        info("Disconnecting from Redis...");
+        islandBroker.unsubscribe();
+        cacheBroker.unsubscribe();
         redisHandler.disconnect();
-        info("Redis disconnected");
-
-        info("Disconnecting from Database...");
         databaseHandler.close();
-        info("Database disconnected");
     }
 
     public void reload() {
@@ -263,7 +257,7 @@ public class NewSky extends JavaPlugin {
     }
 
     public Set<String> getOnlinePlayers() {
-        return cacheHandler.getOnlinePlayers();
+        return redisCache.getOnlinePlayers();
     }
 
     public BukkitAsyncExecutor getBukkitAsyncExecutor() {

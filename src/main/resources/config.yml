@@ -20,7 +20,7 @@ MySQL:
   prep-stmt-cache-sql-limit: 2048
 
 # The settings for the Redis server.
-# The plugin uses Redis to communicate between servers in the network and to store the island cache data.
+# The plugin uses Redis to communicate between servers in the broker and to store the island cache data.
 redis:
   host: "localhost"
   port: 6379
@@ -28,9 +28,12 @@ redis:
   # The below two settings are usually not needed to change.
   # The database index to use for centralized cache.
   # The channel to use for pub/sub communication between servers.
-  # If you have different groups of servers under the same network, you can change the database and channel to separate them.
+  # If you have different groups of servers under the same broker, you can change the database and channel to separate them.
   database: 0
-  channel: "newsky-channel"
+  channel:
+    cache: "newsky-island"
+    island: "newsky-broker"
+
 
 # The settings for the server.
 server:

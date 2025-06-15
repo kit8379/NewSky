@@ -8,7 +8,9 @@ import org.me.newsky.util.ColorUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 import java.util.logging.Level;
 
 public class ConfigHandler {
@@ -138,8 +140,12 @@ public class ConfigHandler {
         return config.getInt("redis.database");
     }
 
-    public String getRedisChannel() {
-        return config.getString("redis.channel");
+    public String getRedisCacheChannel() {
+        return config.getString("redis.channel.cache");
+    }
+
+    public String getRedisIslandChannel() {
+        return config.getString("redis.channel.island");
     }
 
     public boolean isDebug() {

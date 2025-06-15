@@ -7,7 +7,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.CacheHandler;
+import org.me.newsky.cache.Cache;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.util.IslandUtils;
 
@@ -17,12 +17,12 @@ public class IslandAccessListener implements Listener {
 
     private final NewSky plugin;
     private final ConfigHandler config;
-    private final CacheHandler cacheHandler;
+    private final Cache cache;
 
-    public IslandAccessListener(NewSky plugin, ConfigHandler config, CacheHandler cacheHandler) {
+    public IslandAccessListener(NewSky plugin, ConfigHandler config, Cache cache) {
         this.plugin = plugin;
         this.config = config;
-        this.cacheHandler = cacheHandler;
+        this.cache = cache;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -44,11 +44,11 @@ public class IslandAccessListener implements Listener {
         UUID islandUuid = IslandUtils.nameToUUID(worldName);
         UUID playerUuid = player.getUniqueId();
 
-        if (cacheHandler.isPlayerBanned(islandUuid, playerUuid) || (cacheHandler.isIslandLock(islandUuid) && !cacheHandler.getIslandPlayers(islandUuid).contains(playerUuid))) {
+        if (cache.isPlayerBanned(islandUuid, playerUuid) || (cache.isIslandLock(islandUuid) && !cache.getIslandPlayers(islandUuid).contains(playerUuid))) {
             event.setCancelled(true);
             player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), config.getLobbyCommand(player.getName()));
-            player.sendMessage(cacheHandler.isPlayerBanned(islandUuid, playerUuid) ? config.getPlayerBannedMessage() : config.getIslandLockedMessage());
+            player.sendMessage(cache.isPlayerBanned(islandUuid, playerUuid) ? config.getPlayerBannedMessage() : config.getIslandLockedMessage());
             plugin.debug(getClass().getSimpleName(), "Player " + player.getName() + " was denied access to island " + islandUuid + " due to ban or lock.");
         }
     }
