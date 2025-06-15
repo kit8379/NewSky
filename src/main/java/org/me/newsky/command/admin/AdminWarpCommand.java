@@ -7,20 +7,21 @@ import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
+import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.exceptions.IslandDoesNotExistException;
-import org.me.newsky.exceptions.IslandLockedException;
-import org.me.newsky.exceptions.NoActiveServerException;
-import org.me.newsky.exceptions.PlayerBannedException;
-import org.me.newsky.exceptions.WarpDoesNotExistException;
+import org.me.newsky.exceptions.*;
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 /**
  * /isadmin warp <player> [warp] [target]
  */
-public class AdminWarpCommand implements SubCommand {
+public class AdminWarpCommand implements SubCommand, TabComplete {
     private final NewSky plugin;
     private final NewSkyAPI api;
     private final ConfigHandler config;
@@ -102,4 +103,31 @@ public class AdminWarpCommand implements SubCommand {
 
         return true;
     }
+
+    @Override
+    public List<String> tabComplete(CommandSender sender, String label, String[] args) {
+        if (args.length == 2) {
+            String prefix = args[1].toLowerCase();
+            return api.getOnlinePlayers().stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+        }
+
+        if (args.length == 3) {
+            try {
+                OfflinePlayer owner = Bukkit.getOfflinePlayer(args[1]);
+                Set<String> warps = api.getWarpNames(owner.getUniqueId());
+                String prefix = args[2].toLowerCase();
+                return warps.stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+            } catch (Exception e) {
+                return Collections.emptyList();
+            }
+        }
+
+        if (args.length == 4) {
+            String prefix = args[3].toLowerCase();
+            return api.getOnlinePlayers().stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+        }
+
+        return Collections.emptyList();
+    }
+
 }

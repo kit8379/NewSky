@@ -111,7 +111,7 @@ public class PlayerUncoopCommand implements SubCommand, TabComplete {
                     OfflinePlayer op = Bukkit.getOfflinePlayer(uuid);
                     return op.getName() != null ? op.getName() : uuid.toString();
                 }).filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
-            } catch (IslandDoesNotExistException e) {
+            } catch (Exception e) {
                 return Collections.emptyList();
             }
         }

@@ -105,12 +105,11 @@ public class PlayerRemoveMemberCommand implements SubCommand, TabComplete {
             try {
                 UUID islandUuid = api.getIslandUuid(player.getUniqueId());
                 Set<UUID> members = api.getIslandMembers(islandUuid);
-
+                String prefix = args[1].toLowerCase();
                 return members.stream().map(uuid -> {
                     OfflinePlayer op = Bukkit.getOfflinePlayer(uuid);
-                    return op.getName() != null ? op.getName() : uuid.toString();
-                }).filter(name -> name.toLowerCase().startsWith(args[1].toLowerCase())).collect(Collectors.toList());
-
+                    return (op.getName() != null) ? op.getName() : uuid.toString();
+                }).filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
             } catch (Exception e) {
                 return Collections.emptyList();
             }

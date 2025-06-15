@@ -6,17 +6,21 @@ import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
+import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.HomeDoesNotExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 /**
  * /isadmin delhome <player> <home>
  */
-public class AdminDelHomeCommand implements SubCommand {
+public class AdminDelHomeCommand implements SubCommand, TabComplete {
     private final NewSky plugin;
     private final NewSkyAPI api;
     private final ConfigHandler config;
@@ -83,5 +87,25 @@ public class AdminDelHomeCommand implements SubCommand {
         });
 
         return true;
+    }
+
+    @Override
+    public List<String> tabComplete(CommandSender sender, String label, String[] args) {
+        if (args.length == 2) {
+            String prefix = args[1].toLowerCase();
+            return api.getOnlinePlayers().stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+        }
+
+        if (args.length == 3) {
+            try {
+                OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(args[1]);
+                UUID uuid = targetPlayer.getUniqueId();
+                return api.getHomeNames(uuid).stream().filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase())).collect(Collectors.toList());
+            } catch (Exception e) {
+                return Collections.emptyList();
+            }
+        }
+
+        return Collections.emptyList();
     }
 }

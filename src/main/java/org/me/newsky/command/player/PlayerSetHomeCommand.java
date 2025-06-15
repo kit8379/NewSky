@@ -87,8 +87,13 @@ public class PlayerSetHomeCommand implements SubCommand, TabComplete {
     @Override
     public List<String> tabComplete(CommandSender sender, String label, String[] args) {
         if (args.length == 2 && sender instanceof Player player) {
-            Set<String> homes = api.getHomeNames(player.getUniqueId());
-            return homes.stream().filter(name -> name.toLowerCase().startsWith(args[1].toLowerCase())).collect(Collectors.toList());
+            try {
+                Set<String> homes = api.getHomeNames(player.getUniqueId());
+                String prefix = args[1].toLowerCase();
+                return homes.stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+            } catch (Exception e) {
+                return Collections.emptyList();
+            }
         }
         return Collections.emptyList();
     }

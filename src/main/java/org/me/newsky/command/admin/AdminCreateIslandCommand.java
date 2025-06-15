@@ -6,17 +6,21 @@ import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
+import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.NoActiveServerException;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
+import java.util.stream.Collectors;
 
 /**
  * /isadmin create <player>
  */
-public class AdminCreateIslandCommand implements SubCommand {
+public class AdminCreateIslandCommand implements SubCommand, TabComplete {
     private final NewSky plugin;
     private final NewSkyAPI api;
     private final ConfigHandler config;
@@ -77,5 +81,14 @@ public class AdminCreateIslandCommand implements SubCommand {
         });
 
         return true;
+    }
+
+    @Override
+    public List<String> tabComplete(CommandSender sender, String label, String[] args) {
+        if (args.length == 2) {
+            String prefix = args[1].toLowerCase();
+            return api.getOnlinePlayers().stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+        }
+        return Collections.emptyList();
     }
 }

@@ -9,11 +9,7 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.exceptions.IslandDoesNotExistException;
-import org.me.newsky.exceptions.IslandLockedException;
-import org.me.newsky.exceptions.NoActiveServerException;
-import org.me.newsky.exceptions.PlayerBannedException;
-import org.me.newsky.exceptions.WarpDoesNotExistException;
+import org.me.newsky.exceptions.*;
 
 import java.util.Collections;
 import java.util.List;
@@ -113,9 +109,8 @@ public class PlayerWarpCommand implements SubCommand, TabComplete {
         }
 
         if (args.length == 3) {
-            String warpPlayerName = args[1];
-            OfflinePlayer target = Bukkit.getOfflinePlayer(warpPlayerName);
             try {
+                OfflinePlayer target = Bukkit.getOfflinePlayer(args[1]);
                 Set<String> warps = api.getWarpNames(target.getUniqueId());
                 String prefix = args[2].toLowerCase();
                 return warps.stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
