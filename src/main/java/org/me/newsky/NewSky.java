@@ -97,7 +97,7 @@ public class NewSky extends JavaPlugin {
             info("Database connection success!");
 
             info("Starting cache handler");
-            cache = new Cache(databaseHandler);
+            cache = new Cache(this, databaseHandler);
             info("Cache handler loaded");
 
             info("Starting Redis cache");
