@@ -272,23 +272,23 @@ public class Cache {
     public void deleteIsland(UUID islandUuid) {
         plugin.debug(getClass().getSimpleName(), "Deleting island with UUID: " + islandUuid);
         databaseHandler.deleteIsland(islandUuid).thenRun(() -> {
-            // Remove all data from cache
-            islandData.remove(islandUuid);
-            islandPlayers.remove(islandUuid);
-            islandHomes.remove(islandUuid);
-            islandWarps.remove(islandUuid);
-            islandBans.remove(islandUuid);
-            islandCoops.remove(islandUuid);
+            // Remove cache following DB deletion priority
             islandLevels.remove(islandUuid);
+            islandCoops.remove(islandUuid);
+            islandBans.remove(islandUuid);
+            islandWarps.remove(islandUuid);
+            islandHomes.remove(islandUuid);
+            islandPlayers.remove(islandUuid);
+            islandData.remove(islandUuid);
 
-            // Publish to broker
-            cacheBroker.publishUpdate("island_data", islandUuid);
-            cacheBroker.publishUpdate("island_players", islandUuid);
-            cacheBroker.publishUpdate("island_homes", islandUuid);
-            cacheBroker.publishUpdate("island_warps", islandUuid);
-            cacheBroker.publishUpdate("island_bans", islandUuid);
-            cacheBroker.publishUpdate("island_coops", islandUuid);
+            // Publish to broker in the same order
             cacheBroker.publishUpdate("island_levels", islandUuid);
+            cacheBroker.publishUpdate("island_coops", islandUuid);
+            cacheBroker.publishUpdate("island_bans", islandUuid);
+            cacheBroker.publishUpdate("island_warps", islandUuid);
+            cacheBroker.publishUpdate("island_homes", islandUuid);
+            cacheBroker.publishUpdate("island_players", islandUuid);
+            cacheBroker.publishUpdate("island_data", islandUuid);
         });
         plugin.debug(getClass().getSimpleName(), "Finished deleting island with UUID: " + islandUuid);
     }
@@ -318,21 +318,22 @@ public class Cache {
     public void deleteIslandPlayer(UUID islandUuid, UUID playerUuid) {
         plugin.debug(getClass().getSimpleName(), "Deleting player " + playerUuid + " from island " + islandUuid);
         databaseHandler.deleteIslandPlayer(islandUuid, playerUuid).thenRun(() -> {
-            Map<UUID, String> players = islandPlayers.get(islandUuid);
-            if (players != null) players.remove(playerUuid);
+            Map<UUID, Map<String, String>> warps = islandWarps.get(islandUuid);
+            if (warps != null) warps.remove(playerUuid);
 
             Map<UUID, Map<String, String>> homes = islandHomes.get(islandUuid);
             if (homes != null) homes.remove(playerUuid);
 
-            Map<UUID, Map<String, String>> warps = islandWarps.get(islandUuid);
-            if (warps != null) warps.remove(playerUuid);
+            Map<UUID, String> players = islandPlayers.get(islandUuid);
+            if (players != null) players.remove(playerUuid);
 
-            cacheBroker.publishUpdate("island_players", islandUuid);
-            cacheBroker.publishUpdate("island_homes", islandUuid);
             cacheBroker.publishUpdate("island_warps", islandUuid);
+            cacheBroker.publishUpdate("island_homes", islandUuid);
+            cacheBroker.publishUpdate("island_players", islandUuid);
         });
         plugin.debug(getClass().getSimpleName(), "Finished deleting player " + playerUuid + " from island " + islandUuid);
     }
+
 
     public void updateIslandOwner(UUID islandUuid, UUID playerUuid) {
         plugin.debug(getClass().getSimpleName(), "Updating owner of island " + islandUuid + " to player " + playerUuid);
