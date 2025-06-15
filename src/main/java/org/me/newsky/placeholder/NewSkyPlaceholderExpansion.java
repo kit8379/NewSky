@@ -21,7 +21,7 @@ public class NewSkyPlaceholderExpansion extends PlaceholderExpansion {
 
     @Override
     public @NotNull String getAuthor() {
-        return plugin.getDescription().getAuthors().toString();
+        return "kit8379";
     }
 
     @Override
@@ -31,7 +31,7 @@ public class NewSkyPlaceholderExpansion extends PlaceholderExpansion {
 
     @Override
     public @NotNull String getVersion() {
-        return plugin.getDescription().getVersion();
+        return "1.0";
     }
 
     @Override
