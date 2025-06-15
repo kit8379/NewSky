@@ -144,7 +144,7 @@ public class NewSky extends JavaPlugin {
 
             info("Starting main handlers for the plugin");
             IslandHandler islandHandler = new IslandHandler(this, config, cache, islandDistributor);
-            PlayerHandler playerHandler = new PlayerHandler(this, cache);
+            PlayerHandler playerHandler = new PlayerHandler(this, cache, redisCache);
             HomeHandler homeHandler = new HomeHandler(this, cache, islandDistributor);
             WarpHandler warpHandler = new WarpHandler(this, cache, islandDistributor);
             LevelHandler levelHandler = new LevelHandler(config, cache);

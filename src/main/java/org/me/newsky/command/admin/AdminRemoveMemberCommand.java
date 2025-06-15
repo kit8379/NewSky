@@ -8,6 +8,7 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.CannotRemoveOwnerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
 
@@ -83,7 +84,9 @@ public class AdminRemoveMemberCommand implements SubCommand, TabComplete {
             api.sendPlayerMessage(targetMemberUuid, config.getWasRemovedFromIslandMessage(islandOwnerName));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
-            if (cause instanceof IslandPlayerDoesNotExistException) {
+            if (cause instanceof CannotRemoveOwnerException) {
+                sender.sendMessage(config.getCannotRemoveOwnerMessage());
+            } else if (cause instanceof IslandPlayerDoesNotExistException) {
                 sender.sendMessage(config.getIslandMemberNotExistsMessage(targetMemberName));
             } else {
                 sender.sendMessage("There was an error removing the member");

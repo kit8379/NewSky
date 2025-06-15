@@ -2,7 +2,9 @@ package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.Cache;
+import org.me.newsky.cache.RedisCache;
 import org.me.newsky.exceptions.*;
+import org.me.newsky.model.Invitation;
 
 import java.util.Optional;
 import java.util.Set;
@@ -11,13 +13,14 @@ import java.util.concurrent.CompletableFuture;
 
 public class PlayerHandler {
 
-
     private final NewSky plugin;
     private final Cache cache;
+    private final RedisCache redisCache;
 
-    public PlayerHandler(NewSky plugin, Cache cache) {
+    public PlayerHandler(NewSky plugin, Cache cache, RedisCache redisCache) {
         this.plugin = plugin;
         this.cache = cache;
+        this.redisCache = redisCache;
     }
 
     public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role) {
@@ -29,16 +32,12 @@ public class PlayerHandler {
                 }
             }
 
-            UUID ownerUuid = cache.getIslandOwner(islandUuid);
-            if (ownerUuid.equals(playerUuid)) {
-                throw new AlreadyOwnerException();
-            }
-
             Set<UUID> members = cache.getIslandPlayers(islandUuid);
             if (members.contains(playerUuid)) {
                 throw new IslandPlayerAlreadyExistsException();
             }
 
+            UUID ownerUuid = cache.getIslandOwner(islandUuid);
             cache.updateIslandPlayer(islandUuid, playerUuid, role);
             Optional<String> homePoint = cache.getHomeLocation(islandUuid, ownerUuid, "default");
             homePoint.ifPresent(s -> cache.updateHomePoint(islandUuid, playerUuid, "default", s));
@@ -75,5 +74,37 @@ public class PlayerHandler {
 
             cache.updateIslandOwner(islandUuid, newOwnerId);
         }, plugin.getBukkitAsyncExecutor());
+    }
+
+    public CompletableFuture<Void> addPendingInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {
+        return CompletableFuture.runAsync(() -> {
+            if (getPendingInvite(inviteeUuid).isPresent()) {
+                throw new InvitedAlreadyException();
+            }
+
+            Optional<UUID> existingIsland = cache.getIslandUuid(inviteeUuid);
+            if (existingIsland.isPresent()) {
+                if (!existingIsland.get().equals(islandUuid)) {
+                    throw new IslandAlreadyExistException();
+                }
+            }
+
+            Set<UUID> members = cache.getIslandPlayers(islandUuid);
+            if (members.contains(inviteeUuid)) {
+                throw new IslandPlayerAlreadyExistsException();
+            }
+
+            redisCache.addIslandInvite(inviteeUuid, islandUuid, inviterUuid, ttlSeconds);
+        }, plugin.getBukkitAsyncExecutor());
+    }
+
+
+    public CompletableFuture<Void> removePendingInvite(UUID playerUuid) {
+        return CompletableFuture.runAsync(() -> redisCache.removeIslandInvite(playerUuid), plugin.getBukkitAsyncExecutor());
+    }
+
+
+    public Optional<Invitation> getPendingInvite(UUID playerUuid) {
+        return redisCache.getIslandInvite(playerUuid);
     }
 }

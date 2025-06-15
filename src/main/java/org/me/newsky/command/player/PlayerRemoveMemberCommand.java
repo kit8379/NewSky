@@ -9,6 +9,7 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.CannotRemoveOwnerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
 
@@ -82,12 +83,19 @@ public class PlayerRemoveMemberCommand implements SubCommand, TabComplete {
             return true;
         }
 
+        if (playerUuid.equals(targetPlayerUuid)) {
+            player.sendMessage(config.getPlayerCannotRemoveSelfMessage());
+            return true;
+        }
+
         api.removeMember(islandUuid, targetPlayerUuid).thenRun(() -> {
             player.sendMessage(config.getPlayerRemoveMemberSuccessMessage(targetPlayerName));
             api.sendPlayerMessage(targetPlayerUuid, config.getWasRemovedFromIslandMessage(player.getName()));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
-            if (cause instanceof IslandPlayerDoesNotExistException) {
+            if (cause instanceof CannotRemoveOwnerException) {
+                player.sendMessage(config.getCannotRemoveOwnerMessage());
+            } else if (cause instanceof IslandPlayerDoesNotExistException) {
                 player.sendMessage(config.getIslandMemberNotExistsMessage(targetPlayerName));
             } else {
                 player.sendMessage("There was an error removing the member.");

@@ -4,36 +4,13 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
-import org.me.newsky.command.player.PlayerHelpCommand;
-import org.me.newsky.command.player.PlayerAddMemberCommand;
-import org.me.newsky.command.player.PlayerBanCommand;
-import org.me.newsky.command.player.PlayerBanListCommand;
-import org.me.newsky.command.player.PlayerCoopCommand;
-import org.me.newsky.command.player.PlayerCoopListCommand;
-import org.me.newsky.command.player.PlayerCreateIslandCommand;
-import org.me.newsky.command.player.PlayerDeleteIslandCommand;
-import org.me.newsky.command.player.PlayerDelHomeCommand;
-import org.me.newsky.command.player.PlayerDelWarpCommand;
-import org.me.newsky.command.player.PlayerExpelCommand;
-import org.me.newsky.command.player.PlayerHomeCommand;
-import org.me.newsky.command.player.PlayerInfoCommand;
-import org.me.newsky.command.player.PlayerLevelCommand;
-import org.me.newsky.command.player.PlayerLeaveCommand;
-import org.me.newsky.command.player.PlayerLockCommand;
-import org.me.newsky.command.player.PlayerPvpCommand;
-import org.me.newsky.command.player.PlayerRemoveMemberCommand;
-import org.me.newsky.command.player.PlayerSetHomeCommand;
-import org.me.newsky.command.player.PlayerSetOwnerCommand;
-import org.me.newsky.command.player.PlayerSetWarpCommand;
-import org.me.newsky.command.player.PlayerTopCommand;
-import org.me.newsky.command.player.PlayerUnbanCommand;
-import org.me.newsky.command.player.PlayerUncoopCommand;
-import org.me.newsky.command.player.PlayerValueCommand;
-import org.me.newsky.command.player.PlayerWarpCommand;
+import org.me.newsky.command.player.*;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.IslandDoesNotExistException;
 
 import java.util.*;
 
@@ -42,14 +19,18 @@ import java.util.*;
  */
 public class IslandPlayerCommand implements CommandExecutor, TabExecutor {
     private final ConfigHandler config;
+    private final NewSkyAPI api;
     private final Map<String, SubCommand> subCommandMap = new HashMap<>();
     private final Set<SubCommand> subCommands = new HashSet<>();
 
     public IslandPlayerCommand(NewSky plugin, NewSkyAPI api, ConfigHandler config) {
         this.config = config;
+        this.api = api;
         subCommands.add(new PlayerCreateIslandCommand(plugin, api, config));
         subCommands.add(new PlayerDeleteIslandCommand(plugin, api, config));
-        subCommands.add(new PlayerAddMemberCommand(plugin, api, config));
+        subCommands.add(new PlayerInviteCommand(plugin, api, config));
+        subCommands.add(new PlayerAcceptInviteCommand(plugin, api, config));
+        subCommands.add(new PlayerRejectInviteCommand(plugin, api, config));
         subCommands.add(new PlayerRemoveMemberCommand(plugin, api, config));
         subCommands.add(new PlayerHomeCommand(plugin, api, config));
         subCommands.add(new PlayerSetHomeCommand(plugin, api, config));
@@ -88,16 +69,46 @@ public class IslandPlayerCommand implements CommandExecutor, TabExecutor {
 
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String @NotNull [] args) {
-        // Check permission for the main command
         if (!sender.hasPermission("newsky.island")) {
             sender.sendMessage(config.getNoPermissionCommandMessage());
             return true;
         }
 
-        // If no arguments are provided, show help command by default
         if (args.length == 0) {
-            SubCommand helpCmd = subCommandMap.get("help");
-            return helpCmd.execute(sender, new String[]{"help"});
+            String mode = config.getBaseCommandMode();
+            if ("island".equalsIgnoreCase(mode)) {
+                if (!(sender instanceof Player player)) {
+                    sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
+                    return true;
+                }
+                try {
+                    api.getIslandUuid(player.getUniqueId());
+                    // Has island → teleport home
+                    SubCommand homeCmd = subCommandMap.get("home");
+                    if (homeCmd != null) {
+                        return homeCmd.execute(player, new String[]{"home"});
+                    } else {
+                        player.sendMessage(config.getPlayerNoHomeMessage("default"));
+                        return true;
+                    }
+                } catch (IslandDoesNotExistException e) {
+                    // No island → create island
+                    SubCommand createCmd = subCommandMap.get("create");
+                    if (createCmd != null) {
+                        return createCmd.execute(player, new String[]{"create"});
+                    } else {
+                        player.sendMessage(config.getPlayerNoIslandMessage());
+                        return true;
+                    }
+                }
+            } else {
+                // Default to help mode
+                SubCommand helpCmd = subCommandMap.get("help");
+                if (helpCmd != null) {
+                    return helpCmd.execute(sender, new String[]{"help"});
+                }
+                return true;
+            }
         }
 
         String subName = args[0].toLowerCase();

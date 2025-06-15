@@ -8,6 +8,7 @@ import org.me.newsky.util.ColorUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -216,6 +217,10 @@ public class ConfigHandler {
         return config.getInt("island.level-update-interval");
     }
 
+    public String getBaseCommandMode() {
+        return config.getString("command.base-command-mode");
+    }
+
     public int getBlockLevel(String material) {
         return levels.getInt("blocks." + material, 0);
     }
@@ -232,20 +237,56 @@ public class ConfigHandler {
     // Commands Section
     // ================================================================================================================
 
-    public String[] getPlayerAddMemberAliases() {
-        return commands.getStringList("commands.player.addmember.aliases").toArray(new String[0]);
+    public List<String> getPlayerCommandOrder() {
+        return Objects.requireNonNull(commands.getConfigurationSection("commands.player")).getKeys(false).stream().toList();
     }
 
-    public String getPlayerAddMemberPermission() {
-        return commands.getString("commands.player.addmember.permission");
+    public String[] getPlayerInviteAliases() {
+        return commands.getStringList("commands.player.invite.aliases").toArray(new String[0]);
     }
 
-    public String getPlayerAddMemberSyntax() {
-        return commands.getString("commands.player.addmember.syntax");
+    public String getPlayerInvitePermission() {
+        return commands.getString("commands.player.invite.permission");
     }
 
-    public String getPlayerAddMemberDescription() {
-        return commands.getString("commands.player.addmember.description");
+    public String getPlayerInviteSyntax() {
+        return commands.getString("commands.player.invite.syntax");
+    }
+
+    public String getPlayerInviteDescription() {
+        return commands.getString("commands.player.invite.description");
+    }
+
+    public String[] getPlayerAcceptAliases() {
+        return commands.getStringList("commands.player.accept.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerAcceptPermission() {
+        return commands.getString("commands.player.accept.permission");
+    }
+
+    public String getPlayerAcceptSyntax() {
+        return commands.getString("commands.player.accept.syntax");
+    }
+
+    public String getPlayerAcceptDescription() {
+        return commands.getString("commands.player.accept.description");
+    }
+
+    public String[] getPlayerRejectAliases() {
+        return commands.getStringList("commands.player.reject.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerRejectPermission() {
+        return commands.getString("commands.player.reject.permission");
+    }
+
+    public String getPlayerRejectSyntax() {
+        return commands.getString("commands.player.reject.syntax");
+    }
+
+    public String getPlayerRejectDescription() {
+        return commands.getString("commands.player.reject.description");
     }
 
     public String[] getPlayerBanAliases() {
@@ -646,6 +687,10 @@ public class ConfigHandler {
 
     public String getPlayerWarpDescription() {
         return commands.getString("commands.player.warp.description");
+    }
+
+    public List<String> getAdminCommandOrder() {
+        return Objects.requireNonNull(commands.getConfigurationSection("commands.admin")).getKeys(false).stream().toList();
     }
 
     public String[] getAdminAddMemberAliases() {
@@ -1086,6 +1131,14 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.was-uncooped-from-island")).replace("{owner}", owner));
     }
 
+    public Component getNewMemberNotificationMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.new-member-notification")).replace("{player}", player));
+    }
+
+    public Component getCannotRemoveOwnerMessage() {
+        return ColorUtils.colorize(messages.getString("messages.cannot-remove-owner"));
+    }
+
     // Admin Command Messages
     public Component getAdminNoIslandMessage(String player) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-no-island")).replace("{player}", player));
@@ -1200,12 +1253,44 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.player-must-in-island-set-warp"));
     }
 
-    public Component getPlayerAddMemberSuccessMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-add-member-success")).replace("{player}", player));
+    public Component getPlayerInviteSentMessage(String target) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-invite-sent")).replace("{player}", target));
+    }
+
+    public Component getPlayerInviteReceiveMessage(String inviter) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-invite-receive")).replace("{player}", inviter));
+    }
+
+    public Component getPlayerInviteAcceptedNotifyMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-invite-accepted-notify")).replace("{player}", player));
+    }
+
+    public Component getPlayerInviteRejectedNotifyMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-invite-rejected-notify")).replace("{player}", player));
+    }
+
+    public Component getPlayerInviteAcceptedMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-invite-accepted"));
+    }
+
+    public Component getPlayerInviteRejectedMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-invite-rejected"));
+    }
+
+    public Component getPlayerAlreadyInvitedMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-already-invited")).replace("{player}", player));
+    }
+
+    public Component getPlayerNoPendingInviteMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-no-pending-invite"));
     }
 
     public Component getPlayerRemoveMemberSuccessMessage(String player) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-remove-member-success")).replace("{player}", player));
+    }
+
+    public Component getPlayerCannotRemoveSelfMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-cannot-remove-self"));
     }
 
     public Component getPlayerCreateSuccessMessage() {

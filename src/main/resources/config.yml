@@ -89,9 +89,18 @@ island:
     pitch: 0
 
   # The interval that the server checks and unloads the inactive islands.
-  # The default value is 60 seconds (1 minute).
-  island-unload-interval: 60
+  # The default value is 300 seconds (5 minutes).
+  island-unload-interval: 300
 
   # The interval that the plugin update the island level.
-  # The default value is 300 seconds (5 minutes).
-  level-update-interval: 300
+  # The default value is 180 seconds (2 minutes).
+  level-update-interval: 180
+
+  # The settings for the command
+  command:
+    # The mode when the player uses the /island command.
+    # The mode can be "island", "help".
+    # The "help" mode means the player will see the help message of the island command.
+    # The "island" mode means the player will directly teleport to default home if they have island or directly create a new island if they don't have one.
+    # The default mode is "help".
+    base-command-mode: "help"

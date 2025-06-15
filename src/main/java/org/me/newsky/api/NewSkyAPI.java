@@ -4,8 +4,10 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.me.newsky.NewSky;
 import org.me.newsky.island.*;
+import org.me.newsky.model.Invitation;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -356,6 +358,39 @@ public class NewSkyAPI {
      */
     public Set<String> getOnlinePlayers() {
         return plugin.getOnlinePlayers();
+    }
+
+    /**
+     * Adds a pending invite for the specified player.
+     *
+     * @param inviteeUuid UUID of the player receiving the invite.
+     * @param islandUuid  UUID of the island offering the invite.
+     * @param inviterUuid UUID of the inviter.
+     * @param ttlSeconds  Time in seconds before the invite expires.
+     * @return CompletableFuture that completes when the invite is added
+     */
+    public CompletableFuture<Void> addPendingInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {
+        return playerHandler.addPendingInvite(inviteeUuid, islandUuid, inviterUuid, ttlSeconds);
+    }
+
+    /**
+     * Removes a pending invite for a player.
+     *
+     * @param playerUuid UUID of the player whose invite should be removed.
+     * @return CompletableFuture that completes when the invite is removed
+     */
+    public CompletableFuture<Void> removePendingInvite(UUID playerUuid) {
+        return playerHandler.removePendingInvite(playerUuid);
+    }
+
+    /**
+     * Gets the pending invite data for a player.
+     *
+     * @param playerUuid UUID of the player.
+     * @return Optional containing Invitation if an invite exists.
+     */
+    public Optional<Invitation> getPendingInvite(UUID playerUuid) {
+        return playerHandler.getPendingInvite(playerUuid);
     }
 
     /**

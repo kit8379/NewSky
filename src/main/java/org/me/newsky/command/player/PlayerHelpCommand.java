@@ -60,6 +60,7 @@ public class PlayerHelpCommand implements SubCommand {
             page = 1;
         }
 
+        List<String> priorityOrder = config.getPlayerCommandOrder();
 
         List<SubCommand> visible = new ArrayList<>();
         for (SubCommand cmd : allSubs) {
@@ -69,7 +70,11 @@ public class PlayerHelpCommand implements SubCommand {
             }
         }
 
-        visible.sort(Comparator.comparing(SubCommand::getName));
+        visible.sort(Comparator.comparingInt(cmd -> {
+            int index = priorityOrder.indexOf(cmd.getName());
+            return index == -1 ? Integer.MAX_VALUE : index;
+        }));
+
         int totalCommands = visible.size();
         int totalPages = (int) Math.ceil((double) totalCommands / COMMANDS_PER_PAGE);
         if (totalPages == 0) totalPages = 1;

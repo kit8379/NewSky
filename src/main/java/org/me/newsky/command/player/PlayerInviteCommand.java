@@ -9,8 +9,8 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.InvitedAlreadyException;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
-import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
 
 import java.util.Collections;
@@ -20,14 +20,14 @@ import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
- * /is addmember <player>
+ * /is invite <player>
  */
-public class PlayerAddMemberCommand implements SubCommand, TabComplete {
+public class PlayerInviteCommand implements SubCommand, TabComplete {
     private final NewSky plugin;
     private final NewSkyAPI api;
     private final ConfigHandler config;
 
-    public PlayerAddMemberCommand(NewSky plugin, NewSkyAPI api, ConfigHandler config) {
+    public PlayerInviteCommand(NewSky plugin, NewSkyAPI api, ConfigHandler config) {
         this.plugin = plugin;
         this.api = api;
         this.config = config;
@@ -35,27 +35,27 @@ public class PlayerAddMemberCommand implements SubCommand, TabComplete {
 
     @Override
     public String getName() {
-        return "addmember";
+        return "invite";
     }
 
     @Override
     public String[] getAliases() {
-        return config.getPlayerAddMemberAliases();
+        return config.getPlayerInviteAliases();
     }
 
     @Override
     public String getPermission() {
-        return config.getPlayerAddMemberPermission();
+        return config.getPlayerInvitePermission();
     }
 
     @Override
     public String getSyntax() {
-        return config.getPlayerAddMemberSyntax();
+        return config.getPlayerInviteSyntax();
     }
 
     @Override
     public String getDescription() {
-        return config.getPlayerAddMemberDescription();
+        return config.getPlayerInviteDescription();
     }
 
     @Override
@@ -83,23 +83,25 @@ public class PlayerAddMemberCommand implements SubCommand, TabComplete {
         UUID islandUuid;
         try {
             islandUuid = api.getIslandUuid(playerUuid);
-        } catch (IslandDoesNotExistException e) {
+        } catch (Exception e) {
             player.sendMessage(config.getPlayerNoIslandMessage());
             return true;
         }
 
-        api.addMember(islandUuid, targetPlayerUuid, "member").thenRun(() -> {
-            player.sendMessage(config.getPlayerAddMemberSuccessMessage(targetPlayerName));
-            api.sendPlayerMessage(targetPlayerUuid, config.getWasAddedToIslandMessage(player.getName()));
+        api.addPendingInvite(targetPlayerUuid, islandUuid, playerUuid, 600).thenRun(() -> {
+            player.sendMessage(config.getPlayerInviteSentMessage(targetPlayerName));
+            api.sendPlayerMessage(targetPlayerUuid, config.getPlayerInviteReceiveMessage(player.getName()));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
-            if (cause instanceof IslandAlreadyExistException) {
+            if (cause instanceof InvitedAlreadyException) {
+                player.sendMessage(config.getPlayerAlreadyInvitedMessage(targetPlayerName));
+            } else if (cause instanceof IslandAlreadyExistException) {
                 player.sendMessage(config.getAlreadyHasIslandMessage(targetPlayerName));
             } else if (cause instanceof IslandPlayerAlreadyExistsException) {
                 player.sendMessage(config.getIslandMemberExistsMessage(targetPlayerName));
             } else {
-                player.sendMessage("There was an error adding the member.");
-                plugin.getLogger().log(Level.SEVERE, "Error adding member to island for player " + player.getName(), ex);
+                player.sendMessage("There was an error sending the invite.");
+                plugin.getLogger().log(Level.SEVERE, "Error inviting player " + targetPlayerName + " to island of " + player.getName(), ex);
             }
             return null;
         });

@@ -8,6 +8,7 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
 
@@ -83,7 +84,9 @@ public class AdminAddMemberCommand implements SubCommand, TabComplete {
             api.sendPlayerMessage(targetMemberUuid, config.getWasAddedToIslandMessage(islandOwnerName));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
-            if (cause instanceof IslandPlayerAlreadyExistsException) {
+            if (cause instanceof IslandAlreadyExistException) {
+                sender.sendMessage(config.getAlreadyHasIslandMessage(targetMemberName));
+            } else if (cause instanceof IslandPlayerAlreadyExistsException) {
                 sender.sendMessage(config.getIslandMemberExistsMessage(targetMemberName));
             } else {
                 sender.sendMessage("There was an error adding the member");

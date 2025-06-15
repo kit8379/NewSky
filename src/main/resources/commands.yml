@@ -4,36 +4,6 @@
 # If you want to change the permission nodes, you need to manually add them to your permissions plugin.
 commands:
   player:
-    addmember:
-      aliases: [ ]
-      permission: "island.player.addmember"
-      syntax: "<player name>"
-      description: "Invite a player to join your island"
-
-    ban:
-      aliases: [ ]
-      permission: "island.player.ban"
-      syntax: "<player>"
-      description: "Ban a player from your island"
-
-    banlist:
-      aliases: [ ]
-      permission: "island.player.banlist"
-      syntax: ""
-      description: "Show the list of players banned from your island"
-
-    coop:
-      aliases: [ ]
-      permission: "island.player.coop"
-      syntax: "<player>"
-      description: "Set a player as your island co-op partner"
-
-    cooplist:
-      aliases: [ ]
-      permission: "island.player.cooplist"
-      syntax: ""
-      description: "Show the list of your island’s co-op members"
-
     create:
       aliases: [ ]
       permission: "island.player.create"
@@ -46,41 +16,11 @@ commands:
       syntax: ""
       description: "Delete your island"
 
-    delhome:
+    setowner:
       aliases: [ ]
-      permission: "island.player.delhome"
-      syntax: "<homeName>"
-      description: "Delete an existing home on your island"
-
-    delwarp:
-      aliases: [ ]
-      permission: "island.player.delwarp"
-      syntax: "<warpName>"
-      description: "Delete an existing warp on your island"
-
-    expel:
-      aliases: [ ]
-      permission: "island.player.expel"
+      permission: "island.player.setowner"
       syntax: "<player>"
-      description: "Expel a player from your island"
-
-    help:
-      aliases: [ ]
-      permission: "island.player.help"
-      syntax: "[page]"
-      description: "Show available island commands"
-
-    home:
-      aliases: [ ]
-      permission: "island.player.home"
-      syntax: "[homeName]"
-      description: "Teleport to your island home"
-
-    info:
-      aliases: [ ]
-      permission: "island.player.info"
-      syntax: "[player]"
-      description: "Show island information"
+      description: "Set a new owner for your island"
 
     leave:
       aliases: [ ]
@@ -88,11 +28,71 @@ commands:
       syntax: ""
       description: "Leave your island"
 
-    level:
+    invite:
       aliases: [ ]
-      permission: "island.player.level"
+      permission: "island.player.invite"
+      syntax: "<player>"
+      description: "Invite a player to join your island"
+
+    accept:
+      aliases: [ ]
+      permission: "island.player.accept"
       syntax: ""
-      description: "Show your island level"
+      description: "Accept a pending island invitation"
+
+    reject:
+      aliases: [ ]
+      permission: "island.player.reject"
+      syntax: ""
+      description: "Reject a pending island invitation"
+
+    removemember:
+      aliases: [ ]
+      permission: "island.player.removemember"
+      syntax: "<player>"
+      description: "Remove a member from your island"
+
+    expel:
+      aliases: [ ]
+      permission: "island.player.expel"
+      syntax: "<player>"
+      description: "Expel a player from your island"
+
+    coop:
+      aliases: [ ]
+      permission: "island.player.coop"
+      syntax: "<player>"
+      description: "Set a player as your island co-op partner"
+
+    uncoop:
+      aliases: [ ]
+      permission: "island.player.uncoop"
+      syntax: "<player>"
+      description: "Remove a co-op partner from your island"
+
+    cooplist:
+      aliases: [ ]
+      permission: "island.player.cooplist"
+      syntax: ""
+      description: "Show the list of your island’s co-op members"
+
+    ban:
+      aliases: [ ]
+      permission: "island.player.ban"
+      syntax: "<player>"
+      description: "Ban a player from your island"
+
+    unban:
+      aliases: [ ]
+      permission: "island.player.unban"
+      syntax: "<player>"
+      description: "Unban a player from your island"
+
+    banlist:
+      aliases: [ ]
+      permission: "island.player.banlist"
+      syntax: ""
+      description: "Show the list of players banned from your island"
 
     lock:
       aliases: [ ]
@@ -106,23 +106,24 @@ commands:
       syntax: ""
       description: "Toggle PvP state on your island"
 
-    removemember:
-      aliases: [ ]
-      permission: "island.player.removemember"
-      syntax: "<player>"
-      description: "Remove a member from your island"
-
     sethome:
       aliases: [ ]
       permission: "island.player.sethome"
       syntax: "[homeName]"
       description: "Set a new home for your island"
 
-    setowner:
+    delhome:
       aliases: [ ]
-      permission: "island.player.setowner"
-      syntax: "<player>"
-      description: "Set a new owner for your island"
+      permission: "island.player.delhome"
+      syntax: "<homeName>"
+      description: "Delete an existing home on your island"
+
+    home:
+      aliases: [ "go" ]
+      permission: "island.player.home"
+      syntax: "[homeName]"
+      description: "Teleport to your island home"
+
 
     setwarp:
       aliases: [ ]
@@ -130,29 +131,11 @@ commands:
       syntax: "[warpName]"
       description: "Set a new warp for your island"
 
-    top:
+    delwarp:
       aliases: [ ]
-      permission: "island.player.top"
-      syntax: ""
-      description: "Show top islands ranked by level"
-
-    unban:
-      aliases: [ ]
-      permission: "island.player.unban"
-      syntax: "<player>"
-      description: "Unban a player from your island"
-
-    uncoop:
-      aliases: [ ]
-      permission: "island.player.uncoop"
-      syntax: "<player>"
-      description: "Remove a co-op partner from your island"
-
-    value:
-      aliases: [ ]
-      permission: "island.player.value"
-      syntax: ""
-      description: "Show the value of the block in your hand"
+      permission: "island.player.delwarp"
+      syntax: "<warpName>"
+      description: "Delete an existing warp on your island"
 
     warp:
       aliases: [ ]
@@ -160,25 +143,37 @@ commands:
       syntax: "<player> [warpName]"
       description: "Teleport to another player's island warp"
 
+    info:
+      aliases: [ ]
+      permission: "island.player.info"
+      syntax: "[player]"
+      description: "Show island information"
+
+    level:
+      aliases: [ ]
+      permission: "island.player.level"
+      syntax: ""
+      description: "Show your island level"
+
+    top:
+      aliases: [ ]
+      permission: "island.player.top"
+      syntax: ""
+      description: "Show top islands ranked by level"
+
+    value:
+      aliases: [ ]
+      permission: "island.player.value"
+      syntax: ""
+      description: "Show the value of the block in your hand"
+
+    help:
+      aliases: [ ]
+      permission: "island.player.help"
+      syntax: "[page]"
+      description: "Show available island commands"
+
   admin:
-    addmember:
-      aliases: [ ]
-      permission: "newsky.admin.addmember"
-      syntax: "<member> <owner>"
-      description: "Force-add a member to another player's island"
-
-    ban:
-      aliases: [ ]
-      permission: "newsky.admin.ban"
-      syntax: "<owner> <player>"
-      description: "Ban a player from another player's island"
-
-    coop:
-      aliases: [ ]
-      permission: "newsky.admin.coop"
-      syntax: "<owner> <player>"
-      description: "Add a co-op partner to another player's island"
-
     create:
       aliases: [ ]
       permission: "newsky.admin.create"
@@ -191,35 +186,53 @@ commands:
       syntax: "<player>"
       description: "Delete a player's island"
 
-    delhome:
-      aliases: [ ]
-      permission: "newsky.admin.delhome"
-      syntax: "<player> <home>"
-      description: "Delete a home from another player's island"
-
-    delwarp:
-      aliases: [ ]
-      permission: "newsky.admin.delwarp"
-      syntax: "<player> <warp>"
-      description: "Delete a warp from another player's island"
-
-    help:
-      aliases: [ ]
-      permission: "newsky.admin.help"
-      syntax: "[page]"
-      description: "Show available admin commands"
-
-    home:
-      aliases: [ ]
-      permission: "newsky.admin.home"
-      syntax: "<player> [home] [target]"
-      description: "Teleport a player to another player's home"
-
     load:
       aliases: [ ]
       permission: "newsky.admin.load"
       syntax: "<player>"
       description: "Load another player's island"
+
+    unload:
+      aliases: [ ]
+      permission: "newsky.admin.unload"
+      syntax: "<player>"
+      description: "Unload another player's island"
+
+    addmember:
+      aliases: [ ]
+      permission: "newsky.admin.addmember"
+      syntax: "<member> <owner>"
+      description: "Force-add a member to another player's island"
+
+    removemember:
+      aliases: [ ]
+      permission: "newsky.admin.removemember"
+      syntax: "<member> <owner>"
+      description: "Force-remove a member from another player's island"
+
+    coop:
+      aliases: [ ]
+      permission: "newsky.admin.coop"
+      syntax: "<owner> <player>"
+      description: "Add a co-op partner to another player's island"
+
+    uncoop:
+      aliases: [ ]
+      permission: "newsky.admin.uncoop"
+      syntax: "<owner> <player>"
+      description: "Remove a co-op partner from another player's island"
+
+    ban:
+      aliases: [ ]
+      permission: "newsky.admin.ban"
+      syntax: "<owner> <player>"
+      description: "Ban a player from another player's island"
+
+    unban:
+      aliases: [ ]
+      permission: "newsky.admin.unban"
+      syntax: "<owner> <player>"
+      description: "Unban a player from another player's island"
 
     lock:
       aliases: [ ]
@@ -233,23 +246,23 @@ commands:
       syntax: "<player>"
       description: "Toggle PvP state of another player's island"
 
-    reload:
-      aliases: [ ]
-      permission: "newsky.admin.reload"
-      syntax: ""
-      description: "Reload plugin configuration files"
-
-    removemember:
-      aliases: [ ]
-      permission: "newsky.admin.removemember"
-      syntax: "<member> <owner>"
-      description: "Force-remove a member from another player's island"
-
     sethome:
       aliases: [ ]
       permission: "newsky.admin.sethome"
       syntax: "<player> <home>"
       description: "Set a home on another player's island at your location"
+
+    delhome:
+      aliases: [ ]
+      permission: "newsky.admin.delhome"
+      syntax: "<player> <home>"
+      description: "Delete a home from another player's island"
+
+    home:
+      aliases: [ "go" ]
+      permission: "newsky.admin.home"
+      syntax: "<player> [home] [target]"
+      description: "Teleport a player to another player's home"
 
     setwarp:
       aliases: [ ]
@@ -257,26 +270,26 @@ commands:
       syntax: "<player> <warp>"
       description: "Set a warp on another player's island at your location"
 
-    unban:
+    delwarp:
       aliases: [ ]
-      permission: "newsky.admin.unban"
-      syntax: "<owner> <player>"
-      description: "Unban a player from another player's island"
-
-    uncoop:
-      aliases: [ ]
-      permission: "newsky.admin.uncoop"
-      syntax: "<owner> <player>"
-      description: "Remove a co-op partner from another player's island"
-
-    unload:
-      aliases: [ ]
-      permission: "newsky.admin.unload"
-      syntax: "<player>"
-      description: "Unload another player's island"
+      permission: "newsky.admin.delwarp"
+      syntax: "<player> <warp>"
+      description: "Delete a warp from another player's island"
 
     warp:
       aliases: [ ]
       permission: "newsky.admin.warp"
       syntax: "<player> [warp] [target]"
       description: "Teleport a player to another player's warp"
+
+    reload:
+      aliases: [ ]
+      permission: "newsky.admin.reload"
+      syntax: ""
+      description: "Reload plugin configuration files"
+
+    help:
+      aliases: [ ]
+      permission: "newsky.admin.help"
+      syntax: "[page]"
+      description: "Show available admin commands"

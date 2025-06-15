@@ -1,6 +1,7 @@
 package org.me.newsky.cache;
 
 import org.me.newsky.NewSky;
+import org.me.newsky.model.Invitation;
 import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.Jedis;
 
@@ -23,38 +24,32 @@ public class RedisCache {
     // Server heartbeats
     public void updateActiveServer(String serverName, boolean lobby) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            var pipeline = jedis.pipelined();
             String timestamp = String.valueOf(System.currentTimeMillis());
-            pipeline.hset("server_heartbeats", serverName, timestamp);
+            jedis.hset("server_heartbeats", serverName, timestamp);
             if (!lobby) {
-                pipeline.hset("active_game_servers", serverName, timestamp);
+                jedis.hset("active_game_servers", serverName, timestamp);
             }
-            pipeline.sync();
         }
     }
 
-
     public void removeActiveServer(String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            var pipeline = jedis.pipelined();
-            pipeline.hdel("server_heartbeats", serverName);
-            pipeline.hdel("active_game_servers", serverName);
+            jedis.hdel("server_heartbeats", serverName);
+            jedis.hdel("active_game_servers", serverName);
 
             Map<String, String> islandServerMap = jedis.hgetAll("island_server");
             for (Map.Entry<String, String> entry : islandServerMap.entrySet()) {
                 if (entry.getValue().equals(serverName)) {
-                    pipeline.hdel("island_server", entry.getKey());
+                    jedis.hdel("island_server", entry.getKey());
                 }
             }
 
             Map<String, String> onlinePlayers = jedis.hgetAll("online_players");
             for (Map.Entry<String, String> entry : onlinePlayers.entrySet()) {
                 if (entry.getValue().equals(serverName)) {
-                    pipeline.hdel("online_players", entry.getKey());
+                    jedis.hdel("online_players", entry.getKey());
                 }
             }
-
-            pipeline.sync();
         }
     }
 
@@ -150,5 +145,36 @@ public class RedisCache {
             plugin.getLogger().severe("Failed to increment round-robin counter");
             return -1;
         }
+    }
+
+    // Island Invitation
+    public void addIslandInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            String value = islandUuid + ":" + inviterUuid;
+            jedis.setex("island:invite:" + inviteeUuid, ttlSeconds, value);
+        }
+    }
+
+    public void removeIslandInvite(UUID inviteeUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.del("island:invite:" + inviteeUuid);
+        }
+    }
+
+    public Optional<Invitation> getIslandInvite(UUID inviteeUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            String value = jedis.get("island:invite:" + inviteeUuid);
+            if (value != null) {
+                String[] parts = value.split(":");
+                if (parts.length == 2) {
+                    UUID islandUuid = UUID.fromString(parts[0]);
+                    UUID inviterUuid = UUID.fromString(parts[1]);
+                    return Optional.of(new Invitation(islandUuid, inviterUuid));
+                }
+            }
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to get island invite for: " + inviteeUuid, e);
+        }
+        return Optional.empty();
     }
 }
