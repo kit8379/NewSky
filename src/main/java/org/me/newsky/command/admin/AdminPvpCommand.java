@@ -81,7 +81,7 @@ public class AdminPvpCommand implements SubCommand, TabComplete {
                 sender.sendMessage(config.getAdminPvpDisableSuccessMessage(targetPlayerName));
             }
         }).exceptionally(ex -> {
-            sender.sendMessage("There was an error toggling the PvP status.");
+            sender.sendMessage(config.getUnknownExceptionMessage());
             plugin.getLogger().log(Level.SEVERE, "Error toggling PvP status for " + targetPlayerName, ex);
             return null;
         });

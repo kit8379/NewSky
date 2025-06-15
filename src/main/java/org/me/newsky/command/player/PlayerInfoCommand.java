@@ -91,7 +91,7 @@ public class PlayerInfoCommand implements SubCommand, TabComplete {
             } catch (IslandDoesNotExistException ex) {
                 sender.sendMessage(config.getPlayerNoIslandMessage());
             } catch (Exception ex) {
-                sender.sendMessage("There was an error getting the island information.");
+                sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error getting island information for player " + player.getName(), ex);
             }
         });

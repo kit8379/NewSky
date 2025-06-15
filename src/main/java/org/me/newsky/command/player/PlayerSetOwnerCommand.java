@@ -90,7 +90,7 @@ public class PlayerSetOwnerCommand implements SubCommand, TabComplete {
             } else if (cause instanceof AlreadyOwnerException) {
                 player.sendMessage(config.getPlayerAlreadyOwnerMessage(targetPlayerName));
             } else {
-                player.sendMessage("There was an error setting the owner.");
+                player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error setting owner for island for player " + player.getName(), ex);
             }
             return null;

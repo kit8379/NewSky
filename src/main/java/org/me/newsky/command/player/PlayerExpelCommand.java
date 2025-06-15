@@ -86,7 +86,7 @@ public class PlayerExpelCommand implements SubCommand, TabComplete {
         }
 
         api.expelPlayer(islandUuid, targetPlayerUuid).thenRun(() -> sender.sendMessage(config.getPlayerExpelSuccessMessage(targetPlayerName))).exceptionally(ex -> {
-            sender.sendMessage("There was an error expelling the player.");
+            sender.sendMessage(config.getUnknownExceptionMessage());
             plugin.getLogger().log(Level.SEVERE, "Error expelling player " + targetPlayerName + " from island of player " + player.getName(), ex);
             return null;
         });

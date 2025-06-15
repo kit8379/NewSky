@@ -73,7 +73,7 @@ public class PlayerHomeCommand implements SubCommand, TabComplete {
             } else if (cause instanceof NoActiveServerException) {
                 player.sendMessage(config.getNoActiveServerMessage());
             } else {
-                player.sendMessage("There was an error teleporting to the home.");
+                player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error teleporting to home for player " + player.getName(), ex);
             }
             return null;

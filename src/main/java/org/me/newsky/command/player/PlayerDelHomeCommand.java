@@ -79,7 +79,7 @@ public class PlayerDelHomeCommand implements SubCommand, TabComplete {
             } else if (cause instanceof HomeDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoHomeMessage(homeName));
             } else {
-                player.sendMessage("There was an error deleting the home.");
+                player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error deleting home for player " + player.getName(), ex);
             }
             return null;

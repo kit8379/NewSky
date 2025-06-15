@@ -85,7 +85,7 @@ public class AdminDeleteIslandCommand implements SubCommand, TabComplete {
             if (cause instanceof NoActiveServerException) {
                 sender.sendMessage(config.getNoActiveServerMessage());
             } else {
-                sender.sendMessage("There was an error deleting the island");
+                sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error deleting island for " + targetPlayerName, ex);
             }
             return null;

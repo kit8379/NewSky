@@ -66,7 +66,7 @@ public class PlayerLevelCommand implements SubCommand {
         } catch (IslandDoesNotExistException ex) {
             player.sendMessage(config.getPlayerNoIslandMessage());
         } catch (Exception ex) {
-            player.sendMessage("There was an error calculating the island level.");
+            player.sendMessage(config.getUnknownExceptionMessage());
             plugin.getLogger().log(Level.SEVERE, "Error calculating island level for player " + player.getName(), ex);
         }
 

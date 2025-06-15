@@ -93,7 +93,7 @@ public class PlayerBanCommand implements SubCommand, TabComplete {
             } else if (cause instanceof CannotBanIslandPlayerException) {
                 player.sendMessage(config.getPlayerCannotBanIslandPlayerMessage());
             } else {
-                player.sendMessage("There was an error banning the player.");
+                player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error banning player " + targetPlayerName + " from island of player " + player.getName(), ex);
             }
             return null;

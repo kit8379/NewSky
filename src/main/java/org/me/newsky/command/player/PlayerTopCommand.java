@@ -1,6 +1,5 @@
 package org.me.newsky.command.player;
 
-import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -68,8 +67,8 @@ public class PlayerTopCommand implements SubCommand {
             try {
                 topIslands = api.getTopIslandLevels(size);
             } catch (Exception e) {
+                player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error retrieving top islands", e);
-                player.sendMessage(Component.text("There was an error retrieving the top islands."));
                 return;
             }
 
@@ -99,8 +98,8 @@ public class PlayerTopCommand implements SubCommand {
 
                     player.sendMessage(config.getTopIslandMessage(rank++, ownerName, membersStr, level));
                 } catch (Exception e) {
+                    player.sendMessage(config.getUnknownExceptionMessage());
                     plugin.getLogger().log(Level.SEVERE, "Error processing island info for top list", e);
-                    player.sendMessage("There was an error processing the island info for the top list.");
                 }
             }
         });

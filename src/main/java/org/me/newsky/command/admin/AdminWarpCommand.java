@@ -95,7 +95,7 @@ public class AdminWarpCommand implements SubCommand, TabComplete {
             } else if (cause instanceof NoActiveServerException) {
                 sender.sendMessage(config.getNoActiveServerMessage());
             } else {
-                sender.sendMessage("There was an error teleporting to the warp.");
+                sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error teleporting to warp " + warpName + " of " + warpPlayerName, ex);
             }
             return null;

@@ -98,7 +98,7 @@ public class PlayerRemoveMemberCommand implements SubCommand, TabComplete {
             } else if (cause instanceof IslandPlayerDoesNotExistException) {
                 player.sendMessage(config.getIslandMemberNotExistsMessage(targetPlayerName));
             } else {
-                player.sendMessage("There was an error removing the member.");
+                player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error removing member from island for player " + player.getName(), ex);
             }
             return null;

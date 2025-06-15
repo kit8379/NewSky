@@ -84,7 +84,7 @@ public class AdminSetHomeCommand implements SubCommand, TabComplete {
             } else if (cause instanceof LocationNotInIslandException) {
                 sender.sendMessage(config.getAdminMustInIslandSetHomeMessage(homePlayerName));
             } else {
-                sender.sendMessage("There was an error setting the home.");
+                sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error setting home " + homeName + " for " + homePlayerName, ex);
             }
             return null;

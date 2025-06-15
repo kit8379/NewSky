@@ -87,7 +87,7 @@ public class AdminUncoopCommand implements SubCommand, TabComplete {
             if (cause instanceof PlayerNotCoopedException) {
                 sender.sendMessage(config.getPlayerNotCoopedMessage(targetName));
             } else {
-                sender.sendMessage("There was an error uncooping the player.");
+                sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error uncooping player " + targetName + " from island of " + ownerName, ex);
             }
             return null;

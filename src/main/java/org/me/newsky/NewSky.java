@@ -93,11 +93,11 @@ public class NewSky extends JavaPlugin {
             info("Redis connection success!");
 
             info("Start connecting to Database now...");
-            databaseHandler = new DatabaseHandler(config);
+            databaseHandler = new DatabaseHandler(this, config);
             info("Database connection success!");
 
             info("Starting cache handler");
-            cache = new Cache(this, databaseHandler);
+            cache = new Cache(databaseHandler);
             info("Cache handler loaded");
 
             info("Starting Redis cache");
@@ -195,13 +195,13 @@ public class NewSky extends JavaPlugin {
     }
 
     private void registerListeners() {
-        getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, redisCache, serverID), this);
-        getServer().getPluginManager().registerEvents(new WorldInitListener(this), this);
-        getServer().getPluginManager().registerEvents(new TeleportRequestListener(this, teleportHandler), this);
+        getServer().getPluginManager().registerEvents(new OnlinePlayersListener(redisCache, serverID), this);
+        getServer().getPluginManager().registerEvents(new WorldInitListener(), this);
+        getServer().getPluginManager().registerEvents(new TeleportRequestListener(teleportHandler), this);
         getServer().getPluginManager().registerEvents(new IslandProtectionListener(config, cache), this);
-        getServer().getPluginManager().registerEvents(new IslandBoundaryListener(this, config), this);
-        getServer().getPluginManager().registerEvents(new IslandAccessListener(this, config, cache), this);
-        getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config, cache), this);
+        getServer().getPluginManager().registerEvents(new IslandBoundaryListener(config), this);
+        getServer().getPluginManager().registerEvents(new IslandAccessListener(config, cache), this);
+        getServer().getPluginManager().registerEvents(new IslandPvPListener(config, cache), this);
     }
 
     private void registerCommands() {
@@ -272,12 +272,5 @@ public class NewSky extends JavaPlugin {
     @SuppressWarnings("unused")
     public void info(String message) {
         getLogger().info(message);
-    }
-
-    @SuppressWarnings("unused")
-    public void debug(String module, String message) {
-        if (config.isDebug()) {
-            info(String.format("[DEBUG] [%s] %s", module, message));
-        }
     }
 }

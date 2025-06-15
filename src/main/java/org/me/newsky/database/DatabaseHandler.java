@@ -2,6 +2,7 @@ package org.me.newsky.database;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 
 import java.sql.Connection;
@@ -9,13 +10,16 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
 
 public class DatabaseHandler {
 
+    private final NewSky plugin;
     private final HikariDataSource dataSource;
 
-    public DatabaseHandler(ConfigHandler config) {
+    public DatabaseHandler(NewSky plugin, ConfigHandler config) {
+        this.plugin = plugin;
+
         String host = config.getMySQLHost();
         int port = config.getMySQLPort();
         String database = config.getMySQLDB();
@@ -48,25 +52,24 @@ public class DatabaseHandler {
         return dataSource.getConnection();
     }
 
-    private CompletableFuture<Void> executeUpdate(PreparedStatementConsumer consumer, String query) {
-        return CompletableFuture.runAsync(() -> {
-            try (Connection connection = getConnection(); PreparedStatement statement = connection.prepareStatement(query)) {
-                consumer.use(statement);
-                statement.executeUpdate();
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        });
+    public void executeUpdate(PreparedStatementConsumer consumer, String query) {
+        try (Connection connection = getConnection(); PreparedStatement statement = connection.prepareStatement(query)) {
+            consumer.use(statement);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Database Update failed: " + query, e);
+            throw new RuntimeException(e);
+        }
     }
 
-    private void executeQuery(String query, ResultProcessor processor) {
-        CompletableFuture.runAsync(() -> {
-            try (Connection connection = getConnection(); PreparedStatement statement = connection.prepareStatement(query); ResultSet resultSet = statement.executeQuery()) {
-                processor.process(resultSet);
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
-            }
-        });
+
+    public void executeQuery(String query, ResultProcessor processor) {
+        try (Connection connection = getConnection(); PreparedStatement statement = connection.prepareStatement(query); ResultSet resultSet = statement.executeQuery()) {
+            processor.process(resultSet);
+        } catch (SQLException e) {
+            plugin.getLogger().log(Level.SEVERE, "Database Query failed: " + query, e);
+            throw new RuntimeException(e);
+        }
     }
 
     public void createTables() {
@@ -80,31 +83,31 @@ public class DatabaseHandler {
     }
 
     private void createIslandDataTable() {
-        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS islands (island_uuid VARCHAR(56) PRIMARY KEY, `lock` BOOLEAN NOT NULL DEFAULT FALSE, pvp BOOLEAN NOT NULL DEFAULT FALSE);").join();
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS islands (island_uuid VARCHAR(56) PRIMARY KEY, `lock` BOOLEAN NOT NULL DEFAULT FALSE, pvp BOOLEAN NOT NULL DEFAULT FALSE);");
     }
 
     private void createIslandPlayersTable() {
-        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_players (player_uuid VARCHAR(56), island_uuid VARCHAR(56) NOT NULL, role VARCHAR(56) NOT NULL, FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid), PRIMARY KEY (player_uuid, island_uuid));").join();
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_players (player_uuid VARCHAR(56), island_uuid VARCHAR(56) NOT NULL, role VARCHAR(56) NOT NULL, FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid), PRIMARY KEY (player_uuid, island_uuid));");
     }
 
     private void createIslandHomesTable() {
-        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_homes (player_uuid VARCHAR(56), home_name VARCHAR(56), home_location VARCHAR(256), island_uuid VARCHAR(56), PRIMARY KEY (player_uuid, home_name), FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid));").join();
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_homes (player_uuid VARCHAR(56), home_name VARCHAR(56), home_location VARCHAR(256), island_uuid VARCHAR(56), PRIMARY KEY (player_uuid, home_name), FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid));");
     }
 
     private void createIslandWarpsTable() {
-        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_warps (player_uuid VARCHAR(56), warp_name VARCHAR(56), warp_location VARCHAR(256), island_uuid VARCHAR(56), PRIMARY KEY (player_uuid, warp_name), FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid));").join();
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_warps (player_uuid VARCHAR(56), warp_name VARCHAR(56), warp_location VARCHAR(256), island_uuid VARCHAR(56), PRIMARY KEY (player_uuid, warp_name), FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid));");
     }
 
     private void createIslandBanTable() {
-        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_bans (island_uuid VARCHAR(56), banned_player VARCHAR(56), PRIMARY KEY (island_uuid, banned_player), FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid));").join();
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_bans (island_uuid VARCHAR(56), banned_player VARCHAR(56), PRIMARY KEY (island_uuid, banned_player), FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid));");
     }
 
     private void createIslandCoopTable() {
-        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_coops (" + "island_uuid VARCHAR(56) NOT NULL, " + "cooped_player VARCHAR(56) NOT NULL, " + "PRIMARY KEY (island_uuid, cooped_player), " + "FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid)" + ");").join();
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_coops (" + "island_uuid VARCHAR(56) NOT NULL, " + "cooped_player VARCHAR(56) NOT NULL, " + "PRIMARY KEY (island_uuid, cooped_player), " + "FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid)" + ");");
     }
 
     public void createIslandLevelsTable() {
-        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_levels (" + "island_uuid VARCHAR(56) PRIMARY KEY, " + "level INT NOT NULL" + ");").join();
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_levels (" + "island_uuid VARCHAR(56) PRIMARY KEY, " + "level INT NOT NULL" + ");");
     }
 
     public void selectAllIslandData(ResultProcessor processor) {
@@ -135,12 +138,12 @@ public class DatabaseHandler {
         executeQuery("SELECT * FROM island_levels", processor);
     }
 
-    public CompletableFuture<Void> addIslandData(UUID islandUuid) {
-        return executeUpdate(s -> s.setString(1, islandUuid.toString()), "INSERT INTO islands (island_uuid) VALUES (?);");
+    public void addIslandData(UUID islandUuid) {
+        executeUpdate(s -> s.setString(1, islandUuid.toString()), "INSERT INTO islands (island_uuid) VALUES (?);");
     }
 
-    public CompletableFuture<Void> updateIslandPlayer(UUID islandUuid, UUID playerUuid, String role) {
-        return executeUpdate(s -> {
+    public void updateIslandPlayer(UUID islandUuid, UUID playerUuid, String role) {
+        executeUpdate(s -> {
             s.setString(1, playerUuid.toString());
             s.setString(2, islandUuid.toString());
             s.setString(3, role);
@@ -148,8 +151,8 @@ public class DatabaseHandler {
         }, "INSERT INTO island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE role = ?;");
     }
 
-    public CompletableFuture<Void> updateHomePoint(UUID islandUuid, UUID playerUuid, String homeName, String homeLocation) {
-        return executeUpdate(s -> {
+    public void updateHomePoint(UUID islandUuid, UUID playerUuid, String homeName, String homeLocation) {
+        executeUpdate(s -> {
             s.setString(1, playerUuid.toString());
             s.setString(2, islandUuid.toString());
             s.setString(3, homeName);
@@ -158,8 +161,8 @@ public class DatabaseHandler {
         }, "INSERT INTO island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE home_location = ?;");
     }
 
-    public CompletableFuture<Void> updateWarpPoint(UUID islandUuid, UUID playerUuid, String warpName, String warpLocation) {
-        return executeUpdate(s -> {
+    public void updateWarpPoint(UUID islandUuid, UUID playerUuid, String warpName, String warpLocation) {
+        executeUpdate(s -> {
             s.setString(1, playerUuid.toString());
             s.setString(2, islandUuid.toString());
             s.setString(3, warpName);
@@ -168,92 +171,102 @@ public class DatabaseHandler {
         }, "INSERT INTO island_warps (player_uuid, island_uuid, warp_name, warp_location) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE warp_location = ?;");
     }
 
-    public CompletableFuture<Void> updateIslandLock(UUID islandUuid, boolean lock) {
-        return executeUpdate(s -> {
+    public void updateIslandLock(UUID islandUuid, boolean lock) {
+        executeUpdate(s -> {
             s.setBoolean(1, lock);
             s.setString(2, islandUuid.toString());
         }, "UPDATE islands SET lock = ? WHERE island_uuid = ?;");
     }
 
-    public CompletableFuture<Void> updateIslandPvp(UUID islandUuid, boolean pvp) {
-        return executeUpdate(s -> {
+    public void updateIslandPvp(UUID islandUuid, boolean pvp) {
+        executeUpdate(s -> {
             s.setBoolean(1, pvp);
             s.setString(2, islandUuid.toString());
         }, "UPDATE islands SET pvp = ? WHERE island_uuid = ?;");
     }
 
-    public CompletableFuture<Void> updateIslandOwner(UUID islandUuid, UUID playerUuid) {
-        return executeUpdate(s -> {
+    public void updateIslandOwner(UUID islandUuid, UUID playerUuid) {
+        executeUpdate(s -> {
             s.setString(1, playerUuid.toString());
             s.setString(2, islandUuid.toString());
         }, "UPDATE island_players SET role = 'owner' WHERE player_uuid = ? AND island_uuid = ?;");
     }
 
-    public CompletableFuture<Void> updateBanPlayer(UUID islandUuid, UUID playerUuid) {
-        return executeUpdate(s -> {
+    public void updateBanPlayer(UUID islandUuid, UUID playerUuid) {
+        executeUpdate(s -> {
             s.setString(1, islandUuid.toString());
             s.setString(2, playerUuid.toString());
         }, "INSERT INTO island_bans (island_uuid, banned_player) VALUES (?, ?);");
     }
 
-    public CompletableFuture<Void> updateCoopPlayer(UUID islandUuid, UUID playerUuid) {
-        return executeUpdate(s -> {
+    public void updateCoopPlayer(UUID islandUuid, UUID playerUuid) {
+        executeUpdate(s -> {
             s.setString(1, islandUuid.toString());
             s.setString(2, playerUuid.toString());
         }, "INSERT INTO island_coops (island_uuid, cooped_player) VALUES (?, ?);");
     }
 
-    public CompletableFuture<Void> updateIslandLevel(UUID islandUuid, int level) {
-        return executeUpdate(s -> {
+    public void updateIslandLevel(UUID islandUuid, int level) {
+        executeUpdate(s -> {
             s.setString(1, islandUuid.toString());
             s.setInt(2, level);
             s.setInt(3, level);
         }, "INSERT INTO island_levels (island_uuid, level) VALUES (?, ?) ON DUPLICATE KEY UPDATE level = ?;");
     }
 
-    public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
-        return executeUpdate(s -> s.setString(1, islandUuid.toString()), "DELETE FROM island_levels WHERE island_uuid = ?;").thenCompose(v -> executeUpdate(s -> s.setString(1, islandUuid.toString()), "DELETE FROM island_coops WHERE island_uuid = ?;")).thenCompose(v -> executeUpdate(s -> s.setString(1, islandUuid.toString()), "DELETE FROM island_bans WHERE island_uuid = ?;")).thenCompose(v -> executeUpdate(s -> s.setString(1, islandUuid.toString()), "DELETE FROM island_warps WHERE island_uuid = ?;")).thenCompose(v -> executeUpdate(s -> s.setString(1, islandUuid.toString()), "DELETE FROM island_homes WHERE island_uuid = ?;")).thenCompose(v -> executeUpdate(s -> s.setString(1, islandUuid.toString()), "DELETE FROM island_players WHERE island_uuid = ?;")).thenCompose(v -> executeUpdate(s -> s.setString(1, islandUuid.toString()), "DELETE FROM islands WHERE island_uuid = ?;"));
+    public void deleteIsland(UUID islandUuid) {
+        executeUpdate(s -> s.setString(1, islandUuid.toString()), "DELETE FROM island_levels WHERE island_uuid = ?;");
+        executeUpdate(s -> s.setString(1, islandUuid.toString()), "DELETE FROM island_coops WHERE island_uuid = ?;");
+        executeUpdate(s -> s.setString(1, islandUuid.toString()), "DELETE FROM island_bans WHERE island_uuid = ?;");
+        executeUpdate(s -> s.setString(1, islandUuid.toString()), "DELETE FROM island_warps WHERE island_uuid = ?;");
+        executeUpdate(s -> s.setString(1, islandUuid.toString()), "DELETE FROM island_homes WHERE island_uuid = ?;");
+        executeUpdate(s -> s.setString(1, islandUuid.toString()), "DELETE FROM island_players WHERE island_uuid = ?;");
+        executeUpdate(s -> s.setString(1, islandUuid.toString()), "DELETE FROM islands WHERE island_uuid = ?;");
     }
 
-    public CompletableFuture<Void> deleteIslandPlayer(UUID islandUuid, UUID playerUuid) {
-        return executeUpdate(s -> s.setString(1, playerUuid.toString()), "DELETE FROM island_warps WHERE player_uuid = ?;").thenCompose(v -> executeUpdate(s -> s.setString(1, playerUuid.toString()), "DELETE FROM island_homes WHERE player_uuid = ?;")).thenCompose(v -> executeUpdate(s -> {
+
+    public void deleteIslandPlayer(UUID islandUuid, UUID playerUuid) {
+        executeUpdate(s -> s.setString(1, playerUuid.toString()), "DELETE FROM island_warps WHERE player_uuid = ?;");
+        executeUpdate(s -> s.setString(1, playerUuid.toString()), "DELETE FROM island_homes WHERE player_uuid = ?;");
+        executeUpdate(s -> {
             s.setString(1, playerUuid.toString());
             s.setString(2, islandUuid.toString());
-        }, "DELETE FROM island_players WHERE player_uuid = ? AND island_uuid = ?;"));
+        }, "DELETE FROM island_players WHERE player_uuid = ? AND island_uuid = ?;");
     }
 
-    public CompletableFuture<Void> deleteHomePoint(UUID islandUuid, UUID playerUuid, String homeName) {
-        return executeUpdate(s -> {
+
+    public void deleteHomePoint(UUID islandUuid, UUID playerUuid, String homeName) {
+        executeUpdate(s -> {
             s.setString(1, islandUuid.toString());
             s.setString(2, playerUuid.toString());
             s.setString(3, homeName);
         }, "DELETE FROM island_homes WHERE island_uuid = ? AND player_uuid = ? AND home_name = ?;");
     }
 
-    public CompletableFuture<Void> deleteWarpPoint(UUID islandUuid, UUID playerUuid, String warpName) {
-        return executeUpdate(s -> {
+    public void deleteWarpPoint(UUID islandUuid, UUID playerUuid, String warpName) {
+        executeUpdate(s -> {
             s.setString(1, islandUuid.toString());
             s.setString(2, playerUuid.toString());
             s.setString(3, warpName);
         }, "DELETE FROM island_warps WHERE island_uuid = ? AND player_uuid = ? AND warp_name = ?;");
     }
 
-    public CompletableFuture<Void> deleteBanPlayer(UUID islandUuid, UUID playerUuid) {
-        return executeUpdate(s -> {
+    public void deleteBanPlayer(UUID islandUuid, UUID playerUuid) {
+        executeUpdate(s -> {
             s.setString(1, islandUuid.toString());
             s.setString(2, playerUuid.toString());
         }, "DELETE FROM island_bans WHERE island_uuid = ? AND banned_player = ?;");
     }
 
-    public CompletableFuture<Void> deleteCoopPlayer(UUID islandUuid, UUID playerUuid) {
-        return executeUpdate(s -> {
+    public void deleteCoopPlayer(UUID islandUuid, UUID playerUuid) {
+        executeUpdate(s -> {
             s.setString(1, islandUuid.toString());
             s.setString(2, playerUuid.toString());
         }, "DELETE FROM island_coops WHERE island_uuid = ? AND cooped_player = ?;");
     }
 
-    public CompletableFuture<Void> deleteAllCoopOfPlayer(UUID playerUuid) {
-        return executeUpdate(s -> s.setString(1, playerUuid.toString()), "DELETE FROM island_coops WHERE cooped_player = ?;");
+    public void deleteAllCoopOfPlayer(UUID playerUuid) {
+        executeUpdate(s -> s.setString(1, playerUuid.toString()), "DELETE FROM island_coops WHERE cooped_player = ?;");
     }
 
 

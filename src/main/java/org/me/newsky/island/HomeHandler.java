@@ -26,17 +26,6 @@ public class HomeHandler {
         this.islandDistributor = islandDistributor;
     }
 
-    // Sync Getter
-    public Set<String> getHomeNames(UUID playerUuid) {
-        Optional<UUID> islandUuidOpt = cache.getIslandUuid(playerUuid);
-        if (islandUuidOpt.isEmpty()) {
-            throw new IslandDoesNotExistException();
-        }
-        UUID islandUuid = islandUuidOpt.get();
-        return cache.getHomeNames(islandUuid, playerUuid);
-    }
-
-    // Async Operations
     public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, Location location) {
         return CompletableFuture.supplyAsync(() -> cache.getIslandUuid(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
@@ -79,5 +68,14 @@ public class HomeHandler {
             String homeLocation = homeLocationOpt.get();
             return islandDistributor.teleportIsland(islandUuid, targetPlayerUuid, homeLocation);
         });
+    }
+
+    public Set<String> getHomeNames(UUID playerUuid) {
+        Optional<UUID> islandUuidOpt = cache.getIslandUuid(playerUuid);
+        if (islandUuidOpt.isEmpty()) {
+            throw new IslandDoesNotExistException();
+        }
+        UUID islandUuid = islandUuidOpt.get();
+        return cache.getHomeNames(islandUuid, playerUuid);
     }
 }

@@ -74,7 +74,7 @@ public class PlayerPvpCommand implements SubCommand {
                 player.sendMessage(config.getPlayerPvpDisableSuccessMessage());
             }
         }).exceptionally(ex -> {
-            player.sendMessage("There was an error toggling the PvP status.");
+            player.sendMessage(config.getUnknownExceptionMessage());
             plugin.getLogger().log(Level.SEVERE, "Error toggling PvP status for player " + player.getName(), ex);
             return null;
         });

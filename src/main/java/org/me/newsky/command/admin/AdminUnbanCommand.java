@@ -87,7 +87,7 @@ public class AdminUnbanCommand implements SubCommand, TabComplete {
             if (cause instanceof PlayerNotBannedException) {
                 sender.sendMessage(config.getPlayerNotBannedMessage(banPlayerName));
             } else {
-                sender.sendMessage("There was an error unbanning the player.");
+                sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error unbanning player " + banPlayerName + " from island of " + islandOwnerName, ex);
             }
             return null;

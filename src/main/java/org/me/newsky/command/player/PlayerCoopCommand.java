@@ -1,6 +1,5 @@
 package org.me.newsky.command.player;
 
-import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -99,7 +98,7 @@ public class PlayerCoopCommand implements SubCommand, TabComplete {
             } else if (cause instanceof CannotCoopIslandPlayerException) {
                 player.sendMessage(config.getPlayerCannotCoopIslandPlayerMessage());
             } else {
-                player.sendMessage(Component.text("There was an error cooping the player."));
+                player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error cooping player " + targetPlayerName + " for " + player.getName(), ex);
             }
             return null;

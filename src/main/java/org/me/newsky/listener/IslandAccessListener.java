@@ -6,7 +6,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
-import org.me.newsky.NewSky;
 import org.me.newsky.cache.Cache;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.util.IslandUtils;
@@ -15,12 +14,10 @@ import java.util.UUID;
 
 public class IslandAccessListener implements Listener {
 
-    private final NewSky plugin;
     private final ConfigHandler config;
     private final Cache cache;
 
-    public IslandAccessListener(NewSky plugin, ConfigHandler config, Cache cache) {
-        this.plugin = plugin;
+    public IslandAccessListener(ConfigHandler config, Cache cache) {
         this.config = config;
         this.cache = cache;
     }
@@ -49,7 +46,6 @@ public class IslandAccessListener implements Listener {
             player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), config.getLobbyCommand(player.getName()));
             player.sendMessage(cache.isPlayerBanned(islandUuid, playerUuid) ? config.getPlayerBannedMessage() : config.getIslandLockedMessage());
-            plugin.debug(getClass().getSimpleName(), "Player " + player.getName() + " was denied access to island " + islandUuid + " due to ban or lock.");
         }
     }
 }

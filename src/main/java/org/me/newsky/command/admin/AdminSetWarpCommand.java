@@ -84,7 +84,7 @@ public class AdminSetWarpCommand implements SubCommand, TabComplete {
             } else if (cause instanceof LocationNotInIslandException) {
                 sender.sendMessage(config.getAdminMustInIslandSetWarpMessage(warpPlayerName));
             } else {
-                sender.sendMessage("There was an error setting the warp.");
+                sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error setting warp " + warpName + " for " + warpPlayerName, ex);
             }
             return null;

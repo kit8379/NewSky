@@ -80,7 +80,7 @@ public class AdminDelHomeCommand implements SubCommand, TabComplete {
             } else if (cause instanceof HomeDoesNotExistException) {
                 sender.sendMessage(config.getAdminNoHomeMessage(homePlayerName, homeName));
             } else {
-                sender.sendMessage("There was an error deleting the home.");
+                sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error deleting home " + homeName + " for " + homePlayerName, ex);
             }
             return null;

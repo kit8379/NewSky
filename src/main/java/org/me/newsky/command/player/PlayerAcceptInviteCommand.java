@@ -70,14 +70,14 @@ public class PlayerAcceptInviteCommand implements SubCommand {
         UUID islandUuid = invite.getIslandUuid();
         UUID inviterUuid = invite.getInviterUuid();
 
-        // Remove invite asynchronously
-        api.removePendingInvite(playerUuid).thenCompose(v -> api.addMember(islandUuid, playerUuid, "member")).thenRun(() -> {
+        api.removePendingInvite(playerUuid).thenCompose(v -> api.addMember(islandUuid, playerUuid, "member")).thenCompose(v -> {
             player.sendMessage(config.getPlayerInviteAcceptedMessage());
             api.sendPlayerMessage(inviterUuid, config.getPlayerInviteAcceptedNotifyMessage(player.getName()));
             api.getIslandMembers(islandUuid).stream().filter(uuid -> !uuid.equals(playerUuid) && !uuid.equals(inviterUuid)).forEach(uuid -> api.sendPlayerMessage(uuid, config.getNewMemberNotificationMessage(player.getName())));
+            return api.home(playerUuid, "default", playerUuid);
         }).exceptionally(ex -> {
-            player.sendMessage("There was an error processing your invite acceptance.");
-            plugin.getLogger().log(Level.SEVERE, "Error accepting invite for player " + player.getName(), ex);
+            player.sendMessage(config.getUnknownExceptionMessage());
+            plugin.getLogger().log(Level.SEVERE, "Error accepting invite or teleporting for player " + player.getName(), ex);
             return null;
         });
 

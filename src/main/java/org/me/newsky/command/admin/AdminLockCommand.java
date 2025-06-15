@@ -81,7 +81,7 @@ public class AdminLockCommand implements SubCommand, TabComplete {
                 sender.sendMessage(config.getAdminUnLockSuccessMessage(targetPlayerName));
             }
         }).exceptionally(ex -> {
-            sender.sendMessage("There was an error toggling the island lock status.");
+            sender.sendMessage(config.getUnknownExceptionMessage());
             plugin.getLogger().log(Level.SEVERE, "Error toggling island lock for " + targetPlayerName, ex);
             return null;
         });

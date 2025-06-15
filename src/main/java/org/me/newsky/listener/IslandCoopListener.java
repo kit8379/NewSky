@@ -33,9 +33,6 @@ public class IslandCoopListener implements Listener {
 
             if (!onlinePlayers.contains(playerName)) {
                 plugin.getApi().removeAllCoopOfPlayer(playerUuid);
-                plugin.debug(getClass().getSimpleName(), "Cleared coop status for globally disconnected player: " + playerName);
-            } else {
-                plugin.debug(getClass().getSimpleName(), "Skipped coop clear for " + playerName + ", still online on another server.");
             }
         }, 60L);
     }

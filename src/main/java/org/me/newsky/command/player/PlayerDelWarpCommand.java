@@ -76,7 +76,7 @@ public class PlayerDelWarpCommand implements SubCommand, TabComplete {
             } else if (cause instanceof WarpDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoWarpMessage(warpName));
             } else {
-                player.sendMessage("There was an error deleting the warp.");
+                player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error deleting warp for player " + player.getName(), ex);
             }
             return null;

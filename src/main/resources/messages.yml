@@ -34,6 +34,7 @@ messages:
   was-uncooped-from-island: "<green>You were removed as a co-op member from the island of <aqua>{owner}<green>!"
   new-member-notification: "<green>{player} has joined your island!"
   cannot-remove-owner: "<red>You cannot remove the island owner!"
+  unknown-exception: "<red>An unknown error occurred while processing your request. Please try again later."
 
   # Player Command Messages
   player-no-island: "<red>You don't have an island yet!"

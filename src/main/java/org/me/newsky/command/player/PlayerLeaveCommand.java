@@ -76,7 +76,7 @@ public class PlayerLeaveCommand implements SubCommand {
             } else if (cause instanceof IslandPlayerDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else {
-                player.sendMessage("There was an error leaving the island");
+                player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error leaving island for player " + player.getName(), ex);
             }
             return null;

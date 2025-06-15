@@ -41,8 +41,6 @@ public class IslandBroker {
                     JSONObject json = new JSONObject(message);
                     String type = json.getString("type");
 
-                    plugin.debug(getClass().getSimpleName(), "Received message on channel " + channel + ": " + message);
-
                     if ("request".equals(type)) {
                         handleRequest(json);
                     } else if ("response".equals(type)) {
@@ -77,7 +75,6 @@ public class IslandBroker {
         json.put("args", args);
 
         redisHandler.publish(channelID, json.toString());
-        plugin.debug(getClass().getSimpleName(), "Sent request " + operation + " to " + targetServer + " [ID=" + requestId + "]");
 
         future.orTimeout(30, TimeUnit.SECONDS).exceptionally(error -> {
             pendingRequests.remove(requestId);
@@ -94,7 +91,9 @@ public class IslandBroker {
         String target = json.getString("target");
         String operation = json.getString("operation");
 
-        if (!serverID.equals(target)) return;
+        if (!serverID.equals(target)) {
+            return;
+        }
 
         JSONArray jsonArgs = json.getJSONArray("args");
         String[] args = new String[jsonArgs.length()];
@@ -102,14 +101,8 @@ public class IslandBroker {
             args[i] = jsonArgs.getString(i);
         }
 
-        plugin.debug(getClass().getSimpleName(), "Received request " + operation + " [ID=" + requestId + "] from " + source);
-
-        processRequest(operation, args).thenRun(() -> {
-            sendResponse("success", requestId, source);
-            plugin.debug(getClass().getSimpleName(), "Sent success response for request " + operation + " [ID=" + requestId + "] to " + source);
-        }).exceptionally(e -> {
+        processRequest(operation, args).thenRun(() -> sendResponse("success", requestId, source)).exceptionally(e -> {
             sendResponse("fail", requestId, source);
-            plugin.debug(getClass().getSimpleName(), "Sent failure response for request " + operation + " [ID=" + requestId + "] to " + source);
             plugin.getLogger().log(Level.SEVERE, "Failed to handle request " + operation, e);
             return null;
         });
@@ -141,8 +134,6 @@ public class IslandBroker {
         if (future == null) {
             return;
         }
-
-        plugin.debug(getClass().getSimpleName(), "Received response for request " + requestId + " from " + source + " with status: " + status);
 
         if ("success".equals(status)) {
             future.complete(null);

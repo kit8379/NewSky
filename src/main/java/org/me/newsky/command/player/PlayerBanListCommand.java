@@ -90,7 +90,7 @@ public class PlayerBanListCommand implements SubCommand {
         } catch (IslandDoesNotExistException ex) {
             player.sendMessage(config.getPlayerNoIslandMessage());
         } catch (Exception ex) {
-            player.sendMessage(Component.text("There was an error retrieving the ban list."));
+            player.sendMessage(config.getUnknownExceptionMessage());
             plugin.getLogger().log(Level.SEVERE, "Error retrieving ban list for " + player.getName(), ex);
         }
 

@@ -100,7 +100,7 @@ public class PlayerInviteCommand implements SubCommand, TabComplete {
             } else if (cause instanceof IslandPlayerAlreadyExistsException) {
                 player.sendMessage(config.getIslandMemberExistsMessage(targetPlayerName));
             } else {
-                player.sendMessage("There was an error sending the invite.");
+                player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error inviting player " + targetPlayerName + " to island of " + player.getName(), ex);
             }
             return null;

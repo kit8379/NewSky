@@ -23,14 +23,6 @@ public class LevelHandler {
         this.cache = cache;
     }
 
-    public int getIslandLevel(UUID islandUuid) {
-        return cache.getIslandLevel(islandUuid);
-    }
-
-    public Map<UUID, Integer> getTopIslandLevels(int size) {
-        return cache.getTopIslandLevels(size);
-    }
-
     public void calIslandLevel(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
@@ -74,5 +66,13 @@ public class LevelHandler {
             }
         }
         return chunks;
+    }
+
+    public int getIslandLevel(UUID islandUuid) {
+        return cache.getIslandLevel(islandUuid);
+    }
+
+    public Map<UUID, Integer> getTopIslandLevels(int size) {
+        return cache.getTopIslandLevels(size);
     }
 }

@@ -89,7 +89,7 @@ public class AdminAddMemberCommand implements SubCommand, TabComplete {
             } else if (cause instanceof IslandPlayerAlreadyExistsException) {
                 sender.sendMessage(config.getIslandMemberExistsMessage(targetMemberName));
             } else {
-                sender.sendMessage("There was an error adding the member");
+                sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error adding member " + targetMemberName + " to island of " + islandOwnerName, ex);
             }
             return null;

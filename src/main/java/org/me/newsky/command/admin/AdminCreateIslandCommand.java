@@ -74,7 +74,7 @@ public class AdminCreateIslandCommand implements SubCommand, TabComplete {
             } else if (cause instanceof NoActiveServerException) {
                 sender.sendMessage(config.getNoActiveServerMessage());
             } else {
-                sender.sendMessage("There was an error creating the island");
+                sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error creating island for " + targetPlayerName, ex);
             }
             return null;

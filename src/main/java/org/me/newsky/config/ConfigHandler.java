@@ -1139,6 +1139,10 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.cannot-remove-owner"));
     }
 
+    public Component getUnknownExceptionMessage() {
+        return ColorUtils.colorize(messages.getString("messages.unknown-exception"));
+    }
+
     // Admin Command Messages
     public Component getAdminNoIslandMessage(String player) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-no-island")).replace("{player}", player));

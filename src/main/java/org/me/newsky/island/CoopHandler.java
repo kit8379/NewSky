@@ -20,10 +20,6 @@ public class CoopHandler {
         this.cache = cache;
     }
 
-    public Set<UUID> getCoopedPlayers(UUID islandUuid) {
-        return cache.getCoopedPlayers(islandUuid);
-    }
-
     public CompletableFuture<Void> coopPlayer(UUID islandUuid, UUID playerUuid) {
         return CompletableFuture.runAsync(() -> {
             if (cache.isPlayerCooped(islandUuid, playerUuid)) {
@@ -49,5 +45,9 @@ public class CoopHandler {
 
     public void deleteAllCoopOfPlayer(UUID playerUuid) {
         CompletableFuture.runAsync(() -> cache.deleteAllCoopOfPlayer(playerUuid), plugin.getBukkitAsyncExecutor());
+    }
+
+    public Set<UUID> getCoopedPlayers(UUID islandUuid) {
+        return cache.getCoopedPlayers(islandUuid);
     }
 }

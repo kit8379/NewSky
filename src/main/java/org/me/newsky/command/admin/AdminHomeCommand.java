@@ -93,7 +93,7 @@ public class AdminHomeCommand implements SubCommand, TabComplete {
             } else if (cause instanceof NoActiveServerException) {
                 sender.sendMessage(config.getNoActiveServerMessage());
             } else {
-                sender.sendMessage("There was an error teleporting to the home.");
+                sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error teleporting to home " + homeName + " of " + homePlayerName, ex);
             }
             return null;

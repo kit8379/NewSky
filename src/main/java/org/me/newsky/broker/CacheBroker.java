@@ -39,11 +39,9 @@ public class CacheBroker {
 
                     // Skip if this server was the source of the update
                     if (serverID.equals(source)) {
-                        plugin.debug(getClass().getSimpleName(), "Ignored cache update from self: " + type + " for island " + island);
                         return;
                     }
 
-                    plugin.debug(getClass().getSimpleName(), "Received cache update: type=" + type + ", island=" + island + " from " + source);
                     handleUpdate(type, UUID.fromString(island));
                 } catch (Exception e) {
                     plugin.getLogger().log(Level.SEVERE, "Failed to process cache update message", e);
@@ -68,7 +66,6 @@ public class CacheBroker {
             json.put("island", islandUuid.toString());
 
             redisHandler.publish(channelID, json.toString());
-            plugin.debug(getClass().getSimpleName(), "Published cache update: type=" + type + ", island=" + islandUuid);
         } catch (Exception e) {
             plugin.getLogger().log(Level.SEVERE, "Failed to publish cache update", e);
         }

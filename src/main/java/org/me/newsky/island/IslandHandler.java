@@ -6,6 +6,7 @@ import org.me.newsky.cache.Cache;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
 import org.me.newsky.island.distributor.IslandDistributor;
 
 import java.util.Set;
@@ -24,18 +25,6 @@ public class IslandHandler {
         this.config = configHandler;
         this.cache = cache;
         this.islandDistributor = islandDistributor;
-    }
-
-    public UUID getIslandUuid(UUID playerUuid) {
-        return cache.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
-    }
-
-    public UUID getIslandOwner(UUID islandUuid) {
-        return cache.getIslandOwner(islandUuid);
-    }
-
-    public Set<UUID> getIslandMembers(UUID islandUuid) {
-        return cache.getIslandMembers(islandUuid);
     }
 
     public CompletableFuture<Void> createIsland(UUID ownerUuid) {
@@ -83,10 +72,29 @@ public class IslandHandler {
     }
 
     public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
-        return CompletableFuture.runAsync(() -> islandDistributor.expelPlayer(islandUuid, playerUuid), plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.runAsync(() -> {
+            Set<UUID> players = cache.getIslandPlayers(islandUuid);
+            if (!players.contains(playerUuid)) {
+                throw new IslandPlayerDoesNotExistException();
+            }
+
+            islandDistributor.expelPlayer(islandUuid, playerUuid);
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     public void sendPlayerMessage(UUID playerUuid, Component message) {
         CompletableFuture.runAsync(() -> islandDistributor.sendPlayerMessage(playerUuid, message), plugin.getBukkitAsyncExecutor());
+    }
+
+    public UUID getIslandUuid(UUID playerUuid) {
+        return cache.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
+    }
+
+    public UUID getIslandOwner(UUID islandUuid) {
+        return cache.getIslandOwner(islandUuid);
+    }
+
+    public Set<UUID> getIslandMembers(UUID islandUuid) {
+        return cache.getIslandMembers(islandUuid);
     }
 }

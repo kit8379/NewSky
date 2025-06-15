@@ -88,7 +88,7 @@ public class PlayerWarpCommand implements SubCommand, TabComplete {
             } else if (cause instanceof NoActiveServerException) {
                 player.sendMessage(config.getNoActiveServerMessage());
             } else {
-                player.sendMessage("There was an error teleporting to the warp.");
+                player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error teleporting to warp for player " + player.getName(), ex);
             }
             return null;

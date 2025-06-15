@@ -83,7 +83,7 @@ public class AdminLoadCommand implements SubCommand, TabComplete {
             } else if (cause instanceof IslandAlreadyLoadedException) {
                 sender.sendMessage(config.getIslandAlreadyLoadedMessage());
             } else {
-                sender.sendMessage("There was an error loading the island.");
+                sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error loading island for " + targetPlayerName, ex);
             }
             return null;

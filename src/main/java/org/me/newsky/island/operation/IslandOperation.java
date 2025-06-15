@@ -7,8 +7,8 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.Cache;
-import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.cache.RedisCache;
+import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.util.LocationUtils;
@@ -50,7 +50,6 @@ public class IslandOperation {
             cache.createIsland(islandUuid);
             cache.updateIslandPlayer(islandUuid, ownerUuid, "owner");
             cache.updateHomePoint(islandUuid, ownerUuid, "default", spawnLocation);
-            plugin.debug(getClass().getSimpleName(), "Island " + islandName + " created successfully with owner " + ownerUuid);
         });
     }
 
@@ -60,26 +59,19 @@ public class IslandOperation {
         return worldHandler.deleteWorld(islandName).thenRun(() -> {
             redisCache.removeIslandLoadedServer(islandUuid);
             cache.deleteIsland(islandUuid);
-            plugin.debug(getClass().getSimpleName(), "Island " + islandName + " deleted successfully");
         });
     }
 
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        return worldHandler.loadWorld(islandName).thenRun(() -> {
-            redisCache.updateIslandLoadedServer(islandUuid, serverID);
-            plugin.debug(getClass().getSimpleName(), "Island " + islandName + " loaded on server " + serverID);
-        });
+        return worldHandler.loadWorld(islandName).thenRun(() -> redisCache.updateIslandLoadedServer(islandUuid, serverID));
     }
 
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        return worldHandler.unloadWorld(islandName).thenRun(() -> {
-            redisCache.removeIslandLoadedServer(islandUuid);
-            plugin.debug(getClass().getSimpleName(), "Island " + islandName + " unloaded from server " + serverID);
-        });
+        return worldHandler.unloadWorld(islandName).thenRun(() -> redisCache.removeIslandLoadedServer(islandUuid));
     }
 
     public CompletableFuture<Void> lockIsland(UUID islandUuid) {
@@ -93,7 +85,6 @@ public class IslandOperation {
                 if (!islandPlayers.contains(playerUuid)) {
                     player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
                     Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), config.getLobbyCommand(player.getName())));
-                    plugin.debug(getClass().getSimpleName(), "Player " + playerUuid + " teleported to safe location due to island lock");
                 }
             }
         }
@@ -109,10 +100,8 @@ public class IslandOperation {
             Player player = Bukkit.getPlayer(playerUuid);
             if (player != null) {
                 player.teleportAsync(location);
-                plugin.debug(getClass().getSimpleName(), "Player " + playerUuid + " teleported to island " + islandUuid + " at location: " + teleportLocation);
             } else {
                 teleportHandler.addPendingTeleport(playerUuid, location);
-                plugin.debug(getClass().getSimpleName(), "Player " + playerUuid + " is offline, teleport will be processed when they log in");
             }
         });
     }
@@ -126,7 +115,6 @@ public class IslandOperation {
             if (player != null) {
                 player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
                 Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), config.getLobbyCommand(player.getName())));
-                plugin.debug(getClass().getSimpleName(), "Player " + playerUuid + " expelled from island " + islandName);
             }
         }
 
@@ -137,7 +125,6 @@ public class IslandOperation {
         Player player = Bukkit.getPlayer(playerUuid);
         if (player != null) {
             player.sendMessage(message);
-            plugin.debug(getClass().getSimpleName(), "Sent message to player " + playerUuid);
         }
 
         return CompletableFuture.completedFuture(null);

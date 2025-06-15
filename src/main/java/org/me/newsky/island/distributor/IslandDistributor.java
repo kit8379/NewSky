@@ -4,12 +4,12 @@ import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
+import org.me.newsky.broker.IslandBroker;
+import org.me.newsky.cache.RedisCache;
 import org.me.newsky.exceptions.IslandAlreadyLoadedException;
 import org.me.newsky.exceptions.IslandNotLoadedException;
 import org.me.newsky.exceptions.NoActiveServerException;
 import org.me.newsky.island.operation.IslandOperation;
-import org.me.newsky.broker.IslandBroker;
-import org.me.newsky.cache.RedisCache;
 import org.me.newsky.routing.ServerSelector;
 import org.me.newsky.util.ComponentUtils;
 
@@ -47,15 +47,12 @@ public class IslandDistributor {
         String targetServer = selectServer();
 
         if (targetServer == null) {
-            plugin.debug(getClass().getSimpleName(), "No active server found to handle island creation");
             return CompletableFuture.failedFuture(new NoActiveServerException());
         }
 
         if (targetServer.equals(serverID)) {
-            plugin.debug(getClass().getSimpleName(), "Creating island in current server " + serverID);
             return islandOperation.createIsland(islandUuid, ownerUuid, spawnLocation);
         } else {
-            plugin.debug(getClass().getSimpleName(), "Forwarding island creation request to server " + targetServer);
             return islandBroker.sendRequest(targetServer, "create", islandUuid.toString(), ownerUuid.toString(), spawnLocation);
         }
     }
@@ -64,16 +61,11 @@ public class IslandDistributor {
         String islandServer = getServerByIsland(islandUuid);
 
         if (islandServer == null) {
-            plugin.debug(getClass().getSimpleName(), "Island " + islandUuid + " is not currently loaded on any server");
-            plugin.debug(getClass().getSimpleName(), "Deleting island in current server " + serverID);
             return islandOperation.deleteIsland(islandUuid);
         } else {
-            plugin.debug(getClass().getSimpleName(), "Island " + islandUuid + " is currently on server: " + islandServer);
             if (islandServer.equals(serverID)) {
-                plugin.debug(getClass().getSimpleName(), "Deleting island in current server " + serverID);
                 return islandOperation.deleteIsland(islandUuid);
             } else {
-                plugin.debug(getClass().getSimpleName(), "Island " + islandUuid + " is on server " + islandServer + ", forwarding deletion request");
                 return islandBroker.sendRequest(islandServer, "delete", islandUuid.toString());
             }
         }
@@ -83,22 +75,17 @@ public class IslandDistributor {
         String islandServer = getServerByIsland(islandUuid);
 
         if (islandServer == null) {
-            plugin.debug(getClass().getSimpleName(), "Island " + islandUuid + " is not currently loaded on any server");
             String targetServer = selectServer();
             if (targetServer == null) {
-                plugin.debug(getClass().getSimpleName(), "No active server available to load island");
                 return CompletableFuture.failedFuture(new NoActiveServerException());
             }
 
             if (targetServer.equals(serverID)) {
-                plugin.debug(getClass().getSimpleName(), "Loading island in current server " + serverID);
                 return islandOperation.loadIsland(islandUuid);
             } else {
-                plugin.debug(getClass().getSimpleName(), "Forwarding load request to server " + targetServer);
                 return islandBroker.sendRequest(targetServer, "load", islandUuid.toString());
             }
         } else {
-            plugin.debug(getClass().getSimpleName(), "Island " + islandUuid + " is already loaded on server: " + islandServer);
             return CompletableFuture.failedFuture(new IslandAlreadyLoadedException());
         }
     }
@@ -107,15 +94,11 @@ public class IslandDistributor {
         String islandServer = getServerByIsland(islandUuid);
 
         if (islandServer == null) {
-            plugin.debug(getClass().getSimpleName(), "Island " + islandUuid + " is not currently loaded on any server");
             return CompletableFuture.failedFuture(new IslandNotLoadedException());
         } else {
-            plugin.debug(getClass().getSimpleName(), "Island " + islandUuid + " is currently on server: " + islandServer);
             if (islandServer.equals(serverID)) {
-                plugin.debug(getClass().getSimpleName(), "Unloading island in current server " + serverID);
                 return islandOperation.unloadIsland(islandUuid);
             } else {
-                plugin.debug(getClass().getSimpleName(), "Forwarding unload request to server " + islandServer);
                 return islandBroker.sendRequest(islandServer, "unload", islandUuid.toString());
             }
         }
@@ -125,15 +108,11 @@ public class IslandDistributor {
         String islandServer = getServerByIsland(islandUuid);
 
         if (islandServer == null) {
-            plugin.debug(getClass().getSimpleName(), "Island " + islandUuid + " is not currently loaded on any server");
             CompletableFuture.completedFuture(null);
         } else {
-            plugin.debug(getClass().getSimpleName(), "Island " + islandUuid + " is currently on server: " + islandServer);
             if (islandServer.equals(serverID)) {
-                plugin.debug(getClass().getSimpleName(), "Locking island in current server " + serverID);
                 islandOperation.lockIsland(islandUuid);
             } else {
-                plugin.debug(getClass().getSimpleName(), "Forwarding lock request to server " + islandServer);
                 islandBroker.sendRequest(islandServer, "lock", islandUuid.toString());
             }
         }
@@ -143,27 +122,20 @@ public class IslandDistributor {
         String islandServer = getServerByIsland(islandUuid);
 
         if (islandServer == null) {
-            plugin.debug(getClass().getSimpleName(), "Island " + islandUuid + " is not currently loaded on any server");
             String targetServer = selectServer();
             if (targetServer == null) {
-                plugin.debug(getClass().getSimpleName(), "No active server available for teleportation");
                 return CompletableFuture.failedFuture(new NoActiveServerException());
             }
 
             if (targetServer.equals(serverID)) {
-                plugin.debug(getClass().getSimpleName(), "Teleporting in current server " + serverID);
                 return islandOperation.teleportIsland(islandUuid, playerUuid, teleportLocation);
             } else {
-                plugin.debug(getClass().getSimpleName(), "Forwarding teleport request to server " + targetServer);
                 return islandBroker.sendRequest(targetServer, "teleport", islandUuid.toString(), playerUuid.toString(), teleportLocation).thenRun(() -> connectToServer(playerUuid, targetServer));
             }
         } else {
-            plugin.debug(getClass().getSimpleName(), "Island " + islandUuid + " is currently on server: " + islandServer);
             if (islandServer.equals(serverID)) {
-                plugin.debug(getClass().getSimpleName(), "Teleporting in current server " + serverID);
                 return islandOperation.teleportIsland(islandUuid, playerUuid, teleportLocation);
             } else {
-                plugin.debug(getClass().getSimpleName(), "Forwarding teleport request to server " + islandServer);
                 return islandBroker.sendRequest(islandServer, "teleport", islandUuid.toString(), playerUuid.toString(), teleportLocation).thenRun(() -> connectToServer(playerUuid, islandServer));
             }
         }
@@ -173,15 +145,11 @@ public class IslandDistributor {
         String islandServer = getServerByIsland(islandUuid);
 
         if (islandServer == null) {
-            plugin.debug(getClass().getSimpleName(), "Island " + islandUuid + " is not currently loaded on any server");
             CompletableFuture.completedFuture(null);
         } else {
-            plugin.debug(getClass().getSimpleName(), "Island " + islandUuid + " is currently on server: " + islandServer);
             if (islandServer.equals(serverID)) {
-                plugin.debug(getClass().getSimpleName(), "Expelling player in current server " + serverID);
                 islandOperation.expelPlayer(islandUuid, playerUuid);
             } else {
-                plugin.debug(getClass().getSimpleName(), "Forwarding expel request to server " + islandServer);
                 islandBroker.sendRequest(islandServer, "expel", islandUuid.toString(), playerUuid.toString());
             }
         }
@@ -193,14 +161,10 @@ public class IslandDistributor {
         String playerServer = getServerByPlayer(playerName);
 
         if (playerServer == null) {
-            plugin.debug(getClass().getSimpleName(), "Player is not currently online on any server");
         } else {
-            plugin.debug(getClass().getSimpleName(), "Player " + playerName + " is currently on server: " + playerServer);
             if (playerServer.equals(serverID)) {
-                plugin.debug(getClass().getSimpleName(), "Sending message to player on current server " + serverID);
                 islandOperation.sendPlayerMessage(playerUuid, message);
             } else {
-                plugin.debug(getClass().getSimpleName(), "Forwarding message to player on server " + playerServer);
                 islandBroker.sendRequest(playerServer, "message", playerUuid.toString(), ComponentUtils.serialize(message));
             }
         }
@@ -226,7 +190,6 @@ public class IslandDistributor {
                 out.writeUTF("Connect");
                 out.writeUTF(serverName);
                 player.sendPluginMessage(plugin, "BungeeCord", byteArray.toByteArray());
-                plugin.debug(getClass().getSimpleName(), "Sent plugin message to connect player " + player.getName() + " to server " + serverName);
             } catch (IOException e) {
                 plugin.getLogger().log(Level.SEVERE, "Failed to send plugin message to player " + player.getName(), e);
             }

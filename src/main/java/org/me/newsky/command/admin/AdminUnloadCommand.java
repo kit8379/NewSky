@@ -79,7 +79,7 @@ public class AdminUnloadCommand implements SubCommand, TabComplete {
             if (cause instanceof IslandNotLoadedException) {
                 sender.sendMessage(config.getIslandNotLoadedMessage());
             } else {
-                sender.sendMessage("There was an error unloading the island.");
+                sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error unloading island for " + targetPlayerName, ex);
             }
             return null;

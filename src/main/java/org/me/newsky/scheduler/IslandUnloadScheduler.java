@@ -37,7 +37,6 @@ public class IslandUnloadScheduler {
     }
 
     private void checkAndUnloadWorlds() {
-        plugin.debug(getClass().getSimpleName(), "Starting scheduled task to check for inactive island worlds.");
         long currentTime = System.currentTimeMillis();
         plugin.getServer().getWorlds().forEach(world -> {
             if (IslandUtils.isIslandWorld(world.getName()) && world.getPlayers().isEmpty()) {
@@ -46,18 +45,13 @@ public class IslandUnloadScheduler {
                     worldHandler.unloadWorld(world.getName()).thenRun(() -> {
                         inactiveWorlds.remove(world.getName());
                         redisCache.removeIslandLoadedServer(IslandUtils.nameToUUID(world.getName()));
-                        plugin.debug(getClass().getSimpleName(), "Unloaded inactive island world: " + world.getName());
                     });
                 } else {
                     inactiveWorlds.put(world.getName(), currentTime);
-                    plugin.debug(getClass().getSimpleName(), "World " + world.getName() + " is inactive but not yet ready for unload. Last checked at: " + inactiveTime);
                 }
             } else {
                 inactiveWorlds.remove(world.getName());
-                plugin.debug(getClass().getSimpleName(), "World " + world.getName() + " is active or not an island world, skipping unload check.");
             }
         });
-        plugin.debug(getClass().getSimpleName(), "Finished checking for inactive island worlds.");
-
     }
 }

@@ -76,7 +76,7 @@ public class PlayerSetWarpCommand implements SubCommand, TabComplete {
             } else if (cause instanceof LocationNotInIslandException) {
                 player.sendMessage(config.getPlayerMustInIslandSetWarpMessage());
             } else {
-                player.sendMessage("There was an error setting the warp");
+                player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error setting warp for player " + player.getName(), ex);
             }
             return null;

@@ -89,7 +89,7 @@ public class AdminCoopCommand implements SubCommand, TabComplete {
             } else if (cause instanceof CannotCoopIslandPlayerException) {
                 sender.sendMessage(config.getPlayerCannotCoopIslandPlayerMessage());
             } else {
-                sender.sendMessage("There was an error cooping the player.");
+                sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error cooping player " + targetName + " to island of " + ownerName, ex);
             }
             return null;

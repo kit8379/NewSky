@@ -73,7 +73,7 @@ public class PlayerRejectInviteCommand implements SubCommand {
             player.sendMessage(config.getPlayerInviteRejectedMessage());
             api.sendPlayerMessage(inviterUuid, config.getPlayerInviteRejectedNotifyMessage(player.getName()));
         }).exceptionally(ex -> {
-            player.sendMessage("There was an error processing your invite rejection.");
+            player.sendMessage(config.getUnknownExceptionMessage());
             plugin.getLogger().log(Level.SEVERE, "Error rejecting invite for player " + player.getName(), ex);
             return null;
         });

@@ -6,31 +6,26 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
-import org.me.newsky.NewSky;
 import org.me.newsky.teleport.TeleportHandler;
 
 import java.util.UUID;
 
 public class TeleportRequestListener implements Listener {
 
-    private final NewSky plugin;
     private final TeleportHandler teleportHandler;
 
-    public TeleportRequestListener(NewSky plugin, TeleportHandler teleportHandler) {
-        this.plugin = plugin;
+    public TeleportRequestListener(TeleportHandler teleportHandler) {
         this.teleportHandler = teleportHandler;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
-        // Check if the player has a pending teleport
         Player player = event.getPlayer();
         UUID playerUuid = player.getUniqueId();
         Location pendingLocation = teleportHandler.getPendingTeleport(playerUuid);
         if (pendingLocation != null) {
             player.teleportAsync(pendingLocation);
             teleportHandler.removePendingTeleport(playerUuid);
-            plugin.debug(getClass().getSimpleName(), "Player " + player.getName() + " was teleported to their pending location upon joining.");
         }
     }
 }

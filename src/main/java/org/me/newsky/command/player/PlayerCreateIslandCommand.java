@@ -67,7 +67,7 @@ public class PlayerCreateIslandCommand implements SubCommand {
             } else if (cause instanceof NoActiveServerException) {
                 player.sendMessage(config.getNoActiveServerMessage());
             } else {
-                player.sendMessage("There was an error creating the island");
+                player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error creating island for player " + player.getName(), ex);
             }
             return null;

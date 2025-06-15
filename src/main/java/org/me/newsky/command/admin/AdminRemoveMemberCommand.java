@@ -89,7 +89,7 @@ public class AdminRemoveMemberCommand implements SubCommand, TabComplete {
             } else if (cause instanceof IslandPlayerDoesNotExistException) {
                 sender.sendMessage(config.getIslandMemberNotExistsMessage(targetMemberName));
             } else {
-                sender.sendMessage("There was an error removing the member");
+                sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error removing member " + targetMemberName + " from island of " + islandOwnerName, ex);
             }
             return null;

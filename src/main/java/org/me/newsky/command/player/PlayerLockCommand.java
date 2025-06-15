@@ -74,7 +74,7 @@ public class PlayerLockCommand implements SubCommand {
                 player.sendMessage(config.getPlayerUnLockSuccessMessage());
             }
         }).exceptionally(ex -> {
-            player.sendMessage("There was an error toggling the island lock status.");
+            player.sendMessage(config.getUnknownExceptionMessage());
             plugin.getLogger().log(Level.SEVERE, "Error toggling island lock status for player " + player.getName(), ex);
             return null;
         });

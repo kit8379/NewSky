@@ -83,7 +83,7 @@ public class PlayerDeleteIslandCommand implements SubCommand {
             if (ex.getCause() instanceof NoActiveServerException) {
                 player.sendMessage(config.getNoActiveServerMessage());
             } else {
-                player.sendMessage("There was an error deleting the island");
+                player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error deleting island for player " + player.getName(), ex);
             }
             return null;

@@ -27,10 +27,8 @@ public class RedisHandler {
         JedisPoolConfig poolConfig = new JedisPoolConfig();
         if (password != null && !password.isEmpty()) {
             this.jedisPool = new JedisPool(poolConfig, host, port, 2000, password, database);
-            plugin.debug(getClass().getSimpleName(), "Initialized Redis pool with authentication on DB " + database);
         } else {
             this.jedisPool = new JedisPool(poolConfig, host, port, 2000, null, database);
-            plugin.debug(getClass().getSimpleName(), "Initialized Redis pool without authentication on DB " + database);
         }
     }
 
@@ -40,7 +38,6 @@ public class RedisHandler {
         CompletableFuture.runAsync(() -> {
             try (Jedis jedis = getJedis()) {
                 jedis.publish(channel, message);
-                plugin.debug(getClass().getSimpleName(), "Published message " + message + " to channel " + channel);
             }
         }, plugin.getBukkitAsyncExecutor());
     }
@@ -50,7 +47,6 @@ public class RedisHandler {
         CompletableFuture.runAsync(() -> {
             try (Jedis jedis = getJedis()) {
                 jedis.subscribe(pubSub, channel);
-                plugin.debug(getClass().getSimpleName(), "Subscribed to channel " + channel);
             }
         }, plugin.getBukkitAsyncExecutor());
     }
@@ -62,7 +58,6 @@ public class RedisHandler {
     public void disconnect() {
         if (jedisPool != null) {
             jedisPool.close();
-            plugin.debug(getClass().getSimpleName(), "Closed the Jedis pool");
         }
     }
 }

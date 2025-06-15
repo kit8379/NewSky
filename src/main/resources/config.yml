@@ -31,8 +31,8 @@ redis:
   # If you have different groups of servers under the same broker, you can change the database and channel to separate them.
   database: 0
   channel:
-    cache: "newsky-island"
-    island: "newsky-broker"
+    cache: "newsky-cache-channel-0"
+    island: "newsky-island-channel-0"
 
 
 # The settings for the server.
@@ -96,11 +96,11 @@ island:
   # The default value is 180 seconds (2 minutes).
   level-update-interval: 180
 
-  # The settings for the command
-  command:
-    # The mode when the player uses the /island command.
-    # The mode can be "island", "help".
-    # The "help" mode means the player will see the help message of the island command.
-    # The "island" mode means the player will directly teleport to default home if they have island or directly create a new island if they don't have one.
-    # The default mode is "help".
-    base-command-mode: "help"
+# The settings for the command
+command:
+  # The mode when the player uses the /island command.
+  # The mode can be "island", "help".
+  # The "help" mode means the player will see the help message of the island command.
+  # The "island" mode means the player will directly teleport to default home if they have island or directly create a new island if they don't have one.
+  # The default mode is "help".
+  base-command-mode: "island"

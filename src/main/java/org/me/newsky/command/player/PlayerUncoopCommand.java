@@ -1,6 +1,5 @@
 package org.me.newsky.command.player;
 
-import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
@@ -91,7 +90,7 @@ public class PlayerUncoopCommand implements SubCommand, TabComplete {
             if (cause instanceof PlayerNotCoopedException) {
                 player.sendMessage(config.getPlayerNotCoopedMessage(targetPlayerName));
             } else {
-                player.sendMessage(Component.text("There was an error uncooping the player."));
+                player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error uncooping player " + targetPlayerName + " for " + player.getName(), ex);
             }
             return null;

@@ -25,23 +25,19 @@ public class MSPTUpdateScheduler {
 
     public void start() {
         if (config.isLobby()) {
-            plugin.debug(getClass().getSimpleName(), "Skipping MSPT update scheduler in lobby mode.");
             return;
         }
         task = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::updateMspt, 0, updateInterval * 20L);
-        plugin.debug(getClass().getSimpleName(), "Started MSPT update scheduler.");
     }
 
     public void stop() {
         if (task != null) {
             task.cancel();
-            plugin.debug(getClass().getSimpleName(), "Stopped MSPT update scheduler.");
         }
     }
 
     private void updateMspt() {
         double mspt = Bukkit.getServer().getAverageTickTime();
         redisCache.updateServerMSPT(serverID, mspt);
-        plugin.debug(getClass().getSimpleName(), "MSPT updated to Redis: " + mspt + " ms (" + serverID + ")");
     }
 }

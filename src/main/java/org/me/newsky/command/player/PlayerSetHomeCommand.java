@@ -75,7 +75,7 @@ public class PlayerSetHomeCommand implements SubCommand, TabComplete {
             } else if (cause instanceof LocationNotInIslandException) {
                 player.sendMessage(config.getPlayerMustInIslandSetHomeMessage());
             } else {
-                player.sendMessage("There was an error setting the home.");
+                player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.getLogger().log(Level.SEVERE, "Error setting home for player " + player.getName(), ex);
             }
             return null;
