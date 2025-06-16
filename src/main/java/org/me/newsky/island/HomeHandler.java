@@ -31,11 +31,14 @@ public class HomeHandler {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
+
             UUID islandUuid = islandUuidOpt.get();
             if (location.getWorld() == null || !location.getWorld().getName().equals("island-" + islandUuid)) {
                 throw new LocationNotInIslandException();
             }
+
             String homeLocation = LocationUtils.locationToString(location);
+
             cache.updateHomePoint(islandUuid, playerUuid, homeName, homeLocation);
             return CompletableFuture.completedFuture(null);
         });
@@ -46,10 +49,12 @@ public class HomeHandler {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
+
             UUID islandUuid = islandUuidOpt.get();
             if (cache.getHomeLocation(islandUuid, playerUuid, homeName).isEmpty()) {
                 throw new HomeDoesNotExistException();
             }
+
             cache.deleteHomePoint(islandUuid, playerUuid, homeName);
             return CompletableFuture.completedFuture(null);
         });
@@ -60,12 +65,15 @@ public class HomeHandler {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
+
             UUID islandUuid = islandUuidOpt.get();
             Optional<String> homeLocationOpt = cache.getHomeLocation(islandUuid, playerUuid, homeName);
             if (homeLocationOpt.isEmpty()) {
                 throw new HomeDoesNotExistException();
             }
+
             String homeLocation = homeLocationOpt.get();
+
             return islandDistributor.teleportIsland(islandUuid, targetPlayerUuid, homeLocation);
         });
     }
@@ -75,7 +83,9 @@ public class HomeHandler {
         if (islandUuidOpt.isEmpty()) {
             throw new IslandDoesNotExistException();
         }
+
         UUID islandUuid = islandUuidOpt.get();
+
         return cache.getHomeNames(islandUuid, playerUuid);
     }
 }

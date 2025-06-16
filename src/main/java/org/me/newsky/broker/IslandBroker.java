@@ -156,7 +156,7 @@ public class IslandBroker {
         try {
             switch (operation) {
                 case "create":
-                    return islandOperation.createIsland(UUID.fromString(args[0]), UUID.fromString(args[1]), args[2]);
+                    return islandOperation.createIsland(UUID.fromString(args[0]), UUID.fromString(args[1]));
                 case "delete":
                     return islandOperation.deleteIsland(UUID.fromString(args[0]));
                 case "load":

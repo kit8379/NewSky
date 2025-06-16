@@ -28,9 +28,11 @@ public class BanHandler {
             if (cache.isPlayerBanned(islandUuid, playerUuid)) {
                 throw new PlayerAlreadyBannedException();
             }
+
             if (cache.getIslandPlayers(islandUuid).contains(playerUuid)) {
                 throw new CannotBanIslandPlayerException();
             }
+
             islandDistributor.expelPlayer(islandUuid, playerUuid);
             cache.updateBanPlayer(islandUuid, playerUuid);
         }, plugin.getBukkitAsyncExecutor());
@@ -41,6 +43,7 @@ public class BanHandler {
             if (!cache.isPlayerBanned(islandUuid, playerUuid)) {
                 throw new PlayerNotBannedException();
             }
+
             cache.deleteBanPlayer(islandUuid, playerUuid);
         }, plugin.getBukkitAsyncExecutor());
     }

@@ -3,7 +3,6 @@ package org.me.newsky.island;
 import net.kyori.adventure.text.Component;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.Cache;
-import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
@@ -16,13 +15,11 @@ import java.util.concurrent.CompletableFuture;
 public class IslandHandler {
 
     private final NewSky plugin;
-    private final ConfigHandler config;
     private final Cache cache;
     private final IslandDistributor islandDistributor;
 
-    public IslandHandler(NewSky plugin, ConfigHandler configHandler, Cache cache, IslandDistributor islandDistributor) {
+    public IslandHandler(NewSky plugin, Cache cache, IslandDistributor islandDistributor) {
         this.plugin = plugin;
-        this.config = configHandler;
         this.cache = cache;
         this.islandDistributor = islandDistributor;
     }
@@ -34,9 +31,8 @@ public class IslandHandler {
             }
 
             UUID islandUuid = UUID.randomUUID();
-            String spawnLocation = config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch();
 
-            return islandDistributor.createIsland(islandUuid, ownerUuid, spawnLocation);
+            return islandDistributor.createIsland(islandUuid, ownerUuid);
         }, plugin.getBukkitAsyncExecutor()).thenCompose(f -> f);
     }
 
@@ -55,10 +51,10 @@ public class IslandHandler {
     public CompletableFuture<Boolean> toggleIslandLock(UUID islandUuid) {
         return CompletableFuture.supplyAsync(() -> {
             boolean isLocked = cache.isIslandLock(islandUuid);
-            cache.updateIslandLock(islandUuid, !isLocked);
             if (!isLocked) {
                 islandDistributor.lockIsland(islandUuid);
             }
+            cache.updateIslandLock(islandUuid, !isLocked);
             return !isLocked;
         }, plugin.getBukkitAsyncExecutor());
     }

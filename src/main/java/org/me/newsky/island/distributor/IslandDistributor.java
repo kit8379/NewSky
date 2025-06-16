@@ -5,11 +5,11 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.broker.IslandBroker;
-import org.me.newsky.redis.RedisCache;
 import org.me.newsky.exceptions.IslandAlreadyLoadedException;
 import org.me.newsky.exceptions.IslandNotLoadedException;
 import org.me.newsky.exceptions.NoActiveServerException;
 import org.me.newsky.island.operation.IslandOperation;
+import org.me.newsky.redis.RedisCache;
 import org.me.newsky.routing.ServerSelector;
 import org.me.newsky.util.ComponentUtils;
 
@@ -42,8 +42,8 @@ public class IslandDistributor {
         this.islandBroker = islandBroker;
     }
 
-    public CompletableFuture<Void> createIsland(UUID islandUuid, UUID ownerUuid, String spawnLocation) {
-        plugin.debug("IslandDistributor", "Creating island with UUID: " + islandUuid + ", Owner UUID: " + ownerUuid + ", Spawn Location: " + spawnLocation);
+    public CompletableFuture<Void> createIsland(UUID islandUuid, UUID ownerUuid) {
+        plugin.debug("IslandDistributor", "Creating island with UUID: " + islandUuid + ", Owner UUID: " + ownerUuid);
 
         String targetServer = selectServer();
 
@@ -56,10 +56,10 @@ public class IslandDistributor {
 
         if (targetServer.equals(serverID)) {
             plugin.debug("IslandDistributor", "Creating island on local server: " + serverID);
-            return islandOperation.createIsland(islandUuid, ownerUuid, spawnLocation);
+            return islandOperation.createIsland(islandUuid, ownerUuid);
         } else {
             plugin.debug("IslandDistributor", "Forwarding island creation request to server: " + targetServer);
-            return islandBroker.sendRequest(targetServer, "create", islandUuid.toString(), ownerUuid.toString(), spawnLocation);
+            return islandBroker.sendRequest(targetServer, "create", islandUuid.toString(), ownerUuid.toString());
         }
     }
 

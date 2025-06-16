@@ -39,6 +39,7 @@ public class CoopHandler {
             if (!cache.isPlayerCooped(islandUuid, playerUuid)) {
                 throw new PlayerNotCoopedException();
             }
+
             cache.deleteCoopPlayer(islandUuid, playerUuid);
         }, plugin.getBukkitAsyncExecutor());
     }

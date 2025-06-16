@@ -29,11 +29,14 @@ public class WarpHandler {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
+
             UUID islandUuid = islandUuidOpt.get();
             if (location.getWorld() == null || !location.getWorld().getName().equals("island-" + islandUuid)) {
                 throw new LocationNotInIslandException();
             }
+
             String warpLocation = LocationUtils.locationToString(location);
+
             cache.updateWarpPoint(islandUuid, playerUuid, warpName, warpLocation);
             return CompletableFuture.completedFuture(null);
         });
@@ -44,10 +47,12 @@ public class WarpHandler {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
+
             UUID islandUuid = islandUuidOpt.get();
             if (cache.getWarpLocation(islandUuid, playerUuid, warpName).isEmpty()) {
                 throw new WarpDoesNotExistException();
             }
+
             cache.deleteWarpPoint(islandUuid, playerUuid, warpName);
             return CompletableFuture.completedFuture(null);
         });
@@ -74,7 +79,9 @@ public class WarpHandler {
             if (warpLocationOpt.isEmpty()) {
                 throw new WarpDoesNotExistException();
             }
+
             String warpLocation = warpLocationOpt.get();
+
             return islandDistributor.teleportIsland(islandUuid, targetPlayerUuid, warpLocation);
         });
     }

@@ -7,8 +7,8 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.Cache;
-import org.me.newsky.redis.RedisCache;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.redis.RedisCache;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.util.LocationUtils;
@@ -42,16 +42,20 @@ public class IslandOperation {
         this.serverID = serverID;
     }
 
-    public CompletableFuture<Void> createIsland(UUID islandUuid, UUID ownerUuid, String spawnLocation) {
+    public CompletableFuture<Void> createIsland(UUID islandUuid, UUID ownerUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         return worldHandler.createWorld(islandName).thenRun(() -> {
             redisCache.updateIslandLoadedServer(islandUuid, serverID);
             plugin.debug("IslandOperation", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
+
             cache.createIsland(islandUuid);
             plugin.debug("IslandOperation", "Created island cache entry for UUID: " + islandUuid);
+
             cache.updateIslandPlayer(islandUuid, ownerUuid, "owner");
             plugin.debug("IslandOperation", "Updated island player cache for UUID: " + islandUuid + " with owner UUID: " + ownerUuid);
+
+            String spawnLocation = config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch();
             cache.updateHomePoint(islandUuid, ownerUuid, "default", spawnLocation);
             plugin.debug("IslandOperation", "Set home point for island UUID: " + islandUuid + " with spawn location: " + spawnLocation);
         });
@@ -63,6 +67,7 @@ public class IslandOperation {
         return worldHandler.deleteWorld(islandName).thenRun(() -> {
             redisCache.removeIslandLoadedServer(islandUuid);
             plugin.debug("IslandOperation", "Removed island loaded server for UUID: " + islandUuid);
+
             cache.deleteIsland(islandUuid);
             plugin.debug("IslandOperation", "Deleted island cache entry for UUID: " + islandUuid);
         });

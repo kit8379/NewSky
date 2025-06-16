@@ -8,7 +8,6 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.broker.CacheBroker;
 import org.me.newsky.broker.IslandBroker;
 import org.me.newsky.cache.Cache;
-import org.me.newsky.redis.RedisCache;
 import org.me.newsky.command.IslandAdminCommand;
 import org.me.newsky.command.IslandPlayerCommand;
 import org.me.newsky.config.ConfigHandler;
@@ -19,6 +18,7 @@ import org.me.newsky.island.distributor.IslandDistributor;
 import org.me.newsky.island.operation.IslandOperation;
 import org.me.newsky.listener.*;
 import org.me.newsky.placeholder.NewSkyPlaceholderExpansion;
+import org.me.newsky.redis.RedisCache;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.routing.MSPTServerSelector;
 import org.me.newsky.routing.RandomServerSelector;
@@ -147,8 +147,8 @@ public class NewSky extends JavaPlugin {
             info("Message broker loaded");
 
             info("Starting main handlers for the plugin");
-            IslandHandler islandHandler = new IslandHandler(this, config, cache, islandDistributor);
-            PlayerHandler playerHandler = new PlayerHandler(this, cache, redisCache);
+            IslandHandler islandHandler = new IslandHandler(this, cache, islandDistributor);
+            PlayerHandler playerHandler = new PlayerHandler(this, config, cache, redisCache);
             HomeHandler homeHandler = new HomeHandler(this, cache, islandDistributor);
             WarpHandler warpHandler = new WarpHandler(this, cache, islandDistributor);
             LevelHandler levelHandler = new LevelHandler(config, cache);
