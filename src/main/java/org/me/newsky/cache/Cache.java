@@ -217,6 +217,7 @@ public class Cache {
         });
     }
 
+
     // =================================================================================================================
     // Island
     // =================================================================================================================
@@ -228,24 +229,20 @@ public class Cache {
         data.put("lock", "false");
         data.put("pvp", "false");
         islandData.put(islandUuid, data);
-        cacheBroker.publishUpdate("island_data", islandUuid);
 
         islandPlayers.put(islandUuid, new ConcurrentHashMap<>());
-        cacheBroker.publishUpdate("island_players", islandUuid);
-
         islandHomes.put(islandUuid, new ConcurrentHashMap<>());
-        cacheBroker.publishUpdate("island_homes", islandUuid);
-
         islandWarps.put(islandUuid, new ConcurrentHashMap<>());
-        cacheBroker.publishUpdate("island_warps", islandUuid);
-
         islandBans.put(islandUuid, ConcurrentHashMap.newKeySet());
-        cacheBroker.publishUpdate("island_bans", islandUuid);
-
         islandCoops.put(islandUuid, ConcurrentHashMap.newKeySet());
-        cacheBroker.publishUpdate("island_coops", islandUuid);
-
         islandLevels.put(islandUuid, 0);
+
+        cacheBroker.publishUpdate("island_data", islandUuid);
+        cacheBroker.publishUpdate("island_players", islandUuid);
+        cacheBroker.publishUpdate("island_homes", islandUuid);
+        cacheBroker.publishUpdate("island_warps", islandUuid);
+        cacheBroker.publishUpdate("island_bans", islandUuid);
+        cacheBroker.publishUpdate("island_coops", islandUuid);
         cacheBroker.publishUpdate("island_levels", islandUuid);
     }
 
@@ -253,24 +250,19 @@ public class Cache {
         databaseHandler.deleteIsland(islandUuid);
 
         islandLevels.remove(islandUuid);
-        cacheBroker.publishUpdate("island_levels", islandUuid);
-
         islandCoops.remove(islandUuid);
-        cacheBroker.publishUpdate("island_coops", islandUuid);
-
         islandBans.remove(islandUuid);
-        cacheBroker.publishUpdate("island_bans", islandUuid);
-
         islandWarps.remove(islandUuid);
-        cacheBroker.publishUpdate("island_warps", islandUuid);
-
         islandHomes.remove(islandUuid);
-        cacheBroker.publishUpdate("island_homes", islandUuid);
-
         islandPlayers.remove(islandUuid);
-        cacheBroker.publishUpdate("island_players", islandUuid);
-
         islandData.remove(islandUuid);
+
+        cacheBroker.publishUpdate("island_levels", islandUuid);
+        cacheBroker.publishUpdate("island_coops", islandUuid);
+        cacheBroker.publishUpdate("island_bans", islandUuid);
+        cacheBroker.publishUpdate("island_warps", islandUuid);
+        cacheBroker.publishUpdate("island_homes", islandUuid);
+        cacheBroker.publishUpdate("island_players", islandUuid);
         cacheBroker.publishUpdate("island_data", islandUuid);
     }
 
@@ -300,16 +292,14 @@ public class Cache {
         Map<UUID, Map<String, String>> warps = islandWarps.get(islandUuid);
         if (warps != null) warps.remove(playerUuid);
 
-        cacheBroker.publishUpdate("island_warps", islandUuid);
-
         Map<UUID, Map<String, String>> homes = islandHomes.get(islandUuid);
         if (homes != null) homes.remove(playerUuid);
-
-        cacheBroker.publishUpdate("island_homes", islandUuid);
 
         Map<UUID, String> players = islandPlayers.get(islandUuid);
         if (players != null) players.remove(playerUuid);
 
+        cacheBroker.publishUpdate("island_warps", islandUuid);
+        cacheBroker.publishUpdate("island_homes", islandUuid);
         cacheBroker.publishUpdate("island_players", islandUuid);
     }
 
@@ -542,7 +532,6 @@ public class Cache {
         databaseHandler.updateIslandPvp(islandUuid, pvp);
 
         islandData.computeIfAbsent(islandUuid, k -> new ConcurrentHashMap<>()).put("pvp", String.valueOf(pvp));
-
         cacheBroker.publishUpdate("island_data", islandUuid);
     }
 
