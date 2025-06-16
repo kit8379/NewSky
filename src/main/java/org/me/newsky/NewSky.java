@@ -288,6 +288,6 @@ public class NewSky extends JavaPlugin {
     }
 
     public void debug(String source, String message) {
-        getLogger().log(Level.FINE, "[" + source + "] " + message);
+        getLogger().log(Level.INFO, "[" + source + "] " + message);
     }
 }

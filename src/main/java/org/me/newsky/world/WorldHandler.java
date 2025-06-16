@@ -177,7 +177,7 @@ public class WorldHandler {
                 if (world != null) {
                     removePlayersFromWorld(world);
                     if (Bukkit.unloadWorld(world, false)) {
-                        plugin.debug("WorldHandler", "World unloaded from Bukkit: " + worldName);
+                        plugin.debug("WorldHandler", "World unloaded successfully from Bukkit: " + worldName);
                     } else {
                         future.completeExceptionally(new IllegalStateException("Failed to unload world from Bukkit: " + worldName));
                         plugin.severe("Failed to unload world from Bukkit: " + worldName);
@@ -199,7 +199,11 @@ public class WorldHandler {
         for (SlimeWorldInstance worldInstance : loadedWorlds) {
             try {
                 asp.saveWorld(worldInstance);
-                Bukkit.unloadWorld(worldInstance.getName(), false);
+                if (Bukkit.unloadWorld(worldInstance.getName(), false)) {
+                    plugin.debug("WorldHandler", "World unloaded successfully from Bukkit: " + worldInstance.getName());
+                } else {
+                    plugin.severe("Failed to unload world from Bukkit: " + worldInstance.getName());
+                }
                 plugin.debug("WorldHandler", "World unloaded on shutdown: " + worldInstance.getName());
             } catch (Exception e) {
                 plugin.severe("Failed to unload world on shutdown: " + worldInstance.getName(), e);

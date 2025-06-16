@@ -144,10 +144,8 @@ public class IslandBroker {
         }
 
         if ("success".equals(status)) {
-            plugin.debug("IslandBroker", "Request " + requestId + " completed successfully.");
             future.complete(null);
         } else {
-            plugin.severe("Request " + requestId + " failed with status: " + status);
             future.completeExceptionally(new IllegalStateException("Request failed: " + requestId));
         }
     }
@@ -172,7 +170,6 @@ public class IslandBroker {
                 case "message":
                     return islandOperation.sendPlayerMessage(UUID.fromString(args[0]), ComponentUtils.deserialize(args[1]));
                 default:
-                    plugin.severe("Unknown operation: " + operation + " with args: " + String.join(", ", args));
                     return CompletableFuture.failedFuture(new IllegalArgumentException("Unknown operation: " + operation));
             }
         } catch (Exception e) {
