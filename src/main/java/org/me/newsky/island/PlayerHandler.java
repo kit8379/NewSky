@@ -2,7 +2,7 @@ package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.Cache;
-import org.me.newsky.cache.RedisCache;
+import org.me.newsky.redis.RedisCache;
 import org.me.newsky.exceptions.*;
 import org.me.newsky.model.Invitation;
 

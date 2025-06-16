@@ -8,7 +8,7 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.broker.CacheBroker;
 import org.me.newsky.broker.IslandBroker;
 import org.me.newsky.cache.Cache;
-import org.me.newsky.cache.RedisCache;
+import org.me.newsky.redis.RedisCache;
 import org.me.newsky.command.IslandAdminCommand;
 import org.me.newsky.command.IslandPlayerCommand;
 import org.me.newsky.config.ConfigHandler;

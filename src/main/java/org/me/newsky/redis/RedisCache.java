@@ -1,8 +1,7 @@
-package org.me.newsky.cache;
+package org.me.newsky.redis;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.model.Invitation;
-import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.Jedis;
 
 import java.util.Map;

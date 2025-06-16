@@ -3,7 +3,7 @@ package org.me.newsky.scheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.RedisCache;
+import org.me.newsky.redis.RedisCache;
 import org.me.newsky.config.ConfigHandler;
 
 public class MSPTUpdateScheduler {

@@ -2,7 +2,7 @@ package org.me.newsky.scheduler;
 
 import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.RedisCache;
+import org.me.newsky.redis.RedisCache;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.world.WorldHandler;

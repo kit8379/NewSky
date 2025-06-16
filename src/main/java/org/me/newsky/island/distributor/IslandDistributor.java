@@ -5,7 +5,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.broker.IslandBroker;
-import org.me.newsky.cache.RedisCache;
+import org.me.newsky.redis.RedisCache;
 import org.me.newsky.exceptions.IslandAlreadyLoadedException;
 import org.me.newsky.exceptions.IslandNotLoadedException;
 import org.me.newsky.exceptions.NoActiveServerException;

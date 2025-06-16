@@ -6,7 +6,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.RedisCache;
+import org.me.newsky.redis.RedisCache;
 
 import java.util.Set;
 import java.util.UUID;

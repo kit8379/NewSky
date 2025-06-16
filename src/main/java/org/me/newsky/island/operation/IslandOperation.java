@@ -7,7 +7,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.Cache;
-import org.me.newsky.cache.RedisCache;
+import org.me.newsky.redis.RedisCache;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.util.IslandUtils;

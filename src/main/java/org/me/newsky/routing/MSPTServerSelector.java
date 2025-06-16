@@ -1,6 +1,6 @@
 package org.me.newsky.routing;
 
-import org.me.newsky.cache.RedisCache;
+import org.me.newsky.redis.RedisCache;
 
 import java.security.SecureRandom;
 import java.util.ArrayList;
