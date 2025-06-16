@@ -9,7 +9,6 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 
 import java.util.UUID;
-import java.util.logging.Level;
 
 /**
  * /is pvp
@@ -75,7 +74,7 @@ public class PlayerPvpCommand implements SubCommand {
             }
         }).exceptionally(ex -> {
             player.sendMessage(config.getUnknownExceptionMessage());
-            plugin.getLogger().log(Level.SEVERE, "Error toggling PvP status for player " + player.getName(), ex);
+            plugin.severe("Error toggling PvP status for player " + player.getName(), ex);
             return null;
         });
 

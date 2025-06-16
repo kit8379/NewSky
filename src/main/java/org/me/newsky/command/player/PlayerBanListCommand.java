@@ -14,7 +14,6 @@ import org.me.newsky.exceptions.IslandDoesNotExistException;
 
 import java.util.Set;
 import java.util.UUID;
-import java.util.logging.Level;
 
 /**
  * /is banlist
@@ -91,7 +90,7 @@ public class PlayerBanListCommand implements SubCommand {
             player.sendMessage(config.getPlayerNoIslandMessage());
         } catch (Exception ex) {
             player.sendMessage(config.getUnknownExceptionMessage());
-            plugin.getLogger().log(Level.SEVERE, "Error retrieving ban list for " + player.getName(), ex);
+            plugin.severe("Error retrieving ban list for " + player.getName(), ex);
         }
 
         return true;

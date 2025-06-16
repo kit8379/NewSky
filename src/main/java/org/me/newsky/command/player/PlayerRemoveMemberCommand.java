@@ -17,7 +17,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -99,7 +98,7 @@ public class PlayerRemoveMemberCommand implements SubCommand, TabComplete {
                 player.sendMessage(config.getIslandMemberNotExistsMessage(targetPlayerName));
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());
-                plugin.getLogger().log(Level.SEVERE, "Error removing member from island for player " + player.getName(), ex);
+                plugin.severe("Error removing member from island for player " + player.getName(), ex);
             }
             return null;
         });

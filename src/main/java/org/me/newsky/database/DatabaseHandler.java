@@ -10,7 +10,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.UUID;
-import java.util.logging.Level;
 
 public class DatabaseHandler {
 
@@ -57,7 +56,7 @@ public class DatabaseHandler {
             consumer.use(statement);
             statement.executeUpdate();
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.SEVERE, "Database Update failed: " + query, e);
+            plugin.severe("Database Update failed: " + query, e);
             throw new RuntimeException(e);
         }
     }
@@ -67,7 +66,7 @@ public class DatabaseHandler {
         try (Connection connection = getConnection(); PreparedStatement statement = connection.prepareStatement(query); ResultSet resultSet = statement.executeQuery()) {
             processor.process(resultSet);
         } catch (SQLException e) {
-            plugin.getLogger().log(Level.SEVERE, "Database Query failed: " + query, e);
+            plugin.severe("Database Query failed: " + query, e);
             throw new RuntimeException(e);
         }
     }
@@ -138,7 +137,7 @@ public class DatabaseHandler {
         executeQuery("SELECT * FROM island_levels", processor);
     }
 
-    public void addIslandData(UUID islandUuid) {
+    public void updateIslandData(UUID islandUuid) {
         executeUpdate(s -> s.setString(1, islandUuid.toString()), "INSERT INTO islands (island_uuid) VALUES (?);");
     }
 

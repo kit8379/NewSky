@@ -14,7 +14,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -92,7 +91,7 @@ public class PlayerInfoCommand implements SubCommand, TabComplete {
                 sender.sendMessage(config.getPlayerNoIslandMessage());
             } catch (Exception ex) {
                 sender.sendMessage(config.getUnknownExceptionMessage());
-                plugin.getLogger().log(Level.SEVERE, "Error getting island information for player " + player.getName(), ex);
+                plugin.severe("Error getting island information for player " + player.getName(), ex);
             }
         });
 

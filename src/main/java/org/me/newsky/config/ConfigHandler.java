@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
-import java.util.logging.Level;
 
 public class ConfigHandler {
     private final NewSky plugin;
@@ -73,7 +72,7 @@ public class ConfigHandler {
         try {
             config.save(new File(plugin.getDataFolder(), fileName));
         } catch (IOException e) {
-            plugin.getLogger().log(Level.SEVERE, "Could not save " + fileName, e);
+            plugin.severe("Could not save " + fileName, e);
         }
     }
 

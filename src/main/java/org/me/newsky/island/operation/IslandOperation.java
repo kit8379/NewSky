@@ -47,9 +47,13 @@ public class IslandOperation {
 
         return worldHandler.createWorld(islandName).thenRun(() -> {
             redisCache.updateIslandLoadedServer(islandUuid, serverID);
+            plugin.debug("IslandOperation", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
             cache.createIsland(islandUuid);
+            plugin.debug("IslandOperation", "Created island cache entry for UUID: " + islandUuid);
             cache.updateIslandPlayer(islandUuid, ownerUuid, "owner");
+            plugin.debug("IslandOperation", "Updated island player cache for UUID: " + islandUuid + " with owner UUID: " + ownerUuid);
             cache.updateHomePoint(islandUuid, ownerUuid, "default", spawnLocation);
+            plugin.debug("IslandOperation", "Set home point for island UUID: " + islandUuid + " with spawn location: " + spawnLocation);
         });
     }
 
@@ -58,20 +62,28 @@ public class IslandOperation {
 
         return worldHandler.deleteWorld(islandName).thenRun(() -> {
             redisCache.removeIslandLoadedServer(islandUuid);
+            plugin.debug("IslandOperation", "Removed island loaded server for UUID: " + islandUuid);
             cache.deleteIsland(islandUuid);
+            plugin.debug("IslandOperation", "Deleted island cache entry for UUID: " + islandUuid);
         });
     }
 
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        return worldHandler.loadWorld(islandName).thenRun(() -> redisCache.updateIslandLoadedServer(islandUuid, serverID));
+        return worldHandler.loadWorld(islandName).thenRun(() -> {
+            redisCache.updateIslandLoadedServer(islandUuid, serverID);
+            plugin.debug("IslandOperation", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
+        });
     }
 
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        return worldHandler.unloadWorld(islandName).thenRun(() -> redisCache.removeIslandLoadedServer(islandUuid));
+        return worldHandler.unloadWorld(islandName).thenRun(() -> {
+            redisCache.removeIslandLoadedServer(islandUuid);
+            plugin.debug("IslandOperation", "Removed island loaded server for UUID: " + islandUuid);
+        });
     }
 
     public CompletableFuture<Void> lockIsland(UUID islandUuid) {
@@ -85,6 +97,7 @@ public class IslandOperation {
                 if (!islandPlayers.contains(playerUuid)) {
                     player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
                     Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), config.getLobbyCommand(player.getName())));
+                    plugin.debug("IslandOperation", "Teleported player " + player.getName() + " from locked island: " + islandName);
                 }
             }
         }
@@ -100,8 +113,10 @@ public class IslandOperation {
             Player player = Bukkit.getPlayer(playerUuid);
             if (player != null) {
                 player.teleportAsync(location);
+                plugin.debug("IslandOperation", "Teleported player " + player.getName() + " to location: " + teleportLocation + " on island: " + islandName);
             } else {
                 teleportHandler.addPendingTeleport(playerUuid, location);
+                plugin.debug("IslandOperation", "Player " + playerUuid + " not online, added pending teleport to location: " + teleportLocation + " on island: " + islandName);
             }
         });
     }
@@ -115,6 +130,7 @@ public class IslandOperation {
             if (player != null) {
                 player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
                 Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), config.getLobbyCommand(player.getName())));
+                plugin.debug("IslandOperation", "Expelled player " + player.getName() + " from island: " + islandName);
             }
         }
 
@@ -125,6 +141,7 @@ public class IslandOperation {
         Player player = Bukkit.getPlayer(playerUuid);
         if (player != null) {
             player.sendMessage(message);
+            plugin.debug("IslandOperation", "Sent message to player " + player.getName() + ": " + message);
         }
 
         return CompletableFuture.completedFuture(null);

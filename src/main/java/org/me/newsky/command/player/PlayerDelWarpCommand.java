@@ -13,7 +13,6 @@ import org.me.newsky.exceptions.WarpDoesNotExistException;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -77,7 +76,7 @@ public class PlayerDelWarpCommand implements SubCommand, TabComplete {
                 player.sendMessage(config.getPlayerNoWarpMessage(warpName));
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());
-                plugin.getLogger().log(Level.SEVERE, "Error deleting warp for player " + player.getName(), ex);
+                plugin.severe("Error deleting warp for player " + player.getName(), ex);
             }
             return null;
         });

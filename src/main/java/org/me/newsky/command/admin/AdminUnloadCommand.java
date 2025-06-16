@@ -14,7 +14,6 @@ import org.me.newsky.exceptions.IslandNotLoadedException;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -80,7 +79,7 @@ public class AdminUnloadCommand implements SubCommand, TabComplete {
                 sender.sendMessage(config.getIslandNotLoadedMessage());
             } else {
                 sender.sendMessage(config.getUnknownExceptionMessage());
-                plugin.getLogger().log(Level.SEVERE, "Error unloading island for " + targetPlayerName, ex);
+                plugin.severe("Error unloading island for " + targetPlayerName, ex);
             }
             return null;
         });

@@ -5,16 +5,19 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
+import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.util.IslandUtils;
 
 public class IslandBoundaryListener implements Listener {
 
+    private final NewSky plugin;
     private final ConfigHandler config;
     private final int islandSize;
     private final int bufferSize;
 
-    public IslandBoundaryListener(ConfigHandler config) {
+    public IslandBoundaryListener(NewSky plugin, ConfigHandler config) {
+        this.plugin = plugin;
         this.config = config;
         this.islandSize = config.getIslandSize();
         this.bufferSize = config.getBufferSize();
@@ -52,6 +55,7 @@ public class IslandBoundaryListener implements Listener {
         if (toX < minX || toX > maxX || toZ < minZ || toZ > maxZ) {
             event.setCancelled(true);
             player.sendMessage(config.getCannotLeaveIslandBoundaryMessage());
+            plugin.debug("IslandBoundaryListener", "Player " + player.getName() + " attempted to leave island boundary at (" + toX + ", " + toZ + "). Action cancelled.");
         }
     }
 }

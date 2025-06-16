@@ -33,6 +33,7 @@ public class IslandCoopListener implements Listener {
 
             if (!onlinePlayers.contains(playerName)) {
                 plugin.getApi().removeAllCoopOfPlayer(playerUuid);
+                plugin.debug("IslandCoopListener", "Removed all coop of player " + playerName + " (" + playerUuid + ") due to logout");
             }
         }, 60L);
     }

@@ -9,7 +9,6 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 
 import java.util.UUID;
-import java.util.logging.Level;
 
 /**
  * /is level
@@ -67,7 +66,7 @@ public class PlayerLevelCommand implements SubCommand {
             player.sendMessage(config.getPlayerNoIslandMessage());
         } catch (Exception ex) {
             player.sendMessage(config.getUnknownExceptionMessage());
-            plugin.getLogger().log(Level.SEVERE, "Error calculating island level for player " + player.getName(), ex);
+            plugin.severe("Error calculating island level for player " + player.getName(), ex);
         }
 
         return true;

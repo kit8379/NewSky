@@ -15,7 +15,6 @@ import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -90,7 +89,7 @@ public class AdminAddMemberCommand implements SubCommand, TabComplete {
                 sender.sendMessage(config.getIslandMemberExistsMessage(targetMemberName));
             } else {
                 sender.sendMessage(config.getUnknownExceptionMessage());
-                plugin.getLogger().log(Level.SEVERE, "Error adding member " + targetMemberName + " to island of " + islandOwnerName, ex);
+                plugin.severe("Error adding member " + targetMemberName + " to island of " + islandOwnerName, ex);
             }
             return null;
         });

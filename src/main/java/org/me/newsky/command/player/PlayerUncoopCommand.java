@@ -16,7 +16,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -91,7 +90,7 @@ public class PlayerUncoopCommand implements SubCommand, TabComplete {
                 player.sendMessage(config.getPlayerNotCoopedMessage(targetPlayerName));
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());
-                plugin.getLogger().log(Level.SEVERE, "Error uncooping player " + targetPlayerName + " for " + player.getName(), ex);
+                plugin.severe("Error uncooping player " + targetPlayerName + " for " + player.getName(), ex);
             }
             return null;
         });

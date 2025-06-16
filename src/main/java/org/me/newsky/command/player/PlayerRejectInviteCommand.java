@@ -10,7 +10,6 @@ import org.me.newsky.model.Invitation;
 
 import java.util.Optional;
 import java.util.UUID;
-import java.util.logging.Level;
 
 /**
  * /is reject
@@ -74,7 +73,7 @@ public class PlayerRejectInviteCommand implements SubCommand {
             api.sendPlayerMessage(inviterUuid, config.getPlayerInviteRejectedNotifyMessage(player.getName()));
         }).exceptionally(ex -> {
             player.sendMessage(config.getUnknownExceptionMessage());
-            plugin.getLogger().log(Level.SEVERE, "Error rejecting invite for player " + player.getName(), ex);
+            plugin.severe("Error rejecting invite for player " + player.getName(), ex);
             return null;
         });
 

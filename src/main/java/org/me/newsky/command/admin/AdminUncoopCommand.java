@@ -15,7 +15,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -88,7 +87,7 @@ public class AdminUncoopCommand implements SubCommand, TabComplete {
                 sender.sendMessage(config.getPlayerNotCoopedMessage(targetName));
             } else {
                 sender.sendMessage(config.getUnknownExceptionMessage());
-                plugin.getLogger().log(Level.SEVERE, "Error uncooping player " + targetName + " from island of " + ownerName, ex);
+                plugin.severe("Error uncooping player " + targetName + " from island of " + ownerName, ex);
             }
             return null;
         });

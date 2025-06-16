@@ -16,7 +16,6 @@ import org.me.newsky.exceptions.PlayerAlreadyCoopedException;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -99,7 +98,7 @@ public class PlayerCoopCommand implements SubCommand, TabComplete {
                 player.sendMessage(config.getPlayerCannotCoopIslandPlayerMessage());
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());
-                plugin.getLogger().log(Level.SEVERE, "Error cooping player " + targetPlayerName + " for " + player.getName(), ex);
+                plugin.severe("Error cooping player " + targetPlayerName + " for " + player.getName(), ex);
             }
             return null;
         });

@@ -10,7 +10,6 @@ import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.NoActiveServerException;
 
 import java.util.UUID;
-import java.util.logging.Level;
 
 public class PlayerCreateIslandCommand implements SubCommand {
     private final NewSky plugin;
@@ -68,7 +67,7 @@ public class PlayerCreateIslandCommand implements SubCommand {
                 player.sendMessage(config.getNoActiveServerMessage());
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());
-                plugin.getLogger().log(Level.SEVERE, "Error creating island for player " + player.getName(), ex);
+                plugin.severe("Error creating island for player " + player.getName(), ex);
             }
             return null;
         });

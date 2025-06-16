@@ -11,7 +11,6 @@ import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
 
 import java.util.UUID;
-import java.util.logging.Level;
 
 /**
  * /is leave
@@ -77,7 +76,7 @@ public class PlayerLeaveCommand implements SubCommand {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());
-                plugin.getLogger().log(Level.SEVERE, "Error leaving island for player " + player.getName(), ex);
+                plugin.severe("Error leaving island for player " + player.getName(), ex);
             }
             return null;
         });

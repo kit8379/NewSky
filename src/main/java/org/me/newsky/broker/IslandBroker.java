@@ -12,7 +12,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
 
 public class IslandBroker {
 
@@ -37,6 +36,7 @@ public class IslandBroker {
         subscriber = new JedisPubSub() {
             @Override
             public void onMessage(String channel, String message) {
+                plugin.debug("IslandBroker", "Received message on channel " + channel + ": " + message);
                 try {
                     JSONObject json = new JSONObject(message);
                     String type = json.getString("type");
@@ -47,17 +47,19 @@ public class IslandBroker {
                         handleResponse(json);
                     }
                 } catch (Exception e) {
-                    plugin.getLogger().log(Level.SEVERE, "Failed to parse broker JSON message", e);
+                    plugin.severe("Error processing message: " + message, e);
                 }
             }
         };
 
         redisHandler.subscribe(subscriber, channelID);
+        plugin.debug("IslandBroker", "Subscribed to channel " + channelID);
     }
 
     public void unsubscribe() {
         if (subscriber != null) {
             subscriber.unsubscribe();
+            plugin.debug("IslandBroker", "Unsubscribed from channel " + channelID);
         }
     }
 
@@ -74,11 +76,12 @@ public class IslandBroker {
         json.put("operation", operation);
         json.put("args", args);
 
+        plugin.debug("IslandBroker", "Sending request " + operation + " to server " + targetServer + " with ID " + requestId);
         redisHandler.publish(channelID, json.toString());
 
         future.orTimeout(30, TimeUnit.SECONDS).exceptionally(error -> {
             pendingRequests.remove(requestId);
-            plugin.getLogger().log(Level.SEVERE, "Request timeout for ID " + requestId, error);
+            plugin.severe("Request " + operation + " to server " + targetServer + " timed out.", error);
             return null;
         });
 
@@ -90,8 +93,10 @@ public class IslandBroker {
         String source = json.getString("source");
         String target = json.getString("target");
         String operation = json.getString("operation");
+        plugin.debug("IslandBroker", "Received request " + operation + " from server " + source + " with ID " + requestId);
 
         if (!serverID.equals(target)) {
+            plugin.debug("IslandBroker", "Ignoring request because target server " + target + " does not match this server " + serverID);
             return;
         }
 
@@ -103,7 +108,7 @@ public class IslandBroker {
 
         processRequest(operation, args).thenRun(() -> sendResponse("success", requestId, source)).exceptionally(e -> {
             sendResponse("fail", requestId, source);
-            plugin.getLogger().log(Level.SEVERE, "Failed to handle request " + operation, e);
+            plugin.severe("Failed to process request " + operation + " from server " + source + " with ID " + requestId, e);
             return null;
         });
     }
@@ -116,6 +121,7 @@ public class IslandBroker {
         json.put("source", serverID);
         json.put("target", destination);
 
+        plugin.debug("IslandBroker", "Sending response for request " + requestId + " with status " + status + " to server " + destination);
         redisHandler.publish(channelID, json.toString());
     }
 
@@ -124,8 +130,10 @@ public class IslandBroker {
         String requestId = json.getString("requestId");
         String source = json.getString("source");
         String target = json.getString("target");
+        plugin.debug("IslandBroker", "Received response for request " + requestId + " from " + source + " with status " + status);
 
         if (!serverID.equals(target)) {
+            plugin.debug("IslandBroker", "Ignoring response because target server " + target + " does not match this server " + serverID);
             return;
         }
 
@@ -136,8 +144,10 @@ public class IslandBroker {
         }
 
         if ("success".equals(status)) {
+            plugin.debug("IslandBroker", "Request " + requestId + " completed successfully.");
             future.complete(null);
         } else {
+            plugin.severe("Request " + requestId + " failed with status: " + status);
             future.completeExceptionally(new IllegalStateException("Request failed: " + requestId));
         }
     }
@@ -162,9 +172,11 @@ public class IslandBroker {
                 case "message":
                     return islandOperation.sendPlayerMessage(UUID.fromString(args[0]), ComponentUtils.deserialize(args[1]));
                 default:
+                    plugin.severe("Unknown operation: " + operation + " with args: " + String.join(", ", args));
                     return CompletableFuture.failedFuture(new IllegalArgumentException("Unknown operation: " + operation));
             }
         } catch (Exception e) {
+            plugin.severe("Error processing operation " + operation + " with args: " + String.join(", ", args), e);
             return CompletableFuture.failedFuture(e);
         }
     }

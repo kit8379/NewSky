@@ -10,7 +10,6 @@ import org.me.newsky.model.Invitation;
 
 import java.util.Optional;
 import java.util.UUID;
-import java.util.logging.Level;
 
 /**
  * /is accept
@@ -77,7 +76,7 @@ public class PlayerAcceptInviteCommand implements SubCommand {
             return api.home(playerUuid, "default", playerUuid);
         }).exceptionally(ex -> {
             player.sendMessage(config.getUnknownExceptionMessage());
-            plugin.getLogger().log(Level.SEVERE, "Error accepting invite or teleporting for player " + player.getName(), ex);
+            plugin.severe("Error accepting invite or teleporting for player " + player.getName(), ex);
             return null;
         });
 

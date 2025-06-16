@@ -13,7 +13,6 @@ import org.me.newsky.exceptions.NoActiveServerException;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -74,7 +73,7 @@ public class PlayerHomeCommand implements SubCommand, TabComplete {
                 player.sendMessage(config.getNoActiveServerMessage());
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());
-                plugin.getLogger().log(Level.SEVERE, "Error teleporting to home for player " + player.getName(), ex);
+                plugin.severe("Error teleporting to home for player " + player.getName(), ex);
             }
             return null;
         });

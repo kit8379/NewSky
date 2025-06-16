@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.logging.Level;
 
 public class RedisCache {
 
@@ -116,7 +115,7 @@ public class RedisCache {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset("server_mspt", serverName, String.format("%.2f", mspt));
         } catch (Exception e) {
-            plugin.getLogger().log(Level.SEVERE, "Failed to update MSPT for server: " + serverName, e);
+            plugin.severe("Failed to update MSPT for server: " + serverName, e);
         }
     }
 
@@ -127,7 +126,7 @@ public class RedisCache {
                 return Double.parseDouble(value);
             }
         } catch (Exception e) {
-            plugin.getLogger().log(Level.SEVERE, "Failed to get MSPT for server: " + serverName, e);
+            plugin.severe("Failed to get MSPT for server: " + serverName, e);
         }
         return -1;
     }
@@ -173,7 +172,7 @@ public class RedisCache {
                 }
             }
         } catch (Exception e) {
-            plugin.getLogger().log(Level.SEVERE, "Failed to get island invite for: " + inviteeUuid, e);
+            plugin.severe("Failed to get island invite for: " + inviteeUuid, e);
         }
         return Optional.empty();
     }

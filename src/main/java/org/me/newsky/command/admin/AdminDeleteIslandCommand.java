@@ -12,7 +12,6 @@ import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.NoActiveServerException;
 
 import java.util.*;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -86,7 +85,7 @@ public class AdminDeleteIslandCommand implements SubCommand, TabComplete {
                 sender.sendMessage(config.getNoActiveServerMessage());
             } else {
                 sender.sendMessage(config.getUnknownExceptionMessage());
-                plugin.getLogger().log(Level.SEVERE, "Error deleting island for " + targetPlayerName, ex);
+                plugin.severe("Error deleting island for " + targetPlayerName, ex);
             }
             return null;
         });

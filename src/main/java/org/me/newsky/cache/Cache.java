@@ -222,7 +222,7 @@ public class Cache {
     // Island
     // =================================================================================================================
     public void createIsland(UUID islandUuid) {
-        databaseHandler.addIslandData(islandUuid);
+        databaseHandler.updateIslandData(islandUuid);
 
         // Initialize island data in cache after DB success
         Map<String, String> data = new ConcurrentHashMap<>();

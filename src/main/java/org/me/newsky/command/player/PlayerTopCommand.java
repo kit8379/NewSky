@@ -12,7 +12,6 @@ import org.me.newsky.config.ConfigHandler;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.logging.Level;
 
 /**
  * /is top
@@ -68,7 +67,7 @@ public class PlayerTopCommand implements SubCommand {
                 topIslands = api.getTopIslandLevels(size);
             } catch (Exception e) {
                 player.sendMessage(config.getUnknownExceptionMessage());
-                plugin.getLogger().log(Level.SEVERE, "Error retrieving top islands", e);
+                plugin.severe("Error retrieving top islands", e);
                 return;
             }
 
@@ -99,7 +98,7 @@ public class PlayerTopCommand implements SubCommand {
                     player.sendMessage(config.getTopIslandMessage(rank++, ownerName, membersStr, level));
                 } catch (Exception e) {
                     player.sendMessage(config.getUnknownExceptionMessage());
-                    plugin.getLogger().log(Level.SEVERE, "Error processing island info for top list", e);
+                    plugin.severe("Error processing island info for top list", e);
                 }
             }
         });

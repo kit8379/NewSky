@@ -14,7 +14,6 @@ import org.me.newsky.exceptions.IslandDoesNotExistException;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -87,7 +86,7 @@ public class PlayerExpelCommand implements SubCommand, TabComplete {
 
         api.expelPlayer(islandUuid, targetPlayerUuid).thenRun(() -> sender.sendMessage(config.getPlayerExpelSuccessMessage(targetPlayerName))).exceptionally(ex -> {
             sender.sendMessage(config.getUnknownExceptionMessage());
-            plugin.getLogger().log(Level.SEVERE, "Error expelling player " + targetPlayerName + " from island of player " + player.getName(), ex);
+            plugin.severe("Error expelling player " + targetPlayerName + " from island of player " + player.getName(), ex);
             return null;
         });
 

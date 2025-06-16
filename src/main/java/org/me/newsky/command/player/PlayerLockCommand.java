@@ -9,7 +9,6 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 
 import java.util.UUID;
-import java.util.logging.Level;
 
 /**
  * /is lock
@@ -75,7 +74,7 @@ public class PlayerLockCommand implements SubCommand {
             }
         }).exceptionally(ex -> {
             player.sendMessage(config.getUnknownExceptionMessage());
-            plugin.getLogger().log(Level.SEVERE, "Error toggling island lock status for player " + player.getName(), ex);
+            plugin.severe("Error toggling island lock status for player " + player.getName(), ex);
             return null;
         });
 

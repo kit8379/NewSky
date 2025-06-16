@@ -14,7 +14,6 @@ import org.me.newsky.exceptions.NoActiveServerException;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -75,7 +74,7 @@ public class AdminCreateIslandCommand implements SubCommand, TabComplete {
                 sender.sendMessage(config.getNoActiveServerMessage());
             } else {
                 sender.sendMessage(config.getUnknownExceptionMessage());
-                plugin.getLogger().log(Level.SEVERE, "Error creating island for " + targetPlayerName, ex);
+                plugin.severe("Error creating island for " + targetPlayerName, ex);
             }
             return null;
         });

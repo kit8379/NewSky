@@ -12,7 +12,6 @@ import org.me.newsky.exceptions.IslandDoesNotExistException;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -80,7 +79,7 @@ public class PlayerDelHomeCommand implements SubCommand, TabComplete {
                 player.sendMessage(config.getPlayerNoHomeMessage(homeName));
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());
-                plugin.getLogger().log(Level.SEVERE, "Error deleting home for player " + player.getName(), ex);
+                plugin.severe("Error deleting home for player " + player.getName(), ex);
             }
             return null;
         });

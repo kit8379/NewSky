@@ -14,7 +14,6 @@ import org.me.newsky.exceptions.WarpDoesNotExistException;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -76,7 +75,7 @@ public class AdminDelWarpCommand implements SubCommand, TabComplete {
                 sender.sendMessage(config.getAdminNoWarpMessage(warpPlayerName, warpName));
             } else {
                 sender.sendMessage(config.getUnknownExceptionMessage());
-                plugin.getLogger().log(Level.SEVERE, "Error deleting warp " + warpName + " for " + warpPlayerName, ex);
+                plugin.severe("Error deleting warp " + warpName + " for " + warpPlayerName, ex);
             }
             return null;
         });

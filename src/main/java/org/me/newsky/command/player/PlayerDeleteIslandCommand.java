@@ -12,7 +12,6 @@ import org.me.newsky.exceptions.NoActiveServerException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.logging.Level;
 
 /**
  * /is delete
@@ -84,7 +83,7 @@ public class PlayerDeleteIslandCommand implements SubCommand {
                 player.sendMessage(config.getNoActiveServerMessage());
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());
-                plugin.getLogger().log(Level.SEVERE, "Error deleting island for player " + player.getName(), ex);
+                plugin.severe("Error deleting island for player " + player.getName(), ex);
             }
             return null;
         });

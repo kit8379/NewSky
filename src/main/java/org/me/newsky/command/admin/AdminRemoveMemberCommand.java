@@ -15,7 +15,6 @@ import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -90,7 +89,7 @@ public class AdminRemoveMemberCommand implements SubCommand, TabComplete {
                 sender.sendMessage(config.getIslandMemberNotExistsMessage(targetMemberName));
             } else {
                 sender.sendMessage(config.getUnknownExceptionMessage());
-                plugin.getLogger().log(Level.SEVERE, "Error removing member " + targetMemberName + " from island of " + islandOwnerName, ex);
+                plugin.severe("Error removing member " + targetMemberName + " from island of " + islandOwnerName, ex);
             }
             return null;
         });

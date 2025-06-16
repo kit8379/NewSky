@@ -17,7 +17,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -85,7 +84,7 @@ public class AdminSetWarpCommand implements SubCommand, TabComplete {
                 sender.sendMessage(config.getAdminMustInIslandSetWarpMessage(warpPlayerName));
             } else {
                 sender.sendMessage(config.getUnknownExceptionMessage());
-                plugin.getLogger().log(Level.SEVERE, "Error setting warp " + warpName + " for " + warpPlayerName, ex);
+                plugin.severe("Error setting warp " + warpName + " for " + warpPlayerName, ex);
             }
             return null;
         });

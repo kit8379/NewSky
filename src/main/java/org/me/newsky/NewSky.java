@@ -69,15 +69,19 @@ public class NewSky extends JavaPlugin {
 
     private void initialize() {
         try {
+            info("Start loading configuration now...");
+            saveDefaultConfig();
+            config = new ConfigHandler(this);
+            if (config.isDebug()) {
+                getLogger().setLevel(Level.FINE);
+                info("Debug mode is enabled");
+            }
+            info("Config load success!");
+
             // Initialize the executor service
             info("Starting async executor");
             bukkitAsyncExecutor = new BukkitAsyncExecutor(this);
             info("Async executor started");
-
-            info("Start loading configuration now...");
-            saveDefaultConfig();
-            config = new ConfigHandler(this);
-            info("Config load success!");
 
             info("Start loading server ID now...");
             serverID = config.getServerName();
@@ -188,6 +192,8 @@ public class NewSky extends JavaPlugin {
             islandUnloadScheduler.start();
             levelUpdateScheduler.start();
             msptUpdateScheduler.start();
+
+
         } catch (Exception e) {
             getLogger().log(Level.SEVERE, "An error occurred during plugin initialization", e);
             getServer().getPluginManager().disablePlugin(this);
@@ -195,13 +201,13 @@ public class NewSky extends JavaPlugin {
     }
 
     private void registerListeners() {
-        getServer().getPluginManager().registerEvents(new OnlinePlayersListener(redisCache, serverID), this);
-        getServer().getPluginManager().registerEvents(new WorldInitListener(), this);
-        getServer().getPluginManager().registerEvents(new TeleportRequestListener(teleportHandler), this);
-        getServer().getPluginManager().registerEvents(new IslandProtectionListener(config, cache), this);
-        getServer().getPluginManager().registerEvents(new IslandBoundaryListener(config), this);
-        getServer().getPluginManager().registerEvents(new IslandAccessListener(config, cache), this);
-        getServer().getPluginManager().registerEvents(new IslandPvPListener(config, cache), this);
+        getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, redisCache, serverID), this);
+        getServer().getPluginManager().registerEvents(new WorldInitListener(this), this);
+        getServer().getPluginManager().registerEvents(new TeleportRequestListener(this, teleportHandler), this);
+        getServer().getPluginManager().registerEvents(new IslandProtectionListener(this, config, cache), this);
+        getServer().getPluginManager().registerEvents(new IslandBoundaryListener(this, config), this);
+        getServer().getPluginManager().registerEvents(new IslandAccessListener(this, config, cache), this);
+        getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config, cache), this);
     }
 
     private void registerCommands() {
@@ -269,8 +275,19 @@ public class NewSky extends JavaPlugin {
         return api;
     }
 
-    @SuppressWarnings("unused")
     public void info(String message) {
-        getLogger().info(message);
+        getLogger().log(Level.INFO, message);
+    }
+
+    public void severe(String message) {
+        getLogger().log(Level.SEVERE, message);
+    }
+
+    public void severe(String message, Throwable throwable) {
+        getLogger().log(Level.SEVERE, message, throwable);
+    }
+
+    public void debug(String source, String message) {
+        getLogger().log(Level.FINE, "[" + source + "] " + message);
     }
 }

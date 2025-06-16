@@ -16,7 +16,6 @@ import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -101,7 +100,7 @@ public class PlayerInviteCommand implements SubCommand, TabComplete {
                 player.sendMessage(config.getIslandMemberExistsMessage(targetPlayerName));
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());
-                plugin.getLogger().log(Level.SEVERE, "Error inviting player " + targetPlayerName + " to island of " + player.getName(), ex);
+                plugin.severe("Error inviting player " + targetPlayerName + " to island of " + player.getName(), ex);
             }
             return null;
         });

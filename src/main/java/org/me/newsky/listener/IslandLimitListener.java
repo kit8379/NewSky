@@ -9,6 +9,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.util.IslandUtils;
 
@@ -18,12 +19,14 @@ import java.util.UUID;
 
 public class IslandLimitListener implements Listener {
 
+    private final NewSky plugin;
     private final ConfigHandler config;
 
     private final Map<UUID, Map<Material, Integer>> islandBlockCounts = new HashMap<>();
     private final Map<UUID, Map<EntityType, Integer>> islandEntityCounts = new HashMap<>();
 
-    public IslandLimitListener(ConfigHandler config) {
+    public IslandLimitListener(NewSky plugin, ConfigHandler config) {
+        this.plugin = plugin;
         this.config = config;
     }
 
@@ -42,6 +45,7 @@ public class IslandLimitListener implements Listener {
         if (!canPlace(islandUuid, type)) {
             event.setCancelled(true);
             player.sendMessage(config.getBlockLimitMessage(type.name()));
+            plugin.debug("IslandLimitListener", "Block place cancelled for player " + player.getName() + " in island " + islandUuid + " for block type " + type.name() + " because limit reached.");
             return;
         }
 
@@ -62,6 +66,7 @@ public class IslandLimitListener implements Listener {
 
         if (!canSpawn(islandUuid, type)) {
             event.setCancelled(true);
+
             return;
         }
 

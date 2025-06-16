@@ -17,7 +17,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 /**
@@ -94,7 +93,7 @@ public class AdminHomeCommand implements SubCommand, TabComplete {
                 sender.sendMessage(config.getNoActiveServerMessage());
             } else {
                 sender.sendMessage(config.getUnknownExceptionMessage());
-                plugin.getLogger().log(Level.SEVERE, "Error teleporting to home " + homeName + " of " + homePlayerName, ex);
+                plugin.severe("Error teleporting to home " + homeName + " of " + homePlayerName, ex);
             }
             return null;
         });
