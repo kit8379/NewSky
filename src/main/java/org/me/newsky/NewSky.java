@@ -72,10 +72,6 @@ public class NewSky extends JavaPlugin {
             info("Start loading configuration now...");
             saveDefaultConfig();
             config = new ConfigHandler(this);
-            if (config.isDebug()) {
-                getLogger().setLevel(Level.FINE);
-                info("Debug mode is enabled");
-            }
             info("Config load success!");
 
             // Initialize the executor service
@@ -288,6 +284,8 @@ public class NewSky extends JavaPlugin {
     }
 
     public void debug(String source, String message) {
-        getLogger().log(Level.INFO, "[" + source + "] " + message);
+        if (config.isDebug()) {
+            getLogger().log(Level.INFO, "[" + source + "] " + message);
+        }
     }
 }
