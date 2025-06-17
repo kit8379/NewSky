@@ -95,18 +95,14 @@ public class IslandOperation {
         String islandName = IslandUtils.UUIDToName(islandUuid);
         Location location = LocationUtils.stringToLocation(islandName, teleportLocation);
 
-        return CompletableFuture.runAsync(() -> {
-            Player player = Bukkit.getPlayer(playerUuid);
-            if (player != null) {
-                player.teleportAsync(location);
-                plugin.debug("IslandOperation", "Teleported player " + player.getName() + " to location: " + teleportLocation + " on island: " + islandName);
-            } else {
-                plugin.debug("IslandOperation", "Player " + playerUuid + " not online — teleport skipped.");
-            }
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> {
-        }, plugin.getBukkitAsyncExecutor());
-    }
+        Player player = Bukkit.getPlayer(playerUuid);
+        if (player != null) {
+            player.teleportAsync(location);
+            plugin.debug("IslandOperation", "Teleported player " + player.getName() + " to location: " + teleportLocation + " on island: " + islandName);
+        }
 
+        return CompletableFuture.completedFuture(null);
+    }
 
     public CompletableFuture<Void> teleportIslandRemote(UUID islandUuid, UUID playerUuid, String teleportLocation) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
