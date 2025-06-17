@@ -27,12 +27,12 @@ public class IslandAccessListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onWorldChange(PlayerChangedWorldEvent event) {
+    public void onPlayerJoin(PlayerJoinEvent event) {
         checkAccess(event.getPlayer());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onPlayerJoin(PlayerJoinEvent event) {
+    public void onWorldChange(PlayerChangedWorldEvent event) {
         checkAccess(event.getPlayer());
     }
 

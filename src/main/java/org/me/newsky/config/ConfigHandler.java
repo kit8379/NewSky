@@ -8,10 +8,7 @@ import org.me.newsky.util.ColorUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public class ConfigHandler {
     private final NewSky plugin;
@@ -184,10 +181,6 @@ public class ConfigHandler {
         return config.getInt("island.size");
     }
 
-    public int getBufferSize() {
-        return config.getInt("island.buffer");
-    }
-
     public int getIslandSpawnX() {
         return config.getInt("island.spawn.x");
     }
@@ -214,6 +207,10 @@ public class ConfigHandler {
 
     public int getIslandLevelUpdateInterval() {
         return config.getInt("island.level-update-interval");
+    }
+
+    public Map<String, Object> getIslandGameRules() {
+        return Objects.requireNonNull(plugin.getConfig().getConfigurationSection("island.gamerules")).getValues(false);
     }
 
     public String getBaseCommandMode() {
@@ -1084,10 +1081,6 @@ public class ConfigHandler {
 
     public Component getCannotEditIslandMessage() {
         return ColorUtils.colorize(messages.getString("messages.cannot-edit-island"));
-    }
-
-    public Component getCannotLeaveIslandBoundaryMessage() {
-        return ColorUtils.colorize(messages.getString("messages.cannot-leave-island-boundary"));
     }
 
     public Component getWarpSuccessMessage(String warp) {

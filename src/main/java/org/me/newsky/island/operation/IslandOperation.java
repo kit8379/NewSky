@@ -110,20 +110,27 @@ public class IslandOperation {
         return CompletableFuture.completedFuture(null);
     }
 
-    public CompletableFuture<Void> teleportIsland(UUID islandUuid, UUID playerUuid, String teleportLocation) {
+    public CompletableFuture<Void> teleportIslandLocal(UUID islandUuid, UUID playerUuid, String teleportLocation) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
+        Location location = LocationUtils.stringToLocation(islandName, teleportLocation);
 
-        return loadIsland(islandUuid).thenRun(() -> {
-            Location location = LocationUtils.stringToLocation(islandName, teleportLocation);
-            Player player = Bukkit.getPlayer(playerUuid);
-            if (player != null) {
-                player.teleportAsync(location);
-                plugin.debug("IslandOperation", "Teleported player " + player.getName() + " to location: " + teleportLocation + " on island: " + islandName);
-            } else {
-                teleportHandler.addPendingTeleport(playerUuid, location);
-                plugin.debug("IslandOperation", "Player " + playerUuid + " not online, added pending teleport to location: " + teleportLocation + " on island: " + islandName);
-            }
-        });
+        Player player = Bukkit.getPlayer(playerUuid);
+        if (player != null) {
+            player.teleportAsync(location);
+            plugin.debug("IslandOperation", "Teleported player " + player.getName() + " to location: " + teleportLocation + " on island: " + islandName);
+        }
+
+        return CompletableFuture.completedFuture(null);
+    }
+
+    public CompletableFuture<Void> teleportIslandRemote(UUID islandUuid, UUID playerUuid, String teleportLocation) {
+        String islandName = IslandUtils.UUIDToName(islandUuid);
+        Location location = LocationUtils.stringToLocation(islandName, teleportLocation);
+
+        teleportHandler.addPendingTeleport(playerUuid, location);
+        plugin.debug("IslandOperation", "Stored pending teleport for player " + playerUuid + " to location: " + teleportLocation + " on island: " + islandName);
+
+        return CompletableFuture.completedFuture(null);
     }
 
     public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {

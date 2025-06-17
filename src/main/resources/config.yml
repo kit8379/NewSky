@@ -75,11 +75,6 @@ island:
   # The max size of the island. 100 means the island is 100x100.
   size: 100
 
-  # The border buffer between islands. 10 means the border is 10 blocks away from the island.
-  # This helps to prevent players have negative experience when they are near the end of the island area.
-  # Set it to 0 if you don't want any buffer. The border will be exactly at the edge of the island.
-  buffer: 10
-
   # The default spawn point of the island.
   spawn:
     x: 0
@@ -95,6 +90,11 @@ island:
   # The interval that the plugin update the island level.
   # The default value is 180 seconds (2 minutes).
   level-update-interval: 180
+
+  # The default gamerules to apply to island worlds.
+  gamerules:
+    DO_DAYLIGHT_CYCLE: false
+    KEEP_INVENTORY: true
 
 # The settings for the command
 command:

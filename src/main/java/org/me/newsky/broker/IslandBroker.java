@@ -166,7 +166,7 @@ public class IslandBroker {
                 case "expel":
                     return islandOperation.expelPlayer(UUID.fromString(args[0]), UUID.fromString(args[1]));
                 case "teleport":
-                    return islandOperation.teleportIsland(UUID.fromString(args[0]), UUID.fromString(args[1]), args[2]);
+                    return islandOperation.teleportIslandRemote(UUID.fromString(args[0]), UUID.fromString(args[1]), args[2]);
                 case "message":
                     return islandOperation.sendPlayerMessage(UUID.fromString(args[0]), ComponentUtils.deserialize(args[1]));
                 default:

@@ -199,9 +199,9 @@ public class NewSky extends JavaPlugin {
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, redisCache, serverID), this);
         getServer().getPluginManager().registerEvents(new WorldInitListener(this), this);
+        getServer().getPluginManager().registerEvents(new WorldLoadListener(this, config), this);
         getServer().getPluginManager().registerEvents(new TeleportRequestListener(this, teleportHandler), this);
         getServer().getPluginManager().registerEvents(new IslandProtectionListener(this, config, cache), this);
-        getServer().getPluginManager().registerEvents(new IslandBoundaryListener(this, config), this);
         getServer().getPluginManager().registerEvents(new IslandAccessListener(this, config, cache), this);
         getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config, cache), this);
     }
@@ -273,6 +273,10 @@ public class NewSky extends JavaPlugin {
 
     public void info(String message) {
         getLogger().log(Level.INFO, message);
+    }
+
+    public void warning(String message) {
+        getLogger().log(Level.WARNING, message);
     }
 
     public void severe(String message) {
