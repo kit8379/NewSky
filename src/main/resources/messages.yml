@@ -17,7 +17,6 @@ messages:
   island-member-exists: "<red>Player <aqua>{player} <red>is already a member of this island!"
   not-island-member: "<red>Player <aqua>{player} <red>is not a member of this island!"
   cannot-edit-island: "<red>You cannot edit this island!"
-  cannot-leave-island-boundary: "<red>You cannot leave the island boundary!"
   warp-success: "<green>Teleported to warp <aqua>{warp}<green>!"
   no-warp: "<red>Player <aqua>{player} <red>does not have a warp named <aqua>{warp}<red>!"
   no-island: "<red>Player <aqua>{player} <red>does not have an island!"

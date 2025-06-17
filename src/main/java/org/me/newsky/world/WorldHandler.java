@@ -76,51 +76,31 @@ public class WorldHandler {
 
     public CompletableFuture<Void> loadWorld(String worldName) {
         plugin.debug("WorldHandler", "Loading world: " + worldName);
-
-        return isWorldLoaded(worldName).thenComposeAsync(isLoaded -> {
-            if (isLoaded) {
-                plugin.debug("WorldHandler", "World already loaded: " + worldName);
-                return CompletableFuture.completedFuture(null);
-            }
-
-            try {
-                SlimeWorld world = asp.readWorld(slimeLoader, worldName, false, properties);
-                plugin.debug("WorldHandler", "World read from slime loader: " + worldName);
-                return loadWorldToBukkit(world).thenRunAsync(() -> plugin.debug("WorldHandler", "World loaded into Bukkit: " + worldName), plugin.getBukkitAsyncExecutor());
-            } catch (Exception e) {
-                plugin.severe("Failed to load world: " + worldName, e);
-                return CompletableFuture.failedFuture(e);
-            }
-        }, plugin.getBukkitAsyncExecutor());
+        try {
+            SlimeWorld world = asp.readWorld(slimeLoader, worldName, false, properties);
+            plugin.debug("WorldHandler", "World read from slime loader: " + worldName);
+            return loadWorldToBukkit(world).thenRunAsync(() -> plugin.debug("WorldHandler", "World loaded into Bukkit: " + worldName), plugin.getBukkitAsyncExecutor());
+        } catch (Exception e) {
+            plugin.severe("Failed to load world: " + worldName, e);
+            return CompletableFuture.failedFuture(e);
+        }
     }
-
 
     public CompletableFuture<Void> unloadWorld(String worldName) {
         plugin.debug("WorldHandler", "Unloading world: " + worldName);
-
-        return isWorldLoaded(worldName).thenComposeAsync(isLoaded -> {
-            if (!isLoaded) {
-                plugin.debug("WorldHandler", "World is not loaded: " + worldName);
-                return CompletableFuture.completedFuture(null);
-            }
-
-            try {
-                SlimeWorld world = asp.getLoadedWorld(worldName);
-                asp.saveWorld(world);
-                plugin.debug("WorldHandler", "World saved before unload: " + worldName);
-
-                return unloadWorldFromBukkit(worldName).thenRunAsync(() -> plugin.debug("WorldHandler", "World successfully unloaded: " + worldName), plugin.getBukkitAsyncExecutor());
-            } catch (Exception e) {
-                plugin.severe("Failed to unload slime world: " + worldName, e);
-                return CompletableFuture.failedFuture(e);
-            }
-        }, plugin.getBukkitAsyncExecutor());
+        try {
+            SlimeWorld world = asp.getLoadedWorld(worldName);
+            asp.saveWorld(world);
+            plugin.debug("WorldHandler", "World saved before unload: " + worldName);
+            return unloadWorldFromBukkit(worldName).thenRunAsync(() -> plugin.debug("WorldHandler", "World successfully unloaded: " + worldName), plugin.getBukkitAsyncExecutor());
+        } catch (Exception e) {
+            plugin.severe("Failed to unload slime world: " + worldName, e);
+            return CompletableFuture.failedFuture(e);
+        }
     }
-
 
     public CompletableFuture<Void> deleteWorld(String worldName) {
         plugin.debug("WorldHandler", "Deleting world: " + worldName);
-
         return unloadWorldFromBukkit(worldName).thenComposeAsync(v -> {
             try {
                 slimeLoader.deleteWorld(worldName);
@@ -133,38 +113,12 @@ public class WorldHandler {
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    private CompletableFuture<Boolean> isWorldLoaded(String worldName) {
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
-
-        Bukkit.getScheduler().runTask(plugin, () -> future.complete(Bukkit.getWorld(worldName) != null));
-
-        return future;
-    }
-
-    public void removePlayersFromWorld(World world) {
-        plugin.debug("WorldHandler", "Removing players from world: " + world.getName());
-        for (Player player : world.getPlayers()) {
-            plugin.debug("WorldHandler", "Teleporting player: " + player.getName());
-            player.teleport(Bukkit.getWorlds().getFirst().getSpawnLocation());
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), config.getLobbyCommand(player.getName()));
-        }
-    }
-
     private CompletableFuture<Void> loadWorldToBukkit(SlimeWorld world) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            try {
-                asp.loadWorld(world, true);
-                plugin.debug("WorldHandler", "World loaded into Bukkit: " + world.getName());
-                future.complete(null);
-            } catch (Exception e) {
-                plugin.severe("Failed to load world to Bukkit: " + world.getName(), e);
-                future.completeExceptionally(e);
-            }
-        });
-
-        return future;
+        return CompletableFuture.runAsync(() -> {
+            asp.loadWorld(world, true);
+            plugin.debug("WorldHandler", "World loaded into Bukkit: " + world.getName());
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> {
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> unloadWorldFromBukkit(String worldName) {
@@ -178,8 +132,9 @@ public class WorldHandler {
                     if (Bukkit.unloadWorld(world, false)) {
                         plugin.debug("WorldHandler", "World unloaded successfully from Bukkit: " + worldName);
                     } else {
-                        future.completeExceptionally(new IllegalStateException("Failed to unload world from Bukkit: " + worldName));
                         plugin.severe("Failed to unload world from Bukkit: " + worldName);
+                        future.completeExceptionally(new IllegalStateException("Failed to unload world from Bukkit: " + worldName));
+                        return;
                     }
                 }
                 future.complete(null);
@@ -198,6 +153,7 @@ public class WorldHandler {
         for (SlimeWorldInstance worldInstance : loadedWorlds) {
             try {
                 asp.saveWorld(worldInstance);
+                removePlayersFromWorld(worldInstance.getBukkitWorld());
                 if (Bukkit.unloadWorld(worldInstance.getName(), false)) {
                     plugin.debug("WorldHandler", "World unloaded successfully from Bukkit: " + worldInstance.getName());
                 } else {
@@ -206,6 +162,15 @@ public class WorldHandler {
             } catch (Exception e) {
                 plugin.severe("Failed to unload world on shutdown: " + worldInstance.getName(), e);
             }
+        }
+    }
+
+    public void removePlayersFromWorld(World world) {
+        plugin.debug("WorldHandler", "Removing players from world: " + world.getName());
+        for (Player player : world.getPlayers()) {
+            plugin.debug("WorldHandler", "Teleporting player: " + player.getName());
+            player.teleport(Bukkit.getWorlds().getFirst().getSpawnLocation());
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), config.getLobbyCommand(player.getName()));
         }
     }
 }

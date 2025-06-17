@@ -91,9 +91,9 @@ island:
   # The default value is 180 seconds (2 minutes).
   level-update-interval: 180
 
-  # The default gamerules to apply to island worlds.
+  # The gamerules to apply to island worlds during loading.
+  # You can check the available gamerule names in this link: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/GameRule.html
   gamerules:
-    DO_DAYLIGHT_CYCLE: false
     KEEP_INVENTORY: true
 
 # The settings for the command
