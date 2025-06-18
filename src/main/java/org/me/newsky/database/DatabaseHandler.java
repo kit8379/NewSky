@@ -200,7 +200,7 @@ public class DatabaseHandler {
         executeUpdate(s -> {
             s.setBoolean(1, lock);
             s.setString(2, islandUuid.toString());
-        }, "UPDATE islands SET lock = ? WHERE island_uuid = ?;");
+        }, "UPDATE islands SET `lock` = ? WHERE island_uuid = ?;");
     }
 
     public void updateIslandPvp(UUID islandUuid, boolean pvp) {
