@@ -45,6 +45,8 @@ public class IslandBroker {
                         handleRequest(json);
                     } else if ("response".equals(type)) {
                         handleResponse(json);
+                    } else if ("broadcast".equals(type)) {
+                        handleBroadcast(json);
                     }
                 } catch (Exception e) {
                     plugin.severe("Error processing message: " + message, e);
@@ -88,6 +90,29 @@ public class IslandBroker {
         return future;
     }
 
+    private void sendResponse(String status, String requestId, String destination) {
+        JSONObject json = new JSONObject();
+        json.put("type", "response");
+        json.put("status", status);
+        json.put("requestId", requestId);
+        json.put("source", serverID);
+        json.put("target", destination);
+
+        plugin.debug("IslandBroker", "Sending response for request " + requestId + " with status " + status + " to server " + destination);
+        redisHandler.publish(channelID, json.toString());
+    }
+
+    public void sendBroadcast(String operation, String... args) {
+        JSONObject json = new JSONObject();
+        json.put("type", "broadcast");
+        json.put("source", serverID);
+        json.put("operation", operation);
+        json.put("args", args);
+
+        plugin.debug("IslandBroker", "Broadcasting " + operation + " with args: " + String.join(", ", args));
+        redisHandler.publish(channelID, json.toString());
+    }
+
     private void handleRequest(JSONObject json) {
         String requestId = json.getString("requestId");
         String source = json.getString("source");
@@ -111,18 +136,6 @@ public class IslandBroker {
             plugin.severe("Failed to process request " + operation + " from server " + source + " with ID " + requestId, e);
             return null;
         });
-    }
-
-    private void sendResponse(String status, String requestId, String destination) {
-        JSONObject json = new JSONObject();
-        json.put("type", "response");
-        json.put("status", status);
-        json.put("requestId", requestId);
-        json.put("source", serverID);
-        json.put("target", destination);
-
-        plugin.debug("IslandBroker", "Sending response for request " + requestId + " with status " + status + " to server " + destination);
-        redisHandler.publish(channelID, json.toString());
     }
 
     private void handleResponse(JSONObject json) {
@@ -150,6 +163,25 @@ public class IslandBroker {
         }
     }
 
+    private void handleBroadcast(JSONObject json) {
+        String source = json.getString("source");
+        String operation = json.getString("operation");
+
+        JSONArray jsonArgs = json.getJSONArray("args");
+        String[] args = new String[jsonArgs.length()];
+        for (int i = 0; i < jsonArgs.length(); i++) {
+            args[i] = jsonArgs.getString(i);
+        }
+
+        plugin.debug("IslandBroker", "Received broadcast " + operation + " from server " + source);
+
+        try {
+            processBroadcast(operation, args);
+        } catch (Exception e) {
+            plugin.severe("Error processing broadcast " + operation + " from " + source, e);
+        }
+    }
+
     private CompletableFuture<Void> processRequest(String operation, String... args) {
         try {
             switch (operation) {
@@ -161,20 +193,31 @@ public class IslandBroker {
                     return islandOperation.loadIsland(UUID.fromString(args[0]));
                 case "unload":
                     return islandOperation.unloadIsland(UUID.fromString(args[0]));
-                case "lock":
-                    return islandOperation.lockIsland(UUID.fromString(args[0]));
-                case "expel":
-                    return islandOperation.expelPlayer(UUID.fromString(args[0]), UUID.fromString(args[1]));
                 case "teleport":
-                    return islandOperation.teleportIslandRemote(UUID.fromString(args[0]), UUID.fromString(args[1]), args[2]);
-                case "message":
-                    return islandOperation.sendPlayerMessage(UUID.fromString(args[0]), ComponentUtils.deserialize(args[1]));
+                    return islandOperation.teleportIsland(UUID.fromString(args[0]), UUID.fromString(args[1]), args[2]);
                 default:
-                    return CompletableFuture.failedFuture(new IllegalArgumentException("Unknown operation: " + operation));
+                    return CompletableFuture.failedFuture(new IllegalArgumentException("Unknown request operation: " + operation));
             }
         } catch (Exception e) {
-            plugin.severe("Error processing operation " + operation + " with args: " + String.join(", ", args), e);
+            plugin.severe("Error processing request operation " + operation + " with args: " + String.join(", ", args), e);
             return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    private void processBroadcast(String operation, String... args) {
+        switch (operation) {
+            case "lock":
+                islandOperation.lockIsland(UUID.fromString(args[0]));
+                break;
+            case "expel":
+                islandOperation.expelPlayer(UUID.fromString(args[0]), UUID.fromString(args[1]));
+                break;
+            case "message":
+                islandOperation.sendMessage(UUID.fromString(args[0]), ComponentUtils.deserialize(args[1]));
+                break;
+            default:
+                plugin.debug("IslandBroker", "Unknown broadcast operation: " + operation);
+                break;
         }
     }
 }

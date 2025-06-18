@@ -2,7 +2,6 @@ package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.Cache;
-import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.*;
 import org.me.newsky.model.Invitation;
 import org.me.newsky.redis.RedisCache;
@@ -15,13 +14,11 @@ import java.util.concurrent.CompletableFuture;
 public class PlayerHandler {
 
     private final NewSky plugin;
-    private final ConfigHandler config;
     private final Cache cache;
     private final RedisCache redisCache;
 
-    public PlayerHandler(NewSky plugin, ConfigHandler config, Cache cache, RedisCache redisCache) {
+    public PlayerHandler(NewSky plugin, Cache cache, RedisCache redisCache) {
         this.plugin = plugin;
-        this.config = config;
         this.cache = cache;
         this.redisCache = redisCache;
     }
@@ -46,9 +43,6 @@ public class PlayerHandler {
             Optional<String> homePoint = cache.getHomeLocation(islandUuid, ownerUuid, "default");
             if (homePoint.isPresent()) {
                 cache.updateHomePoint(islandUuid, playerUuid, "default", homePoint.get());
-            } else {
-                String defaultSpawn = config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch();
-                cache.updateHomePoint(islandUuid, playerUuid, "default", defaultSpawn);
             }
         }, plugin.getBukkitAsyncExecutor());
     }
@@ -69,21 +63,22 @@ public class PlayerHandler {
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    public CompletableFuture<Void> setOwner(UUID islandUuid, UUID newOwnerId) {
+    public CompletableFuture<Void> setOwner(UUID islandUuid, UUID newOwnerUuid) {
         return CompletableFuture.runAsync(() -> {
             Set<UUID> members = cache.getIslandPlayers(islandUuid);
-            if (!members.contains(newOwnerId)) {
+            if (!members.contains(newOwnerUuid)) {
                 throw new IslandPlayerDoesNotExistException();
             }
 
-            UUID currentOwner = cache.getIslandOwner(islandUuid);
-            if (currentOwner.equals(newOwnerId)) {
+            UUID oldOwnerUuid = cache.getIslandOwner(islandUuid);
+            if (oldOwnerUuid.equals(newOwnerUuid)) {
                 throw new AlreadyOwnerException();
             }
 
-            cache.updateIslandOwner(islandUuid, newOwnerId);
+            cache.updateIslandOwner(islandUuid, oldOwnerUuid, newOwnerUuid);
         }, plugin.getBukkitAsyncExecutor());
     }
+
 
     public CompletableFuture<Void> addPendingInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {
         return CompletableFuture.runAsync(() -> {

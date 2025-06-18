@@ -49,15 +49,8 @@ public class IslandOperation {
             redisCache.updateIslandLoadedServer(islandUuid, serverID);
             plugin.debug("IslandOperation", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
 
-            cache.createIsland(islandUuid);
-            plugin.debug("IslandOperation", "Created island cache entry for UUID: " + islandUuid);
-
-            cache.updateIslandPlayer(islandUuid, ownerUuid, "owner");
-            plugin.debug("IslandOperation", "Updated island player cache for UUID: " + islandUuid + " with owner UUID: " + ownerUuid);
-
-            String spawnLocation = config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch();
-            cache.updateHomePoint(islandUuid, ownerUuid, "default", spawnLocation);
-            plugin.debug("IslandOperation", "Set home point for island UUID: " + islandUuid + " with spawn location: " + spawnLocation);
+            cache.createIsland(islandUuid, ownerUuid);
+            plugin.debug("IslandOperation", "Created island cache entry");
         });
     }
 
@@ -91,7 +84,8 @@ public class IslandOperation {
         });
     }
 
-    public CompletableFuture<Void> teleportIslandLocal(UUID islandUuid, UUID playerUuid, String teleportLocation) {
+
+    public CompletableFuture<Void> teleportIsland(UUID islandUuid, UUID playerUuid, String teleportLocation) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
         Location location = LocationUtils.stringToLocation(islandName, teleportLocation);
 
@@ -99,63 +93,57 @@ public class IslandOperation {
         if (player != null) {
             player.teleportAsync(location);
             plugin.debug("IslandOperation", "Teleported player " + player.getName() + " to location: " + teleportLocation + " on island: " + islandName);
+        } else {
+            teleportHandler.addPendingTeleport(playerUuid, location);
+            plugin.debug("IslandOperation", "Stored pending teleport for player " + playerUuid + " to location: " + teleportLocation + " on island: " + islandName);
         }
 
         return CompletableFuture.completedFuture(null);
     }
 
-    public CompletableFuture<Void> teleportIslandRemote(UUID islandUuid, UUID playerUuid, String teleportLocation) {
-        String islandName = IslandUtils.UUIDToName(islandUuid);
-        Location location = LocationUtils.stringToLocation(islandName, teleportLocation);
-
-        teleportHandler.addPendingTeleport(playerUuid, location);
-        plugin.debug("IslandOperation", "Stored pending teleport for player " + playerUuid + " to location: " + teleportLocation + " on island: " + islandName);
-
-        return CompletableFuture.completedFuture(null);
-    }
-
-    public CompletableFuture<Void> lockIsland(UUID islandUuid) {
+    public void lockIsland(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        World world = Bukkit.getWorld(islandName);
-        if (world != null) {
-            Set<UUID> islandPlayers = cache.getIslandPlayers(islandUuid);
-            for (Player player : world.getPlayers()) {
-                UUID playerUuid = player.getUniqueId();
-                if (!islandPlayers.contains(playerUuid)) {
-                    player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
-                    Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), config.getLobbyCommand(player.getName())));
-                    plugin.debug("IslandOperation", "Teleported player " + player.getName() + " from locked island: " + islandName);
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            World world = Bukkit.getWorld(islandName);
+            if (world != null) {
+                Set<UUID> islandPlayers = cache.getIslandPlayers(islandUuid);
+                for (Player player : world.getPlayers()) {
+                    UUID playerUuid = player.getUniqueId();
+                    if (!islandPlayers.contains(playerUuid)) {
+                        player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(), config.getLobbyCommand(player.getName()));
+                        plugin.debug("IslandOperation", "Teleported player " + player.getName() + " from locked island: " + world.getName());
+                    }
                 }
             }
-        }
-
-        return CompletableFuture.completedFuture(null);
+        });
     }
 
-    public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
+
+    public void expelPlayer(UUID islandUuid, UUID playerUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        World world = Bukkit.getWorld(islandName);
-        if (world != null) {
-            Player player = Bukkit.getPlayer(playerUuid);
-            if (player != null) {
-                player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
-                Bukkit.getScheduler().runTask(plugin, () -> Bukkit.dispatchCommand(Bukkit.getConsoleSender(), config.getLobbyCommand(player.getName())));
-                plugin.debug("IslandOperation", "Expelled player " + player.getName() + " from island: " + islandName);
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            World world = Bukkit.getWorld(islandName);
+            if (world != null) {
+                Player player = Bukkit.getPlayer(playerUuid);
+                if (player != null && player.getWorld().equals(world)) {
+                    player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
+                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), config.getLobbyCommand(player.getName()));
+                    plugin.debug("IslandOperation", "Expelled player " + player.getName() + " from island: " + world.getName());
+                }
             }
-        }
-
-        return CompletableFuture.completedFuture(null);
+        });
     }
 
-    public CompletableFuture<Void> sendPlayerMessage(UUID playerUuid, Component message) {
-        Player player = Bukkit.getPlayer(playerUuid);
-        if (player != null) {
-            player.sendMessage(message);
-            plugin.debug("IslandOperation", "Sent message to player " + player.getName() + ": " + message);
-        }
-
-        return CompletableFuture.completedFuture(null);
+    public void sendMessage(UUID playerUuid, Component message) {
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            Player player = Bukkit.getPlayer(playerUuid);
+            if (player != null) {
+                player.sendMessage(message);
+                plugin.debug("IslandOperation", "Sent message to player " + player.getName() + ": " + message);
+            }
+        });
     }
 }

@@ -97,7 +97,7 @@ public class NewSky extends JavaPlugin {
             info("Database connection success!");
 
             info("Starting cache handler");
-            cache = new Cache(databaseHandler);
+            cache = new Cache(config, databaseHandler);
             info("Cache handler loaded");
 
             info("Starting Redis cache");
@@ -144,7 +144,7 @@ public class NewSky extends JavaPlugin {
 
             info("Starting main handlers for the plugin");
             IslandHandler islandHandler = new IslandHandler(this, cache, islandDistributor);
-            PlayerHandler playerHandler = new PlayerHandler(this, config, cache, redisCache);
+            PlayerHandler playerHandler = new PlayerHandler(this, cache, redisCache);
             HomeHandler homeHandler = new HomeHandler(this, cache, islandDistributor);
             WarpHandler warpHandler = new WarpHandler(this, cache, islandDistributor);
             LevelHandler levelHandler = new LevelHandler(config, cache);

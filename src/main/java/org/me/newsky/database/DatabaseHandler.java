@@ -137,18 +137,44 @@ public class DatabaseHandler {
         executeQuery("SELECT * FROM island_levels", processor);
     }
 
-    public void updateIslandData(UUID islandUuid) {
+    public void addIslandData(UUID islandUuid, UUID ownerUuid, String homePoint) {
+        // Insert island base data
         executeUpdate(s -> s.setString(1, islandUuid.toString()), "INSERT INTO islands (island_uuid) VALUES (?);");
+
+        executeUpdate(s -> {
+            s.setString(1, ownerUuid.toString());
+            s.setString(2, islandUuid.toString());
+            s.setString(3, "owner");
+            s.setString(4, "owner");
+        }, "INSERT INTO island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE role = ?;");
+
+        executeUpdate(s -> {
+            s.setString(1, ownerUuid.toString());
+            s.setString(2, islandUuid.toString());
+            s.setString(3, "default");
+            s.setString(4, homePoint);
+            s.setString(5, homePoint);
+        }, "INSERT INTO island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE home_location = ?;");
     }
 
-    public void updateIslandPlayer(UUID islandUuid, UUID playerUuid, String role) {
+
+    public void addIslandPlayer(UUID islandUuid, UUID playerUuid, String role, String homePoint) {
         executeUpdate(s -> {
             s.setString(1, playerUuid.toString());
             s.setString(2, islandUuid.toString());
             s.setString(3, role);
             s.setString(4, role);
         }, "INSERT INTO island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE role = ?;");
+
+        executeUpdate(s -> {
+            s.setString(1, playerUuid.toString());
+            s.setString(2, islandUuid.toString());
+            s.setString(3, "default");
+            s.setString(4, homePoint);
+            s.setString(5, homePoint);
+        }, "INSERT INTO island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE home_location = ?;");
     }
+
 
     public void updateHomePoint(UUID islandUuid, UUID playerUuid, String homeName, String homeLocation) {
         executeUpdate(s -> {
@@ -184,11 +210,18 @@ public class DatabaseHandler {
         }, "UPDATE islands SET pvp = ? WHERE island_uuid = ?;");
     }
 
-    public void updateIslandOwner(UUID islandUuid, UUID playerUuid) {
+    public void updateIslandOwner(UUID islandUuid, UUID oldOwnerUuid, UUID newOwnerUuid) {
         executeUpdate(s -> {
-            s.setString(1, playerUuid.toString());
-            s.setString(2, islandUuid.toString());
-        }, "UPDATE island_players SET role = 'owner' WHERE player_uuid = ? AND island_uuid = ?;");
+            s.setString(1, "member");
+            s.setString(2, oldOwnerUuid.toString());
+            s.setString(3, islandUuid.toString());
+        }, "UPDATE island_players SET role = ? WHERE player_uuid = ? AND island_uuid = ?;");
+
+        executeUpdate(s -> {
+            s.setString(1, "owner");
+            s.setString(2, newOwnerUuid.toString());
+            s.setString(3, islandUuid.toString());
+        }, "UPDATE island_players SET role = ? WHERE player_uuid = ? AND island_uuid = ?;");
     }
 
     public void updateBanPlayer(UUID islandUuid, UUID playerUuid) {

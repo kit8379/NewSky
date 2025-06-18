@@ -400,6 +400,6 @@ public class NewSkyAPI {
      * @param message    The message to send, as a Component.
      */
     public void sendPlayerMessage(UUID playerUuid, Component message) {
-        islandHandler.sendPlayerMessage(playerUuid, message);
+        islandHandler.sendMessage(playerUuid, message);
     }
 }

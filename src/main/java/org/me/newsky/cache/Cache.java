@@ -1,6 +1,7 @@
 package org.me.newsky.cache;
 
 import org.me.newsky.broker.CacheBroker;
+import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 
 import java.util.*;
@@ -8,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class Cache {
 
+    private final ConfigHandler config;
     private final DatabaseHandler databaseHandler;
     private CacheBroker cacheBroker;
 
@@ -19,7 +21,8 @@ public class Cache {
     private final Map<UUID, Set<UUID>> islandCoops = new ConcurrentHashMap<>();
     private final Map<UUID, Integer> islandLevels = new ConcurrentHashMap<>();
 
-    public Cache(DatabaseHandler databaseHandler) {
+    public Cache(ConfigHandler config, DatabaseHandler databaseHandler) {
+        this.config = config;
         this.databaseHandler = databaseHandler;
     }
 
@@ -221,17 +224,26 @@ public class Cache {
     // =================================================================================================================
     // Island
     // =================================================================================================================
-    public void createIsland(UUID islandUuid) {
-        databaseHandler.updateIslandData(islandUuid);
+    public void createIsland(UUID islandUuid, UUID ownerUuid) {
+        String homePoint = config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch();
 
-        // Initialize island data in cache after DB success
+        databaseHandler.addIslandData(islandUuid, ownerUuid, homePoint);
+
         Map<String, String> data = new ConcurrentHashMap<>();
         data.put("lock", "false");
         data.put("pvp", "false");
         islandData.put(islandUuid, data);
 
-        islandPlayers.put(islandUuid, new ConcurrentHashMap<>());
-        islandHomes.put(islandUuid, new ConcurrentHashMap<>());
+        Map<UUID, String> players = new ConcurrentHashMap<>();
+        players.put(ownerUuid, "owner");
+        islandPlayers.put(islandUuid, players);
+
+        Map<String, String> homeMap = new ConcurrentHashMap<>();
+        homeMap.put("default", homePoint);
+        Map<UUID, Map<String, String>> playerHomes = new ConcurrentHashMap<>();
+        playerHomes.put(ownerUuid, homeMap);
+        islandHomes.put(islandUuid, playerHomes);
+
         islandWarps.put(islandUuid, new ConcurrentHashMap<>());
         islandBans.put(islandUuid, ConcurrentHashMap.newKeySet());
         islandCoops.put(islandUuid, ConcurrentHashMap.newKeySet());
@@ -245,6 +257,7 @@ public class Cache {
         cacheBroker.publishUpdate("island_coops", islandUuid);
         cacheBroker.publishUpdate("island_levels", islandUuid);
     }
+
 
     public void deleteIsland(UUID islandUuid) {
         databaseHandler.deleteIsland(islandUuid);
@@ -279,12 +292,17 @@ public class Cache {
     // Player
     // =================================================================================================================
     public void updateIslandPlayer(UUID islandUuid, UUID playerUuid, String role) {
-        databaseHandler.updateIslandPlayer(islandUuid, playerUuid, role);
+        String homePoint = config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch();
+
+        databaseHandler.addIslandPlayer(islandUuid, playerUuid, role, homePoint);
 
         islandPlayers.computeIfAbsent(islandUuid, k -> new ConcurrentHashMap<>()).put(playerUuid, role);
+        islandHomes.computeIfAbsent(islandUuid, k -> new ConcurrentHashMap<>()).computeIfAbsent(playerUuid, k -> new ConcurrentHashMap<>()).put("default", homePoint);
 
         cacheBroker.publishUpdate("island_players", islandUuid);
+        cacheBroker.publishUpdate("island_homes", islandUuid);
     }
+
 
     public void deleteIslandPlayer(UUID islandUuid, UUID playerUuid) {
         databaseHandler.deleteIslandPlayer(islandUuid, playerUuid);
@@ -303,19 +321,16 @@ public class Cache {
         cacheBroker.publishUpdate("island_players", islandUuid);
     }
 
-    public void updateIslandOwner(UUID islandUuid, UUID playerUuid) {
-        databaseHandler.updateIslandOwner(islandUuid, playerUuid);
+    public void updateIslandOwner(UUID islandUuid, UUID oldOwnerUuid, UUID newOwnerUuid) {
+        databaseHandler.updateIslandOwner(islandUuid, oldOwnerUuid, newOwnerUuid);
 
         Map<UUID, String> players = islandPlayers.computeIfAbsent(islandUuid, k -> new ConcurrentHashMap<>());
-        for (Map.Entry<UUID, String> entry : players.entrySet()) {
-            if ("owner".equalsIgnoreCase(entry.getValue())) {
-                entry.setValue("member");
-            }
-        }
-        players.put(playerUuid, "owner");
+        players.put(oldOwnerUuid, "member");
+        players.put(newOwnerUuid, "owner");
 
         cacheBroker.publishUpdate("island_players", islandUuid);
     }
+
 
     public UUID getIslandOwner(UUID islandUuid) {
         Map<UUID, String> players = islandPlayers.get(islandUuid);
@@ -532,6 +547,7 @@ public class Cache {
         databaseHandler.updateIslandPvp(islandUuid, pvp);
 
         islandData.computeIfAbsent(islandUuid, k -> new ConcurrentHashMap<>()).put("pvp", String.valueOf(pvp));
+
         cacheBroker.publishUpdate("island_data", islandUuid);
     }
 

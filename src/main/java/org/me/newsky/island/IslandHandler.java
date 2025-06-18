@@ -78,8 +78,8 @@ public class IslandHandler {
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    public void sendPlayerMessage(UUID playerUuid, Component message) {
-        CompletableFuture.runAsync(() -> islandDistributor.sendPlayerMessage(playerUuid, message), plugin.getBukkitAsyncExecutor());
+    public void sendMessage(UUID playerUuid, Component message) {
+        CompletableFuture.runAsync(() -> islandDistributor.sendMessage(playerUuid, message), plugin.getBukkitAsyncExecutor());
     }
 
     public UUID getIslandUuid(UUID playerUuid) {
