@@ -7,6 +7,7 @@ import org.me.newsky.exceptions.HomeDoesNotExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
 import org.me.newsky.island.distributor.IslandDistributor;
+import org.me.newsky.util.IslandUtils;
 import org.me.newsky.util.LocationUtils;
 
 import java.util.Optional;
@@ -72,9 +73,10 @@ public class HomeHandler {
                 throw new HomeDoesNotExistException();
             }
 
+            String homeWorld = IslandUtils.UUIDToName(islandUuid);
             String homeLocation = homeLocationOpt.get();
 
-            return islandDistributor.teleportIsland(islandUuid, targetPlayerUuid, homeLocation);
+            return islandDistributor.teleportIsland(islandUuid, targetPlayerUuid, homeWorld, homeLocation);
         });
     }
 

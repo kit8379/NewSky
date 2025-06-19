@@ -37,7 +37,8 @@ redis:
 
 # The settings for the server.
 server:
-  # The name of the server. Must be equal to the server name in the BungeeCord / Velocity config.
+  # The name of this server.
+  # Must be equal to the server name in the BungeeCord / Velocity config.
   name: "server1"
   # Whether the server is the lobby server.
   # If the server is the lobby server, the plugin will not load islands on this server.
@@ -53,6 +54,7 @@ server:
   # "random" means the plugin will randomly select a server from the server list.
   # "round-robin" means the plugin will select the next server in the list.
   # "mspt" means the plugin will select the server with the lowest average MSPT (milliseconds per tick).
+  # This selector will apply for both island server and lobby server selection logic.
   selector: "mspt"
   # If the selector is "mspt", this is the interval that the plugin updates the MSPT data.
   # If you are not using "mspt" selector, this value will be ignored.
@@ -61,9 +63,22 @@ server:
 
 # The fallback lobby configuration for when players need to be teleported out of an island.
 lobby:
-  # Command to execute when a player is teleported to the spawn during island unload or get kicked.
-  # Recommend to use HuskHomes to control the global spawn point.
-  command: "spawn {player}"
+  # The list of server names of the lobby servers.
+  # These must match the server names defined in your BungeeCord / Velocity config.
+  server-names:
+    - "lobby-1"
+    - "lobby-2"
+  # The world name of the lobby.
+  # Only one lobby world is supported.
+  # All the servers you listed above must have this world.
+  world-name: "lobby"
+  location:
+    x: 0.0
+    y: 100.0
+    z: 0.0
+    yaw: 0.0
+    pitch: 0.0
+
 
 # The settings for the island.
 island:

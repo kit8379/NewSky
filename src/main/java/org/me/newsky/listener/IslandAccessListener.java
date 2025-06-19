@@ -54,7 +54,7 @@ public class IslandAccessListener implements Listener {
 
         if (banned || locked) {
             player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), config.getLobbyCommand(player.getName()));
+            plugin.getApi().lobby(playerUuid);
             player.sendMessage(banned ? config.getPlayerBannedMessage() : config.getIslandLockedMessage());
             plugin.debug("IslandAccessListener", "Player " + player.getName() + " attempted to access island " + islandUuid + " but was denied access.");
         }

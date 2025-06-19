@@ -16,9 +16,11 @@ import org.me.newsky.util.ComponentUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 public class IslandDistributor {
 
@@ -42,8 +44,8 @@ public class IslandDistributor {
         this.islandBroker = islandBroker;
     }
 
-    public CompletableFuture<Void> createIsland(UUID islandUuid, UUID ownerUuid) {
-        String targetServer = selectServer();
+    public CompletableFuture<Void> createIsland(UUID islandUuid) {
+        String targetServer = selectServer(redisCache.getActiveGameServers());
 
         if (targetServer == null) {
             plugin.debug("IslandDistributor", "No active server available for island creation.");
@@ -54,10 +56,10 @@ public class IslandDistributor {
 
         if (targetServer.equals(serverID)) {
             plugin.debug("IslandDistributor", "Creating island on local server: " + serverID);
-            return islandOperation.createIsland(islandUuid, ownerUuid);
+            return islandOperation.createIsland(islandUuid);
         } else {
             plugin.debug("IslandDistributor", "Sending create request to remote server: " + targetServer);
-            return islandBroker.sendRequest(targetServer, "create", islandUuid.toString(), ownerUuid.toString());
+            return islandBroker.sendRequest(targetServer, "create", islandUuid.toString());
         }
     }
 
@@ -86,7 +88,7 @@ public class IslandDistributor {
         if (islandServer == null) {
             plugin.debug("IslandDistributor", "Island not loaded on any server. Selecting server to load the island.");
 
-            String targetServer = selectServer();
+            String targetServer = selectServer(redisCache.getActiveGameServers());
 
             if (targetServer == null) {
                 plugin.debug("IslandDistributor", "No active server available to load the island.");
@@ -127,13 +129,13 @@ public class IslandDistributor {
         }
     }
 
-    public CompletableFuture<Void> teleportIsland(UUID islandUuid, UUID playerUuid, String teleportLocation) {
+    public CompletableFuture<Void> teleportIsland(UUID islandUuid, UUID playerUuid, String teleportWorld, String teleportLocation) {
         String islandServer = getServerByIsland(islandUuid);
 
         if (islandServer == null) {
             plugin.debug("IslandDistributor", "Island not loaded on any server. Selecting server to load the island.");
 
-            String targetServer = selectServer();
+            String targetServer = selectServer(redisCache.getActiveGameServers());
 
             if (targetServer == null) {
                 plugin.debug("IslandDistributor", "No active server available to load the island.");
@@ -146,23 +148,42 @@ public class IslandDistributor {
                 plugin.debug("IslandDistributor", "Loading island on local server: " + serverID);
                 return islandOperation.loadIsland(islandUuid).thenCompose(v -> {
                     plugin.debug("IslandDistributor", "Teleporting player on local server: " + serverID);
-                    return islandOperation.teleportIsland(islandUuid, playerUuid, teleportLocation);
+                    return islandOperation.teleport(playerUuid, teleportWorld, teleportLocation);
                 });
             } else {
                 plugin.debug("IslandDistributor", "Sending load request to remote server: " + targetServer);
                 return islandBroker.sendRequest(targetServer, "load", islandUuid.toString()).thenCompose(v -> {
                     plugin.debug("IslandDistributor", "Sending teleport request to remote server: " + targetServer);
-                    return islandBroker.sendRequest(targetServer, "teleport", islandUuid.toString(), playerUuid.toString(), teleportLocation).thenRun(() -> connectToServer(playerUuid, targetServer));
+                    return islandBroker.sendRequest(targetServer, "teleport", playerUuid.toString(), teleportWorld, teleportLocation).thenRun(() -> connectToServer(playerUuid, targetServer));
                 });
             }
         } else {
             if (islandServer.equals(serverID)) {
                 plugin.debug("IslandDistributor", "Teleporting player on local server: " + serverID);
-                return islandOperation.teleportIsland(islandUuid, playerUuid, teleportLocation);
+                return islandOperation.teleport(playerUuid, teleportWorld, teleportLocation);
             } else {
                 plugin.debug("IslandDistributor", "Sending teleport request to remote server: " + islandServer);
-                return islandBroker.sendRequest(islandServer, "teleport", islandUuid.toString(), playerUuid.toString(), teleportLocation).thenRun(() -> connectToServer(playerUuid, islandServer));
+                return islandBroker.sendRequest(islandServer, "teleport", playerUuid.toString(), teleportWorld, teleportLocation).thenRun(() -> connectToServer(playerUuid, islandServer));
             }
+        }
+    }
+
+    public CompletableFuture<Void> teleportLobby(UUID playerUuid, List<String> lobbyServers, String lobbyWorld, String lobbyLocation) {
+        String targetLobbyServer = selectServer(redisCache.getActiveServers().entrySet().stream().filter(entry -> lobbyServers.contains(entry.getKey())).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+
+        if (targetLobbyServer == null) {
+            plugin.debug("IslandDistributor", "No active lobby server available.");
+            return CompletableFuture.failedFuture(new NoActiveServerException());
+        }
+
+        plugin.debug("IslandDistributor", "Selected active lobby server: " + targetLobbyServer + " for player: " + playerUuid);
+
+        if (targetLobbyServer.equals(serverID)) {
+            plugin.debug("IslandDistributor", "Teleporting player to local lobby world: " + lobbyWorld);
+            return islandOperation.teleport(playerUuid, lobbyWorld, lobbyLocation);
+        } else {
+            plugin.debug("IslandDistributor", "Sending lobby teleport request to remote server: " + targetLobbyServer);
+            return islandBroker.sendRequest(targetLobbyServer, "teleport", playerUuid.toString(), lobbyWorld, lobbyLocation).thenRun(() -> connectToServer(playerUuid, targetLobbyServer));
         }
     }
 
@@ -182,9 +203,8 @@ public class IslandDistributor {
         islandBroker.sendBroadcast("message", playerUuid.toString(), ComponentUtils.serialize(message));
     }
 
-    private String selectServer() {
-        Map<String, String> activeServers = redisCache.getActiveGameServers();
-        return serverSelector.selectServer(activeServers);
+    private String selectServer(Map<String, String> servers) {
+        return serverSelector.selectServer(servers);
     }
 
     private String getServerByIsland(UUID islandUuid) {

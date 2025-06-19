@@ -47,6 +47,7 @@ public class WorldHandler {
         properties.setValue(SlimeProperties.SPAWN_X, config.getIslandSpawnX());
         properties.setValue(SlimeProperties.SPAWN_Y, config.getIslandSpawnY());
         properties.setValue(SlimeProperties.SPAWN_Z, config.getIslandSpawnZ());
+        properties.setValue(SlimeProperties.SPAWN_YAW, config.getIslandSpawnYaw());
         plugin.debug("WorldHandler", "Default slime world properties configured.");
     }
 
@@ -170,7 +171,7 @@ public class WorldHandler {
         for (Player player : world.getPlayers()) {
             plugin.debug("WorldHandler", "Teleporting player: " + player.getName());
             player.teleport(Bukkit.getWorlds().getFirst().getSpawnLocation());
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(), config.getLobbyCommand(player.getName()));
+            plugin.getApi().lobby(player.getUniqueId());
         }
     }
 }

@@ -169,8 +169,32 @@ public class ConfigHandler {
         return config.getInt("server.mspt-update-interval");
     }
 
-    public String getLobbyCommand(String player) {
-        return Objects.requireNonNull(config.getString("lobby.command")).replace("{player}", player);
+    public List<String> getLobbyServerNames() {
+        return config.getStringList("lobby.server-names");
+    }
+
+    public String getLobbyWorldName() {
+        return config.getString("lobby.world-name");
+    }
+
+    public double getLobbyX() {
+        return config.getDouble("lobby.location.x");
+    }
+
+    public double getLobbyY() {
+        return config.getDouble("lobby.location.y");
+    }
+
+    public double getLobbyZ() {
+        return config.getDouble("lobby.location.z");
+    }
+
+    public float getLobbyYaw() {
+        return (float) config.getDouble("lobby.location.yaw");
+    }
+
+    public float getLobbyPitch() {
+        return (float) config.getDouble("lobby.location.pitch");
     }
 
     public String getTemplateWorldName() {

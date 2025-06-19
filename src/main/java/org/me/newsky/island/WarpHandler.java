@@ -5,6 +5,7 @@ import org.me.newsky.NewSky;
 import org.me.newsky.cache.Cache;
 import org.me.newsky.exceptions.*;
 import org.me.newsky.island.distributor.IslandDistributor;
+import org.me.newsky.util.IslandUtils;
 import org.me.newsky.util.LocationUtils;
 
 import java.util.Optional;
@@ -80,9 +81,10 @@ public class WarpHandler {
                 throw new WarpDoesNotExistException();
             }
 
+            String warpWorld = IslandUtils.UUIDToName(islandUuid);
             String warpLocation = warpLocationOpt.get();
 
-            return islandDistributor.teleportIsland(islandUuid, targetPlayerUuid, warpLocation);
+            return islandDistributor.teleportIsland(islandUuid, targetPlayerUuid, warpWorld, warpLocation);
         });
     }
 

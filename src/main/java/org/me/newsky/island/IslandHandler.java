@@ -29,15 +29,17 @@ public class IslandHandler {
             if (cache.getIslandUuid(ownerUuid).isPresent()) {
                 throw new IslandAlreadyExistException();
             }
-
             UUID islandUuid = UUID.randomUUID();
-
-            return islandDistributor.createIsland(islandUuid, ownerUuid);
+            cache.createIsland(islandUuid, ownerUuid);
+            return islandDistributor.createIsland(islandUuid);
         }, plugin.getBukkitAsyncExecutor()).thenCompose(f -> f);
     }
 
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> islandDistributor.deleteIsland(islandUuid), plugin.getBukkitAsyncExecutor()).thenCompose(f -> f);
+        return CompletableFuture.supplyAsync(() -> {
+            cache.deleteIsland(islandUuid);
+            return islandDistributor.deleteIsland(islandUuid);
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(f -> f);
     }
 
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
@@ -73,7 +75,6 @@ public class IslandHandler {
             if (!players.contains(playerUuid)) {
                 throw new IslandPlayerDoesNotExistException();
             }
-
             islandDistributor.expelPlayer(islandUuid, playerUuid);
         }, plugin.getBukkitAsyncExecutor());
     }

@@ -15,6 +15,7 @@ import java.util.concurrent.CompletableFuture;
 public class NewSkyAPI {
 
     private final NewSky plugin;
+    private final LobbyHandler lobbyHandler;
     private final IslandHandler islandHandler;
     private final PlayerHandler playerHandler;
     private final HomeHandler homeHandler;
@@ -23,7 +24,8 @@ public class NewSkyAPI {
     private final BanHandler banHandler;
     private final CoopHandler coopHandler;
 
-    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler) {
+
+    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler) {
         this.plugin = plugin;
         this.islandHandler = islandHandler;
         this.playerHandler = playerHandler;
@@ -32,7 +34,9 @@ public class NewSkyAPI {
         this.levelHandler = levelHandler;
         this.banHandler = banHandler;
         this.coopHandler = coopHandler;
+        this.lobbyHandler = lobbyHandler;
     }
+
 
     /**
      * Creates a new island for the specified owner player.
@@ -387,7 +391,7 @@ public class NewSkyAPI {
      * Gets the pending invite data for a player.
      *
      * @param playerUuid UUID of the player.
-     * @return Optional containing Invitation if an invite exists.
+     * @return Optional containing Invitation if an invitation exists.
      */
     public Optional<Invitation> getPendingInvite(UUID playerUuid) {
         return playerHandler.getPendingInvite(playerUuid);
@@ -401,5 +405,15 @@ public class NewSkyAPI {
      */
     public void sendPlayerMessage(UUID playerUuid, Component message) {
         islandHandler.sendMessage(playerUuid, message);
+    }
+
+    /**
+     * Teleports the player to the configured lobby server and location.
+     *
+     * @param playerUuid The UUID of the player to teleport.
+     * @return A CompletableFuture that completes when the teleport is handled.
+     */
+    public CompletableFuture<Void> lobby(UUID playerUuid) {
+        return lobbyHandler.lobby(playerUuid);
     }
 }

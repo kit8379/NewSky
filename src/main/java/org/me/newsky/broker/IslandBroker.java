@@ -186,7 +186,7 @@ public class IslandBroker {
         try {
             switch (operation) {
                 case "create":
-                    return islandOperation.createIsland(UUID.fromString(args[0]), UUID.fromString(args[1]));
+                    return islandOperation.createIsland(UUID.fromString(args[0]));
                 case "delete":
                     return islandOperation.deleteIsland(UUID.fromString(args[0]));
                 case "load":
@@ -194,7 +194,7 @@ public class IslandBroker {
                 case "unload":
                     return islandOperation.unloadIsland(UUID.fromString(args[0]));
                 case "teleport":
-                    return islandOperation.teleportIsland(UUID.fromString(args[0]), UUID.fromString(args[1]), args[2]);
+                    return islandOperation.teleport(UUID.fromString(args[0]), args[1], args[2]);
                 default:
                     return CompletableFuture.failedFuture(new IllegalArgumentException("Unknown request operation: " + operation));
             }
