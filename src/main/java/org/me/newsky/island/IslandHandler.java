@@ -3,9 +3,9 @@ package org.me.newsky.island;
 import net.kyori.adventure.text.Component;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.Cache;
+import org.me.newsky.exceptions.CannotExpelIslandPlayerException;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
-import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
 import org.me.newsky.island.distributor.IslandDistributor;
 
 import java.util.Set;
@@ -72,8 +72,8 @@ public class IslandHandler {
     public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
         return CompletableFuture.runAsync(() -> {
             Set<UUID> players = cache.getIslandPlayers(islandUuid);
-            if (!players.contains(playerUuid)) {
-                throw new IslandPlayerDoesNotExistException();
+            if (players.contains(playerUuid)) {
+                throw new CannotExpelIslandPlayerException();
             }
             islandDistributor.expelPlayer(islandUuid, playerUuid);
         }, plugin.getBukkitAsyncExecutor());

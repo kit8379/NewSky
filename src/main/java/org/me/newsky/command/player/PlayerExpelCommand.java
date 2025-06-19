@@ -9,6 +9,7 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.CannotExpelIslandPlayerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 
 import java.util.Collections;
@@ -85,8 +86,13 @@ public class PlayerExpelCommand implements SubCommand, TabComplete {
         }
 
         api.expelPlayer(islandUuid, targetPlayerUuid).thenRun(() -> sender.sendMessage(config.getPlayerExpelSuccessMessage(targetPlayerName))).exceptionally(ex -> {
-            sender.sendMessage(config.getUnknownExceptionMessage());
-            plugin.severe("Error expelling player " + targetPlayerName + " from island of player " + player.getName(), ex);
+            Throwable cause = ex.getCause();
+            if (cause instanceof CannotExpelIslandPlayerException) {
+                sender.sendMessage(config.getPlayerCannotExpelIslandPlayerMessage());
+            } else {
+                sender.sendMessage(config.getUnknownExceptionMessage());
+                plugin.severe("Failed to expel player " + targetPlayerName + " from island of player " + player.getName(), ex);
+            }
             return null;
         });
 

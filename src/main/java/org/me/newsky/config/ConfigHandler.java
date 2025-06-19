@@ -1393,6 +1393,10 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-expel-success")).replace("{player}", player));
     }
 
+    public Component getPlayerCannotExpelIslandPlayerMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-cannot-expel-island-player"));
+    }
+
     public Component getPlayerBanSuccessMessage(String player) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-ban-success")).replace("{player}", player));
     }

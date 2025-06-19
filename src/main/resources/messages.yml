@@ -70,6 +70,7 @@ messages:
   player-cannot-leave-as-owner: "<red>You can't leave the island as its owner!"
   player-leave-success: "<green>You have left your island!"
   player-expel-success: "<green>Successfully expelled <aqua>{player} <green>from your island."
+  player-cannot-expel-island-player: "<red>You can't expel an island member or the owner!"
   player-ban-success: "<green>Successfully banned <aqua>{player}<green>!"
   player-unban-success: "<green>Successfully unbanned <aqua>{player}<green>!"
   player-already-banned: "<red><aqua>{player} <red>is already banned from your island!"

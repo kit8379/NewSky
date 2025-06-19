@@ -62,16 +62,16 @@ server:
   mspt-update-interval: 30
 
 # The fallback lobby configuration for when players need to be teleported out of an island.
+# E.G. lock island, delete island, unload island, etc.
 lobby:
   # The list of server names of the lobby servers.
   # These must match the server names defined in your BungeeCord / Velocity config.
   server-names:
     - "lobby-1"
-    - "lobby-2"
   # The world name of the lobby.
   # Only one lobby world is supported.
   # All the servers you listed above must have this world.
-  world-name: "lobby"
+  world-name: "world"
   location:
     x: 0.0
     y: 100.0
@@ -107,9 +107,9 @@ island:
   level-update-interval: 180
 
   # The gamerules to apply to island worlds during loading.
-  # You can check the available gamerule names in this link: https://hub.spigotmc.org/javadocs/bukkit/org/bukkit/GameRule.html
   gamerules:
-    KEEP_INVENTORY: true
+    keepInventory: true
+    doImmediateRespawn: false
 
 # The settings for the command
 command:

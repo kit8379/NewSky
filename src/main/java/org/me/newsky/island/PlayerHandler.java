@@ -79,7 +79,6 @@ public class PlayerHandler {
         }, plugin.getBukkitAsyncExecutor());
     }
 
-
     public CompletableFuture<Void> addPendingInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {
         return CompletableFuture.runAsync(() -> {
             if (getPendingInvite(inviteeUuid).isPresent()) {

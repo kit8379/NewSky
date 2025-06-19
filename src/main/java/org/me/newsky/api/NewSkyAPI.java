@@ -355,14 +355,6 @@ public class NewSkyAPI {
         return levelHandler.getTopIslandLevels(size);
     }
 
-    /**
-     * Gets the online players in all sky block servers.
-     *
-     * @return A set of player names currently online.
-     */
-    public Set<String> getOnlinePlayers() {
-        return plugin.getOnlinePlayers();
-    }
 
     /**
      * Adds a pending invite for the specified player.
@@ -415,5 +407,14 @@ public class NewSkyAPI {
      */
     public CompletableFuture<Void> lobby(UUID playerUuid) {
         return lobbyHandler.lobby(playerUuid);
+    }
+
+    /**
+     * Gets the online players in all sky block servers.
+     *
+     * @return A set of player names currently online.
+     */
+    public Set<String> getOnlinePlayers() {
+        return plugin.getOnlinePlayers();
     }
 }
