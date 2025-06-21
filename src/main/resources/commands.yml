@@ -167,6 +167,12 @@ commands:
       syntax: ""
       description: "Show the value of the block in your hand"
 
+    lobby:
+      aliases: [ ]
+      permission: "island.player.lobby"
+      syntax: ""
+      description: "Teleport to the lobby"
+
     help:
       aliases: [ ]
       permission: "island.player.help"
@@ -281,6 +287,12 @@ commands:
       permission: "newsky.admin.warp"
       syntax: "<player> [warp] [target]"
       description: "Teleport a player to another player's warp"
+
+    lobby:
+      aliases: [ ]
+      permission: "newsky.admin.lobby"
+      syntax: "<player>"
+      description: "Teleport a player to the lobby"
 
     reload:
       aliases: [ ]

@@ -245,14 +245,6 @@ public class ConfigHandler {
         return levels.getInt("blocks." + material, 0);
     }
 
-    public int getBlockLimit(String block) {
-        return limits.getInt("blocks." + block, -1);
-    }
-
-    public int getEntityLimit(String entity) {
-        return limits.getInt("entities." + entity, -1);
-    }
-
     // ================================================================================================================
     // Commands Section
     // ================================================================================================================
@@ -709,6 +701,22 @@ public class ConfigHandler {
         return commands.getString("commands.player.warp.description");
     }
 
+    public String[] getPlayerLobbyAliases() {
+        return commands.getStringList("commands.player.lobby.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerLobbyPermission() {
+        return commands.getString("commands.player.lobby.permission");
+    }
+
+    public String getPlayerLobbySyntax() {
+        return commands.getString("commands.player.lobby.syntax");
+    }
+
+    public String getPlayerLobbyDescription() {
+        return commands.getString("commands.player.lobby.description");
+    }
+
     public List<String> getAdminCommandOrder() {
         return Objects.requireNonNull(commands.getConfigurationSection("commands.admin")).getKeys(false).stream().toList();
     }
@@ -1033,6 +1041,22 @@ public class ConfigHandler {
         return commands.getString("commands.admin.warp.description");
     }
 
+    public String[] getAdminLobbyAliases() {
+        return commands.getStringList("commands.admin.lobby.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminLobbyPermission() {
+        return commands.getString("commands.admin.lobby.permission");
+    }
+
+    public String getAdminLobbySyntax() {
+        return commands.getString("commands.admin.lobby.syntax");
+    }
+
+    public String getAdminLobbyDescription() {
+        return commands.getString("commands.admin.lobby.description");
+    }
+
     // =========================================================
     // Messages Section
     // =========================================================
@@ -1256,6 +1280,10 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-uncoop-success")).replace("{owner}", owner).replace("{target}", target));
     }
 
+    public Component getAdminLobbySuccessMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-lobby-success")).replace("{player}", player));
+    }
+
     // Player Command Messages
     public Component getPlayerNoIslandMessage() {
         return ColorUtils.colorize(messages.getString("messages.player-no-island"));
@@ -1449,6 +1477,10 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-not-online")).replace("{player}", player));
     }
 
+    public Component getPlayerLobbySuccessMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-lobby-success"));
+    }
+
     // Info
     public Component getIslandInfoHeaderMessage() {
         return ColorUtils.colorize(messages.getString("messages.island-info-header"));
@@ -1511,10 +1543,6 @@ public class ConfigHandler {
 
     public Component getNoCoopedPlayersMessage() {
         return ColorUtils.colorize(messages.getString("messages.cooped-player-no-cooped"));
-    }
-
-    public Component getBlockLimitMessage(String block) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.block-limit-reached")).replace("{block}", block));
     }
 
     // Help

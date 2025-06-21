@@ -81,6 +81,7 @@ messages:
   player-already-cooped: "<red><aqua>{player} <red>is already a co-op member!"
   player-not-cooped: "<red><aqua>{player} <red>is not a co-op member!"
   player-cannot-coop-island-player: "<red>You can't set an island member as a co-op member!"
+  player-lobby-success: "<green>You have been teleported to the lobby server!"
 
   # Admin Command Messages
   admin-no-island: "<red>Player <aqua>{player} <red>does not have an island!"
@@ -107,6 +108,7 @@ messages:
   admin-unban-success: "<green>Unbanned <aqua>{target} <green>from island of <aqua>{owner}<green>."
   admin-coop-success: "<green>Set <aqua>{target} <green>as co-op member of island owned by <aqua>{owner}<green>."
   admin-uncoop-success: "<green>Removed co-op status of <aqua>{target} <green>from island of <aqua>{owner}<green>."
+  admin-lobby-success: "<green>{player} has been teleported to the lobby server!"
 
   # Info Messages
   island-info-header: "<#00BFFF>Island Info:"

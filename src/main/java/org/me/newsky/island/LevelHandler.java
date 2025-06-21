@@ -27,14 +27,8 @@ public class LevelHandler {
         this.cache = cache;
     }
 
-    /**
-     * Asynchronously calculate the island level based on block points.
-     *
-     * @param islandUuid The UUID of the island.
-     * @return CompletableFuture that completes when calculation is done.
-     */
-    public CompletableFuture<Void> calIslandLevel(UUID islandUuid) {
-        return CompletableFuture.runAsync(() -> {
+    public void calIslandLevel(UUID islandUuid) {
+        CompletableFuture.runAsync(() -> {
             String islandName = IslandUtils.UUIDToName(islandUuid);
 
             Location center = LocationUtils.stringToLocation(islandName, config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch());
