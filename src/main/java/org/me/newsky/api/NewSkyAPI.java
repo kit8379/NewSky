@@ -2,7 +2,6 @@ package org.me.newsky.api;
 
 import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
-import org.bukkit.Material;
 import org.me.newsky.NewSky;
 import org.me.newsky.island.*;
 import org.me.newsky.model.Invitation;
@@ -23,10 +22,9 @@ public class NewSkyAPI {
     private final LevelHandler levelHandler;
     private final BanHandler banHandler;
     private final CoopHandler coopHandler;
-    private final LimitHandler limitHandler;
     private final LobbyHandler lobbyHandler;
 
-    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LimitHandler limitHandler, LobbyHandler lobbyHandler) {
+    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler) {
         this.plugin = plugin;
         this.islandHandler = islandHandler;
         this.playerHandler = playerHandler;
@@ -35,7 +33,6 @@ public class NewSkyAPI {
         this.levelHandler = levelHandler;
         this.banHandler = banHandler;
         this.coopHandler = coopHandler;
-        this.limitHandler = limitHandler;
         this.lobbyHandler = lobbyHandler;
     }
 
@@ -338,16 +335,6 @@ public class NewSkyAPI {
     }
 
     /**
-     * Asynchronously calculate and update the island level.
-     *
-     * @param islandUuid The UUID of the island.
-     * @return CompletableFuture that completes when done.
-     */
-    public CompletableFuture<Void> calIslandLevel(UUID islandUuid) {
-        return levelHandler.calIslandLevel(islandUuid);
-    }
-
-    /**
      * Get the island level for a given island UUID.
      *
      * @param islandUuid The UUID of the island.
@@ -365,47 +352,6 @@ public class NewSkyAPI {
      */
     public Map<UUID, Integer> getTopIslandLevels(int size) {
         return levelHandler.getTopIslandLevels(size);
-    }
-
-    /**
-     * Asynchronously calculate and update the island block limits.
-     *
-     * @param islandUuid The UUID of the island.
-     * @return CompletableFuture that completes when done.
-     */
-    public CompletableFuture<Void> calIslandBlock(UUID islandUuid) {
-        return limitHandler.calIslandBlock(islandUuid);
-    }
-    
-    /**
-     * Get current block count for a specific material on an island.
-     *
-     * @param islandUuid The UUID of the island.
-     * @param material   The material to check.
-     * @return The current count (0 if not tracked).
-     */
-    public int getBlockCount(UUID islandUuid, Material material) {
-        return limitHandler.getBlockCount(islandUuid, material);
-    }
-
-    /**
-     * Increment block count for a specific material on an island.
-     *
-     * @param islandUuid The UUID of the island.
-     * @param material   The material to increment.
-     */
-    public void incrementBlockCount(UUID islandUuid, Material material) {
-        limitHandler.incrementBlockCount(islandUuid, material);
-    }
-
-    /**
-     * Decrement block count for a specific material on an island.
-     *
-     * @param islandUuid The UUID of the island.
-     * @param material   The material to decrement.
-     */
-    public void decrementBlockCount(UUID islandUuid, Material material) {
-        limitHandler.decrementBlockCount(islandUuid, material);
     }
 
     /**

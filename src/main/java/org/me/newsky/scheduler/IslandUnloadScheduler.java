@@ -1,84 +1,110 @@
 package org.me.newsky.scheduler;
 
+import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
-import org.me.newsky.redis.RedisCache;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.redis.RedisCache;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.world.WorldHandler;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 public class IslandUnloadScheduler {
 
     private final NewSky plugin;
     private final RedisCache redisCache;
     private final WorldHandler worldHandler;
-    private final long unloadInterval;
-    private final Map<String, Long> inactiveWorlds = new HashMap<>();
+    private final long checkIntervalTicks;
+    private final Map<String, Long> inactiveWorlds = new ConcurrentHashMap<>();
+    private final Queue<String> unloadQueue = new ConcurrentLinkedQueue<>();
+    private BukkitTask checkTask;
     private BukkitTask unloadTask;
+
+    private static final long unloadProcessIntervalTicks = 10L;
+
 
     public IslandUnloadScheduler(NewSky plugin, ConfigHandler config, RedisCache redisCache, WorldHandler worldHandler) {
         this.plugin = plugin;
         this.redisCache = redisCache;
         this.worldHandler = worldHandler;
-        this.unloadInterval = config.getIslandUnloadInterval();
+        this.checkIntervalTicks = config.getIslandUnloadInterval() * 20L;
     }
 
     public void start() {
-        plugin.debug("IslandUnloadScheduler", "Starting island unload scheduler with interval: " + unloadInterval + " seconds.");
-        unloadTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::checkAndUnloadWorlds, 0, unloadInterval * 20L);
-        plugin.debug("IslandUnloadScheduler", "Island unload task scheduled successfully.");
+        plugin.debug("IslandUnloadScheduler", "Starting unload scheduler with check interval: " + checkIntervalTicks + " ticks, unload process interval: " + unloadProcessIntervalTicks + " ticks.");
+        checkTask = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::checkAndQueueWorlds, 0, checkIntervalTicks);
+        unloadTask = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::processNextUnload, 10L, unloadProcessIntervalTicks);
+        plugin.debug("IslandUnloadScheduler", "Unload scheduler started.");
     }
 
     public void stop() {
-        if (unloadTask != null) {
-            plugin.debug("IslandUnloadScheduler", "Stopping island unload scheduler.");
-            unloadTask.cancel();
-            plugin.debug("IslandUnloadScheduler", "Island unload scheduler stopped.");
-        } else {
-            plugin.debug("IslandUnloadScheduler", "No island unload task was running to stop.");
+        if (checkTask != null) {
+            checkTask.cancel();
+            plugin.debug("IslandUnloadScheduler", "Stopped check task.");
         }
+        if (unloadTask != null) {
+            unloadTask.cancel();
+            plugin.debug("IslandUnloadScheduler", "Stopped unload task.");
+        }
+        inactiveWorlds.clear();
+        unloadQueue.clear();
     }
 
-    private void checkAndUnloadWorlds() {
+    private void checkAndQueueWorlds() {
         long currentTime = System.currentTimeMillis();
         plugin.debug("IslandUnloadScheduler", "Starting unload check pass at time: " + currentTime);
 
-        plugin.getServer().getWorlds().forEach(world -> {
+        for (World world : Bukkit.getServer().getWorlds()) {
             String worldName = world.getName();
 
-            if (IslandUtils.isIslandWorld(worldName)) {
-                if (world.getPlayers().isEmpty()) {
-                    long inactiveTime = inactiveWorlds.getOrDefault(worldName, currentTime);
-                    long durationInactive = currentTime - inactiveTime;
+            if (!IslandUtils.isIslandWorld(worldName)) {
+                plugin.debug("IslandUnloadScheduler", "Skipping non-island world: " + worldName);
+                continue;
+            }
 
-                    plugin.debug("IslandUnloadScheduler", "World '" + worldName + "' inactive for: " + durationInactive + " ms.");
+            if (!world.getPlayers().isEmpty()) {
+                plugin.debug("IslandUnloadScheduler", "World '" + worldName + "' has players online. Skipping unload.");
+                inactiveWorlds.remove(worldName);
+                continue;
+            }
 
-                    if (durationInactive > unloadInterval * 1000L) {
-                        plugin.debug("IslandUnloadScheduler", "Unloading world: " + worldName);
-                        worldHandler.unloadWorld(worldName).thenRun(() -> {
-                            plugin.debug("IslandUnloadScheduler", "Successfully unloaded world: " + worldName);
-                            inactiveWorlds.remove(worldName);
-                            redisCache.removeIslandLoadedServer(IslandUtils.nameToUUID(worldName));
-                            plugin.debug("IslandUnloadScheduler", "Removed world from Redis loaded server list: " + worldName);
-                        }).exceptionally(ex -> {
-                            plugin.severe("Failed to unload world: " + worldName, ex);
-                            return null;
-                        });
-                    } else {
-                        inactiveWorlds.put(worldName, inactiveTime);
-                    }
-                } else {
-                    plugin.debug("IslandUnloadScheduler", "World '" + worldName + "' has players online. Skipping unload.");
-                    inactiveWorlds.remove(worldName);
+            long lastInactiveTime = inactiveWorlds.getOrDefault(worldName, currentTime);
+            long durationInactive = currentTime - lastInactiveTime;
+
+            plugin.debug("IslandUnloadScheduler", "World '" + worldName + "' inactive for: " + durationInactive + " ms.");
+
+            if (durationInactive > checkIntervalTicks * 50L) { // ticks to ms (1 tick = 50 ms)
+                if (!unloadQueue.contains(worldName)) {
+                    unloadQueue.add(worldName);
+                    plugin.debug("IslandUnloadScheduler", "Queued world for unload: " + worldName);
                 }
             } else {
-                plugin.debug("IslandUnloadScheduler", "Skipping non-island world: " + worldName);
+                inactiveWorlds.put(worldName, lastInactiveTime);
             }
-        });
+        }
 
-        plugin.debug("IslandUnloadScheduler", "Unload check pass completed.");
+        plugin.debug("IslandUnloadScheduler", "Unload check pass completed. Queue size: " + unloadQueue.size());
+    }
+
+    private void processNextUnload() {
+        String nextWorld = unloadQueue.poll();
+
+        if (nextWorld != null) {
+            plugin.debug("IslandUnloadScheduler", "Processing unload for world: " + nextWorld);
+            worldHandler.unloadWorld(nextWorld).thenRun(() -> {
+                plugin.debug("IslandUnloadScheduler", "Successfully unloaded world: " + nextWorld);
+                inactiveWorlds.remove(nextWorld);
+                redisCache.removeIslandLoadedServer(IslandUtils.nameToUUID(nextWorld));
+                plugin.debug("IslandUnloadScheduler", "Removed world from Redis loaded server list: " + nextWorld);
+            }).exceptionally(ex -> {
+                plugin.severe("Failed to unload world: " + nextWorld, ex);
+                return null;
+            });
+        }
     }
 }
