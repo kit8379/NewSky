@@ -55,19 +55,20 @@ server:
   # "round-robin" means the plugin will select the next server in the list.
   # "mspt" means the plugin will select the server with the lowest average MSPT (milliseconds per tick).
   # This selector will apply for both island server and lobby server selection logic.
-  selector: "mspt"
+  selector: "round-robin"
   # If the selector is "mspt", this is the interval that the plugin updates the MSPT data.
   # If you are not using "mspt" selector, this value will be ignored.
-  # The default value is 30 seconds.
-  mspt-update-interval: 30
+  # The default value is 10 seconds.
+  mspt-update-interval: 10
 
 # The fallback lobby configuration for when players need to be teleported out of an island.
 # E.G. lock island, delete island, unload island, etc.
 lobby:
   # The list of server names of the lobby servers.
   # These must match the server names defined in your BungeeCord / Velocity config.
+  # The plugin will select one of these servers to teleport the player based on the selector type above.
   server-names:
-    - "lobby-1"
+    - "lobby"
   # The world name of the lobby.
   # Only one lobby world is supported.
   # All the servers you listed above must have this world.
@@ -103,8 +104,8 @@ island:
   island-unload-interval: 300
 
   # The interval that the plugin update the island level.
-  # The default value is 180 seconds (2 minutes).
-  level-update-interval: 180
+  # The default value is 120 seconds (2 minutes).
+  level-update-interval: 120
 
   # The gamerules to apply to island worlds during loading.
   gamerules:

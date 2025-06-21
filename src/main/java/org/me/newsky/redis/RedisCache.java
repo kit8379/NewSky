@@ -102,13 +102,6 @@ public class RedisCache {
         }
     }
 
-    public Optional<String> getOnlinePlayerServer(String playerName) {
-        try (Jedis jedis = redisHandler.getJedis()) {
-            String server = jedis.hget("online_players", playerName);
-            return Optional.ofNullable(server);
-        }
-    }
-
     // Server MSPT
     public void updateServerMSPT(String serverName, double mspt) {
         try (Jedis jedis = redisHandler.getJedis()) {

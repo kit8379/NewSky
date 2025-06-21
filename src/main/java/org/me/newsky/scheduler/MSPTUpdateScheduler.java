@@ -43,8 +43,6 @@ public class MSPTUpdateScheduler {
             plugin.debug("MSPTUpdateScheduler", "Stopping MSPT update scheduler.");
             task.cancel();
             plugin.debug("MSPTUpdateScheduler", "MSPT update scheduler stopped.");
-        } else {
-            plugin.debug("MSPTUpdateScheduler", "No MSPT update task was running to stop.");
         }
     }
 
