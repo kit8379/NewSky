@@ -143,14 +143,15 @@ public class NewSky extends JavaPlugin {
             info("Message broker loaded");
 
             info("Starting main handlers for the plugin");
-            LobbyHandler lobbyHandler = new LobbyHandler(this, config, islandDistributor);
             IslandHandler islandHandler = new IslandHandler(this, cache, islandDistributor);
             PlayerHandler playerHandler = new PlayerHandler(this, cache, redisCache);
             HomeHandler homeHandler = new HomeHandler(this, cache, islandDistributor);
             WarpHandler warpHandler = new WarpHandler(this, cache, islandDistributor);
-            LevelHandler levelHandler = new LevelHandler(config, cache);
+            LevelHandler levelHandler = new LevelHandler(this, config, cache);
             BanHandler banHandler = new BanHandler(this, cache, islandDistributor);
             CoopHandler coopHandler = new CoopHandler(this, cache);
+            LimitHandler limitHandler = new LimitHandler(this, config);
+            LobbyHandler lobbyHandler = new LobbyHandler(this, config, islandDistributor);
             info("All main handlers loaded");
 
             info("Starting plugin messaging");
@@ -164,7 +165,7 @@ public class NewSky extends JavaPlugin {
             info("All schedulers loaded");
 
             info("Starting API");
-            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler);
+            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, limitHandler, lobbyHandler);
             info("API loaded");
 
             info("Starting listeners and commands");

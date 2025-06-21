@@ -63,6 +63,8 @@ public class IslandOperation {
         return worldHandler.loadWorld(islandName).thenRun(() -> {
             redisCache.updateIslandLoadedServer(islandUuid, serverID);
             plugin.debug("IslandOperation", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
+            plugin.getApi().calIslandLevel(islandUuid);
+            plugin.getApi().calIslandBlock(islandUuid);
         });
     }
 

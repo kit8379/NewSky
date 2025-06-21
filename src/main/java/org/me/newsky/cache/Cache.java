@@ -31,6 +31,16 @@ public class Cache {
     }
 
     public void cacheAllData() {
+        cacheIslandData();
+        cacheIslandPlayers();
+        cacheIslandHomes();
+        cacheIslandWarps();
+        cacheIslandBans();
+        cacheIslandCoops();
+        cacheIslandLevels();
+    }
+
+    public void cacheIslandData() {
         databaseHandler.selectAllIslandData(rs -> {
             while (rs.next()) {
                 UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));
@@ -40,7 +50,9 @@ public class Cache {
                 islandData.put(islandUuid, data);
             }
         });
+    }
 
+    public void cacheIslandPlayers() {
         databaseHandler.selectAllIslandPlayers(rs -> {
             while (rs.next()) {
                 UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));
@@ -49,7 +61,9 @@ public class Cache {
                 islandPlayers.computeIfAbsent(islandUuid, k -> new ConcurrentHashMap<>()).put(playerUuid, role);
             }
         });
+    }
 
+    public void cacheIslandHomes() {
         databaseHandler.selectAllIslandHomes(rs -> {
             while (rs.next()) {
                 UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));
@@ -59,7 +73,9 @@ public class Cache {
                 islandHomes.computeIfAbsent(islandUuid, k -> new ConcurrentHashMap<>()).computeIfAbsent(playerUuid, k -> new ConcurrentHashMap<>()).put(homeName, homeLocation);
             }
         });
+    }
 
+    public void cacheIslandWarps() {
         databaseHandler.selectAllIslandWarps(rs -> {
             while (rs.next()) {
                 UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));
@@ -69,7 +85,9 @@ public class Cache {
                 islandWarps.computeIfAbsent(islandUuid, k -> new ConcurrentHashMap<>()).computeIfAbsent(playerUuid, k -> new ConcurrentHashMap<>()).put(warpName, warpLocation);
             }
         });
+    }
 
+    public void cacheIslandBans() {
         databaseHandler.selectAllIslandBans(rs -> {
             while (rs.next()) {
                 UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));
@@ -77,7 +95,9 @@ public class Cache {
                 islandBans.computeIfAbsent(islandUuid, k -> ConcurrentHashMap.newKeySet()).add(bannedPlayer);
             }
         });
+    }
 
+    public void cacheIslandCoops() {
         databaseHandler.selectAllIslandCoops(rs -> {
             while (rs.next()) {
                 UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));
@@ -85,7 +105,9 @@ public class Cache {
                 islandCoops.computeIfAbsent(islandUuid, k -> ConcurrentHashMap.newKeySet()).add(playerUuid);
             }
         });
+    }
 
+    public void cacheIslandLevels() {
         databaseHandler.selectAllIslandLevels(rs -> {
             while (rs.next()) {
                 UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));

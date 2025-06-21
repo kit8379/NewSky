@@ -79,6 +79,7 @@ public class DatabaseHandler {
         createIslandBanTable();
         createIslandCoopTable();
         createIslandLevelsTable();
+        createIslandLimitTable();
     }
 
     private void createIslandDataTable() {
@@ -107,6 +108,10 @@ public class DatabaseHandler {
 
     public void createIslandLevelsTable() {
         executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_levels (" + "island_uuid VARCHAR(56) PRIMARY KEY, " + "level INT NOT NULL" + ");");
+    }
+
+    public void createIslandLimitTable() {
+        executeUpdate(PreparedStatement::execute, "CREATE TABLE IF NOT EXISTS island_limit (" + "island_uuid VARCHAR(56) NOT NULL, " + "`name` VARCHAR(56) NOT NULL, " + "count INT NOT NULL, " + "PRIMARY KEY (island_uuid, `name`), " + "FOREIGN KEY (island_uuid) REFERENCES islands(island_uuid)" + ");");
     }
 
     public void selectAllIslandData(ResultProcessor processor) {
@@ -138,7 +143,6 @@ public class DatabaseHandler {
     }
 
     public void addIslandData(UUID islandUuid, UUID ownerUuid, String homePoint) {
-        // Insert island base data
         executeUpdate(s -> s.setString(1, islandUuid.toString()), "INSERT INTO islands (island_uuid) VALUES (?);");
 
         executeUpdate(s -> {
@@ -254,6 +258,7 @@ public class DatabaseHandler {
         executeUpdate(s -> s.setString(1, islandUuid.toString()), "DELETE FROM island_homes WHERE island_uuid = ?;");
         executeUpdate(s -> s.setString(1, islandUuid.toString()), "DELETE FROM island_players WHERE island_uuid = ?;");
         executeUpdate(s -> s.setString(1, islandUuid.toString()), "DELETE FROM islands WHERE island_uuid = ?;");
+        executeUpdate(s -> s.setString(1, islandUuid.toString()), "DELETE FROM island_limit WHERE island_uuid = ?;");
     }
 
 
@@ -300,7 +305,6 @@ public class DatabaseHandler {
     public void deleteAllCoopOfPlayer(UUID playerUuid) {
         executeUpdate(s -> s.setString(1, playerUuid.toString()), "DELETE FROM island_coops WHERE cooped_player = ?;");
     }
-
 
     @FunctionalInterface
     public interface ResultProcessor {
