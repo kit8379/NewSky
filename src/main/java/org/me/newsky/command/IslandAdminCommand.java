@@ -41,6 +41,7 @@ public class IslandAdminCommand implements CommandExecutor, TabExecutor {
         subCommands.add(new AdminUnbanCommand(plugin, api, config));
         subCommands.add(new AdminCoopCommand(plugin, api, config));
         subCommands.add(new AdminUncoopCommand(plugin, api, config));
+        subCommands.add(new AdminLobbyCommand(plugin, api, config));
         subCommands.add(new AdminHelpCommand(config, subCommands));
 
         for (SubCommand cmd : subCommands) {
