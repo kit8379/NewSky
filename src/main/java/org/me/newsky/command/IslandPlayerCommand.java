@@ -15,7 +15,7 @@ import org.me.newsky.exceptions.IslandDoesNotExistException;
 import java.util.*;
 
 /**
- * /is 主指令，負責將子指令委派給 player 目錄下的各類 SubCommand
+ * /is
  */
 public class IslandPlayerCommand implements CommandExecutor, TabExecutor {
     private final ConfigHandler config;

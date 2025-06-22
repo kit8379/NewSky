@@ -13,7 +13,7 @@ import org.me.newsky.config.ConfigHandler;
 import java.util.*;
 
 /**
- * /isadmin 主指令，負責將子指令委派給 admin 目錄下的各類 SubCommand
+ * /isadmin
  */
 public class IslandAdminCommand implements CommandExecutor, TabExecutor {
     private final ConfigHandler config;
