@@ -63,6 +63,7 @@ public class HeartBeatHandler {
         if (heartbeatTask != null) {
             heartbeatTask.cancel();
         }
+
         try {
             redisCache.removeActiveServer(serverID);
         } catch (Exception e) {
