@@ -80,7 +80,7 @@ public class AdminUncoopCommand implements SubCommand, TabComplete {
 
         api.removeCoop(islandUuid, targetUuid).thenRun(() -> {
             sender.sendMessage(config.getAdminUncoopSuccessMessage(ownerName, targetName));
-            api.sendPlayerMessage(targetUuid, config.getWasUncoopedFromIslandMessage(ownerName));
+            api.sendMessage(targetUuid, config.getWasUncoopedFromIslandMessage(ownerName));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof PlayerNotCoopedException) {

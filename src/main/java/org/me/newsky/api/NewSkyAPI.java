@@ -23,8 +23,9 @@ public class NewSkyAPI {
     private final BanHandler banHandler;
     private final CoopHandler coopHandler;
     private final LobbyHandler lobbyHandler;
+    private final MessageHandler messageHandler;
 
-    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler) {
+    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, MessageHandler messageHandler) {
         this.plugin = plugin;
         this.islandHandler = islandHandler;
         this.playerHandler = playerHandler;
@@ -34,6 +35,7 @@ public class NewSkyAPI {
         this.banHandler = banHandler;
         this.coopHandler = coopHandler;
         this.lobbyHandler = lobbyHandler;
+        this.messageHandler = messageHandler;
     }
 
 
@@ -188,7 +190,7 @@ public class NewSkyAPI {
      * @return A CompletableFuture that completes when the player is expelled.
      */
     public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
-        return islandHandler.expelPlayer(islandUuid, playerUuid);
+        return playerHandler.expelPlayer(islandUuid, playerUuid);
     }
 
     /**
@@ -281,7 +283,7 @@ public class NewSkyAPI {
      * @return The UUID of the owner of the island.
      */
     public UUID getIslandOwner(UUID islandUuid) {
-        return islandHandler.getIslandOwner(islandUuid);
+        return playerHandler.getIslandOwner(islandUuid);
     }
 
     /**
@@ -291,7 +293,7 @@ public class NewSkyAPI {
      * @return A set of UUIDs representing the members of the island.
      */
     public Set<UUID> getIslandMembers(UUID islandUuid) {
-        return islandHandler.getIslandMembers(islandUuid);
+        return playerHandler.getIslandMembers(islandUuid);
     }
 
     /**
@@ -388,16 +390,6 @@ public class NewSkyAPI {
     }
 
     /**
-     * Sends a message to a specific player cross-server.
-     *
-     * @param playerUuid The UUID of the player to send the message to.
-     * @param message    The message to send, as a Component.
-     */
-    public void sendPlayerMessage(UUID playerUuid, Component message) {
-        islandHandler.sendMessage(playerUuid, message);
-    }
-
-    /**
      * Teleports the player to the configured lobby server and location.
      *
      * @param playerUuid The UUID of the player to teleport.
@@ -405,6 +397,16 @@ public class NewSkyAPI {
      */
     public CompletableFuture<Void> lobby(UUID playerUuid) {
         return lobbyHandler.lobby(playerUuid);
+    }
+
+    /**
+     * Sends a message to a specific player cross-server.
+     *
+     * @param playerUuid The UUID of the player to send the message to.
+     * @param message    The message to send, as a Component.
+     */
+    public void sendMessage(UUID playerUuid, Component message) {
+        messageHandler.sendMessage(playerUuid, message);
     }
 
     /**

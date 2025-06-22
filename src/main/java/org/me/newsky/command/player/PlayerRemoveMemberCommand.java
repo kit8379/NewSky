@@ -89,7 +89,7 @@ public class PlayerRemoveMemberCommand implements SubCommand, TabComplete {
 
         api.removeMember(islandUuid, targetPlayerUuid).thenRun(() -> {
             player.sendMessage(config.getPlayerRemoveMemberSuccessMessage(targetPlayerName));
-            api.sendPlayerMessage(targetPlayerUuid, config.getWasRemovedFromIslandMessage(player.getName()));
+            api.sendMessage(targetPlayerUuid, config.getWasRemovedFromIslandMessage(player.getName()));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof CannotRemoveOwnerException) {

@@ -84,7 +84,7 @@ public class PlayerBanCommand implements SubCommand, TabComplete {
 
         api.banPlayer(islandUuid, targetPlayerUuid).thenRun(() -> {
             player.sendMessage(config.getPlayerBanSuccessMessage(targetPlayerName));
-            api.sendPlayerMessage(targetPlayerUuid, config.getWasBannedFromIslandMessage(player.getName()));
+            api.sendMessage(targetPlayerUuid, config.getWasBannedFromIslandMessage(player.getName()));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof PlayerAlreadyBannedException) {

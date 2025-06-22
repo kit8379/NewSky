@@ -70,7 +70,7 @@ public class PlayerRejectInviteCommand implements SubCommand {
 
         api.removePendingInvite(playerUuid).thenRun(() -> {
             player.sendMessage(config.getPlayerInviteRejectedMessage());
-            api.sendPlayerMessage(inviterUuid, config.getPlayerInviteRejectedNotifyMessage(player.getName()));
+            api.sendMessage(inviterUuid, config.getPlayerInviteRejectedNotifyMessage(player.getName()));
         }).exceptionally(ex -> {
             player.sendMessage(config.getUnknownExceptionMessage());
             plugin.severe("Error rejecting invite for player " + player.getName(), ex);

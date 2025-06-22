@@ -1,14 +1,11 @@
 package org.me.newsky.island;
 
-import net.kyori.adventure.text.Component;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.Cache;
-import org.me.newsky.exceptions.CannotExpelIslandPlayerException;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.island.distributor.IslandDistributor;
 
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -69,29 +66,7 @@ public class IslandHandler {
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
-        return CompletableFuture.runAsync(() -> {
-            Set<UUID> players = cache.getIslandPlayers(islandUuid);
-            if (players.contains(playerUuid)) {
-                throw new CannotExpelIslandPlayerException();
-            }
-            islandDistributor.expelPlayer(islandUuid, playerUuid);
-        }, plugin.getBukkitAsyncExecutor());
-    }
-
-    public void sendMessage(UUID playerUuid, Component message) {
-        CompletableFuture.runAsync(() -> islandDistributor.sendMessage(playerUuid, message), plugin.getBukkitAsyncExecutor());
-    }
-
     public UUID getIslandUuid(UUID playerUuid) {
         return cache.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
-    }
-
-    public UUID getIslandOwner(UUID islandUuid) {
-        return cache.getIslandOwner(islandUuid);
-    }
-
-    public Set<UUID> getIslandMembers(UUID islandUuid) {
-        return cache.getIslandMembers(islandUuid);
     }
 }

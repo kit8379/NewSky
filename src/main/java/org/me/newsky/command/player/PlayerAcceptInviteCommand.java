@@ -71,8 +71,8 @@ public class PlayerAcceptInviteCommand implements SubCommand {
 
         api.removePendingInvite(playerUuid).thenCompose(v -> api.addMember(islandUuid, playerUuid, "member")).thenCompose(v -> {
             player.sendMessage(config.getPlayerInviteAcceptedMessage());
-            api.sendPlayerMessage(inviterUuid, config.getPlayerInviteAcceptedNotifyMessage(player.getName()));
-            api.getIslandMembers(islandUuid).stream().filter(uuid -> !uuid.equals(playerUuid) && !uuid.equals(inviterUuid)).forEach(uuid -> api.sendPlayerMessage(uuid, config.getNewMemberNotificationMessage(player.getName())));
+            api.sendMessage(inviterUuid, config.getPlayerInviteAcceptedNotifyMessage(player.getName()));
+            api.getIslandMembers(islandUuid).stream().filter(uuid -> !uuid.equals(playerUuid) && !uuid.equals(inviterUuid)).forEach(uuid -> api.sendMessage(uuid, config.getNewMemberNotificationMessage(player.getName())));
             return api.home(playerUuid, "default", playerUuid);
         }).exceptionally(ex -> {
             player.sendMessage(config.getUnknownExceptionMessage());

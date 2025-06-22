@@ -80,7 +80,7 @@ public class AdminBanCommand implements SubCommand, TabComplete {
 
         api.banPlayer(islandUuid, targetPlayerUuid).thenRun(() -> {
             sender.sendMessage(config.getAdminBanSuccessMessage(islandOwnerName, banPlayerName));
-            api.sendPlayerMessage(targetPlayerUuid, config.getWasBannedFromIslandMessage(islandOwnerName));
+            api.sendMessage(targetPlayerUuid, config.getWasBannedFromIslandMessage(islandOwnerName));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof PlayerAlreadyBannedException) {

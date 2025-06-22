@@ -3,6 +3,7 @@ package org.me.newsky.island;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.Cache;
 import org.me.newsky.exceptions.*;
+import org.me.newsky.island.distributor.IslandDistributor;
 import org.me.newsky.model.Invitation;
 import org.me.newsky.redis.RedisCache;
 
@@ -16,11 +17,13 @@ public class PlayerHandler {
     private final NewSky plugin;
     private final Cache cache;
     private final RedisCache redisCache;
+    private final IslandDistributor islandDistributor;
 
-    public PlayerHandler(NewSky plugin, Cache cache, RedisCache redisCache) {
+    public PlayerHandler(NewSky plugin, Cache cache, RedisCache redisCache, IslandDistributor islandDistributor) {
         this.plugin = plugin;
         this.cache = cache;
         this.redisCache = redisCache;
+        this.islandDistributor = islandDistributor;
     }
 
     public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role) {
@@ -79,6 +82,16 @@ public class PlayerHandler {
         }, plugin.getBukkitAsyncExecutor());
     }
 
+    public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
+        return CompletableFuture.runAsync(() -> {
+            Set<UUID> players = cache.getIslandPlayers(islandUuid);
+            if (players.contains(playerUuid)) {
+                throw new CannotExpelIslandPlayerException();
+            }
+            islandDistributor.expelPlayer(islandUuid, playerUuid);
+        }, plugin.getBukkitAsyncExecutor());
+    }
+
     public CompletableFuture<Void> addPendingInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {
         return CompletableFuture.runAsync(() -> {
             if (getPendingInvite(inviteeUuid).isPresent()) {
@@ -109,5 +122,13 @@ public class PlayerHandler {
 
     public Optional<Invitation> getPendingInvite(UUID playerUuid) {
         return redisCache.getIslandInvite(playerUuid);
+    }
+
+    public UUID getIslandOwner(UUID islandUuid) {
+        return cache.getIslandOwner(islandUuid);
+    }
+
+    public Set<UUID> getIslandMembers(UUID islandUuid) {
+        return cache.getIslandMembers(islandUuid);
     }
 }

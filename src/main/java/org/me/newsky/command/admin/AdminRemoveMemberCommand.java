@@ -80,7 +80,7 @@ public class AdminRemoveMemberCommand implements SubCommand, TabComplete {
 
         api.removeMember(islandUuid, targetMemberUuid).thenRun(() -> {
             sender.sendMessage(config.getAdminRemoveMemberSuccessMessage(targetMemberName, islandOwnerName));
-            api.sendPlayerMessage(targetMemberUuid, config.getWasRemovedFromIslandMessage(islandOwnerName));
+            api.sendMessage(targetMemberUuid, config.getWasRemovedFromIslandMessage(islandOwnerName));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof CannotRemoveOwnerException) {

@@ -144,13 +144,14 @@ public class NewSky extends JavaPlugin {
 
             info("Starting main handlers for the plugin");
             IslandHandler islandHandler = new IslandHandler(this, cache, islandDistributor);
-            PlayerHandler playerHandler = new PlayerHandler(this, cache, redisCache);
+            PlayerHandler playerHandler = new PlayerHandler(this, cache, redisCache, islandDistributor);
             HomeHandler homeHandler = new HomeHandler(this, cache, islandDistributor);
             WarpHandler warpHandler = new WarpHandler(this, cache, islandDistributor);
             LevelHandler levelHandler = new LevelHandler(this, config, cache);
             BanHandler banHandler = new BanHandler(this, cache, islandDistributor);
             CoopHandler coopHandler = new CoopHandler(this, cache);
             LobbyHandler lobbyHandler = new LobbyHandler(this, config, islandDistributor);
+            MessageHandler messageHandler = new MessageHandler(this, islandDistributor);
             info("All main handlers loaded");
 
             info("Starting plugin messaging");
@@ -164,7 +165,7 @@ public class NewSky extends JavaPlugin {
             info("All schedulers loaded");
 
             info("Starting API");
-            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler);
+            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, messageHandler);
             info("API loaded");
 
             info("Starting listeners and commands");
@@ -189,7 +190,6 @@ public class NewSky extends JavaPlugin {
             islandUnloadScheduler.start();
             levelUpdateScheduler.start();
             msptUpdateScheduler.start();
-
 
         } catch (Exception e) {
             getLogger().log(Level.SEVERE, "An error occurred during plugin initialization", e);
