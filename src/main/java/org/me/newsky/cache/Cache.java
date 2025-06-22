@@ -593,6 +593,23 @@ public class Cache {
     }
 
     public Map<UUID, Integer> getTopIslandLevels(int size) {
-        return islandLevels.entrySet().stream().sorted(Map.Entry.<UUID, Integer>comparingByValue().reversed()).limit(size).collect(LinkedHashMap::new, (m, e) -> m.put(e.getKey(), e.getValue()), LinkedHashMap::putAll);
+        PriorityQueue<Map.Entry<UUID, Integer>> heap = new PriorityQueue<>(Map.Entry.comparingByValue());
+
+        for (var entry : islandLevels.entrySet()) {
+            heap.offer(entry);
+            if (heap.size() > size) {
+                heap.poll();
+            }
+        }
+
+        List<Map.Entry<UUID, Integer>> sorted = new ArrayList<>(heap);
+        sorted.sort(Map.Entry.<UUID, Integer>comparingByValue().reversed());
+
+        Map<UUID, Integer> result = new LinkedHashMap<>();
+        for (var e : sorted) {
+            result.put(e.getKey(), e.getValue());
+        }
+
+        return result;
     }
 }

@@ -118,35 +118,24 @@ public class WorldHandler {
         return CompletableFuture.runAsync(() -> {
             asp.loadWorld(world, true);
             plugin.debug("WorldHandler", "World loaded into Bukkit: " + world.getName());
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> {
-        }, plugin.getBukkitAsyncExecutor());
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
     }
 
     public CompletableFuture<Void> unloadWorldFromBukkit(String worldName) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            try {
-                World world = Bukkit.getWorld(worldName);
-                if (world != null) {
-                    removePlayersFromWorld(world);
-                    if (Bukkit.unloadWorld(world, false)) {
-                        plugin.debug("WorldHandler", "World unloaded successfully from Bukkit: " + worldName);
-                    } else {
-                        plugin.severe("Failed to unload world from Bukkit: " + worldName);
-                        future.completeExceptionally(new IllegalStateException("Failed to unload world from Bukkit: " + worldName));
-                        return;
-                    }
+        return CompletableFuture.runAsync(() -> {
+            World world = Bukkit.getWorld(worldName);
+            if (world != null) {
+                removePlayersFromWorld(world);
+                if (Bukkit.unloadWorld(world, false)) {
+                    plugin.debug("WorldHandler", "World unloaded successfully from Bukkit: " + worldName);
+                } else {
+                    plugin.severe("Failed to unload world from Bukkit: " + worldName);
+                    throw new IllegalStateException("Failed to unload world from Bukkit: " + worldName);
                 }
-                future.complete(null);
-            } catch (Exception e) {
-                plugin.severe("Failed to unload world from Bukkit: " + worldName, e);
-                future.completeExceptionally(e);
             }
-        });
-
-        return future;
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
     }
+
 
     public void unloadAllWorldsOnShutdown() {
         plugin.debug("WorldHandler", "Unloading all worlds on shutdown...");

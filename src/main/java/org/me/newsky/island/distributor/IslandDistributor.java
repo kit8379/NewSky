@@ -212,16 +212,18 @@ public class IslandDistributor {
     }
 
     private void connectToServer(UUID playerUuid, String serverName) {
-        Player player = Bukkit.getPlayer(playerUuid);
-        if (player != null) {
-            try (ByteArrayOutputStream byteArray = new ByteArrayOutputStream(); DataOutputStream out = new DataOutputStream(byteArray)) {
-                out.writeUTF("Connect");
-                out.writeUTF(serverName);
-                player.sendPluginMessage(plugin, "BungeeCord", byteArray.toByteArray());
-                plugin.debug("IslandDistributor", "Sent plugin message to player " + player.getName() + " to connect to server: " + serverName);
-            } catch (IOException e) {
-                plugin.severe("Failed to send plugin message to player " + player.getName(), e);
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            Player player = Bukkit.getPlayer(playerUuid);
+            if (player != null) {
+                try (ByteArrayOutputStream byteArray = new ByteArrayOutputStream(); DataOutputStream out = new DataOutputStream(byteArray)) {
+                    out.writeUTF("Connect");
+                    out.writeUTF(serverName);
+                    player.sendPluginMessage(plugin, "BungeeCord", byteArray.toByteArray());
+                    plugin.debug("IslandDistributor", "Sent plugin message to player " + player.getName() + " to connect to server: " + serverName);
+                } catch (IOException e) {
+                    plugin.severe("Failed to send plugin message to player " + player.getName(), e);
+                }
             }
-        }
+        });
     }
 }
