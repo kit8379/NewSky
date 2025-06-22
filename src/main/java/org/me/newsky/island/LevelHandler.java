@@ -1,13 +1,11 @@
 package org.me.newsky.island;
 
 import org.bukkit.ChunkSnapshot;
-import org.bukkit.Location;
 import org.bukkit.World;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.Cache;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.util.IslandUtils;
-import org.me.newsky.util.LocationUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,17 +27,19 @@ public class LevelHandler {
 
     public void calIslandLevel(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
-        Location center = LocationUtils.stringToLocation(islandName, config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch());
 
-        int size = config.getIslandSize();
-        int halfSize = size / 2;
+        int halfSize = config.getIslandSize() / 2;
 
-        int minX = (center.getBlockX() - halfSize) >> 4;
-        int minZ = (center.getBlockZ() - halfSize) >> 4;
-        int maxX = (center.getBlockX() + halfSize) >> 4;
-        int maxZ = (center.getBlockZ() + halfSize) >> 4;
+        int minX = (-halfSize) >> 4;
+        int minZ = (-halfSize) >> 4;
+        int maxX = (halfSize) >> 4;
+        int maxZ = (halfSize) >> 4;
 
-        World world = center.getWorld();
+        World world = plugin.getServer().getWorld(islandName);
+        if (world == null) {
+            plugin.getLogger().warning("World is not loaded for island UUID: " + islandUuid + ". Cannot calculate level.");
+            return;
+        }
 
         List<CompletableFuture<ChunkSnapshot>> snapshotFutures = new ArrayList<>();
 
@@ -67,8 +67,7 @@ public class LevelHandler {
                     for (int z = 0; z < 16; z++) {
                         for (int y = minY; y < maxY; y++) {
                             String typeName = snapshot.getBlockType(x, y, z).name();
-                            int value = config.getBlockLevel(typeName);
-                            points += value;
+                            points += config.getBlockLevel(typeName);
                         }
                     }
                 }

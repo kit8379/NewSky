@@ -78,7 +78,7 @@ public class IslandUnloadScheduler {
 
             plugin.debug("IslandUnloadScheduler", "World '" + worldName + "' inactive for: " + durationInactive + " ms.");
 
-            if (durationInactive > checkIntervalTicks * 50L) { // ticks to ms (1 tick = 50 ms)
+            if (durationInactive > checkIntervalTicks * 50L) {
                 if (!unloadQueue.contains(worldName)) {
                     unloadQueue.add(worldName);
                     plugin.debug("IslandUnloadScheduler", "Queued world for unload: " + worldName);

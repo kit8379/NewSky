@@ -55,6 +55,7 @@ public class IslandProtectionListener implements Listener {
         if (!isInsideIslandBoundary(location)) {
             return false;
         }
+
         if (player.isOp()) {
             return true;
         }
