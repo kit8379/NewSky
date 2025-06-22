@@ -2,8 +2,10 @@ package org.me.newsky.heartbeat;
 
 import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
-import org.me.newsky.redis.RedisCache;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.redis.RedisCache;
+
+import java.util.Map;
 
 public class HeartBeatHandler {
 
@@ -23,16 +25,37 @@ public class HeartBeatHandler {
     }
 
     public void start() {
-        heartbeatTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-            redisCache.updateActiveServer(serverID, config.isLobby());
+        try {
+            plugin.debug("HeartBeatHandler", "Performing startup cleanup for serverID: " + serverID);
+            redisCache.removeActiveServer(serverID);
+        } catch (Exception e) {
+            plugin.severe("Failed to cleanup previous server state on startup", e);
+        }
 
-            redisCache.getActiveServers().forEach((server, lastHeartbeat) -> {
-                long lastSeen = Long.parseLong(lastHeartbeat);
+        heartbeatTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
+            try {
+                redisCache.updateActiveServer(serverID, config.isLobby());
+
                 long now = System.currentTimeMillis();
-                if (now - lastSeen > heartbeatInterval * 1000L * 2) {
-                    redisCache.removeActiveServer(server);
-                }
-            });
+                long threshold = now - (heartbeatInterval * 1000L * 2);
+
+                Map<String, String> servers = redisCache.getActiveServers();
+                servers.forEach((server, lastHeartbeat) -> {
+                    try {
+                        long lastSeen = Long.parseLong(lastHeartbeat);
+                        if (lastSeen < threshold) {
+                            plugin.debug("HeartBeatHandler", "Detected dead server: " + server);
+                            redisCache.removeActiveServer(server);
+                        }
+                    } catch (NumberFormatException e) {
+                        plugin.severe("Invalid heartbeat timestamp for server: " + server, e);
+                        redisCache.removeActiveServer(server);
+                    }
+                });
+
+            } catch (Exception e) {
+                plugin.severe("Exception in heartbeat task", e);
+            }
         }, 0, heartbeatInterval * 20L);
     }
 
@@ -40,7 +63,10 @@ public class HeartBeatHandler {
         if (heartbeatTask != null) {
             heartbeatTask.cancel();
         }
-
-        redisCache.removeActiveServer(serverID);
+        try {
+            redisCache.removeActiveServer(serverID);
+        } catch (Exception e) {
+            plugin.severe("Failed to cleanup server state on shutdown", e);
+        }
     }
 }

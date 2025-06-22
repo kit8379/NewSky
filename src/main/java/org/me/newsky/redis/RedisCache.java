@@ -3,6 +3,7 @@ package org.me.newsky.redis;
 import org.me.newsky.NewSky;
 import org.me.newsky.model.Invitation;
 import redis.clients.jedis.Jedis;
+import redis.clients.jedis.Pipeline;
 
 import java.util.Map;
 import java.util.Optional;
@@ -23,43 +24,59 @@ public class RedisCache {
     public void updateActiveServer(String serverName, boolean lobby) {
         try (Jedis jedis = redisHandler.getJedis()) {
             String timestamp = String.valueOf(System.currentTimeMillis());
-            jedis.hset("server_heartbeats", serverName, timestamp);
+            Pipeline p = jedis.pipelined();
+            p.hset("server_heartbeats", serverName, timestamp);
             if (!lobby) {
-                jedis.hset("active_game_servers", serverName, timestamp);
+                p.hset("active_game_servers", serverName, timestamp);
             }
+            p.sync();
+        } catch (Exception e) {
+            plugin.severe("Failed to update active server for: " + serverName, e);
         }
     }
 
     public void removeActiveServer(String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.hdel("server_heartbeats", serverName);
-            jedis.hdel("active_game_servers", serverName);
+            Pipeline p = jedis.pipelined();
+            p.hdel("server_heartbeats", serverName);
+            p.hdel("active_game_servers", serverName);
 
             Map<String, String> islandServerMap = jedis.hgetAll("island_server");
             for (Map.Entry<String, String> entry : islandServerMap.entrySet()) {
                 if (entry.getValue().equals(serverName)) {
-                    jedis.hdel("island_server", entry.getKey());
+                    p.hdel("island_server", entry.getKey());
                 }
             }
 
             Map<String, String> onlinePlayers = jedis.hgetAll("online_players");
             for (Map.Entry<String, String> entry : onlinePlayers.entrySet()) {
                 if (entry.getValue().equals(serverName)) {
-                    jedis.hdel("online_players", entry.getKey());
+                    p.hdel("online_players", entry.getKey());
                 }
             }
+
+            p.sync();
+            plugin.debug("RedisCache", "Cleaned up all data for server: " + serverName);
+        } catch (Exception e) {
+            plugin.severe("Failed to remove active server: " + serverName, e);
         }
     }
 
     public Map<String, String> getActiveServers() {
         try (Jedis jedis = redisHandler.getJedis()) {
             return jedis.hgetAll("server_heartbeats");
+        } catch (Exception e) {
+            plugin.severe("Failed to get active servers", e);
+            return Map.of();
         }
     }
 
     public Map<String, String> getActiveGameServers() {
         try (Jedis jedis = redisHandler.getJedis()) {
             return jedis.hgetAll("active_game_servers");
+        } catch (Exception e) {
+            plugin.severe("Failed to get active game servers", e);
+            return Map.of();
         }
     }
 
@@ -67,12 +84,16 @@ public class RedisCache {
     public void updateIslandLoadedServer(UUID islandUuid, String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset("island_server", islandUuid.toString(), serverName);
+        } catch (Exception e) {
+            plugin.severe("Failed to update island loaded server for: " + islandUuid, e);
         }
     }
 
     public void removeIslandLoadedServer(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hdel("island_server", islandUuid.toString());
+        } catch (Exception e) {
+            plugin.severe("Failed to remove island loaded server for: " + islandUuid, e);
         }
     }
 
@@ -80,6 +101,9 @@ public class RedisCache {
         try (Jedis jedis = redisHandler.getJedis()) {
             String server = jedis.hget("island_server", islandUuid.toString());
             return Optional.ofNullable(server);
+        } catch (Exception e) {
+            plugin.severe("Failed to get island loaded server for: " + islandUuid, e);
+            return Optional.empty();
         }
     }
 
@@ -87,18 +111,25 @@ public class RedisCache {
     public void addOnlinePlayer(String playerName, String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset("online_players", playerName, serverName);
+        } catch (Exception e) {
+            plugin.severe("Failed to add online player: " + playerName, e);
         }
     }
 
     public void removeOnlinePlayer(String playerName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hdel("online_players", playerName);
+        } catch (Exception e) {
+            plugin.severe("Failed to remove online player: " + playerName, e);
         }
     }
 
     public Set<String> getOnlinePlayers() {
         try (Jedis jedis = redisHandler.getJedis()) {
             return jedis.hkeys("online_players");
+        } catch (Exception e) {
+            plugin.severe("Failed to get online players", e);
+            return Set.of();
         }
     }
 
@@ -133,7 +164,7 @@ public class RedisCache {
             }
             return value;
         } catch (Exception e) {
-            plugin.getLogger().severe("Failed to increment round-robin counter");
+            plugin.severe("Failed to increment round-robin counter", e);
             return -1;
         }
     }
@@ -143,12 +174,16 @@ public class RedisCache {
         try (Jedis jedis = redisHandler.getJedis()) {
             String value = islandUuid + ":" + inviterUuid;
             jedis.setex("island:invite:" + inviteeUuid, ttlSeconds, value);
+        } catch (Exception e) {
+            plugin.severe("Failed to add island invite for: " + inviteeUuid, e);
         }
     }
 
     public void removeIslandInvite(UUID inviteeUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.del("island:invite:" + inviteeUuid);
+        } catch (Exception e) {
+            plugin.severe("Failed to remove island invite for: " + inviteeUuid, e);
         }
     }
 

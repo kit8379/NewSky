@@ -2,6 +2,8 @@ package org.me.newsky.routing;
 
 import org.me.newsky.redis.RedisCache;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class RoundRobinServerSelector implements ServerSelector {
@@ -22,7 +24,10 @@ public class RoundRobinServerSelector implements ServerSelector {
             return null;
         }
 
-        int serverIndex = (int) (index % activeServers.size());
-        return activeServers.keySet().toArray(new String[0])[serverIndex];
+        List<String> servers = new ArrayList<>(activeServers.keySet());
+        servers.sort(String::compareTo);
+
+        int serverIndex = (int) (index % servers.size());
+        return servers.get(serverIndex);
     }
 }

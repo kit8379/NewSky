@@ -16,7 +16,6 @@ public class ConfigHandler {
     private FileConfiguration messages;
     private FileConfiguration commands;
     private FileConfiguration levels;
-    private FileConfiguration limits;
 
     public ConfigHandler(NewSky plugin) {
         this.plugin = plugin;
@@ -29,7 +28,6 @@ public class ConfigHandler {
         messages = loadConfig("messages.yml");
         commands = loadConfig("commands.yml");
         levels = loadConfig("levels.yml");
-        limits = loadConfig("limits.yml");
     }
 
     private FileConfiguration loadConfig(String fileName) {
@@ -45,7 +43,6 @@ public class ConfigHandler {
         updateConfig(messages, "messages.yml");
         updateConfig(commands, "commands.yml");
         updateConfig(levels, "levels.yml");
-        updateConfig(limits, "limits.yml");
     }
 
     private void updateConfig(FileConfiguration config, String fileName) {
