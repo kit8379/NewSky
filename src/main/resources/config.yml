@@ -15,7 +15,7 @@ MySQL:
   # Usually no need to change these values.
   max-pool-size: 10
   connection-timeout: 30000
-  cache-prep-statements: "true"
+  cache-prep-statements: true
   prep-stmt-cache-size: 250
   prep-stmt-cache-sql-limit: 2048
 

@@ -27,9 +27,9 @@ public class DatabaseHandler {
         String properties = config.getMySQLProperties();
         int maxPoolSize = config.getMySQLMaxPoolSize();
         int connectionTimeout = config.getMySQLConnectionTimeout();
-        String cachePrepStmts = config.getMySQLCachePrepStmts();
-        String prepStmtCacheSize = config.getMySQLPrepStmtCacheSize();
-        String prepStmtCacheSqlLimit = config.getMySQLPrepStmtCacheSqlLimit();
+        boolean cachePrepStmts = config.getMySQLCachePrepStmts();
+        int prepStmtCacheSize = config.getMySQLPrepStmtCacheSize();
+        int prepStmtCacheSqlLimit = config.getMySQLPrepStmtCacheSqlLimit();
 
         HikariConfig hikariConfig = new HikariConfig();
         hikariConfig.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + database + properties);

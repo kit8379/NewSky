@@ -79,21 +79,16 @@ public class IslandOperation {
     public CompletableFuture<Void> teleport(UUID playerUuid, String teleportWorld, String teleportLocation) {
         Location location = LocationUtils.stringToLocation(teleportWorld, teleportLocation);
 
-        CompletableFuture<Void> future = new CompletableFuture<>();
-
-        Bukkit.getScheduler().runTask(plugin, () -> {
+        return CompletableFuture.runAsync(() -> {
             Player player = Bukkit.getPlayer(playerUuid);
             if (player != null) {
                 player.teleportAsync(location);
-                future.complete(null);
             } else {
                 teleportHandler.addPendingTeleport(playerUuid, location);
-                future.complete(null);
             }
-        });
-
-        return future;
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
     }
+
 
     public void lockIsland(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
