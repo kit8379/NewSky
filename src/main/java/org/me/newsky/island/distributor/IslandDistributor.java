@@ -1,8 +1,6 @@
 package org.me.newsky.island.distributor;
 
 import net.kyori.adventure.text.Component;
-import org.bukkit.Bukkit;
-import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.broker.IslandBroker;
 import org.me.newsky.exceptions.IslandAlreadyLoadedException;
@@ -12,10 +10,8 @@ import org.me.newsky.island.operation.IslandOperation;
 import org.me.newsky.redis.RedisCache;
 import org.me.newsky.routing.ServerSelector;
 import org.me.newsky.util.ComponentUtils;
+import org.me.newsky.util.ServerUtil;
 
-import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -154,8 +150,8 @@ public class IslandDistributor {
                 plugin.debug("IslandDistributor", "Sending load request to remote server: " + targetServer);
                 return islandBroker.sendRequest(targetServer, "load", islandUuid.toString()).thenCompose(v -> {
                     plugin.debug("IslandDistributor", "Sending teleport request to remote server: " + targetServer);
-                    return islandBroker.sendRequest(targetServer, "teleport", playerUuid.toString(), teleportWorld, teleportLocation).thenRun(() -> connectToServer(playerUuid, targetServer));
-                });
+                    return islandBroker.sendRequest(targetServer, "teleport", playerUuid.toString(), teleportWorld, teleportLocation);
+                }).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, targetServer));
             }
         } else {
             if (islandServer.equals(serverID)) {
@@ -163,7 +159,7 @@ public class IslandDistributor {
                 return islandOperation.teleport(playerUuid, teleportWorld, teleportLocation);
             } else {
                 plugin.debug("IslandDistributor", "Sending teleport request to remote server: " + islandServer);
-                return islandBroker.sendRequest(islandServer, "teleport", playerUuid.toString(), teleportWorld, teleportLocation).thenRun(() -> connectToServer(playerUuid, islandServer));
+                return islandBroker.sendRequest(islandServer, "teleport", playerUuid.toString(), teleportWorld, teleportLocation).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, islandServer));
             }
         }
     }
@@ -183,10 +179,9 @@ public class IslandDistributor {
             return islandOperation.teleport(playerUuid, lobbyWorld, lobbyLocation);
         } else {
             plugin.debug("IslandDistributor", "Sending lobby teleport request to remote server: " + targetLobbyServer);
-            return islandBroker.sendRequest(targetLobbyServer, "teleport", playerUuid.toString(), lobbyWorld, lobbyLocation).thenRun(() -> connectToServer(playerUuid, targetLobbyServer));
+            return islandBroker.sendRequest(targetLobbyServer, "teleport", playerUuid.toString(), lobbyWorld, lobbyLocation).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, targetLobbyServer));
         }
     }
-
 
     public void lockIsland(UUID islandUuid) {
         plugin.debug("IslandDistributor", "Broadcasting lock request for island: " + islandUuid);
@@ -209,21 +204,5 @@ public class IslandDistributor {
 
     private String getServerByIsland(UUID islandUuid) {
         return redisCache.getIslandLoadedServer(islandUuid).orElse(null);
-    }
-
-    private void connectToServer(UUID playerUuid, String serverName) {
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            Player player = Bukkit.getPlayer(playerUuid);
-            if (player != null) {
-                try (ByteArrayOutputStream byteArray = new ByteArrayOutputStream(); DataOutputStream out = new DataOutputStream(byteArray)) {
-                    out.writeUTF("Connect");
-                    out.writeUTF(serverName);
-                    player.sendPluginMessage(plugin, "BungeeCord", byteArray.toByteArray());
-                    plugin.debug("IslandDistributor", "Sent plugin message to player " + player.getName() + " to connect to server: " + serverName);
-                } catch (IOException e) {
-                    plugin.severe("Failed to send plugin message to player " + player.getName(), e);
-                }
-            }
-        });
     }
 }

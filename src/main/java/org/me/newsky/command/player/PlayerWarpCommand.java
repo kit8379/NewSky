@@ -64,7 +64,7 @@ public class PlayerWarpCommand implements SubCommand, TabComplete {
         }
 
         if (args.length < 2) {
-            return false; // show usage
+            return false;
         }
 
         String warpPlayerName = args[1];
@@ -74,7 +74,7 @@ public class PlayerWarpCommand implements SubCommand, TabComplete {
         OfflinePlayer warpPlayer = Bukkit.getOfflinePlayer(warpPlayerName);
         UUID warpPlayerUuid = warpPlayer.getUniqueId();
 
-        api.warp(warpPlayerUuid, warpName, playerUuid).thenRun(() -> player.sendMessage(config.getWarpSuccessMessage(warpName))).exceptionally(ex -> {
+        api.warp(warpPlayerUuid, warpName, playerUuid).thenRun(() -> api.sendMessage(playerUuid, config.getWarpSuccessMessage(warpName))).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getNoIslandMessage(warpPlayerName));
