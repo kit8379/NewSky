@@ -14,7 +14,6 @@
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-        <configurate.version>4.2.0</configurate.version>
         <mysql.version>9.2.0</mysql.version>
         <hikari.version>6.3.0</hikari.version>
         <jedis.version>5.2.0</jedis.version>
@@ -98,12 +97,6 @@
             <groupId>org.jetbrains</groupId>
             <artifactId>annotations</artifactId>
             <version>24.1.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.spongepowered</groupId>
-            <artifactId>configurate-yaml</artifactId>
-            <version>4.2.0</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>io.papermc.paper</groupId>
