@@ -1361,16 +1361,8 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.node("messages", "only-player-can-run-command").getString());
     }
 
-    public Component getUnknownSubCommandMessage() {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "unknown-sub-command").getString()));
-    }
-
     public Component getNoPermissionCommandMessage() {
         return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "no-permission-command").getString()));
-    }
-
-    public Component getCommandUsageMessage(String command, String syntax) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "usage-command").getString()).replace("{command}", command).replace("{syntax}", syntax));
     }
 
     public Component getNoActiveServerMessage() {
@@ -1474,6 +1466,14 @@ public class ConfigHandler {
     }
 
     // Admin Command Messages
+    public Component getAdminCommandUsageMessage(String command, String syntax) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-usage-command").getString()).replace("{command}", command).replace("{syntax}", syntax));
+    }
+
+    public Component getAdminUnknownSubCommandMessage() {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-unknown-sub-command").getString()));
+    }
+
     public Component getAdminNoIslandMessage(String player) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-no-island").getString()).replace("{player}", player));
     }
@@ -1575,6 +1575,14 @@ public class ConfigHandler {
     }
 
     // Player Command Messages
+    public Component getPlayerCommandUsageMessage(String command, String syntax) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-usage-command").getString()).replace("{command}", command).replace("{syntax}", syntax));
+    }
+
+    public Component getPlayerUnknownSubCommandMessage() {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-unknown-sub-command").getString()));
+    }
+
     public Component getPlayerNoIslandMessage() {
         return ColorUtils.colorize(messages.node("messages", "player-no-island").getString());
     }

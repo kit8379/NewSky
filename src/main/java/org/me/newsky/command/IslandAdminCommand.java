@@ -73,19 +73,19 @@ public class IslandAdminCommand implements CommandExecutor, TabExecutor {
         String subName = args[0].toLowerCase();
         SubCommand target = subCommandMap.get(subName);
         if (target == null) {
-            sender.sendMessage("§c子指令不存在，輸入 /isadmin 或 /isadmin help 以查看所有可用指令。");
+            sender.sendMessage(config.getAdminUnknownSubCommandMessage());
             return true;
         }
 
         String perm = target.getPermission();
         if (perm != null && !perm.isEmpty() && !sender.hasPermission(perm)) {
-            sender.sendMessage("§c你沒有權限使用此指令。");
+            sender.sendMessage(config.getNoPermissionCommandMessage());
             return true;
         }
 
         boolean success = target.execute(sender, args);
         if (!success) {
-            sender.sendMessage("§c使用方式：/isadmin " + target.getName() + " " + target.getSyntax());
+            sender.sendMessage(config.getAdminCommandUsageMessage(target.getName(), target.getSyntax()));
         }
         return true;
     }

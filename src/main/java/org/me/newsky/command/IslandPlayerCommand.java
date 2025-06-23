@@ -115,7 +115,7 @@ public class IslandPlayerCommand implements CommandExecutor, TabExecutor {
         String subName = args[0].toLowerCase();
         SubCommand target = subCommandMap.get(subName);
         if (target == null) {
-            sender.sendMessage(config.getUnknownSubCommandMessage());
+            sender.sendMessage(config.getPlayerUnknownSubCommandMessage());
             return true;
         }
 
@@ -127,7 +127,7 @@ public class IslandPlayerCommand implements CommandExecutor, TabExecutor {
 
         boolean success = target.execute(sender, args);
         if (!success) {
-            sender.sendMessage(config.getCommandUsageMessage(target.getName(), target.getSyntax()));
+            sender.sendMessage(config.getPlayerCommandUsageMessage(target.getName(), target.getSyntax()));
         }
         return true;
     }

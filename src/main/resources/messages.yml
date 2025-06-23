@@ -2,9 +2,7 @@ messages:
   # General Messages
   plugin-reloaded: "<green>Plugin reloaded successfully!"
   only-player-can-run-command: "<red>Only players can run this command!"
-  unknown-sub-command: "<red>Unknown command. Type <aqua>/is help <red>to view available commands."
   no-permission-command: "<red>You don't have permission to use this command."
-  usage-command: "<red>Correct usage: <aqua>/is {command} {syntax}"
   no-active-server: "<red>No active server found!"
   island-not-loaded: "<red>The island is not loaded!"
   island-already-loaded: "<red>The island is already loaded!"
@@ -36,6 +34,8 @@ messages:
   unknown-exception: "<red>An unknown error occurred while processing your request. Please try again later."
 
   # Player Command Messages
+  player-usage-command: "<red>Correct usage: <aqua>/is {command} {syntax}"
+  player-unknown-sub-command: "<red>Unknown command. Type <aqua>/is help <red>to view available commands."
   player-no-island: "<red>You don't have an island yet!"
   player-already-has-island: "<red>You already own an island!"
   player-must-in-island-set-home: "<red>You must be on your island to set a home!"
@@ -84,6 +84,8 @@ messages:
   player-lobby-success: "<green>You have been teleported to the lobby server!"
 
   # Admin Command Messages
+  admin-usage-command: "<red>Correct usage: <aqua>/isadmin {command} {syntax}"
+  admin-unknown-sub-command: "<red>Unknown command. Type <aqua>/isadmin help <red>to view available commands."
   admin-no-island: "<red>Player <aqua>{player} <red>does not have an island!"
   admin-add-member-success: "<green>Successfully added <aqua>{target} <green>to the island of <aqua>{owner}<green>!"
   admin-remove-member-success: "<green>Successfully removed <aqua>{target} <green>from the island of <aqua>{owner}<green>!"
