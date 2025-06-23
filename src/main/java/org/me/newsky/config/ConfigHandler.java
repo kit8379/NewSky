@@ -8,6 +8,9 @@ import org.me.newsky.util.ColorUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class ConfigHandler {
@@ -19,39 +22,27 @@ public class ConfigHandler {
 
     public ConfigHandler(NewSky plugin) {
         this.plugin = plugin;
-        loadConfigs();
-        updateConfigs();
+        loadAndUpdate("config.yml");
+        loadAndUpdate("messages.yml");
+        loadAndUpdate("commands.yml");
+        loadAndUpdate("levels.yml");
     }
 
-    private void loadConfigs() {
-        config = loadConfig("config.yml");
-        messages = loadConfig("messages.yml");
-        commands = loadConfig("commands.yml");
-        levels = loadConfig("levels.yml");
-    }
-
-    private FileConfiguration loadConfig(String fileName) {
+    private void loadAndUpdate(String fileName) {
         File file = new File(plugin.getDataFolder(), fileName);
         if (!file.exists()) {
             plugin.saveResource(fileName, false);
         }
-        return YamlConfiguration.loadConfiguration(file);
-    }
 
-    private void updateConfigs() {
-        rebuildConfig(config, "config.yml");
-        rebuildConfig(messages, "messages.yml");
-        rebuildConfig(commands, "commands.yml");
-        rebuildConfig(levels, "levels.yml");
-    }
-
-    private void rebuildConfig(FileConfiguration userConfig, String fileName) {
-        File defaultFile = new File(plugin.getDataFolder(), fileName);
-        FileConfiguration defaultConfig = YamlConfiguration.loadConfiguration(defaultFile);
+        FileConfiguration userConfig = YamlConfiguration.loadConfiguration(file);
+        FileConfiguration defaultConfig = loadDefaultConfig(fileName);
+        if (defaultConfig == null) {
+            plugin.severe("Missing default config: " + fileName);
+            return;
+        }
 
         YamlConfiguration rebuiltConfig = new YamlConfiguration();
-        copyDefaultsRecursive(defaultConfig, userConfig, rebuiltConfig, "");
-
+        copyDefaults(defaultConfig, userConfig, rebuiltConfig, "");
         saveConfig(rebuiltConfig, fileName);
 
         switch (fileName) {
@@ -62,24 +53,33 @@ public class ConfigHandler {
         }
     }
 
-    private void copyDefaultsRecursive(FileConfiguration defaultConfig, FileConfiguration userConfig, YamlConfiguration rebuiltConfig, String path) {
+    private FileConfiguration loadDefaultConfig(String fileName) {
+        try (InputStream in = plugin.getResource(fileName)) {
+            if (in == null) {
+                return null;
+            }
+            return YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            plugin.severe("Error loading default config: " + fileName, e);
+            return null;
+        }
+    }
+
+    private void copyDefaults(FileConfiguration defaultConfig, FileConfiguration userConfig, YamlConfiguration rebuiltConfig, String path) {
         Set<String> keys = Objects.requireNonNull(defaultConfig.getConfigurationSection(path)).getKeys(false);
         for (String key : keys) {
             String fullPath = path.isEmpty() ? key : path + "." + key;
             if (defaultConfig.isConfigurationSection(fullPath)) {
                 rebuiltConfig.createSection(fullPath);
-                copyDefaultsRecursive(defaultConfig, userConfig, rebuiltConfig, fullPath);
+                copyDefaults(defaultConfig, userConfig, rebuiltConfig, fullPath);
             } else {
-                if (userConfig.contains(fullPath)) {
-                    rebuiltConfig.set(fullPath, userConfig.get(fullPath));
-                } else {
-                    rebuiltConfig.set(fullPath, defaultConfig.get(fullPath));
-                }
+                Object value = userConfig.contains(fullPath) ? userConfig.get(fullPath) : defaultConfig.get(fullPath);
+                rebuiltConfig.set(fullPath, value);
             }
         }
     }
 
-    public void saveConfig(FileConfiguration config, String fileName) {
+    private void saveConfig(FileConfiguration config, String fileName) {
         try {
             config.save(new File(plugin.getDataFolder(), fileName));
         } catch (IOException e) {
