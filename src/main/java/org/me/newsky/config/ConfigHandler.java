@@ -1,95 +1,89 @@
 package org.me.newsky.config;
 
 import net.kyori.adventure.text.Component;
+import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.me.newsky.NewSky;
 import org.me.newsky.util.ColorUtils;
-import org.spongepowered.configurate.CommentedConfigurationNode;
-import org.spongepowered.configurate.ConfigurationNode;
-import org.spongepowered.configurate.loader.ConfigurationLoader;
-import org.spongepowered.configurate.serialize.SerializationException;
-import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
 
 public class ConfigHandler {
-
     private final NewSky plugin;
-
-    private CommentedConfigurationNode config;
-    private CommentedConfigurationNode messages;
-    private CommentedConfigurationNode commands;
-    private CommentedConfigurationNode levels;
+    private FileConfiguration config;
+    private FileConfiguration messages;
+    private FileConfiguration commands;
+    private FileConfiguration levels;
 
     public ConfigHandler(NewSky plugin) {
         this.plugin = plugin;
         loadConfigs();
+        updateConfigs();
     }
 
     private void loadConfigs() {
-        this.config = loadAndMerge("config.yml");
-        this.messages = loadAndMerge("messages.yml");
-        this.commands = loadAndMerge("commands.yml");
-        this.levels = loadAndMerge("levels.yml");
+        config = loadConfig("config.yml");
+        messages = loadConfig("messages.yml");
+        commands = loadConfig("commands.yml");
+        levels = loadConfig("levels.yml");
     }
 
-    private CommentedConfigurationNode loadAndMerge(String fileName) {
-        try {
-            File file = new File(plugin.getDataFolder(), fileName);
-            if (!file.exists()) {
-                plugin.saveResource(fileName, false);
-            }
+    private FileConfiguration loadConfig(String fileName) {
+        File file = new File(plugin.getDataFolder(), fileName);
+        if (!file.exists()) {
+            plugin.saveResource(fileName, false);
+        }
+        return YamlConfiguration.loadConfiguration(file);
+    }
 
-            // Loader for the user's config file
-            ConfigurationLoader<@org.jetbrains.annotations.NotNull CommentedConfigurationNode> userLoader = YamlConfigurationLoader.builder().path(file.toPath()).build();
+    private void updateConfigs() {
+        rebuildConfig(config, "config.yml");
+        rebuildConfig(messages, "messages.yml");
+        rebuildConfig(commands, "commands.yml");
+        rebuildConfig(levels, "levels.yml");
+    }
 
-            // Load user node
-            CommentedConfigurationNode userNode = userLoader.load();
+    private void rebuildConfig(FileConfiguration userConfig, String fileName) {
+        File defaultFile = new File(plugin.getDataFolder(), fileName);
+        FileConfiguration defaultConfig = YamlConfiguration.loadConfiguration(defaultFile);
 
-            // Load default node from plugin jar resource
-            InputStream in = plugin.getResource(fileName);
-            if (in == null) {
-                plugin.severe("Default config missing in jar: " + fileName);
-                return userNode;
-            }
+        YamlConfiguration rebuiltConfig = new YamlConfiguration();
+        copyDefaultsRecursive(defaultConfig, userConfig, rebuiltConfig, "");
 
-            ConfigurationLoader<@org.jetbrains.annotations.NotNull CommentedConfigurationNode> defaultLoader = YamlConfigurationLoader.builder().source(() -> new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))).build();
+        saveConfig(rebuiltConfig, fileName);
 
-            CommentedConfigurationNode defaultNode = defaultLoader.load();
-
-            // Overlay user values onto default node (preserves default structure + comments + order)
-            mergeNodes(defaultNode, userNode);
-
-            // Save merged config
-            userLoader.save(defaultNode);
-
-            return defaultNode;
-
-        } catch (IOException e) {
-            plugin.severe("Failed to load or save config: " + fileName, e);
-            return null;
+        switch (fileName) {
+            case "config.yml" -> this.config = rebuiltConfig;
+            case "messages.yml" -> this.messages = rebuiltConfig;
+            case "commands.yml" -> this.commands = rebuiltConfig;
+            case "levels.yml" -> this.levels = rebuiltConfig;
         }
     }
 
-    private void mergeNodes(CommentedConfigurationNode target, CommentedConfigurationNode source) {
-        for (Map.Entry<Object, ? extends ConfigurationNode> entry : source.childrenMap().entrySet()) {
-            Object key = entry.getKey();
-            ConfigurationNode sourceChild = entry.getValue();
-            CommentedConfigurationNode targetChild = target.node(key);
-
-            if (sourceChild.isMap()) {
-                mergeNodes(targetChild, (CommentedConfigurationNode) sourceChild);
+    private void copyDefaultsRecursive(FileConfiguration defaultConfig, FileConfiguration userConfig, YamlConfiguration rebuiltConfig, String path) {
+        Set<String> keys = Objects.requireNonNull(defaultConfig.getConfigurationSection(path)).getKeys(false);
+        for (String key : keys) {
+            String fullPath = path.isEmpty() ? key : path + "." + key;
+            if (defaultConfig.isConfigurationSection(fullPath)) {
+                rebuiltConfig.createSection(fullPath);
+                copyDefaultsRecursive(defaultConfig, userConfig, rebuiltConfig, fullPath);
             } else {
-                try {
-                    targetChild.set(sourceChild.raw());
-                } catch (SerializationException e) {
-                    plugin.severe("Failed to set config value for key: " + key, e);
+                if (userConfig.contains(fullPath)) {
+                    rebuiltConfig.set(fullPath, userConfig.get(fullPath));
+                } else {
+                    rebuiltConfig.set(fullPath, defaultConfig.get(fullPath));
                 }
             }
+        }
+    }
+
+    public void saveConfig(FileConfiguration config, String fileName) {
+        try {
+            config.save(new File(plugin.getDataFolder(), fileName));
+        } catch (IOException e) {
+            plugin.severe("Could not save " + fileName, e);
         }
     }
 
@@ -98,181 +92,171 @@ public class ConfigHandler {
     // ================================================================================================================
 
     public String getMySQLHost() {
-        return config.node("MySQL", "host").getString();
+        return config.getString("MySQL.host");
     }
 
     public int getMySQLPort() {
-        return config.node("MySQL", "port").getInt();
+        return config.getInt("MySQL.port");
     }
 
     public String getMySQLDB() {
-        return config.node("MySQL", "database").getString();
+        return config.getString("MySQL.database");
     }
 
     public String getMySQLUsername() {
-        return config.node("MySQL", "username").getString();
+        return config.getString("MySQL.username");
     }
 
     public String getMySQLPassword() {
-        return config.node("MySQL", "password").getString();
+        return config.getString("MySQL.password");
     }
 
     public String getMySQLProperties() {
-        return config.node("MySQL", "properties").getString();
+        return config.getString("MySQL.properties");
     }
 
     public int getMySQLMaxPoolSize() {
-        return config.node("MySQL", "max-pool-size").getInt();
+        return config.getInt("MySQL.max-pool-size");
     }
 
     public int getMySQLConnectionTimeout() {
-        return config.node("MySQL", "connection-timeout").getInt();
+        return config.getInt("MySQL.connection-timeout");
     }
 
     public boolean getMySQLCachePrepStmts() {
-        return config.node("MySQL", "cache-prep-statements").getBoolean();
+        return config.getBoolean("MySQL.cache-prep-statements");
     }
 
     public int getMySQLPrepStmtCacheSize() {
-        return config.node("MySQL", "prep-stmt-cache-size").getInt();
+        return config.getInt("MySQL.prep-stmt-cache-size");
     }
 
     public int getMySQLPrepStmtCacheSqlLimit() {
-        return config.node("MySQL", "prep-stmt-cache-sql-limit").getInt();
+        return config.getInt("MySQL.prep-stmt-cache-sql-limit");
     }
 
     public String getRedisHost() {
-        return config.node("redis", "host").getString();
+        return config.getString("redis.host");
     }
 
     public int getRedisPort() {
-        return config.node("redis", "port").getInt();
+        return config.getInt("redis.port");
     }
 
     public String getRedisPassword() {
-        return config.node("redis", "password").getString();
+        return config.getString("redis.password");
     }
 
     public int getRedisDatabase() {
-        return config.node("redis", "database").getInt();
+        return config.getInt("redis.database");
     }
 
     public String getRedisCacheChannel() {
-        return config.node("redis", "channel", "cache").getString();
+        return config.getString("redis.channel.cache");
     }
 
     public String getRedisIslandChannel() {
-        return config.node("redis", "channel", "island").getString();
+        return config.getString("redis.channel.island");
     }
 
     public boolean isDebug() {
-        return config.node("debug").getBoolean();
+        return config.getBoolean("debug");
     }
 
     public String getServerName() {
-        return config.node("server", "name").getString();
+        return config.getString("server.name");
     }
 
     public boolean isLobby() {
-        return config.node("server", "lobby").getBoolean();
+        return config.getBoolean("server.lobby");
     }
 
     public int getHeartbeatInterval() {
-        return config.node("server", "heartbeat-interval").getInt();
+        return config.getInt("server.heartbeat-interval");
     }
 
     public String getServerSelector() {
-        return config.node("server", "selector").getString();
+        return config.getString("server.selector");
     }
 
     public int getMsptUpdateInterval() {
-        return config.node("server", "mspt-update-interval").getInt();
+        return config.getInt("server.mspt-update-interval");
     }
 
     public List<String> getLobbyServerNames() {
-        try {
-            return config.node("lobby", "server-names").getList(String.class);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load lobby server-names list", e);
-            return java.util.Collections.emptyList();
-        }
+        return config.getStringList("lobby.server-names");
     }
 
     public String getLobbyWorldName() {
-        return config.node("lobby", "world-name").getString();
+        return config.getString("lobby.world-name");
     }
 
     public double getLobbyX() {
-        return config.node("lobby", "location", "x").getDouble();
+        return config.getDouble("lobby.location.x");
     }
 
     public double getLobbyY() {
-        return config.node("lobby", "location", "y").getDouble();
+        return config.getDouble("lobby.location.y");
     }
 
     public double getLobbyZ() {
-        return config.node("lobby", "location", "z").getDouble();
+        return config.getDouble("lobby.location.z");
     }
 
     public float getLobbyYaw() {
-        return (float) config.node("lobby", "location", "yaw").getDouble();
+        return (float) config.getDouble("lobby.location.yaw");
     }
 
     public float getLobbyPitch() {
-        return (float) config.node("lobby", "location", "pitch").getDouble();
+        return (float) config.getDouble("lobby.location.pitch");
     }
 
     public String getTemplateWorldName() {
-        return config.node("island", "template").getString();
+        return config.getString("island.template");
     }
 
     public int getIslandSize() {
-        return config.node("island", "size").getInt();
+        return config.getInt("island.size");
     }
 
     public int getIslandSpawnX() {
-        return config.node("island", "spawn", "x").getInt();
+        return config.getInt("island.spawn.x");
     }
 
     public int getIslandSpawnY() {
-        return config.node("island", "spawn", "y").getInt();
+        return config.getInt("island.spawn.y");
     }
 
     public int getIslandSpawnZ() {
-        return config.node("island", "spawn", "z").getInt();
+        return config.getInt("island.spawn.z");
     }
 
     public float getIslandSpawnYaw() {
-        return (float) config.node("island", "spawn", "yaw").getDouble();
+        return (float) config.getDouble("island.spawn.yaw");
     }
 
     public float getIslandSpawnPitch() {
-        return (float) config.node("island", "spawn", "pitch").getDouble();
+        return (float) config.getDouble("island.spawn.pitch");
     }
 
     public int getIslandUnloadInterval() {
-        return config.node("island", "island-unload-interval").getInt();
+        return config.getInt("island.island-unload-interval");
     }
 
     public int getIslandLevelUpdateInterval() {
-        return config.node("island", "level-update-interval").getInt();
+        return config.getInt("island.level-update-interval");
     }
 
     public Map<String, Object> getIslandGameRules() {
-        try {
-            return config.node("island", "gamerules").childrenMap().entrySet().stream().map(e -> Map.entry(String.valueOf(e.getKey()), Objects.requireNonNull(e.getValue().raw()))).collect(java.util.stream.Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        } catch (Exception e) {
-            plugin.severe("Failed to load island gamerules", e);
-            return java.util.Collections.emptyMap();
-        }
+        return Objects.requireNonNull(plugin.getConfig().getConfigurationSection("island.gamerules")).getValues(false);
     }
 
     public String getBaseCommandMode() {
-        return config.node("command", "base-command-mode").getString();
+        return config.getString("command.base-command-mode");
     }
 
     public int getBlockLevel(String material) {
-        return levels.node("blocks", material).getInt(0);
+        return levels.getInt("blocks." + material, 0);
     }
 
     // ================================================================================================================
@@ -280,1072 +264,811 @@ public class ConfigHandler {
     // ================================================================================================================
 
     public List<String> getPlayerCommandOrder() {
-        try {
-            return commands.node("commands", "player").childrenMap().keySet().stream().map(Object::toString).toList();
-        } catch (Exception e) {
-            plugin.severe("Failed to load player command order", e);
-            return java.util.Collections.emptyList();
-        }
+        return Objects.requireNonNull(commands.getConfigurationSection("commands.player")).getKeys(false).stream().toList();
     }
 
     public String[] getPlayerInviteAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "player", "invite", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player invite aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.invite.aliases").toArray(new String[0]);
     }
 
     public String getPlayerInvitePermission() {
-        return commands.node("commands", "player", "invite", "permission").getString();
+        return commands.getString("commands.player.invite.permission");
     }
 
     public String getPlayerInviteSyntax() {
-        return commands.node("commands", "player", "invite", "syntax").getString();
+        return commands.getString("commands.player.invite.syntax");
     }
 
     public String getPlayerInviteDescription() {
-        return commands.node("commands", "player", "invite", "description").getString();
+        return commands.getString("commands.player.invite.description");
     }
 
     public String[] getPlayerAcceptAliases() {
-        try {
-            return Objects.requireNonNull(Objects.requireNonNull(commands.node("commands", "player", "accept", "aliases").getList(String.class))).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player accept aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.accept.aliases").toArray(new String[0]);
     }
 
     public String getPlayerAcceptPermission() {
-        return commands.node("commands", "player", "accept", "permission").getString();
+        return commands.getString("commands.player.accept.permission");
     }
 
     public String getPlayerAcceptSyntax() {
-        return commands.node("commands", "player", "accept", "syntax").getString();
+        return commands.getString("commands.player.accept.syntax");
     }
 
     public String getPlayerAcceptDescription() {
-        return commands.node("commands", "player", "accept", "description").getString();
+        return commands.getString("commands.player.accept.description");
     }
 
     public String[] getPlayerRejectAliases() {
-        try {
-            return Objects.requireNonNull(Objects.requireNonNull(commands.node("commands", "player", "reject", "aliases").getList(String.class))).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player reject aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.reject.aliases").toArray(new String[0]);
     }
 
     public String getPlayerRejectPermission() {
-        return commands.node("commands", "player", "reject", "permission").getString();
+        return commands.getString("commands.player.reject.permission");
     }
 
     public String getPlayerRejectSyntax() {
-        return commands.node("commands", "player", "reject", "syntax").getString();
+        return commands.getString("commands.player.reject.syntax");
     }
 
     public String getPlayerRejectDescription() {
-        return commands.node("commands", "player", "reject", "description").getString();
+        return commands.getString("commands.player.reject.description");
     }
 
     public String[] getPlayerBanAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "player", "ban", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player ban aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.ban.aliases").toArray(new String[0]);
     }
 
     public String getPlayerBanPermission() {
-        return commands.node("commands", "player", "ban", "permission").getString();
+        return commands.getString("commands.player.ban.permission");
     }
 
     public String getPlayerBanSyntax() {
-        return commands.node("commands", "player", "ban", "syntax").getString();
+        return commands.getString("commands.player.ban.syntax");
     }
 
     public String getPlayerBanDescription() {
-        return commands.node("commands", "player", "ban", "description").getString();
+        return commands.getString("commands.player.ban.description");
     }
 
     public String[] getPlayerBanListAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "player", "banlist", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player banlist aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.banlist.aliases").toArray(new String[0]);
     }
 
     public String getPlayerBanListPermission() {
-        return commands.node("commands", "player", "banlist", "permission").getString();
+        return commands.getString("commands.player.banlist.permission");
     }
 
     public String getPlayerBanListSyntax() {
-        return commands.node("commands", "player", "banlist", "syntax").getString();
+        return commands.getString("commands.player.banlist.syntax");
     }
 
     public String getPlayerBanListDescription() {
-        return commands.node("commands", "player", "banlist", "description").getString();
+        return commands.getString("commands.player.banlist.description");
     }
 
-
     public String[] getPlayerCoopAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "player", "coop", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player coop aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.coop.aliases").toArray(new String[0]);
     }
 
     public String getPlayerCoopPermission() {
-        return commands.node("commands", "player", "coop", "permission").getString();
+        return commands.getString("commands.player.coop.permission");
     }
 
     public String getPlayerCoopSyntax() {
-        return commands.node("commands", "player", "coop", "syntax").getString();
+        return commands.getString("commands.player.coop.syntax");
     }
 
     public String getPlayerCoopDescription() {
-        return commands.node("commands", "player", "coop", "description").getString();
+        return commands.getString("commands.player.coop.description");
     }
 
     public String[] getPlayerCoopListAliases() {
-        try {
-            return Objects.requireNonNull(Objects.requireNonNull(Objects.requireNonNull(Objects.requireNonNull(Objects.requireNonNull(Objects.requireNonNull(Objects.requireNonNull(Objects.requireNonNull(Objects.requireNonNull(commands.node("commands", "player", "cooplist", "aliases").getList(String.class)))))))))).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player cooplist aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.cooplist.aliases").toArray(new String[0]);
     }
 
     public String getPlayerCoopListPermission() {
-        return commands.node("commands", "player", "cooplist", "permission").getString();
+        return commands.getString("commands.player.cooplist.permission");
     }
 
     public String getPlayerCoopListSyntax() {
-        return commands.node("commands", "player", "cooplist", "syntax").getString();
+        return commands.getString("commands.player.cooplist.syntax");
     }
 
     public String getPlayerCoopListDescription() {
-        return commands.node("commands", "player", "cooplist", "description").getString();
+        return commands.getString("commands.player.cooplist.description");
     }
 
     public String[] getPlayerCreateAliases() {
-        try {
-            return Objects.requireNonNull(Objects.requireNonNull(commands.node("commands", "player", "create", "aliases").getList(String.class))).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player create aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.create.aliases").toArray(new String[0]);
     }
 
     public String getPlayerCreatePermission() {
-        return commands.node("commands", "player", "create", "permission").getString();
+        return commands.getString("commands.player.create.permission");
     }
 
     public String getPlayerCreateSyntax() {
-        return commands.node("commands", "player", "create", "syntax").getString();
+        return commands.getString("commands.player.create.syntax");
     }
 
     public String getPlayerCreateDescription() {
-        return commands.node("commands", "player", "create", "description").getString();
+        return commands.getString("commands.player.create.description");
     }
 
     public String[] getPlayerDeleteAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "player", "delete", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player delete aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.delete.aliases").toArray(new String[0]);
     }
 
     public String getPlayerDeletePermission() {
-        return commands.node("commands", "player", "delete", "permission").getString();
+        return commands.getString("commands.player.delete.permission");
     }
 
     public String getPlayerDeleteSyntax() {
-        return commands.node("commands", "player", "delete", "syntax").getString();
+        return commands.getString("commands.player.delete.syntax");
     }
 
     public String getPlayerDeleteDescription() {
-        return commands.node("commands", "player", "delete", "description").getString();
+        return commands.getString("commands.player.delete.description");
     }
 
     public String[] getPlayerDelHomeAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "player", "delhome", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player delhome aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.delhome.aliases").toArray(new String[0]);
     }
 
     public String getPlayerDelHomePermission() {
-        return commands.node("commands", "player", "delhome", "permission").getString();
+        return commands.getString("commands.player.delhome.permission");
     }
 
     public String getPlayerDelHomeSyntax() {
-        return commands.node("commands", "player", "delhome", "syntax").getString();
+        return commands.getString("commands.player.delhome.syntax");
     }
 
     public String getPlayerDelHomeDescription() {
-        return commands.node("commands", "player", "delhome", "description").getString();
+        return commands.getString("commands.player.delhome.description");
     }
 
     public String[] getPlayerDelWarpAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "player", "delwarp", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player delwarp aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.delwarp.aliases").toArray(new String[0]);
     }
 
     public String getPlayerDelWarpPermission() {
-        return commands.node("commands", "player", "delwarp", "permission").getString();
+        return commands.getString("commands.player.delwarp.permission");
     }
 
     public String getPlayerDelWarpSyntax() {
-        return commands.node("commands", "player", "delwarp", "syntax").getString();
+        return commands.getString("commands.player.delwarp.syntax");
     }
 
     public String getPlayerDelWarpDescription() {
-        return commands.node("commands", "player", "delwarp", "description").getString();
+        return commands.getString("commands.player.delwarp.description");
     }
 
     public String[] getPlayerExpelAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "player", "expel", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player expel aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.expel.aliases").toArray(new String[0]);
     }
 
     public String getPlayerExpelPermission() {
-        return commands.node("commands", "player", "expel", "permission").getString();
+        return commands.getString("commands.player.expel.permission");
     }
 
     public String getPlayerExpelSyntax() {
-        return commands.node("commands", "player", "expel", "syntax").getString();
+        return commands.getString("commands.player.expel.syntax");
     }
 
     public String getPlayerExpelDescription() {
-        return commands.node("commands", "player", "expel", "description").getString();
+        return commands.getString("commands.player.expel.description");
     }
 
     public String[] getPlayerHelpAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "player", "help", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player help aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.help.aliases").toArray(new String[0]);
     }
 
     public String getPlayerHelpPermission() {
-        return commands.node("commands", "player", "help", "permission").getString();
+        return commands.getString("commands.player.help.permission");
     }
 
     public String getPlayerHelpSyntax() {
-        return commands.node("commands", "player", "help", "syntax").getString();
+        return commands.getString("commands.player.help.syntax");
     }
 
     public String getPlayerHelpDescription() {
-        return commands.node("commands", "player", "help", "description").getString();
+        return commands.getString("commands.player.help.description");
     }
 
     public String[] getPlayerHomeAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "player", "home", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player home aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.home.aliases").toArray(new String[0]);
     }
 
     public String getPlayerHomePermission() {
-        return commands.node("commands", "player", "home", "permission").getString();
+        return commands.getString("commands.player.home.permission");
     }
 
     public String getPlayerHomeSyntax() {
-        return commands.node("commands", "player", "home", "syntax").getString();
+        return commands.getString("commands.player.home.syntax");
     }
 
     public String getPlayerHomeDescription() {
-        return commands.node("commands", "player", "home", "description").getString();
+        return commands.getString("commands.player.home.description");
     }
 
     public String[] getPlayerInfoAliases() {
-        try {
-            return Objects.requireNonNull(Objects.requireNonNull(commands.node("commands", "player", "info", "aliases").getList(String.class))).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player info aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.info.aliases").toArray(new String[0]);
     }
 
     public String getPlayerInfoPermission() {
-        return commands.node("commands", "player", "info", "permission").getString();
+        return commands.getString("commands.player.info.permission");
     }
 
     public String getPlayerInfoSyntax() {
-        return commands.node("commands", "player", "info", "syntax").getString();
+        return commands.getString("commands.player.info.syntax");
     }
 
     public String getPlayerInfoDescription() {
-        return commands.node("commands", "player", "info", "description").getString();
+        return commands.getString("commands.player.info.description");
     }
 
     public String[] getPlayerLeaveAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "player", "leave", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player leave aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.leave.aliases").toArray(new String[0]);
     }
 
     public String getPlayerLeavePermission() {
-        return commands.node("commands", "player", "leave", "permission").getString();
+        return commands.getString("commands.player.leave.permission");
     }
 
     public String getPlayerLeaveSyntax() {
-        return commands.node("commands", "player", "leave", "syntax").getString();
+        return commands.getString("commands.player.leave.syntax");
     }
 
     public String getPlayerLeaveDescription() {
-        return commands.node("commands", "player", "leave", "description").getString();
+        return commands.getString("commands.player.leave.description");
     }
 
     public String[] getPlayerLevelAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "player", "level", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player level aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.level.aliases").toArray(new String[0]);
     }
 
     public String getPlayerLevelPermission() {
-        return commands.node("commands", "player", "level", "permission").getString();
+        return commands.getString("commands.player.level.permission");
     }
 
     public String getPlayerLevelSyntax() {
-        return commands.node("commands", "player", "level", "syntax").getString();
+        return commands.getString("commands.player.level.syntax");
     }
 
     public String getPlayerLevelDescription() {
-        return commands.node("commands", "player", "level", "description").getString();
+        return commands.getString("commands.player.level.description");
     }
 
     public String[] getPlayerLockAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "player", "lock", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player lock aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.lock.aliases").toArray(new String[0]);
     }
 
     public String getPlayerLockPermission() {
-        return commands.node("commands", "player", "lock", "permission").getString();
+        return commands.getString("commands.player.lock.permission");
     }
 
     public String getPlayerLockSyntax() {
-        return commands.node("commands", "player", "lock", "syntax").getString();
+        return commands.getString("commands.player.lock.syntax");
     }
 
     public String getPlayerLockDescription() {
-        return commands.node("commands", "player", "lock", "description").getString();
+        return commands.getString("commands.player.lock.description");
     }
 
     public String[] getPlayerPvpAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "player", "pvp", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player pvp aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.pvp.aliases").toArray(new String[0]);
     }
 
     public String getPlayerPvpPermission() {
-        return commands.node("commands", "player", "pvp", "permission").getString();
+        return commands.getString("commands.player.pvp.permission");
     }
 
     public String getPlayerPvpSyntax() {
-        return commands.node("commands", "player", "pvp", "syntax").getString();
+        return commands.getString("commands.player.pvp.syntax");
     }
 
     public String getPlayerPvpDescription() {
-        return commands.node("commands", "player", "pvp", "description").getString();
+        return commands.getString("commands.player.pvp.description");
     }
 
     public String[] getPlayerRemoveMemberAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "player", "removemember", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player removemember aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.removemember.aliases").toArray(new String[0]);
     }
 
     public String getPlayerRemoveMemberPermission() {
-        return commands.node("commands", "player", "removemember", "permission").getString();
+        return commands.getString("commands.player.removemember.permission");
     }
 
     public String getPlayerRemoveMemberSyntax() {
-        return commands.node("commands", "player", "removemember", "syntax").getString();
+        return commands.getString("commands.player.removemember.syntax");
     }
 
     public String getPlayerRemoveMemberDescription() {
-        return commands.node("commands", "player", "removemember", "description").getString();
+        return commands.getString("commands.player.removemember.description");
     }
 
     public String[] getPlayerSetHomeAliases() {
-        try {
-            return Objects.requireNonNull(Objects.requireNonNull(commands.node("commands", "player", "sethome", "aliases").getList(String.class))).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player sethome aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.sethome.aliases").toArray(new String[0]);
     }
 
     public String getPlayerSetHomePermission() {
-        return commands.node("commands", "player", "sethome", "permission").getString();
+        return commands.getString("commands.player.sethome.permission");
     }
 
     public String getPlayerSetHomeSyntax() {
-        return commands.node("commands", "player", "sethome", "syntax").getString();
+        return commands.getString("commands.player.sethome.syntax");
     }
 
     public String getPlayerSetHomeDescription() {
-        return commands.node("commands", "player", "sethome", "description").getString();
+        return commands.getString("commands.player.sethome.description");
     }
 
     public String[] getPlayerSetOwnerAliases() {
-        try {
-            return Objects.requireNonNull(Objects.requireNonNull(commands.node("commands", "player", "setowner", "aliases").getList(String.class))).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player setowner aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.setowner.aliases").toArray(new String[0]);
     }
 
     public String getPlayerSetOwnerPermission() {
-        return commands.node("commands", "player", "setowner", "permission").getString();
+        return commands.getString("commands.player.setowner.permission");
     }
 
     public String getPlayerSetOwnerSyntax() {
-        return commands.node("commands", "player", "setowner", "syntax").getString();
+        return commands.getString("commands.player.setowner.syntax");
     }
 
     public String getPlayerSetOwnerDescription() {
-        return commands.node("commands", "player", "setowner", "description").getString();
+        return commands.getString("commands.player.setowner.description");
     }
 
     public String[] getPlayerSetWarpAliases() {
-        try {
-            return Objects.requireNonNull(Objects.requireNonNull(Objects.requireNonNull(commands.node("commands", "player", "setwarp", "aliases").getList(String.class)))).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player setwarp aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.setwarp.aliases").toArray(new String[0]);
     }
 
     public String getPlayerSetWarpPermission() {
-        return commands.node("commands", "player", "setwarp", "permission").getString();
+        return commands.getString("commands.player.setwarp.permission");
     }
 
     public String getPlayerSetWarpSyntax() {
-        return commands.node("commands", "player", "setwarp", "syntax").getString();
+        return commands.getString("commands.player.setwarp.syntax");
     }
 
     public String getPlayerSetWarpDescription() {
-        return commands.node("commands", "player", "setwarp", "description").getString();
+        return commands.getString("commands.player.setwarp.description");
     }
 
     public String[] getPlayerTopAliases() {
-        try {
-            return Objects.requireNonNull(Objects.requireNonNull(commands.node("commands", "player", "top", "aliases").getList(String.class))).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player top aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.top.aliases").toArray(new String[0]);
     }
 
     public String getPlayerTopPermission() {
-        return commands.node("commands", "player", "top", "permission").getString();
+        return commands.getString("commands.player.top.permission");
     }
 
     public String getPlayerTopSyntax() {
-        return commands.node("commands", "player", "top", "syntax").getString();
+        return commands.getString("commands.player.top.syntax");
     }
 
     public String getPlayerTopDescription() {
-        return commands.node("commands", "player", "top", "description").getString();
+        return commands.getString("commands.player.top.description");
     }
 
     public String[] getPlayerUnbanAliases() {
-        try {
-            return Objects.requireNonNull(Objects.requireNonNull(commands.node("commands", "player", "unban", "aliases").getList(String.class))).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player unban aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.unban.aliases").toArray(new String[0]);
     }
 
     public String getPlayerUnbanPermission() {
-        return commands.node("commands", "player", "unban", "permission").getString();
+        return commands.getString("commands.player.unban.permission");
     }
 
     public String getPlayerUnbanSyntax() {
-        return commands.node("commands", "player", "unban", "syntax").getString();
+        return commands.getString("commands.player.unban.syntax");
     }
 
     public String getPlayerUnbanDescription() {
-        return commands.node("commands", "player", "unban", "description").getString();
+        return commands.getString("commands.player.unban.description");
     }
 
     public String[] getPlayerUncoopAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "player", "uncoop", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player uncoop aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.uncoop.aliases").toArray(new String[0]);
     }
 
     public String getPlayerUncoopPermission() {
-        return commands.node("commands", "player", "uncoop", "permission").getString();
+        return commands.getString("commands.player.uncoop.permission");
     }
 
     public String getPlayerUncoopSyntax() {
-        return commands.node("commands", "player", "uncoop", "syntax").getString();
+        return commands.getString("commands.player.uncoop.syntax");
     }
 
     public String getPlayerUncoopDescription() {
-        return commands.node("commands", "player", "uncoop", "description").getString();
+        return commands.getString("commands.player.uncoop.description");
     }
 
     public String[] getPlayerValueAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "player", "value", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player value aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.value.aliases").toArray(new String[0]);
     }
 
     public String getPlayerValuePermission() {
-        return commands.node("commands", "player", "value", "permission").getString();
+        return commands.getString("commands.player.value.permission");
     }
 
     public String getPlayerValueSyntax() {
-        return commands.node("commands", "player", "value", "syntax").getString();
+        return commands.getString("commands.player.value.syntax");
     }
 
     public String getPlayerValueDescription() {
-        return commands.node("commands", "player", "value", "description").getString();
+        return commands.getString("commands.player.value.description");
     }
 
     public String[] getPlayerWarpAliases() {
-        try {
-            return Objects.requireNonNull(Objects.requireNonNull(commands.node("commands", "player", "warp", "aliases").getList(String.class))).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player warp aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.warp.aliases").toArray(new String[0]);
     }
 
     public String getPlayerWarpPermission() {
-        return commands.node("commands", "player", "warp", "permission").getString();
+        return commands.getString("commands.player.warp.permission");
     }
 
     public String getPlayerWarpSyntax() {
-        return commands.node("commands", "player", "warp", "syntax").getString();
+        return commands.getString("commands.player.warp.syntax");
     }
 
     public String getPlayerWarpDescription() {
-        return commands.node("commands", "player", "warp", "description").getString();
+        return commands.getString("commands.player.warp.description");
     }
 
     public String[] getPlayerLobbyAliases() {
-        try {
-            return Objects.requireNonNull(Objects.requireNonNull(commands.node("commands", "player", "lobby", "aliases").getList(String.class))).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load player lobby aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.player.lobby.aliases").toArray(new String[0]);
     }
 
     public String getPlayerLobbyPermission() {
-        return commands.node("commands", "player", "lobby", "permission").getString();
+        return commands.getString("commands.player.lobby.permission");
     }
 
     public String getPlayerLobbySyntax() {
-        return commands.node("commands", "player", "lobby", "syntax").getString();
+        return commands.getString("commands.player.lobby.syntax");
     }
 
     public String getPlayerLobbyDescription() {
-        return commands.node("commands", "player", "lobby", "description").getString();
+        return commands.getString("commands.player.lobby.description");
     }
 
     public List<String> getAdminCommandOrder() {
-        try {
-            return commands.node("commands", "admin").childrenMap().keySet().stream().map(Object::toString).toList();
-        } catch (Exception e) {
-            plugin.severe("Failed to load admin command order", e);
-            return java.util.Collections.emptyList();
-        }
+        return Objects.requireNonNull(commands.getConfigurationSection("commands.admin")).getKeys(false).stream().toList();
     }
 
     public String[] getAdminAddMemberAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "admin", "addmember", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load admin addmember aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.admin.addmember.aliases").toArray(new String[0]);
     }
 
     public String getAdminAddMemberPermission() {
-        return commands.node("commands", "admin", "addmember", "permission").getString();
+        return commands.getString("commands.admin.addmember.permission");
     }
 
     public String getAdminAddMemberSyntax() {
-        return commands.node("commands", "admin", "addmember", "syntax").getString();
+        return commands.getString("commands.admin.addmember.syntax");
     }
 
     public String getAdminAddMemberDescription() {
-        return commands.node("commands", "admin", "addmember", "description").getString();
+        return commands.getString("commands.admin.addmember.description");
     }
 
     public String[] getAdminBanAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "admin", "ban", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load admin ban aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.admin.ban.aliases").toArray(new String[0]);
     }
 
     public String getAdminBanPermission() {
-        return commands.node("commands", "admin", "ban", "permission").getString();
+        return commands.getString("commands.admin.ban.permission");
     }
 
     public String getAdminBanSyntax() {
-        return commands.node("commands", "admin", "ban", "syntax").getString();
+        return commands.getString("commands.admin.ban.syntax");
     }
 
     public String getAdminBanDescription() {
-        return commands.node("commands", "admin", "ban", "description").getString();
+        return commands.getString("commands.admin.ban.description");
     }
 
     public String[] getAdminCoopAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "admin", "coop", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load admin coop aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.admin.coop.aliases").toArray(new String[0]);
     }
 
     public String getAdminCoopPermission() {
-        return commands.node("commands", "admin", "coop", "permission").getString();
+        return commands.getString("commands.admin.coop.permission");
     }
 
     public String getAdminCoopSyntax() {
-        return commands.node("commands", "admin", "coop", "syntax").getString();
+        return commands.getString("commands.admin.coop.syntax");
     }
 
     public String getAdminCoopDescription() {
-        return commands.node("commands", "admin", "coop", "description").getString();
+        return commands.getString("commands.admin.coop.description");
     }
 
     public String[] getAdminCreateAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "admin", "create", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load admin create aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.admin.create.aliases").toArray(new String[0]);
     }
 
     public String getAdminCreatePermission() {
-        return commands.node("commands", "admin", "create", "permission").getString();
+        return commands.getString("commands.admin.create.permission");
     }
 
     public String getAdminCreateSyntax() {
-        return commands.node("commands", "admin", "create", "syntax").getString();
+        return commands.getString("commands.admin.create.syntax");
     }
 
     public String getAdminCreateDescription() {
-        return commands.node("commands", "admin", "create", "description").getString();
+        return commands.getString("commands.admin.create.description");
     }
 
     public String[] getAdminDeleteAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "admin", "delete", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load admin delete aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.admin.delete.aliases").toArray(new String[0]);
     }
 
     public String getAdminDeletePermission() {
-        return commands.node("commands", "admin", "delete", "permission").getString();
+        return commands.getString("commands.admin.delete.permission");
     }
 
     public String getAdminDeleteSyntax() {
-        return commands.node("commands", "admin", "delete", "syntax").getString();
+        return commands.getString("commands.admin.delete.syntax");
     }
 
     public String getAdminDeleteDescription() {
-        return commands.node("commands", "admin", "delete", "description").getString();
+        return commands.getString("commands.admin.delete.description");
     }
 
     public String[] getAdminDelHomeAliases() {
-        try {
-            return Objects.requireNonNull(Objects.requireNonNull(commands.node("commands", "admin", "delhome", "aliases").getList(String.class))).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load admin delhome aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.admin.delhome.aliases").toArray(new String[0]);
     }
 
     public String getAdminDelHomePermission() {
-        return commands.node("commands", "admin", "delhome", "permission").getString();
+        return commands.getString("commands.admin.delhome.permission");
     }
 
     public String getAdminDelHomeSyntax() {
-        return commands.node("commands", "admin", "delhome", "syntax").getString();
+        return commands.getString("commands.admin.delhome.syntax");
     }
 
     public String getAdminDelHomeDescription() {
-        return commands.node("commands", "admin", "delhome", "description").getString();
+        return commands.getString("commands.admin.delhome.description");
     }
 
     public String[] getAdminDelWarpAliases() {
-        try {
-            return Objects.requireNonNull(Objects.requireNonNull(commands.node("commands", "admin", "delwarp", "aliases").getList(String.class))).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load admin delwarp aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.admin.delwarp.aliases").toArray(new String[0]);
     }
 
     public String getAdminDelWarpPermission() {
-        return commands.node("commands", "admin", "delwarp", "permission").getString();
+        return commands.getString("commands.admin.delwarp.permission");
     }
 
     public String getAdminDelWarpSyntax() {
-        return commands.node("commands", "admin", "delwarp", "syntax").getString();
+        return commands.getString("commands.admin.delwarp.syntax");
     }
 
     public String getAdminDelWarpDescription() {
-        return commands.node("commands", "admin", "delwarp", "description").getString();
+        return commands.getString("commands.admin.delwarp.description");
     }
 
     public String[] getAdminHelpAliases() {
-        try {
-            return Objects.requireNonNull(Objects.requireNonNull(Objects.requireNonNull(commands.node("commands", "admin", "help", "aliases").getList(String.class)))).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load admin help aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.admin.help.aliases").toArray(new String[0]);
     }
 
     public String getAdminHelpPermission() {
-        return commands.node("commands", "admin", "help", "permission").getString();
+        return commands.getString("commands.admin.help.permission");
     }
 
     public String getAdminHelpSyntax() {
-        return commands.node("commands", "admin", "help", "syntax").getString();
+        return commands.getString("commands.admin.help.syntax");
     }
 
     public String getAdminHelpDescription() {
-        return commands.node("commands", "admin", "help", "description").getString();
+        return commands.getString("commands.admin.help.description");
     }
 
     public String[] getAdminHomeAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "admin", "home", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load admin home aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.admin.home.aliases").toArray(new String[0]);
     }
 
     public String getAdminHomePermission() {
-        return commands.node("commands", "admin", "home", "permission").getString();
+        return commands.getString("commands.admin.home.permission");
     }
 
     public String getAdminHomeSyntax() {
-        return commands.node("commands", "admin", "home", "syntax").getString();
+        return commands.getString("commands.admin.home.syntax");
     }
 
     public String getAdminHomeDescription() {
-        return commands.node("commands", "admin", "home", "description").getString();
+        return commands.getString("commands.admin.home.description");
     }
 
     public String[] getAdminLoadAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "admin", "load", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load admin load aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.admin.load.aliases").toArray(new String[0]);
     }
 
     public String getAdminLoadPermission() {
-        return commands.node("commands", "admin", "load", "permission").getString();
+        return commands.getString("commands.admin.load.permission");
     }
 
     public String getAdminLoadSyntax() {
-        return commands.node("commands", "admin", "load", "syntax").getString();
+        return commands.getString("commands.admin.load.syntax");
     }
 
     public String getAdminLoadDescription() {
-        return commands.node("commands", "admin", "load", "description").getString();
+        return commands.getString("commands.admin.load.description");
     }
 
     public String[] getAdminLockAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "admin", "lock", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load admin lock aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.admin.lock.aliases").toArray(new String[0]);
     }
 
     public String getAdminLockPermission() {
-        return commands.node("commands", "admin", "lock", "permission").getString();
+        return commands.getString("commands.admin.lock.permission");
     }
 
     public String getAdminLockSyntax() {
-        return commands.node("commands", "admin", "lock", "syntax").getString();
+        return commands.getString("commands.admin.lock.syntax");
     }
 
     public String getAdminLockDescription() {
-        return commands.node("commands", "admin", "lock", "description").getString();
+        return commands.getString("commands.admin.lock.description");
     }
 
     public String[] getAdminPvpAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "admin", "pvp", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load admin pvp aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.admin.pvp.aliases").toArray(new String[0]);
     }
 
     public String getAdminPvpPermission() {
-        return commands.node("commands", "admin", "pvp", "permission").getString();
+        return commands.getString("commands.admin.pvp.permission");
     }
 
     public String getAdminPvpSyntax() {
-        return commands.node("commands", "admin", "pvp", "syntax").getString();
+        return commands.getString("commands.admin.pvp.syntax");
     }
 
     public String getAdminPvpDescription() {
-        return commands.node("commands", "admin", "pvp", "description").getString();
+        return commands.getString("commands.admin.pvp.description");
     }
 
     public String[] getAdminReloadAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "admin", "reload", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load admin reload aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.admin.reload.aliases").toArray(new String[0]);
     }
 
     public String getAdminReloadPermission() {
-        return commands.node("commands", "admin", "reload", "permission").getString();
+        return commands.getString("commands.admin.reload.permission");
     }
 
     public String getAdminReloadSyntax() {
-        return commands.node("commands", "admin", "reload", "syntax").getString();
+        return commands.getString("commands.admin.reload.syntax");
     }
 
     public String getAdminReloadDescription() {
-        return commands.node("commands", "admin", "reload", "description").getString();
+        return commands.getString("commands.admin.reload.description");
     }
 
     public String[] getAdminRemoveMemberAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "admin", "removemember", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load admin removemember aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.admin.removemember.aliases").toArray(new String[0]);
     }
 
     public String getAdminRemoveMemberPermission() {
-        return commands.node("commands", "admin", "removemember", "permission").getString();
+        return commands.getString("commands.admin.removemember.permission");
     }
 
     public String getAdminRemoveMemberSyntax() {
-        return commands.node("commands", "admin", "removemember", "syntax").getString();
+        return commands.getString("commands.admin.removemember.syntax");
     }
 
     public String getAdminRemoveMemberDescription() {
-        return commands.node("commands", "admin", "removemember", "description").getString();
+        return commands.getString("commands.admin.removemember.description");
     }
 
     public String[] getAdminSetHomeAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "admin", "sethome", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load admin sethome aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.admin.sethome.aliases").toArray(new String[0]);
     }
 
     public String getAdminSetHomePermission() {
-        return commands.node("commands", "admin", "sethome", "permission").getString();
+        return commands.getString("commands.admin.sethome.permission");
     }
 
     public String getAdminSetHomeSyntax() {
-        return commands.node("commands", "admin", "sethome", "syntax").getString();
+        return commands.getString("commands.admin.sethome.syntax");
     }
 
     public String getAdminSetHomeDescription() {
-        return commands.node("commands", "admin", "sethome", "description").getString();
+        return commands.getString("commands.admin.sethome.description");
     }
 
     public String[] getAdminSetWarpAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "admin", "setwarp", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load admin setwarp aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.admin.setwarp.aliases").toArray(new String[0]);
     }
 
     public String getAdminSetWarpPermission() {
-        return commands.node("commands", "admin", "setwarp", "permission").getString();
+        return commands.getString("commands.admin.setwarp.permission");
     }
 
     public String getAdminSetWarpSyntax() {
-        return commands.node("commands", "admin", "setwarp", "syntax").getString();
+        return commands.getString("commands.admin.setwarp.syntax");
     }
 
     public String getAdminSetWarpDescription() {
-        return commands.node("commands", "admin", "setwarp", "description").getString();
+        return commands.getString("commands.admin.setwarp.description");
     }
 
     public String[] getAdminUnbanAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "admin", "unban", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load admin unban aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.admin.unban.aliases").toArray(new String[0]);
     }
 
     public String getAdminUnbanPermission() {
-        return commands.node("commands", "admin", "unban", "permission").getString();
+        return commands.getString("commands.admin.unban.permission");
     }
 
     public String getAdminUnbanSyntax() {
-        return commands.node("commands", "admin", "unban", "syntax").getString();
+        return commands.getString("commands.admin.unban.syntax");
     }
 
     public String getAdminUnbanDescription() {
-        return commands.node("commands", "admin", "unban", "description").getString();
+        return commands.getString("commands.admin.unban.description");
     }
 
     public String[] getAdminUncoopAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "admin", "uncoop", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load admin uncoop aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.admin.uncoop.aliases").toArray(new String[0]);
     }
 
     public String getAdminUncoopPermission() {
-        return commands.node("commands", "admin", "uncoop", "permission").getString();
+        return commands.getString("commands.admin.uncoop.permission");
     }
 
     public String getAdminUncoopSyntax() {
-        return commands.node("commands", "admin", "uncoop", "syntax").getString();
+        return commands.getString("commands.admin.uncoop.syntax");
     }
 
     public String getAdminUncoopDescription() {
-        return commands.node("commands", "admin", "uncoop", "description").getString();
+        return commands.getString("commands.admin.uncoop.description");
     }
 
     public String[] getAdminUnloadAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "admin", "unload", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load admin unload aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.admin.unload.aliases").toArray(new String[0]);
     }
 
     public String getAdminUnloadPermission() {
-        return commands.node("commands", "admin", "unload", "permission").getString();
+        return commands.getString("commands.admin.unload.permission");
     }
 
     public String getAdminUnloadSyntax() {
-        return commands.node("commands", "admin", "unload", "syntax").getString();
+        return commands.getString("commands.admin.unload.syntax");
     }
 
     public String getAdminUnloadDescription() {
-        return commands.node("commands", "admin", "unload", "description").getString();
+        return commands.getString("commands.admin.unload.description");
     }
 
     public String[] getAdminWarpAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "admin", "warp", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load admin warp aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.admin.warp.aliases").toArray(new String[0]);
     }
 
     public String getAdminWarpPermission() {
-        return commands.node("commands", "admin", "warp", "permission").getString();
+        return commands.getString("commands.admin.warp.permission");
     }
 
     public String getAdminWarpSyntax() {
-        return commands.node("commands", "admin", "warp", "syntax").getString();
+        return commands.getString("commands.admin.warp.syntax");
     }
 
     public String getAdminWarpDescription() {
-        return commands.node("commands", "admin", "warp", "description").getString();
+        return commands.getString("commands.admin.warp.description");
     }
 
     public String[] getAdminLobbyAliases() {
-        try {
-            return Objects.requireNonNull(commands.node("commands", "admin", "lobby", "aliases").getList(String.class)).toArray(new String[0]);
-        } catch (org.spongepowered.configurate.serialize.SerializationException e) {
-            plugin.severe("Failed to load admin lobby aliases", e);
-            return new String[0];
-        }
+        return commands.getStringList("commands.admin.lobby.aliases").toArray(new String[0]);
     }
 
     public String getAdminLobbyPermission() {
-        return commands.node("commands", "admin", "lobby", "permission").getString();
+        return commands.getString("commands.admin.lobby.permission");
     }
 
     public String getAdminLobbySyntax() {
-        return commands.node("commands", "admin", "lobby", "syntax").getString();
+        return commands.getString("commands.admin.lobby.syntax");
     }
 
     public String getAdminLobbyDescription() {
-        return commands.node("commands", "admin", "lobby", "description").getString();
+        return commands.getString("commands.admin.lobby.description");
     }
 
     // =========================================================
@@ -1354,518 +1077,517 @@ public class ConfigHandler {
 
     // General Messages
     public Component getPluginReloadedMessage() {
-        return ColorUtils.colorize(messages.node("messages", "plugin-reloaded").getString());
+        return ColorUtils.colorize(messages.getString("messages.plugin-reloaded"));
     }
 
     public Component getOnlyPlayerCanRunCommandMessage() {
-        return ColorUtils.colorize(messages.node("messages", "only-player-can-run-command").getString());
+        return ColorUtils.colorize(messages.getString("messages.only-player-can-run-command"));
     }
 
     public Component getNoPermissionCommandMessage() {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "no-permission-command").getString()));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.no-permission-command")));
     }
 
     public Component getNoActiveServerMessage() {
-        return ColorUtils.colorize(messages.node("messages", "no-active-server").getString());
+        return ColorUtils.colorize(messages.getString("messages.no-active-server"));
     }
 
     public Component getIslandNotLoadedMessage() {
-        return ColorUtils.colorize(messages.node("messages", "island-not-loaded").getString());
+        return ColorUtils.colorize(messages.getString("messages.island-not-loaded"));
     }
 
     public Component getIslandAlreadyLoadedMessage() {
-        return ColorUtils.colorize(messages.node("messages", "island-already-loaded").getString());
+        return ColorUtils.colorize(messages.getString("messages.island-already-loaded"));
     }
 
     public Component getIslandLevelMessage(int level) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "island-level").getString()).replace("{level}", String.valueOf(level)));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-level")).replace("{level}", String.valueOf(level)));
     }
 
     public Component getIslandLoadSuccessMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "island-load-success").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-load-success")).replace("{player}", player));
     }
 
     public Component getIslandUnloadSuccessMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "island-unload-success").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-unload-success")).replace("{player}", player));
     }
 
     public Component getIslandLockedMessage() {
-        return ColorUtils.colorize(messages.node("messages", "island-locked").getString());
+        return ColorUtils.colorize(messages.getString("messages.island-locked"));
     }
 
     public Component getPlayerBannedMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-banned").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-banned"));
     }
 
     public Component getIslandPvpDisabledMessage() {
-        return ColorUtils.colorize(messages.node("messages", "island-pvp-disabled").getString());
+        return ColorUtils.colorize(messages.getString("messages.island-pvp-disabled"));
     }
 
     public Component getIslandMemberExistsMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "island-member-exists").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-member-exists")).replace("{player}", player));
     }
 
     public Component getIslandMemberNotExistsMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "not-island-member").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.not-island-member")).replace("{player}", player));
     }
 
     public Component getCannotEditIslandMessage() {
-        return ColorUtils.colorize(messages.node("messages", "cannot-edit-island").getString());
+        return ColorUtils.colorize(messages.getString("messages.cannot-edit-island"));
     }
 
     public Component getWarpSuccessMessage(String warp) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "warp-success").getString()).replace("{warp}", warp));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.warp-success")).replace("{warp}", warp));
     }
 
     public Component getNoWarpMessage(String player, String warp) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "no-warp").getString()).replace("{player}", player).replace("{warp}", warp));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.no-warp")).replace("{player}", player).replace("{warp}", warp));
     }
 
     public Component getNoIslandMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "no-island").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.no-island")).replace("{player}", player));
     }
 
     public Component getAlreadyHasIslandMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "already-has-island").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.already-has-island")).replace("{player}", player));
     }
 
     public Component getWasAddedToIslandMessage(String owner) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "was-added-to-island").getString()).replace("{owner}", owner));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.was-added-to-island")).replace("{owner}", owner));
     }
 
     public Component getWasRemovedFromIslandMessage(String owner) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "was-removed-from-island").getString()).replace("{owner}", owner));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.was-removed-from-island")).replace("{owner}", owner));
     }
 
     public Component getWasBannedFromIslandMessage(String owner) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "was-banned-from-island").getString()).replace("{owner}", owner));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.was-banned-from-island")).replace("{owner}", owner));
     }
 
     public Component getWasUnbannedFromIslandMessage(String owner) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "was-unbanned-from-island").getString()).replace("{owner}", owner));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.was-unbanned-from-island")).replace("{owner}", owner));
     }
 
     public Component getWasCoopedToIslandMessage(String owner) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "was-cooped-from-island").getString()).replace("{owner}", owner));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.was-cooped-from-island")).replace("{owner}", owner));
     }
 
     public Component getWasUncoopedFromIslandMessage(String owner) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "was-uncooped-from-island").getString()).replace("{owner}", owner));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.was-uncooped-from-island")).replace("{owner}", owner));
     }
 
     public Component getNewMemberNotificationMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "new-member-notification").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.new-member-notification")).replace("{player}", player));
     }
 
     public Component getCannotRemoveOwnerMessage() {
-        return ColorUtils.colorize(messages.node("messages", "cannot-remove-owner").getString());
+        return ColorUtils.colorize(messages.getString("messages.cannot-remove-owner"));
     }
 
     public Component getUnknownExceptionMessage() {
-        return ColorUtils.colorize(messages.node("messages", "unknown-exception").getString());
+        return ColorUtils.colorize(messages.getString("messages.unknown-exception"));
     }
 
     // Admin Command Messages
     public Component getAdminCommandUsageMessage(String command, String syntax) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-usage-command").getString()).replace("{command}", command).replace("{syntax}", syntax));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-usage-command")).replace("{command}", command).replace("{syntax}", syntax));
     }
 
     public Component getAdminUnknownSubCommandMessage() {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-unknown-sub-command").getString()));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-unknown-sub-command")));
     }
 
     public Component getAdminNoIslandMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-no-island").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-no-island")).replace("{player}", player));
     }
 
     public Component getAdminAddMemberSuccessMessage(String target, String owner) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-add-member-success").getString()).replace("{target}", target).replace("{owner}", owner));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-add-member-success")).replace("{target}", target).replace("{owner}", owner));
     }
 
     public Component getAdminRemoveMemberSuccessMessage(String target, String owner) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-remove-member-success").getString()).replace("{target}", target).replace("{owner}", owner));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-remove-member-success")).replace("{target}", target).replace("{owner}", owner));
     }
 
     public Component getAdminCreateSuccessMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-create-island-success").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-create-island-success")).replace("{player}", player));
     }
 
     public Component getAdminDeleteWarningMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-delete-warning").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-delete-warning")).replace("{player}", player));
     }
 
     public Component getAdminDeleteSuccessMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-delete-island-success").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-delete-island-success")).replace("{player}", player));
     }
 
     public Component getAdminCannotDeleteDefaultHomeMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-cannot-delete-default-home").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-cannot-delete-default-home")).replace("{player}", player));
     }
 
     public Component getAdminNoHomeMessage(String player, String home) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-no-home").getString()).replace("{player}", player).replace("{home}", home));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-no-home")).replace("{player}", player).replace("{home}", home));
     }
 
     public Component getAdminHomeSuccessMessage(String player, String home) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-home-success").getString()).replace("{player}", player).replace("{home}", home));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-home-success")).replace("{player}", player).replace("{home}", home));
     }
 
     public Component getAdminDelHomeSuccessMessage(String player, String home) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-delete-home-success").getString()).replace("{player}", player).replace("{home}", home));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-delete-home-success")).replace("{player}", player).replace("{home}", home));
     }
 
     public Component getAdminNoWarpMessage(String player, String warp) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-no-warp").getString()).replace("{player}", player).replace("{warp}", warp));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-no-warp")).replace("{player}", player).replace("{warp}", warp));
     }
 
     public Component getAdminDelWarpSuccessMessage(String player, String warp) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-delete-warp-success").getString()).replace("{player}", player).replace("{warp}", warp));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-delete-warp-success")).replace("{player}", player).replace("{warp}", warp));
     }
 
     public Component getAdminLockSuccessMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-lock-success").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-lock-success")).replace("{player}", player));
     }
 
     public Component getAdminUnLockSuccessMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-unlock-success").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-unlock-success")).replace("{player}", player));
     }
 
     public Component getAdminMustInIslandSetHomeMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-must-in-island-set-home").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-must-in-island-set-home")).replace("{player}", player));
     }
 
     public Component getAdminMustInIslandSetWarpMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-must-in-island-set-warp").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-must-in-island-set-warp")).replace("{player}", player));
     }
 
     public Component getAdminSetHomeSuccessMessage(String player, String home) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-set-home-success").getString()).replace("{player}", player).replace("{home}", home));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-set-home-success")).replace("{player}", player).replace("{home}", home));
     }
 
     public Component getAdminSetWarpSuccessMessage(String player, String warp) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-set-warp-success").getString()).replace("{player}", player).replace("{warp}", warp));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-set-warp-success")).replace("{player}", player).replace("{warp}", warp));
     }
 
     public Component getAdminPvpEnableSuccessMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-pvp-enable-success").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-pvp-enable-success")).replace("{player}", player));
     }
 
     public Component getAdminPvpDisableSuccessMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-pvp-disable-success").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-pvp-disable-success")).replace("{player}", player));
     }
 
     public Component getAdminBanSuccessMessage(String owner, String target) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-ban-success").getString()).replace("{owner}", owner).replace("{target}", target));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-ban-success")).replace("{owner}", owner).replace("{target}", target));
     }
 
     public Component getAdminUnbanSuccessMessage(String owner, String target) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-unban-success").getString()).replace("{owner}", owner).replace("{target}", target));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-unban-success")).replace("{owner}", owner).replace("{target}", target));
     }
 
     public Component getAdminCoopSuccessMessage(String owner, String target) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-coop-success").getString()).replace("{owner}", owner).replace("{target}", target));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-coop-success")).replace("{owner}", owner).replace("{target}", target));
     }
 
     public Component getAdminUncoopSuccessMessage(String owner, String target) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-uncoop-success").getString()).replace("{owner}", owner).replace("{target}", target));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-uncoop-success")).replace("{owner}", owner).replace("{target}", target));
     }
 
     public Component getAdminLobbySuccessMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-lobby-success").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-lobby-success")).replace("{player}", player));
     }
 
     // Player Command Messages
     public Component getPlayerCommandUsageMessage(String command, String syntax) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-usage-command").getString()).replace("{command}", command).replace("{syntax}", syntax));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-usage-command")).replace("{command}", command).replace("{syntax}", syntax));
     }
 
     public Component getPlayerUnknownSubCommandMessage() {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-unknown-sub-command").getString()));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-unknown-sub-command")));
     }
 
     public Component getPlayerNoIslandMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-no-island").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-no-island"));
     }
 
     public Component getPlayerAlreadyHasIslandMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-already-has-island").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-already-has-island"));
     }
 
     public Component getPlayerMustInIslandSetHomeMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-must-in-island-set-home").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-must-in-island-set-home"));
     }
 
     public Component getPlayerMustInIslandSetWarpMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-must-in-island-set-warp").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-must-in-island-set-warp"));
     }
 
     public Component getPlayerInviteSentMessage(String target) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-invite-sent").getString()).replace("{player}", target));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-invite-sent")).replace("{player}", target));
     }
 
     public Component getPlayerInviteReceiveMessage(String inviter) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-invite-receive").getString()).replace("{player}", inviter));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-invite-receive")).replace("{player}", inviter));
     }
 
     public Component getPlayerInviteAcceptedNotifyMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-invite-accepted-notify").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-invite-accepted-notify")).replace("{player}", player));
     }
 
     public Component getPlayerInviteRejectedNotifyMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-invite-rejected-notify").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-invite-rejected-notify")).replace("{player}", player));
     }
 
     public Component getPlayerInviteAcceptedMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-invite-accepted").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-invite-accepted"));
     }
 
     public Component getPlayerInviteRejectedMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-invite-rejected").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-invite-rejected"));
     }
 
     public Component getPlayerAlreadyInvitedMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-already-invited").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-already-invited")).replace("{player}", player));
     }
 
     public Component getPlayerNoPendingInviteMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-no-pending-invite").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-no-pending-invite"));
     }
 
     public Component getPlayerRemoveMemberSuccessMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-remove-member-success").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-remove-member-success")).replace("{player}", player));
     }
 
     public Component getPlayerCannotRemoveSelfMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-cannot-remove-self").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-cannot-remove-self"));
     }
 
     public Component getPlayerCreateSuccessMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-create-island-success").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-create-island-success"));
     }
 
     public Component getPlayerDeleteWarningMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-delete-warning").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-delete-warning"));
     }
 
     public Component getPlayerDeleteSuccessMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-delete-island-success").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-delete-island-success"));
     }
 
     public Component getPlayerSetHomeSuccessMessage(String home) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-set-home-success").getString()).replace("{home}", home));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-set-home-success")).replace("{home}", home));
     }
 
     public Component getPlayerSetWarpSuccessMessage(String warp) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-set-warp-success").getString()).replace("{warp}", warp));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-set-warp-success")).replace("{warp}", warp));
     }
 
     public Component getPlayerDelHomeSuccessMessage(String home) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-delete-home-success").getString()).replace("{home}", home));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-delete-home-success")).replace("{home}", home));
     }
 
     public Component getPlayerCannotDeleteDefaultHomeMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-cannot-delete-default-home").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-cannot-delete-default-home"));
     }
 
     public Component getPlayerDelWarpSuccessMessage(String warp) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-delete-warp-success").getString()).replace("{warp}", warp));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-delete-warp-success")).replace("{warp}", warp));
     }
 
     public Component getPlayerLockSuccessMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-lock-success").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-lock-success"));
     }
 
     public Component getPlayerUnLockSuccessMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-unlock-success").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-unlock-success"));
     }
 
     public Component getPlayerPvpEnableSuccessMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-pvp-enable-success").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-pvp-enable-success"));
     }
 
     public Component getPlayerPvpDisableSuccessMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-pvp-disable-success").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-pvp-disable-success"));
     }
 
     public Component getPlayerNoHomeMessage(String home) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-no-home").getString()).replace("{home}", home));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-no-home")).replace("{home}", home));
     }
 
     public Component getPlayerNoWarpMessage(String warp) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-no-warp").getString()).replace("{warp}", warp));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-no-warp")).replace("{warp}", warp));
     }
 
     public Component getPlayerHomeSuccessMessage(String home) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-home-success").getString()).replace("{home}", home));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-home-success")).replace("{home}", home));
     }
 
     public Component getPlayerSetOwnerSuccessMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-set-owner-success").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-set-owner-success")).replace("{player}", player));
     }
 
     public Component getPlayerAlreadyOwnerMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-already-owner").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-already-owner")).replace("{player}", player));
     }
 
     public Component getPlayerCannotLeaveAsOwnerMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-cannot-leave-as-owner").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-cannot-leave-as-owner"));
     }
 
     public Component getPlayerLeaveSuccessMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-leave-success").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-leave-success"));
     }
 
     public Component getPlayerExpelSuccessMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-expel-success").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-expel-success")).replace("{player}", player));
     }
 
     public Component getPlayerCannotExpelIslandPlayerMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-cannot-expel-island-player").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-cannot-expel-island-player"));
     }
 
     public Component getPlayerBanSuccessMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-ban-success").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-ban-success")).replace("{player}", player));
     }
 
     public Component getPlayerUnbanSuccessMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-unban-success").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-unban-success")).replace("{player}", player));
     }
 
     public Component getPlayerAlreadyBannedMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-already-banned").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-already-banned")).replace("{player}", player));
     }
 
     public Component getPlayerNotBannedMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-not-banned").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-not-banned")).replace("{player}", player));
     }
 
     public Component getPlayerCannotBanIslandPlayerMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-cannot-ban-island-player").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-cannot-ban-island-player"));
     }
 
     public Component getPlayerCoopSuccessMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-coop-success").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-coop-success")).replace("{player}", player));
     }
 
     public Component getPlayerUncoopSuccessMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-uncoop-success").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-uncoop-success")).replace("{player}", player));
     }
 
     public Component getPlayerAlreadyCoopedMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-already-cooped").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-already-cooped")).replace("{player}", player));
     }
 
     public Component getPlayerNotCoopedMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-not-cooped").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-not-cooped")).replace("{player}", player));
     }
 
     public Component getPlayerCannotCoopIslandPlayerMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-cannot-coop-island-player").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-cannot-coop-island-player"));
     }
 
     public Component getPlayerNoItemInHandMessage() {
-        return ColorUtils.colorize(messages.node("messages", "no-item-in-hand").getString());
+        return ColorUtils.colorize(messages.getString("messages.no-item-in-hand"));
     }
 
     public Component getPlayerBlockValueCommandMessage(String block, int value) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "block-value").getString()).replace("{block}", block).replace("{value}", String.valueOf(value)));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.block-value")).replace("{block}", block).replace("{value}", String.valueOf(value)));
     }
 
     public Component getPlayerNotOnlineMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-not-online").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-not-online")).replace("{player}", player));
     }
 
     public Component getPlayerLobbySuccessMessage() {
-        return ColorUtils.colorize(messages.node("messages", "player-lobby-success").getString());
+        return ColorUtils.colorize(messages.getString("messages.player-lobby-success"));
     }
 
     // Info
     public Component getIslandInfoHeaderMessage() {
-        return ColorUtils.colorize(messages.node("messages", "island-info-header").getString());
+        return ColorUtils.colorize(messages.getString("messages.island-info-header"));
     }
 
     public Component getIslandInfoUUIDMessage(UUID islandUuid) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "island-info-uuid").getString()).replace("{island_uuid}", islandUuid.toString()));
+        return ColorUtils.colorize(Objects.requireNonNull(Objects.requireNonNull(messages.getString("messages.island-info-uuid")).replace("{island_uuid}", islandUuid.toString())));
     }
 
     public Component getIslandInfoLevelMessage(int level) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "island-info-level").getString()).replace("{level}", String.valueOf(level)));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-level")).replace("{level}", String.valueOf(level)));
     }
 
     public Component getIslandInfoOwnerMessage(String owner) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "island-info-owner").getString()).replace("{owner}", owner));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-owner")).replace("{owner}", owner));
     }
 
     public Component getIslandInfoMembersMessage(String members) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "island-info-members").getString()).replace("{members}", members));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-members")).replace("{members}", members));
     }
 
     public Component getIslandInfoNoMembersMessage() {
-        return ColorUtils.colorize(messages.node("messages", "island-info-no-members").getString());
+        return ColorUtils.colorize(messages.getString("messages.island-info-no-members"));
     }
 
     // Top
     public Component getTopIslandsHeaderMessage() {
-        return ColorUtils.colorize(messages.node("messages", "top-islands-header").getString());
+        return ColorUtils.colorize(messages.getString("messages.top-islands-header"));
     }
 
     public Component getTopIslandMessage(int rank, String owner, String members, int level) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "top-islands-message").getString()).replace("{rank}", String.valueOf(rank)).replace("{owner}", owner).replace("{members}", members).replace("{level}", String.valueOf(level)));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.top-islands-message")).replace("{rank}", String.valueOf(rank)).replace("{owner}", owner).replace("{members}", members).replace("{level}", String.valueOf(level)));
     }
 
     public Component getNoIslandsFoundMessage() {
-        return ColorUtils.colorize(messages.node("messages", "top-islands-no-island").getString());
+        return ColorUtils.colorize(messages.getString("messages.top-islands-no-island"));
     }
 
     // Ban
     public Component getBannedPlayersHeaderMessage() {
-        return ColorUtils.colorize(messages.node("messages", "banned-players-header").getString());
+        return ColorUtils.colorize(messages.getString("messages.banned-players-header"));
     }
 
     public Component getBannedPlayerMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "banned-player-message").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.banned-player-message")).replace("{player}", player));
     }
 
     public Component getNoBannedPlayersMessage() {
-        return ColorUtils.colorize(messages.node("messages", "banned-player-no-banned").getString());
+        return ColorUtils.colorize(messages.getString("messages.banned-player-no-banned"));
     }
 
     // Coop
     public Component getCoopedPlayersHeaderMessage() {
-        return ColorUtils.colorize(messages.node("messages", "cooped-players-header").getString());
+        return ColorUtils.colorize(messages.getString("messages.cooped-players-header"));
     }
 
     public Component getCoopedPlayerMessage(String player) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "cooped-player-message").getString()).replace("{player}", player));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.cooped-player-message")).replace("{player}", player));
     }
 
     public Component getNoCoopedPlayersMessage() {
-        return ColorUtils.colorize(messages.node("messages", "cooped-player-no-cooped").getString());
+        return ColorUtils.colorize(messages.getString("messages.cooped-player-no-cooped"));
     }
 
     // Help
     public Component getPlayerHelpHeader() {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-help-header").getString()));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-help-header")));
     }
 
     public Component getPlayerHelpEntry(String command, String syntax, String description) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-help-entry").getString()).replace("{command}", command).replace("{syntax}", syntax).replace("{description}", description));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-help-entry")).replace("{command}", command).replace("{syntax}", syntax).replace("{description}", description));
     }
 
     public Component getPlayerHelpFooter(int page, int total) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "player-help-footer").getString()).replace("{prev}", String.valueOf(page - 1)).replace("{next}", String.valueOf(page + 1)).replace("{page}", String.valueOf(page)).replace("{total}", String.valueOf(total)));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-help-footer")).replace("{prev}", String.valueOf(page - 1)).replace("{next}", String.valueOf(page + 1)).replace("{page}", String.valueOf(page)).replace("{total}", String.valueOf(total)));
     }
 
     public Component getAdminHelpHeader() {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-help-header").getString()));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-help-header")));
     }
 
     public Component getAdminHelpEntry(String command, String syntax, String description) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-help-entry").getString()).replace("{command}", command).replace("{syntax}", syntax).replace("{description}", description));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-help-entry")).replace("{command}", command).replace("{syntax}", syntax).replace("{description}", description));
     }
 
     public Component getAdminHelpFooter(int page, int total) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.node("messages", "admin-help-footer").getString()).replace("{prev}", String.valueOf(page - 1)).replace("{next}", String.valueOf(page + 1)).replace("{page}", String.valueOf(page)).replace("{total}", String.valueOf(total)));
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-help-footer")).replace("{prev}", String.valueOf(page - 1)).replace("{next}", String.valueOf(page + 1)).replace("{page}", String.valueOf(page)).replace("{total}", String.valueOf(total)));
     }
-
 }
