@@ -1,7 +1,5 @@
 package org.me.newsky.command.admin;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
@@ -14,6 +12,7 @@ import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -65,10 +64,20 @@ public class AdminAddMemberCommand implements SubCommand, TabComplete {
         String targetMemberName = args[1];
         String islandOwnerName = args[2];
 
-        OfflinePlayer targetMember = Bukkit.getOfflinePlayer(targetMemberName);
-        OfflinePlayer islandOwner = Bukkit.getOfflinePlayer(islandOwnerName);
-        UUID targetMemberUuid = targetMember.getUniqueId();
-        UUID islandOwnerUuid = islandOwner.getUniqueId();
+        Optional<UUID> targetMemberUuidOpt = api.getPlayerUuid(targetMemberName);
+        if (targetMemberUuidOpt.isEmpty()) {
+            sender.sendMessage(config.getUnknownPlayerMessage(targetMemberName));
+            return true;
+        }
+
+        Optional<UUID> islandOwnerUuidOpt = api.getPlayerUuid(islandOwnerName);
+        if (islandOwnerUuidOpt.isEmpty()) {
+            sender.sendMessage(config.getUnknownPlayerMessage(islandOwnerName));
+            return true;
+        }
+
+        UUID targetMemberUuid = targetMemberUuidOpt.get();
+        UUID islandOwnerUuid = islandOwnerUuidOpt.get();
 
         UUID islandUuid;
         try {

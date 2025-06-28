@@ -1,7 +1,5 @@
 package org.me.newsky.command.admin;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
@@ -13,6 +11,7 @@ import org.me.newsky.exceptions.IslandNotLoadedException;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -62,8 +61,13 @@ public class AdminUnloadCommand implements SubCommand, TabComplete {
         }
 
         String targetPlayerName = args[1];
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
-        UUID targetUuid = targetPlayer.getUniqueId();
+
+        Optional<UUID> targetUuidOpt = api.getPlayerUuid(targetPlayerName);
+        if (targetUuidOpt.isEmpty()) {
+            sender.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
+            return true;
+        }
+        UUID targetUuid = targetUuidOpt.get();
 
         UUID islandUuid;
         try {

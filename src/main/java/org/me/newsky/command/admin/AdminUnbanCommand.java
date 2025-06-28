@@ -1,7 +1,5 @@
 package org.me.newsky.command.admin;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
@@ -11,10 +9,7 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerNotBannedException;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -65,10 +60,19 @@ public class AdminUnbanCommand implements SubCommand, TabComplete {
         String islandOwnerName = args[1];
         String banPlayerName = args[2];
 
-        OfflinePlayer islandOwner = Bukkit.getOfflinePlayer(islandOwnerName);
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(banPlayerName);
-        UUID islandOwnerUuid = islandOwner.getUniqueId();
-        UUID targetPlayerUuid = targetPlayer.getUniqueId();
+        Optional<UUID> ownerUuidOpt = api.getPlayerUuid(islandOwnerName);
+        if (ownerUuidOpt.isEmpty()) {
+            sender.sendMessage(config.getUnknownPlayerMessage(islandOwnerName));
+            return true;
+        }
+        UUID islandOwnerUuid = ownerUuidOpt.get();
+
+        Optional<UUID> targetUuidOpt = api.getPlayerUuid(banPlayerName);
+        if (targetUuidOpt.isEmpty()) {
+            sender.sendMessage(config.getUnknownPlayerMessage(banPlayerName));
+            return true;
+        }
+        UUID targetPlayerUuid = targetUuidOpt.get();
 
         UUID islandUuid;
         try {
@@ -103,15 +107,14 @@ public class AdminUnbanCommand implements SubCommand, TabComplete {
         }
 
         if (args.length == 3) {
+            Optional<UUID> ownerUuidOpt = api.getPlayerUuid(args[1]);
+            if (ownerUuidOpt.isEmpty()) return Collections.emptyList();
+
             try {
-                OfflinePlayer owner = Bukkit.getOfflinePlayer(args[1]);
-                UUID islandUuid = api.getIslandUuid(owner.getUniqueId());
+                UUID islandUuid = api.getIslandUuid(ownerUuidOpt.get());
                 Set<UUID> banned = api.getBannedPlayers(islandUuid);
                 String prefix = args[2].toLowerCase();
-                return banned.stream().map(uuid -> {
-                    OfflinePlayer op = Bukkit.getOfflinePlayer(uuid);
-                    return op.getName() != null ? op.getName() : uuid.toString();
-                }).filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+                return banned.stream().map(uuid -> api.getPlayerName(uuid).orElse(uuid.toString())).filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
             } catch (Exception e) {
                 return Collections.emptyList();
             }

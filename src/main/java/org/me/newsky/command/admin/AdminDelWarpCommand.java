@@ -1,7 +1,5 @@
 package org.me.newsky.command.admin;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
@@ -13,6 +11,7 @@ import org.me.newsky.exceptions.WarpDoesNotExistException;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -64,10 +63,16 @@ public class AdminDelWarpCommand implements SubCommand, TabComplete {
         String warpPlayerName = args[1];
         String warpName = args[2];
 
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(warpPlayerName);
-        UUID targetUuid = targetPlayer.getUniqueId();
+        Optional<UUID> targetUuidOpt = api.getPlayerUuid(warpPlayerName);
+        if (targetUuidOpt.isEmpty()) {
+            sender.sendMessage(config.getUnknownPlayerMessage(warpPlayerName));
+            return true;
+        }
+        UUID targetUuid = targetUuidOpt.get();
 
-        api.delWarp(targetUuid, warpName).thenRun(() -> sender.sendMessage(config.getAdminDelWarpSuccessMessage(warpPlayerName, warpName))).exceptionally(ex -> {
+        api.delWarp(targetUuid, warpName).thenRun(() ->
+                sender.sendMessage(config.getAdminDelWarpSuccessMessage(warpPlayerName, warpName))
+        ).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 sender.sendMessage(config.getAdminNoIslandMessage(warpPlayerName));
@@ -87,16 +92,17 @@ public class AdminDelWarpCommand implements SubCommand, TabComplete {
     public List<String> tabComplete(CommandSender sender, String label, String[] args) {
         if (args.length == 2) {
             String prefix = args[1].toLowerCase();
-            return api.getOnlinePlayers().stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+            return api.getOnlinePlayers().stream()
+                    .filter(name -> name.toLowerCase().startsWith(prefix))
+                    .collect(Collectors.toList());
         }
 
         if (args.length == 3) {
-            try {
-                OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(args[1]);
-                UUID uuid = targetPlayer.getUniqueId();
-                return api.getWarpNames(uuid).stream().filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase())).collect(Collectors.toList());
-            } catch (Exception e) {
-                return Collections.emptyList();
+            Optional<UUID> uuidOpt = api.getPlayerUuid(args[1]);
+            if (uuidOpt.isPresent()) {
+                return api.getWarpNames(uuidOpt.get()).stream()
+                        .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
+                        .collect(Collectors.toList());
             }
         }
 

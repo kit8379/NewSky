@@ -1,7 +1,5 @@
 package org.me.newsky.command.admin;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
@@ -14,6 +12,7 @@ import org.me.newsky.exceptions.PlayerAlreadyBannedException;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -65,10 +64,20 @@ public class AdminBanCommand implements SubCommand, TabComplete {
         String islandOwnerName = args[1];
         String banPlayerName = args[2];
 
-        OfflinePlayer islandOwner = Bukkit.getOfflinePlayer(islandOwnerName);
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(banPlayerName);
-        UUID islandOwnerUuid = islandOwner.getUniqueId();
-        UUID targetPlayerUuid = targetPlayer.getUniqueId();
+        Optional<UUID> islandOwnerUuidOpt = api.getPlayerUuid(islandOwnerName);
+        if (islandOwnerUuidOpt.isEmpty()) {
+            sender.sendMessage(config.getUnknownPlayerMessage(islandOwnerName));
+            return true;
+        }
+
+        Optional<UUID> targetPlayerUuidOpt = api.getPlayerUuid(banPlayerName);
+        if (targetPlayerUuidOpt.isEmpty()) {
+            sender.sendMessage(config.getUnknownPlayerMessage(banPlayerName));
+            return true;
+        }
+
+        UUID islandOwnerUuid = islandOwnerUuidOpt.get();
+        UUID targetPlayerUuid = targetPlayerUuidOpt.get();
 
         UUID islandUuid;
         try {
@@ -101,12 +110,16 @@ public class AdminBanCommand implements SubCommand, TabComplete {
     public List<String> tabComplete(CommandSender sender, String label, String[] args) {
         if (args.length == 2) {
             String prefix = args[1].toLowerCase();
-            return api.getOnlinePlayers().stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+            return api.getOnlinePlayers().stream()
+                    .filter(name -> name.toLowerCase().startsWith(prefix))
+                    .collect(Collectors.toList());
         }
 
         if (args.length == 3) {
             String prefix = args[2].toLowerCase();
-            return api.getOnlinePlayers().stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+            return api.getOnlinePlayers().stream()
+                    .filter(name -> name.toLowerCase().startsWith(prefix))
+                    .collect(Collectors.toList());
         }
 
         return Collections.emptyList();

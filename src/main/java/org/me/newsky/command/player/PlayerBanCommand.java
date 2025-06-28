@@ -1,7 +1,5 @@
 package org.me.newsky.command.player;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
@@ -15,6 +13,7 @@ import org.me.newsky.exceptions.PlayerAlreadyBannedException;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -68,11 +67,15 @@ public class PlayerBanCommand implements SubCommand, TabComplete {
             return false;
         }
 
-        String targetPlayerName = args[1];
-
+        String targetNameInput = args[1];
         UUID playerUuid = player.getUniqueId();
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
-        UUID targetPlayerUuid = targetPlayer.getUniqueId();
+
+        Optional<UUID> targetUuidOpt = api.getPlayerUuid(targetNameInput);
+        if (targetUuidOpt.isEmpty()) {
+            player.sendMessage(config.getUnknownPlayerMessage(targetNameInput));
+            return true;
+        }
+        UUID targetUuid = targetUuidOpt.get();
 
         UUID islandUuid;
         try {
@@ -82,18 +85,21 @@ public class PlayerBanCommand implements SubCommand, TabComplete {
             return true;
         }
 
-        api.banPlayer(islandUuid, targetPlayerUuid).thenRun(() -> {
-            player.sendMessage(config.getPlayerBanSuccessMessage(targetPlayerName));
-            api.sendMessage(targetPlayerUuid, config.getWasBannedFromIslandMessage(player.getName()));
+        api.banPlayer(islandUuid, targetUuid).thenRun(() -> {
+            String targetName = api.getPlayerName(targetUuid).orElse(targetUuid.toString());
+            player.sendMessage(config.getPlayerBanSuccessMessage(targetName));
+            api.sendMessage(targetUuid, config.getWasBannedFromIslandMessage(player.getName()));
         }).exceptionally(ex -> {
+            String targetName = api.getPlayerName(targetUuid).orElse(targetUuid.toString());
             Throwable cause = ex.getCause();
+
             if (cause instanceof PlayerAlreadyBannedException) {
-                player.sendMessage(config.getPlayerAlreadyBannedMessage(targetPlayerName));
+                player.sendMessage(config.getPlayerAlreadyBannedMessage(targetName));
             } else if (cause instanceof CannotBanIslandPlayerException) {
                 player.sendMessage(config.getPlayerCannotBanIslandPlayerMessage());
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());
-                plugin.severe("Error banning player " + targetPlayerName + " from island of player " + player.getName(), ex);
+                plugin.severe("Error banning player " + targetName + " from island of " + player.getName(), ex);
             }
             return null;
         });

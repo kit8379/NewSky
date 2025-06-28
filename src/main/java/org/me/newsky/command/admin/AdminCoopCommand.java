@@ -1,7 +1,5 @@
 package org.me.newsky.command.admin;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
@@ -14,6 +12,7 @@ import org.me.newsky.exceptions.PlayerAlreadyCoopedException;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -65,10 +64,20 @@ public class AdminCoopCommand implements SubCommand, TabComplete {
         String ownerName = args[1];
         String targetName = args[2];
 
-        OfflinePlayer owner = Bukkit.getOfflinePlayer(ownerName);
-        OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
-        UUID ownerUuid = owner.getUniqueId();
-        UUID targetUuid = target.getUniqueId();
+        Optional<UUID> ownerUuidOpt = api.getPlayerUuid(ownerName);
+        if (ownerUuidOpt.isEmpty()) {
+            sender.sendMessage(config.getUnknownPlayerMessage(ownerName));
+            return true;
+        }
+
+        Optional<UUID> targetUuidOpt = api.getPlayerUuid(targetName);
+        if (targetUuidOpt.isEmpty()) {
+            sender.sendMessage(config.getUnknownPlayerMessage(targetName));
+            return true;
+        }
+
+        UUID ownerUuid = ownerUuidOpt.get();
+        UUID targetUuid = targetUuidOpt.get();
 
         UUID islandUuid;
         try {

@@ -1,7 +1,5 @@
 package org.me.newsky.command.admin;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
@@ -13,6 +11,7 @@ import org.me.newsky.exceptions.IslandDoesNotExistException;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -64,10 +63,14 @@ public class AdminDelHomeCommand implements SubCommand, TabComplete {
         String homePlayerName = args[1];
         String homeName = args[2];
 
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(homePlayerName);
-        UUID targetUuid = targetPlayer.getUniqueId();
+        Optional<UUID> targetUuidOpt = api.getPlayerUuid(homePlayerName);
+        if (targetUuidOpt.isEmpty()) {
+            sender.sendMessage(config.getUnknownPlayerMessage(homePlayerName));
+            return true;
+        }
+        UUID targetUuid = targetUuidOpt.get();
 
-        if ("default".equals(homeName)) {
+        if ("default".equalsIgnoreCase(homeName)) {
             sender.sendMessage(config.getAdminCannotDeleteDefaultHomeMessage(homePlayerName));
             return true;
         }
@@ -96,12 +99,9 @@ public class AdminDelHomeCommand implements SubCommand, TabComplete {
         }
 
         if (args.length == 3) {
-            try {
-                OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(args[1]);
-                UUID uuid = targetPlayer.getUniqueId();
-                return api.getHomeNames(uuid).stream().filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase())).collect(Collectors.toList());
-            } catch (Exception e) {
-                return Collections.emptyList();
+            Optional<UUID> uuidOpt = api.getPlayerUuid(args[1]);
+            if (uuidOpt.isPresent()) {
+                return api.getHomeNames(uuidOpt.get()).stream().filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase())).collect(Collectors.toList());
             }
         }
 

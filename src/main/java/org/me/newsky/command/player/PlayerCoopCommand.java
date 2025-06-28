@@ -1,7 +1,5 @@
 package org.me.newsky.command.player;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
@@ -15,6 +13,7 @@ import org.me.newsky.exceptions.PlayerAlreadyCoopedException;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -69,15 +68,20 @@ public class PlayerCoopCommand implements SubCommand, TabComplete {
         }
 
         String targetPlayerName = args[1];
+        UUID playerUuid = player.getUniqueId();
+
+        Optional<UUID> targetUuidOpt = api.getPlayerUuid(targetPlayerName);
+        if (targetUuidOpt.isEmpty()) {
+            player.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
+            return true;
+        }
+
+        UUID targetUuid = targetUuidOpt.get();
 
         if (!api.getOnlinePlayers().contains(targetPlayerName)) {
             player.sendMessage(config.getPlayerNotOnlineMessage(targetPlayerName));
             return true;
         }
-
-        UUID playerUuid = player.getUniqueId();
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
-        UUID targetPlayerUuid = targetPlayer.getUniqueId();
 
         UUID islandUuid;
         try {
@@ -87,9 +91,9 @@ public class PlayerCoopCommand implements SubCommand, TabComplete {
             return true;
         }
 
-        api.addCoop(islandUuid, targetPlayerUuid).thenRun(() -> {
+        api.addCoop(islandUuid, targetUuid).thenRun(() -> {
             player.sendMessage(config.getPlayerCoopSuccessMessage(targetPlayerName));
-            api.sendMessage(targetPlayerUuid, config.getWasCoopedToIslandMessage(player.getName()));
+            api.sendMessage(targetUuid, config.getWasCoopedToIslandMessage(player.getName()));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof PlayerAlreadyCoopedException) {

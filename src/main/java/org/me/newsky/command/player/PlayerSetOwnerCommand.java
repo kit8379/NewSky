@@ -1,7 +1,5 @@
 package org.me.newsky.command.player;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
@@ -13,10 +11,7 @@ import org.me.newsky.exceptions.AlreadyOwnerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -66,13 +61,18 @@ public class PlayerSetOwnerCommand implements SubCommand, TabComplete {
         }
 
         if (args.length < 2) {
-            return false; // show usage
+            return false;
         }
 
         String targetPlayerName = args[1];
         UUID playerUuid = player.getUniqueId();
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
-        UUID targetPlayerUuid = targetPlayer.getUniqueId();
+
+        Optional<UUID> targetUuidOpt = api.getPlayerUuid(targetPlayerName);
+        if (targetUuidOpt.isEmpty()) {
+            player.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
+            return true;
+        }
+        UUID targetPlayerUuid = targetUuidOpt.get();
 
         UUID islandUuid;
         try {
@@ -105,10 +105,7 @@ public class PlayerSetOwnerCommand implements SubCommand, TabComplete {
                 UUID islandUuid = api.getIslandUuid(player.getUniqueId());
                 Set<UUID> members = api.getIslandMembers(islandUuid);
                 String prefix = args[1].toLowerCase();
-                return members.stream().map(uuid -> {
-                    OfflinePlayer op = Bukkit.getOfflinePlayer(uuid);
-                    return op.getName() != null ? op.getName() : uuid.toString();
-                }).filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+                return members.stream().map(uuid -> api.getPlayerName(uuid).orElse(uuid.toString())).filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
             } catch (Exception e) {
                 return Collections.emptyList();
             }

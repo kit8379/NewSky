@@ -1,7 +1,5 @@
 package org.me.newsky.command.admin;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
@@ -13,6 +11,7 @@ import org.me.newsky.exceptions.NoActiveServerException;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -63,8 +62,13 @@ public class AdminCreateIslandCommand implements SubCommand, TabComplete {
 
         String targetPlayerName = args[1];
 
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
-        UUID targetUuid = targetPlayer.getUniqueId();
+        Optional<UUID> targetUuidOpt = api.getPlayerUuid(targetPlayerName);
+        if (targetUuidOpt.isEmpty()) {
+            sender.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
+            return true;
+        }
+
+        UUID targetUuid = targetUuidOpt.get();
 
         api.createIsland(targetUuid).thenRun(() -> sender.sendMessage(config.getAdminCreateSuccessMessage(targetPlayerName))).exceptionally(ex -> {
             Throwable cause = ex.getCause();
@@ -86,7 +90,9 @@ public class AdminCreateIslandCommand implements SubCommand, TabComplete {
     public List<String> tabComplete(CommandSender sender, String label, String[] args) {
         if (args.length == 2) {
             String prefix = args[1].toLowerCase();
-            return api.getOnlinePlayers().stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+            return api.getOnlinePlayers().stream()
+                    .filter(name -> name.toLowerCase().startsWith(prefix))
+                    .collect(Collectors.toList());
         }
         return Collections.emptyList();
     }

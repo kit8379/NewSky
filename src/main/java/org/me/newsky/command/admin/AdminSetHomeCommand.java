@@ -1,8 +1,6 @@
 package org.me.newsky.command.admin;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
@@ -13,10 +11,7 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -72,8 +67,13 @@ public class AdminSetHomeCommand implements SubCommand, TabComplete {
         String homePlayerName = args[1];
         String homeName = args[2];
 
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(homePlayerName);
-        UUID targetUuid = targetPlayer.getUniqueId();
+        Optional<UUID> targetUuidOpt = api.getPlayerUuid(homePlayerName);
+        if (targetUuidOpt.isEmpty()) {
+            sender.sendMessage(config.getUnknownPlayerMessage(homePlayerName));
+            return true;
+        }
+
+        UUID targetUuid = targetUuidOpt.get();
         Location loc = player.getLocation();
 
         api.setHome(targetUuid, homeName, loc).thenRun(() -> sender.sendMessage(config.getAdminSetHomeSuccessMessage(homePlayerName, homeName))).exceptionally(ex -> {
@@ -100,14 +100,12 @@ public class AdminSetHomeCommand implements SubCommand, TabComplete {
         }
 
         if (args.length == 3) {
-            try {
-                OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(args[1]);
-                Set<String> homes = api.getHomeNames(targetPlayer.getUniqueId());
-                String prefix = args[2].toLowerCase();
-                return homes.stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
-            } catch (Exception e) {
-                return Collections.emptyList();
-            }
+            Optional<UUID> uuidOpt = api.getPlayerUuid(args[1]);
+            if (uuidOpt.isEmpty()) return Collections.emptyList();
+
+            Set<String> homes = api.getHomeNames(uuidOpt.get());
+            String prefix = args[2].toLowerCase();
+            return homes.stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
         }
 
         return Collections.emptyList();

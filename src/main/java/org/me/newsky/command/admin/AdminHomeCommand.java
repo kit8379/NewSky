@@ -1,7 +1,5 @@
 package org.me.newsky.command.admin;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
@@ -13,10 +11,7 @@ import org.me.newsky.exceptions.HomeDoesNotExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.NoActiveServerException;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -68,10 +63,14 @@ public class AdminHomeCommand implements SubCommand, TabComplete {
         String homeName = (args.length >= 3) ? args[2] : "default";
         String teleportPlayerName = (args.length >= 4) ? args[3] : null;
 
-        OfflinePlayer homePlayer = Bukkit.getOfflinePlayer(homePlayerName);
-        UUID homePlayerUuid = homePlayer.getUniqueId();
-        UUID teleportPlayerUuid;
+        Optional<UUID> homePlayerUuidOpt = api.getPlayerUuid(homePlayerName);
+        if (homePlayerUuidOpt.isEmpty()) {
+            sender.sendMessage(config.getUnknownPlayerMessage(homePlayerName));
+            return true;
+        }
+        UUID homePlayerUuid = homePlayerUuidOpt.get();
 
+        UUID teleportPlayerUuid;
         if (teleportPlayerName == null) {
             if (!(sender instanceof Player player)) {
                 sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
@@ -79,8 +78,12 @@ public class AdminHomeCommand implements SubCommand, TabComplete {
             }
             teleportPlayerUuid = player.getUniqueId();
         } else {
-            OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(teleportPlayerName);
-            teleportPlayerUuid = targetPlayer.getUniqueId();
+            Optional<UUID> teleportPlayerUuidOpt = api.getPlayerUuid(teleportPlayerName);
+            if (teleportPlayerUuidOpt.isEmpty()) {
+                sender.sendMessage(config.getUnknownPlayerMessage(teleportPlayerName));
+                return true;
+            }
+            teleportPlayerUuid = teleportPlayerUuidOpt.get();
         }
 
         api.home(homePlayerUuid, homeName, teleportPlayerUuid).thenRun(() -> sender.sendMessage(config.getAdminHomeSuccessMessage(homePlayerName, homeName))).exceptionally(ex -> {
@@ -109,13 +112,11 @@ public class AdminHomeCommand implements SubCommand, TabComplete {
         }
 
         if (args.length == 3) {
-            try {
-                OfflinePlayer target = Bukkit.getOfflinePlayer(args[1]);
-                Set<String> homes = api.getHomeNames(target.getUniqueId());
+            Optional<UUID> uuidOpt = api.getPlayerUuid(args[1]);
+            if (uuidOpt.isPresent()) {
+                Set<String> homes = api.getHomeNames(uuidOpt.get());
                 String prefix = args[2].toLowerCase();
                 return homes.stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
-            } catch (Exception e) {
-                return Collections.emptyList();
             }
         }
 

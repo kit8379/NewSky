@@ -1,7 +1,5 @@
 package org.me.newsky.command.admin;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
@@ -61,8 +59,14 @@ public class AdminDeleteIslandCommand implements SubCommand, TabComplete {
         }
 
         String targetPlayerName = args[1];
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
-        UUID targetUuid = targetPlayer.getUniqueId();
+
+        Optional<UUID> targetUuidOpt = api.getPlayerUuid(targetPlayerName);
+        if (targetUuidOpt.isEmpty()) {
+            sender.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
+            return true;
+        }
+
+        UUID targetUuid = targetUuidOpt.get();
 
         if (!confirmationTimes.containsKey(targetUuid) || System.currentTimeMillis() - confirmationTimes.get(targetUuid) >= 15000) {
             confirmationTimes.put(targetUuid, System.currentTimeMillis());

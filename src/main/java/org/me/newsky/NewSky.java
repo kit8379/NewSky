@@ -29,6 +29,7 @@ import org.me.newsky.scheduler.LevelUpdateScheduler;
 import org.me.newsky.scheduler.MSPTUpdateScheduler;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.thread.BukkitAsyncExecutor;
+import org.me.newsky.uuid.UuidHandler;
 import org.me.newsky.world.WorldHandler;
 
 import java.lang.reflect.Constructor;
@@ -152,6 +153,7 @@ public class NewSky extends JavaPlugin {
             CoopHandler coopHandler = new CoopHandler(this, cache);
             LobbyHandler lobbyHandler = new LobbyHandler(this, config, islandDistributor);
             MessageHandler messageHandler = new MessageHandler(this, islandDistributor);
+            UuidHandler uuidHandler = new UuidHandler(this, cache);
             info("All main handlers loaded");
 
             info("Starting plugin messaging");
@@ -165,7 +167,7 @@ public class NewSky extends JavaPlugin {
             info("All schedulers loaded");
 
             info("Starting API");
-            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, messageHandler);
+            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, messageHandler, uuidHandler);
             info("API loaded");
 
             info("Starting listeners and commands");
@@ -205,6 +207,7 @@ public class NewSky extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new IslandProtectionListener(this, config, cache), this);
         getServer().getPluginManager().registerEvents(new IslandAccessListener(this, config, cache), this);
         getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config, cache), this);
+        getServer().getPluginManager().registerEvents(new UuidUpdateListener(this, cache), this);
     }
 
     private void registerCommands() {

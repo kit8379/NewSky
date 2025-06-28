@@ -35,15 +35,15 @@ public class CacheBroker {
                     JSONObject json = new JSONObject(message);
                     String source = json.getString("source");
                     String type = json.getString("type");
-                    String island = json.getString("island");
+                    String uuid = json.getString("uuid");
 
                     if (serverID.equals(source)) {
                         plugin.debug("CacheBroker", "Ignoring cache update message because it is from the same server: " + source);
                         return;
                     }
 
-                    plugin.debug("CacheBroker", "Handling update type " + type + " for island " + island + " from server " + source);
-                    handleUpdate(type, UUID.fromString(island));
+                    plugin.debug("CacheBroker", "Handling update type " + type + " from server " + source);
+                    handleUpdate(type, UUID.fromString(uuid));
                 } catch (Exception e) {
                     plugin.severe("CacheBroker failed to process message: " + message, e);
                 }
@@ -61,49 +61,52 @@ public class CacheBroker {
         }
     }
 
-    public void publishUpdate(String type, UUID islandUuid) {
+    public void publishUpdate(String type, UUID uuid) {
         try {
             JSONObject json = new JSONObject();
             json.put("source", serverID);
             json.put("type", type);
-            json.put("island", islandUuid.toString());
+            json.put("uuid", uuid.toString());
 
-            plugin.debug("CacheBroker", "Publishing update type " + type + " for island " + islandUuid);
+            plugin.debug("CacheBroker", "Publishing update type " + type);
             redisHandler.publish(channelID, json.toString());
         } catch (Exception e) {
-            plugin.severe("CacheBroker failed to publish update for island " + islandUuid + " with type " + type, e);
+            plugin.severe("CacheBroker failed to publish update with type " + type, e);
         }
     }
 
-    private void handleUpdate(String type, UUID islandUuid) {
+    private void handleUpdate(String type, UUID uuid) {
         try {
             switch (type) {
                 case "island_data":
-                    cache.reloadIslandData(islandUuid);
+                    cache.reloadIslandData(uuid);
                     break;
                 case "island_players":
-                    cache.reloadIslandPlayers(islandUuid);
+                    cache.reloadIslandPlayers(uuid);
                     break;
                 case "island_homes":
-                    cache.reloadIslandHomes(islandUuid);
+                    cache.reloadIslandHomes(uuid);
                     break;
                 case "island_warps":
-                    cache.reloadIslandWarps(islandUuid);
+                    cache.reloadIslandWarps(uuid);
                     break;
                 case "island_bans":
-                    cache.reloadIslandBans(islandUuid);
+                    cache.reloadIslandBans(uuid);
                     break;
                 case "island_coops":
-                    cache.reloadIslandCoops(islandUuid);
+                    cache.reloadIslandCoops(uuid);
                     break;
                 case "island_levels":
-                    cache.reloadIslandLevels(islandUuid);
+                    cache.reloadIslandLevels(uuid);
+                    break;
+                case "player_uuid":
+                    cache.reloadPlayerUuid(uuid);
                     break;
                 default:
                     plugin.getLogger().warning("Unknown cache update type: " + type);
             }
         } catch (Exception e) {
-            plugin.severe("CacheBroker failed to handle update type " + type + " for island " + islandUuid, e);
+            plugin.severe("CacheBroker failed to handle update type " + type, e);
         }
     }
 }

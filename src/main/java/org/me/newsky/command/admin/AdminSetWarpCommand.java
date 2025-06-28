@@ -1,8 +1,6 @@
 package org.me.newsky.command.admin;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
@@ -13,10 +11,7 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -72,8 +67,13 @@ public class AdminSetWarpCommand implements SubCommand, TabComplete {
         String warpPlayerName = args[1];
         String warpName = args[2];
 
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(warpPlayerName);
-        UUID targetUuid = targetPlayer.getUniqueId();
+        Optional<UUID> targetUuidOpt = api.getPlayerUuid(warpPlayerName);
+        if (targetUuidOpt.isEmpty()) {
+            sender.sendMessage(config.getUnknownPlayerMessage(warpPlayerName));
+            return true;
+        }
+        UUID targetUuid = targetUuidOpt.get();
+
         Location loc = player.getLocation();
 
         api.setWarp(targetUuid, warpName, loc).thenRun(() -> sender.sendMessage(config.getAdminSetWarpSuccessMessage(warpPlayerName, warpName))).exceptionally(ex -> {
@@ -100,14 +100,12 @@ public class AdminSetWarpCommand implements SubCommand, TabComplete {
         }
 
         if (args.length == 3) {
-            try {
-                OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(args[1]);
-                Set<String> warps = api.getWarpNames(targetPlayer.getUniqueId());
-                String prefix = args[2].toLowerCase();
-                return warps.stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
-            } catch (Exception e) {
-                return Collections.emptyList();
-            }
+            Optional<UUID> uuidOpt = api.getPlayerUuid(args[1]);
+            if (uuidOpt.isEmpty()) return Collections.emptyList();
+
+            Set<String> warps = api.getWarpNames(uuidOpt.get());
+            String prefix = args[2].toLowerCase();
+            return warps.stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
         }
 
         return Collections.emptyList();

@@ -8,9 +8,6 @@ import org.me.newsky.util.ColorUtils;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class ConfigHandler {
@@ -22,64 +19,50 @@ public class ConfigHandler {
 
     public ConfigHandler(NewSky plugin) {
         this.plugin = plugin;
-        loadAndUpdate("config.yml");
-        loadAndUpdate("messages.yml");
-        loadAndUpdate("commands.yml");
-        loadAndUpdate("levels.yml");
+        loadConfigs();
+        updateConfigs();
     }
 
-    private void loadAndUpdate(String fileName) {
+    private void loadConfigs() {
+        config = loadConfig("config.yml");
+        messages = loadConfig("messages.yml");
+        commands = loadConfig("commands.yml");
+        levels = loadConfig("levels.yml");
+    }
+
+    private FileConfiguration loadConfig(String fileName) {
         File file = new File(plugin.getDataFolder(), fileName);
         if (!file.exists()) {
             plugin.saveResource(fileName, false);
         }
-
-        FileConfiguration userConfig = YamlConfiguration.loadConfiguration(file);
-        FileConfiguration defaultConfig = loadDefaultConfig(fileName);
-        if (defaultConfig == null) {
-            plugin.severe("Missing default config: " + fileName);
-            return;
-        }
-
-        YamlConfiguration rebuiltConfig = new YamlConfiguration();
-        copyDefaults(defaultConfig, userConfig, rebuiltConfig, "");
-        saveConfig(rebuiltConfig, fileName);
-
-        switch (fileName) {
-            case "config.yml" -> this.config = rebuiltConfig;
-            case "messages.yml" -> this.messages = rebuiltConfig;
-            case "commands.yml" -> this.commands = rebuiltConfig;
-            case "levels.yml" -> this.levels = rebuiltConfig;
-        }
+        return YamlConfiguration.loadConfiguration(file);
     }
 
-    private FileConfiguration loadDefaultConfig(String fileName) {
-        try (InputStream in = plugin.getResource(fileName)) {
-            if (in == null) {
-                return null;
-            }
-            return YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
-        } catch (IOException e) {
-            plugin.severe("Error loading default config: " + fileName, e);
-            return null;
-        }
+    private void updateConfigs() {
+        updateConfig(config, "config.yml");
+        updateConfig(messages, "messages.yml");
+        updateConfig(commands, "commands.yml");
+        updateConfig(levels, "levels.yml");
     }
 
-    private void copyDefaults(FileConfiguration defaultConfig, FileConfiguration userConfig, YamlConfiguration rebuiltConfig, String path) {
-        Set<String> keys = Objects.requireNonNull(defaultConfig.getConfigurationSection(path)).getKeys(false);
+    private void updateConfig(FileConfiguration config, String fileName) {
+        FileConfiguration defaultConfig = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), fileName));
+        Set<String> keys = defaultConfig.getKeys(true);
+        boolean updated = false;
+
         for (String key : keys) {
-            String fullPath = path.isEmpty() ? key : path + "." + key;
-            if (defaultConfig.isConfigurationSection(fullPath)) {
-                rebuiltConfig.createSection(fullPath);
-                copyDefaults(defaultConfig, userConfig, rebuiltConfig, fullPath);
-            } else {
-                Object value = userConfig.contains(fullPath) ? userConfig.get(fullPath) : defaultConfig.get(fullPath);
-                rebuiltConfig.set(fullPath, value);
+            if (!config.contains(key)) {
+                config.set(key, defaultConfig.get(key));
+                updated = true;
             }
+        }
+
+        if (updated) {
+            saveConfig(config, fileName);
         }
     }
 
-    private void saveConfig(FileConfiguration config, String fileName) {
+    public void saveConfig(FileConfiguration config, String fileName) {
         try {
             config.save(new File(plugin.getDataFolder(), fileName));
         } catch (IOException e) {
@@ -1182,6 +1165,10 @@ public class ConfigHandler {
 
     public Component getCannotRemoveOwnerMessage() {
         return ColorUtils.colorize(messages.getString("messages.cannot-remove-owner"));
+    }
+
+    public Component getUnknownPlayerMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.unknown-player")).replace("{player}", player));
     }
 
     public Component getUnknownExceptionMessage() {

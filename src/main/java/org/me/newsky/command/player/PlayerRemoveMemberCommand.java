@@ -1,7 +1,5 @@
 package org.me.newsky.command.player;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
@@ -13,10 +11,7 @@ import org.me.newsky.exceptions.CannotRemoveOwnerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -70,20 +65,25 @@ public class PlayerRemoveMemberCommand implements SubCommand, TabComplete {
         }
 
         String targetPlayerName = args[1];
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
-        UUID targetPlayerUuid = targetPlayer.getUniqueId();
         UUID playerUuid = player.getUniqueId();
+
+        Optional<UUID> targetUuidOpt = api.getPlayerUuid(targetPlayerName);
+        if (targetUuidOpt.isEmpty()) {
+            player.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
+            return true;
+        }
+        UUID targetPlayerUuid = targetUuidOpt.get();
+
+        if (playerUuid.equals(targetPlayerUuid)) {
+            player.sendMessage(config.getPlayerCannotRemoveSelfMessage());
+            return true;
+        }
 
         UUID islandUuid;
         try {
             islandUuid = api.getIslandUuid(playerUuid);
         } catch (IslandDoesNotExistException e) {
             player.sendMessage(config.getPlayerNoIslandMessage());
-            return true;
-        }
-
-        if (playerUuid.equals(targetPlayerUuid)) {
-            player.sendMessage(config.getPlayerCannotRemoveSelfMessage());
             return true;
         }
 
@@ -113,10 +113,7 @@ public class PlayerRemoveMemberCommand implements SubCommand, TabComplete {
                 UUID islandUuid = api.getIslandUuid(player.getUniqueId());
                 Set<UUID> members = api.getIslandMembers(islandUuid);
                 String prefix = args[1].toLowerCase();
-                return members.stream().map(uuid -> {
-                    OfflinePlayer op = Bukkit.getOfflinePlayer(uuid);
-                    return (op.getName() != null) ? op.getName() : uuid.toString();
-                }).filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+                return members.stream().map(uuid -> api.getPlayerName(uuid).orElse(uuid.toString())).filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
             } catch (Exception e) {
                 return Collections.emptyList();
             }

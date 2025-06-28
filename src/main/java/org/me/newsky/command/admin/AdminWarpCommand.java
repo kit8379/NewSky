@@ -1,7 +1,5 @@
 package org.me.newsky.command.admin;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
@@ -11,10 +9,7 @@ import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.*;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -66,10 +61,14 @@ public class AdminWarpCommand implements SubCommand, TabComplete {
         String warpName = (args.length >= 3) ? args[2] : "default";
         String teleportPlayerName = (args.length >= 4) ? args[3] : null;
 
-        OfflinePlayer warpPlayer = Bukkit.getOfflinePlayer(warpPlayerName);
-        UUID warpPlayerUuid = warpPlayer.getUniqueId();
-        UUID senderUuid;
+        Optional<UUID> warpPlayerUuidOpt = api.getPlayerUuid(warpPlayerName);
+        if (warpPlayerUuidOpt.isEmpty()) {
+            sender.sendMessage(config.getUnknownPlayerMessage(warpPlayerName));
+            return true;
+        }
+        UUID warpPlayerUuid = warpPlayerUuidOpt.get();
 
+        UUID senderUuid;
         if (teleportPlayerName == null) {
             if (!(sender instanceof Player player)) {
                 sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
@@ -77,8 +76,12 @@ public class AdminWarpCommand implements SubCommand, TabComplete {
             }
             senderUuid = player.getUniqueId();
         } else {
-            OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(teleportPlayerName);
-            senderUuid = targetPlayer.getUniqueId();
+            Optional<UUID> targetUuidOpt = api.getPlayerUuid(teleportPlayerName);
+            if (targetUuidOpt.isEmpty()) {
+                sender.sendMessage(config.getUnknownPlayerMessage(teleportPlayerName));
+                return true;
+            }
+            senderUuid = targetUuidOpt.get();
         }
 
         api.warp(warpPlayerUuid, warpName, senderUuid).thenRun(() -> sender.sendMessage(config.getWarpSuccessMessage(warpName))).exceptionally(ex -> {
@@ -111,9 +114,10 @@ public class AdminWarpCommand implements SubCommand, TabComplete {
         }
 
         if (args.length == 3) {
+            Optional<UUID> ownerUuidOpt = api.getPlayerUuid(args[1]);
+            if (ownerUuidOpt.isEmpty()) return Collections.emptyList();
             try {
-                OfflinePlayer owner = Bukkit.getOfflinePlayer(args[1]);
-                Set<String> warps = api.getWarpNames(owner.getUniqueId());
+                Set<String> warps = api.getWarpNames(ownerUuidOpt.get());
                 String prefix = args[2].toLowerCase();
                 return warps.stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
             } catch (Exception e) {
@@ -128,5 +132,4 @@ public class AdminWarpCommand implements SubCommand, TabComplete {
 
         return Collections.emptyList();
     }
-
 }

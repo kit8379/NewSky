@@ -1,7 +1,5 @@
 package org.me.newsky.command.player;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
@@ -14,6 +12,7 @@ import org.me.newsky.exceptions.IslandDoesNotExistException;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -68,14 +67,20 @@ public class PlayerExpelCommand implements SubCommand, TabComplete {
         }
 
         String targetPlayerName = args[1];
+        UUID playerUuid = player.getUniqueId();
+
         if (!api.getOnlinePlayers().contains(targetPlayerName)) {
             player.sendMessage(config.getPlayerNotOnlineMessage(targetPlayerName));
             return true;
         }
 
-        UUID playerUuid = player.getUniqueId();
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
-        UUID targetPlayerUuid = targetPlayer.getUniqueId();
+        Optional<UUID> targetUuidOpt = api.getPlayerUuid(targetPlayerName);
+        if (targetUuidOpt.isEmpty()) {
+            player.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
+            return true;
+        }
+        UUID targetPlayerUuid = targetUuidOpt.get();
+
 
         UUID islandUuid;
         try {
@@ -85,12 +90,12 @@ public class PlayerExpelCommand implements SubCommand, TabComplete {
             return true;
         }
 
-        api.expelPlayer(islandUuid, targetPlayerUuid).thenRun(() -> sender.sendMessage(config.getPlayerExpelSuccessMessage(targetPlayerName))).exceptionally(ex -> {
+        api.expelPlayer(islandUuid, targetPlayerUuid).thenRun(() -> player.sendMessage(config.getPlayerExpelSuccessMessage(targetPlayerName))).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof CannotExpelIslandPlayerException) {
-                sender.sendMessage(config.getPlayerCannotExpelIslandPlayerMessage());
+                player.sendMessage(config.getPlayerCannotExpelIslandPlayerMessage());
             } else {
-                sender.sendMessage(config.getUnknownExceptionMessage());
+                player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.severe("Failed to expel player " + targetPlayerName + " from island of player " + player.getName(), ex);
             }
             return null;

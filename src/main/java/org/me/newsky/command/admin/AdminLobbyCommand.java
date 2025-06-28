@@ -1,7 +1,5 @@
 package org.me.newsky.command.admin;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
@@ -12,6 +10,7 @@ import org.me.newsky.exceptions.NoActiveServerException;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -58,8 +57,13 @@ public class AdminLobbyCommand implements SubCommand, TabComplete {
         }
 
         String targetName = args[1];
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetName);
-        UUID targetUuid = targetPlayer.getUniqueId();
+
+        Optional<UUID> targetUuidOpt = api.getPlayerUuid(targetName);
+        if (targetUuidOpt.isEmpty()) {
+            sender.sendMessage(config.getUnknownPlayerMessage(targetName));
+            return true;
+        }
+        UUID targetUuid = targetUuidOpt.get();
 
         api.lobby(targetUuid).thenRun(() -> sender.sendMessage(config.getAdminLobbySuccessMessage(targetName))).exceptionally(ex -> {
             Throwable cause = ex.getCause();

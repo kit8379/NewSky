@@ -1,7 +1,5 @@
 package org.me.newsky.command.player;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
@@ -11,10 +9,7 @@ import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.*;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -67,19 +62,24 @@ public class PlayerWarpCommand implements SubCommand, TabComplete {
             return false;
         }
 
-        String warpPlayerName = args[1];
+        String targetName = args[1];
         String warpName = (args.length >= 3) ? args[2] : "default";
 
         UUID playerUuid = player.getUniqueId();
-        OfflinePlayer warpPlayer = Bukkit.getOfflinePlayer(warpPlayerName);
-        UUID warpPlayerUuid = warpPlayer.getUniqueId();
 
-        api.warp(warpPlayerUuid, warpName, playerUuid).thenRun(() -> api.sendMessage(playerUuid, config.getWarpSuccessMessage(warpName))).exceptionally(ex -> {
+        Optional<UUID> targetUuidOpt = api.getPlayerUuid(targetName);
+        if (targetUuidOpt.isEmpty()) {
+            player.sendMessage(config.getUnknownPlayerMessage(targetName));
+            return true;
+        }
+        UUID targetUuid = targetUuidOpt.get();
+
+        api.warp(targetUuid, warpName, playerUuid).thenRun(() -> api.sendMessage(playerUuid, config.getWarpSuccessMessage(warpName))).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
-                player.sendMessage(config.getNoIslandMessage(warpPlayerName));
+                player.sendMessage(config.getNoIslandMessage(targetName));
             } else if (cause instanceof WarpDoesNotExistException) {
-                player.sendMessage(config.getNoWarpMessage(warpPlayerName, warpName));
+                player.sendMessage(config.getNoWarpMessage(targetName, warpName));
             } else if (cause instanceof PlayerBannedException) {
                 player.sendMessage(config.getPlayerBannedMessage());
             } else if (cause instanceof IslandLockedException) {
@@ -98,19 +98,17 @@ public class PlayerWarpCommand implements SubCommand, TabComplete {
 
     @Override
     public List<String> tabComplete(CommandSender sender, String label, String[] args) {
-        if (!(sender instanceof Player)) {
-            return Collections.emptyList();
-        }
-
         if (args.length == 2) {
             String prefix = args[1].toLowerCase();
             return api.getOnlinePlayers().stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
         }
 
         if (args.length == 3) {
+            Optional<UUID> targetUuidOpt = api.getPlayerUuid(args[1]);
+            if (targetUuidOpt.isEmpty()) return Collections.emptyList();
+
             try {
-                OfflinePlayer target = Bukkit.getOfflinePlayer(args[1]);
-                Set<String> warps = api.getWarpNames(target.getUniqueId());
+                Set<String> warps = api.getWarpNames(targetUuidOpt.get());
                 String prefix = args[2].toLowerCase();
                 return warps.stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
             } catch (Exception e) {

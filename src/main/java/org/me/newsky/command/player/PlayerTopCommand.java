@@ -1,7 +1,5 @@
 package org.me.newsky.command.player;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
@@ -87,14 +85,8 @@ public class PlayerTopCommand implements SubCommand {
                 try {
                     UUID ownerUuid = api.getIslandOwner(islandUuid);
                     Set<UUID> members = api.getIslandMembers(islandUuid);
-                    OfflinePlayer owner = Bukkit.getOfflinePlayer(ownerUuid);
-                    String ownerName = owner.getName() != null ? owner.getName() : ownerUuid.toString();
-
-                    String membersStr = members.stream().filter(uuid -> !uuid.equals(ownerUuid)).map(uuid -> {
-                        String name = Bukkit.getOfflinePlayer(uuid).getName();
-                        return name != null ? name : uuid.toString();
-                    }).reduce((a, b) -> a + ", " + b).orElse("-");
-
+                    String ownerName = api.getPlayerName(ownerUuid).orElse(ownerUuid.toString());
+                    String membersStr = members.stream().filter(uuid -> !uuid.equals(ownerUuid)).map(uuid -> api.getPlayerName(uuid).orElse(uuid.toString())).reduce((a, b) -> a + ", " + b).orElse("-");
                     player.sendMessage(config.getTopIslandMessage(rank++, ownerName, membersStr, level));
                 } catch (Exception e) {
                     player.sendMessage(config.getUnknownExceptionMessage());

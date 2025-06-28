@@ -1,7 +1,5 @@
 package org.me.newsky.command.player;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
@@ -15,6 +13,7 @@ import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -69,15 +68,19 @@ public class PlayerInviteCommand implements SubCommand, TabComplete {
         }
 
         String targetPlayerName = args[1];
+        UUID playerUuid = player.getUniqueId();
 
         if (!api.getOnlinePlayers().contains(targetPlayerName)) {
             player.sendMessage(config.getPlayerNotOnlineMessage(targetPlayerName));
             return true;
         }
 
-        UUID playerUuid = player.getUniqueId();
-        OfflinePlayer targetPlayer = Bukkit.getOfflinePlayer(targetPlayerName);
-        UUID targetPlayerUuid = targetPlayer.getUniqueId();
+        Optional<UUID> targetUuidOpt = api.getPlayerUuid(targetPlayerName);
+        if (targetUuidOpt.isEmpty()) {
+            player.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
+            return true;
+        }
+        UUID targetPlayerUuid = targetUuidOpt.get();
 
         UUID islandUuid;
         try {

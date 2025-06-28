@@ -5,6 +5,7 @@ import org.bukkit.Location;
 import org.me.newsky.NewSky;
 import org.me.newsky.island.*;
 import org.me.newsky.model.Invitation;
+import org.me.newsky.uuid.UuidHandler;
 
 import java.util.Map;
 import java.util.Optional;
@@ -24,8 +25,9 @@ public class NewSkyAPI {
     private final CoopHandler coopHandler;
     private final LobbyHandler lobbyHandler;
     private final MessageHandler messageHandler;
+    private final UuidHandler uuidHandler;
 
-    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, MessageHandler messageHandler) {
+    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, MessageHandler messageHandler, UuidHandler uuidHandler) {
         this.plugin = plugin;
         this.islandHandler = islandHandler;
         this.playerHandler = playerHandler;
@@ -36,6 +38,7 @@ public class NewSkyAPI {
         this.coopHandler = coopHandler;
         this.lobbyHandler = lobbyHandler;
         this.messageHandler = messageHandler;
+        this.uuidHandler = uuidHandler;
     }
 
 
@@ -416,5 +419,35 @@ public class NewSkyAPI {
      */
     public Set<String> getOnlinePlayers() {
         return plugin.getOnlinePlayers();
+    }
+
+    /**
+     * Updates the UUID of a player in the database.
+     *
+     * @param uuid The new UUID of the player.
+     * @param name The name of the player.
+     */
+    public void updatePlayerUuid(UUID uuid, String name) {
+        uuidHandler.updatePlayerUuid(uuid, name);
+    }
+
+    /**
+     * Gets the UUID of a player by their name.
+     *
+     * @param name The name of the player.
+     * @return An Optional containing the player's UUID if found, or empty if not found.
+     */
+    public Optional<UUID> getPlayerUuid(String name) {
+        return uuidHandler.getPlayerUuid(name);
+    }
+
+    /**
+     * Gets the name of a player by their UUID.
+     *
+     * @param uuid The UUID of the player.
+     * @return An Optional containing the player's name if found, or empty if not found.
+     */
+    public Optional<String> getPlayerName(UUID uuid) {
+        return uuidHandler.getPlayerName(uuid);
     }
 }

@@ -1,7 +1,5 @@
 package org.me.newsky.command.admin;
 
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
@@ -11,10 +9,7 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerNotCoopedException;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -65,10 +60,19 @@ public class AdminUncoopCommand implements SubCommand, TabComplete {
         String ownerName = args[1];
         String targetName = args[2];
 
-        OfflinePlayer owner = Bukkit.getOfflinePlayer(ownerName);
-        OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
-        UUID ownerUuid = owner.getUniqueId();
-        UUID targetUuid = target.getUniqueId();
+        Optional<UUID> ownerUuidOpt = api.getPlayerUuid(ownerName);
+        if (ownerUuidOpt.isEmpty()) {
+            sender.sendMessage(config.getUnknownPlayerMessage(ownerName));
+            return true;
+        }
+        UUID ownerUuid = ownerUuidOpt.get();
+
+        Optional<UUID> targetUuidOpt = api.getPlayerUuid(targetName);
+        if (targetUuidOpt.isEmpty()) {
+            sender.sendMessage(config.getUnknownPlayerMessage(targetName));
+            return true;
+        }
+        UUID targetUuid = targetUuidOpt.get();
 
         UUID islandUuid;
         try {
@@ -103,15 +107,14 @@ public class AdminUncoopCommand implements SubCommand, TabComplete {
         }
 
         if (args.length == 3) {
+            Optional<UUID> ownerUuidOpt = api.getPlayerUuid(args[1]);
+            if (ownerUuidOpt.isEmpty()) return Collections.emptyList();
+
             try {
-                OfflinePlayer owner = Bukkit.getOfflinePlayer(args[1]);
-                UUID islandUuid = api.getIslandUuid(owner.getUniqueId());
+                UUID islandUuid = api.getIslandUuid(ownerUuidOpt.get());
                 Set<UUID> coops = api.getCoopedPlayers(islandUuid);
                 String prefix = args[2].toLowerCase();
-                return coops.stream().map(uuid -> {
-                    OfflinePlayer op = Bukkit.getOfflinePlayer(uuid);
-                    return op.getName() != null ? op.getName() : uuid.toString();
-                }).filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+                return coops.stream().map(uuid -> api.getPlayerName(uuid).orElse(uuid.toString())).filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
             } catch (Exception e) {
                 return Collections.emptyList();
             }
@@ -119,5 +122,4 @@ public class AdminUncoopCommand implements SubCommand, TabComplete {
 
         return Collections.emptyList();
     }
-
 }
