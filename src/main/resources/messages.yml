@@ -82,6 +82,7 @@ messages:
   player-already-cooped: "<red><aqua>{player} <red>is already a co-op member!"
   player-not-cooped: "<red><aqua>{player} <red>is not a co-op member!"
   player-cannot-coop-island-player: "<red>You can't set an island member as a co-op member!"
+  player-info-not-in-island: "<red>You are not on any island!"
   player-lobby-success: "<green>You have been teleported to the lobby server!"
 
   # Admin Command Messages

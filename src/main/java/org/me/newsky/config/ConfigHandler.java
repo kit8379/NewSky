@@ -46,13 +46,24 @@ public class ConfigHandler {
     }
 
     private void updateConfig(FileConfiguration config, String fileName) {
-        FileConfiguration defaultConfig = YamlConfiguration.loadConfiguration(new File(plugin.getDataFolder(), fileName));
-        Set<String> keys = defaultConfig.getKeys(true);
+        File defaultFile = new File(plugin.getDataFolder(), fileName);
+        FileConfiguration defaultConfig = YamlConfiguration.loadConfiguration(defaultFile);
+        Set<String> defaultKeys = defaultConfig.getKeys(true);
+        Set<String> currentKeys = config.getKeys(true);
         boolean updated = false;
 
-        for (String key : keys) {
+        // Add new keys
+        for (String key : defaultKeys) {
             if (!config.contains(key)) {
                 config.set(key, defaultConfig.get(key));
+                updated = true;
+            }
+        }
+
+        // Remove old keys
+        for (String key : currentKeys) {
+            if (!defaultConfig.contains(key)) {
+                config.set(key, null);
                 updated = true;
             }
         }
@@ -1471,6 +1482,10 @@ public class ConfigHandler {
 
     public Component getPlayerCannotCoopIslandPlayerMessage() {
         return ColorUtils.colorize(messages.getString("messages.player-cannot-coop-island-player"));
+    }
+
+    public Component getPlayerInfoNotInIslandMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-info-not-in-island"));
     }
 
     public Component getPlayerNoItemInHandMessage() {

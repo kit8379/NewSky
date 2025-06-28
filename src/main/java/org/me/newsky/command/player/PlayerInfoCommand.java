@@ -1,5 +1,6 @@
 package org.me.newsky.command.player;
 
+import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
@@ -8,12 +9,13 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.util.IslandUtils;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * /is info [player]
+ * /island info [player]
  */
 public class PlayerInfoCommand implements SubCommand, TabComplete {
     private final NewSky plugin;
@@ -58,21 +60,29 @@ public class PlayerInfoCommand implements SubCommand, TabComplete {
             return true;
         }
 
-        UUID targetUuid;
-
-        if (args.length < 2) {
-            targetUuid = player.getUniqueId();
-        } else {
-            Optional<UUID> targetOpt = api.getPlayerUuid(args[1]);
-            if (targetOpt.isEmpty()) {
-                sender.sendMessage(config.getUnknownPlayerMessage(args[1]));
-                return true;
-            }
-            targetUuid = targetOpt.get();
-        }
-
         try {
-            UUID islandUuid = api.getIslandUuid(targetUuid);
+            UUID islandUuid;
+
+            if (args.length < 2) {
+                Location loc = player.getLocation();
+                String worldName = loc.getWorld().getName();
+
+                if (!IslandUtils.isIslandWorld(worldName)) {
+                    sender.sendMessage(config.getPlayerInfoNotInIslandMessage());
+                    return true;
+                }
+
+                islandUuid = IslandUtils.nameToUUID(worldName);
+            } else {
+                Optional<UUID> targetOpt = api.getPlayerUuid(args[1]);
+                if (targetOpt.isEmpty()) {
+                    sender.sendMessage(config.getUnknownPlayerMessage(args[1]));
+                    return true;
+                }
+
+                islandUuid = api.getIslandUuid(targetOpt.get());
+            }
+
             UUID ownerUuid = api.getIslandOwner(islandUuid);
             Set<UUID> members = api.getIslandMembers(islandUuid);
             int level = api.getIslandLevel(islandUuid);
@@ -94,7 +104,7 @@ public class PlayerInfoCommand implements SubCommand, TabComplete {
             sender.sendMessage(config.getPlayerNoIslandMessage());
         } catch (Exception ex) {
             sender.sendMessage(config.getUnknownExceptionMessage());
-            plugin.severe("Error getting island information for player " + player.getName(), ex);
+            plugin.severe("Error retrieving island info for player " + player.getName(), ex);
         }
 
         return true;
