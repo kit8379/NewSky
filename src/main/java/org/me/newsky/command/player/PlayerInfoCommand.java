@@ -1,6 +1,5 @@
 package org.me.newsky.command.player;
 
-import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
@@ -10,10 +9,7 @@ import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -62,38 +58,44 @@ public class PlayerInfoCommand implements SubCommand, TabComplete {
             return true;
         }
 
-        UUID playerUuid = (args.length < 2) ? player.getUniqueId() : Bukkit.getOfflinePlayer(args[1]).getUniqueId();
+        UUID targetUuid;
 
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            try {
-                UUID islandUuid = api.getIslandUuid(playerUuid);
-                UUID ownerUuid = api.getIslandOwner(islandUuid);
-                Set<UUID> members = api.getIslandMembers(islandUuid);
-                int level = api.getIslandLevel(islandUuid);
-
-                String ownerName = Bukkit.getOfflinePlayer(ownerUuid).getName();
-                String memberNames = members.stream().map(uuid -> {
-                    String name = Bukkit.getOfflinePlayer(uuid).getName();
-                    return (name != null) ? name : uuid.toString();
-                }).collect(Collectors.joining(", "));
-
-                sender.sendMessage(config.getIslandInfoHeaderMessage());
-                sender.sendMessage(config.getIslandInfoUUIDMessage(islandUuid));
-                sender.sendMessage(config.getIslandInfoOwnerMessage(ownerName));
-                sender.sendMessage(config.getIslandInfoLevelMessage(level));
-                if (memberNames.isEmpty()) {
-                    sender.sendMessage(config.getIslandInfoNoMembersMessage());
-                } else {
-                    sender.sendMessage(config.getIslandInfoMembersMessage(memberNames));
-                }
-
-            } catch (IslandDoesNotExistException ex) {
-                sender.sendMessage(config.getPlayerNoIslandMessage());
-            } catch (Exception ex) {
-                sender.sendMessage(config.getUnknownExceptionMessage());
-                plugin.severe("Error getting island information for player " + player.getName(), ex);
+        if (args.length < 2) {
+            targetUuid = player.getUniqueId();
+        } else {
+            Optional<UUID> targetOpt = api.getPlayerUuid(args[1]);
+            if (targetOpt.isEmpty()) {
+                sender.sendMessage(config.getUnknownPlayerMessage(args[1]));
+                return true;
             }
-        });
+            targetUuid = targetOpt.get();
+        }
+
+        try {
+            UUID islandUuid = api.getIslandUuid(targetUuid);
+            UUID ownerUuid = api.getIslandOwner(islandUuid);
+            Set<UUID> members = api.getIslandMembers(islandUuid);
+            int level = api.getIslandLevel(islandUuid);
+
+            String ownerName = api.getPlayerName(ownerUuid).orElse(ownerUuid.toString());
+            String memberNames = members.stream().map(uuid -> api.getPlayerName(uuid).orElse(uuid.toString())).collect(Collectors.joining(", "));
+
+            sender.sendMessage(config.getIslandInfoHeaderMessage());
+            sender.sendMessage(config.getIslandInfoUUIDMessage(islandUuid));
+            sender.sendMessage(config.getIslandInfoOwnerMessage(ownerName));
+            sender.sendMessage(config.getIslandInfoLevelMessage(level));
+            if (memberNames.isEmpty()) {
+                sender.sendMessage(config.getIslandInfoNoMembersMessage());
+            } else {
+                sender.sendMessage(config.getIslandInfoMembersMessage(memberNames));
+            }
+
+        } catch (IslandDoesNotExistException ex) {
+            sender.sendMessage(config.getPlayerNoIslandMessage());
+        } catch (Exception ex) {
+            sender.sendMessage(config.getUnknownExceptionMessage());
+            plugin.severe("Error getting island information for player " + player.getName(), ex);
+        }
 
         return true;
     }

@@ -1,8 +1,6 @@
 package org.me.newsky.placeholder;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
-import org.bukkit.Bukkit;
-import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.me.newsky.NewSky;
@@ -54,7 +52,9 @@ public class NewSkyPlaceholderExpansion extends PlaceholderExpansion {
         if (player == null) return null;
 
         Optional<UUID> islandUuidOpt = cache.getIslandUuid(player.getUniqueId());
-        if (islandUuidOpt.isEmpty()) return null;
+        if (islandUuidOpt.isEmpty()) {
+            return null;
+        }
 
         UUID islandUuid = islandUuidOpt.get();
         return resolvePlaceholder(islandUuid, identifier.toLowerCase());
@@ -104,14 +104,17 @@ public class NewSkyPlaceholderExpansion extends PlaceholderExpansion {
     }
 
     private String formatIndexed(Set<UUID> uuids, int index) {
-        if (index < 0 || index >= uuids.size()) return null;
+        if (index < 0 || index >= uuids.size()) {
+            return null;
+        }
         return formatUuid(new ArrayList<>(uuids).get(index));
     }
 
     private String formatUuid(UUID uuid) {
-        if (uuid == null) return null;
-        OfflinePlayer player = Bukkit.getOfflinePlayer(uuid);
-        return player.getName() != null ? player.getName() : uuid.toString();
+        if (uuid == null) {
+            return null;
+        }
+        return cache.getPlayerName(uuid).orElse(uuid.toString());
     }
 
     private int parseIndex(String identifier, String prefix) {
