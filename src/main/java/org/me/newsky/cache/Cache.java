@@ -11,7 +11,6 @@ public class Cache {
 
     private final ConfigHandler config;
     private final DatabaseHandler databaseHandler;
-    private CacheBroker cacheBroker;
 
     private final Map<UUID, Map<String, String>> islandData = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, String>> islandPlayers = new ConcurrentHashMap<>();
@@ -20,6 +19,8 @@ public class Cache {
     private final Map<UUID, Set<UUID>> islandBans = new ConcurrentHashMap<>();
     private final Map<UUID, Set<UUID>> islandCoops = new ConcurrentHashMap<>();
     private final Map<UUID, Integer> islandLevels = new ConcurrentHashMap<>();
+
+    private CacheBroker cacheBroker;
 
     public Cache(ConfigHandler config, DatabaseHandler databaseHandler) {
         this.config = config;
@@ -255,28 +256,30 @@ public class Cache {
         data.put("lock", "false");
         data.put("pvp", "false");
         islandData.put(islandUuid, data);
+        cacheBroker.publishUpdate("island_data", islandUuid);
 
         Map<UUID, String> players = new ConcurrentHashMap<>();
         players.put(ownerUuid, "owner");
         islandPlayers.put(islandUuid, players);
+        cacheBroker.publishUpdate("island_players", islandUuid);
 
         Map<String, String> homeMap = new ConcurrentHashMap<>();
         homeMap.put("default", homePoint);
         Map<UUID, Map<String, String>> playerHomes = new ConcurrentHashMap<>();
         playerHomes.put(ownerUuid, homeMap);
         islandHomes.put(islandUuid, playerHomes);
+        cacheBroker.publishUpdate("island_homes", islandUuid);
 
         islandWarps.put(islandUuid, new ConcurrentHashMap<>());
-        islandBans.put(islandUuid, ConcurrentHashMap.newKeySet());
-        islandCoops.put(islandUuid, ConcurrentHashMap.newKeySet());
-        islandLevels.put(islandUuid, 0);
-
-        cacheBroker.publishUpdate("island_data", islandUuid);
-        cacheBroker.publishUpdate("island_players", islandUuid);
-        cacheBroker.publishUpdate("island_homes", islandUuid);
         cacheBroker.publishUpdate("island_warps", islandUuid);
+
+        islandBans.put(islandUuid, ConcurrentHashMap.newKeySet());
         cacheBroker.publishUpdate("island_bans", islandUuid);
+
+        islandCoops.put(islandUuid, ConcurrentHashMap.newKeySet());
         cacheBroker.publishUpdate("island_coops", islandUuid);
+
+        islandLevels.put(islandUuid, 0);
         cacheBroker.publishUpdate("island_levels", islandUuid);
     }
 
@@ -285,19 +288,24 @@ public class Cache {
         databaseHandler.deleteIsland(islandUuid);
 
         islandLevels.remove(islandUuid);
-        islandCoops.remove(islandUuid);
-        islandBans.remove(islandUuid);
-        islandWarps.remove(islandUuid);
-        islandHomes.remove(islandUuid);
-        islandPlayers.remove(islandUuid);
-        islandData.remove(islandUuid);
-
         cacheBroker.publishUpdate("island_levels", islandUuid);
+
+        islandCoops.remove(islandUuid);
         cacheBroker.publishUpdate("island_coops", islandUuid);
+
+        islandBans.remove(islandUuid);
         cacheBroker.publishUpdate("island_bans", islandUuid);
+
+        islandWarps.remove(islandUuid);
         cacheBroker.publishUpdate("island_warps", islandUuid);
+
+        islandHomes.remove(islandUuid);
         cacheBroker.publishUpdate("island_homes", islandUuid);
+
+        islandPlayers.remove(islandUuid);
         cacheBroker.publishUpdate("island_players", islandUuid);
+
+        islandData.remove(islandUuid);
         cacheBroker.publishUpdate("island_data", islandUuid);
     }
 
@@ -320,9 +328,9 @@ public class Cache {
         databaseHandler.addIslandPlayer(islandUuid, playerUuid, role, homePoint);
 
         islandPlayers.computeIfAbsent(islandUuid, k -> new ConcurrentHashMap<>()).put(playerUuid, role);
-        islandHomes.computeIfAbsent(islandUuid, k -> new ConcurrentHashMap<>()).computeIfAbsent(playerUuid, k -> new ConcurrentHashMap<>()).put("default", homePoint);
-
         cacheBroker.publishUpdate("island_players", islandUuid);
+
+        islandHomes.computeIfAbsent(islandUuid, k -> new ConcurrentHashMap<>()).computeIfAbsent(playerUuid, k -> new ConcurrentHashMap<>()).put("default", homePoint);
         cacheBroker.publishUpdate("island_homes", islandUuid);
     }
 
@@ -332,15 +340,14 @@ public class Cache {
 
         Map<UUID, Map<String, String>> warps = islandWarps.get(islandUuid);
         if (warps != null) warps.remove(playerUuid);
+        cacheBroker.publishUpdate("island_warps", islandUuid);
 
         Map<UUID, Map<String, String>> homes = islandHomes.get(islandUuid);
         if (homes != null) homes.remove(playerUuid);
+        cacheBroker.publishUpdate("island_homes", islandUuid);
 
         Map<UUID, String> players = islandPlayers.get(islandUuid);
         if (players != null) players.remove(playerUuid);
-
-        cacheBroker.publishUpdate("island_warps", islandUuid);
-        cacheBroker.publishUpdate("island_homes", islandUuid);
         cacheBroker.publishUpdate("island_players", islandUuid);
     }
 
@@ -350,7 +357,6 @@ public class Cache {
         Map<UUID, String> players = islandPlayers.computeIfAbsent(islandUuid, k -> new ConcurrentHashMap<>());
         players.put(oldOwnerUuid, "member");
         players.put(newOwnerUuid, "owner");
-
         cacheBroker.publishUpdate("island_players", islandUuid);
     }
 
@@ -396,7 +402,6 @@ public class Cache {
         databaseHandler.updateHomePoint(islandUuid, playerUuid, homeName, homeLocation);
 
         islandHomes.computeIfAbsent(islandUuid, k -> new ConcurrentHashMap<>()).computeIfAbsent(playerUuid, k -> new ConcurrentHashMap<>()).put(homeName, homeLocation);
-
         cacheBroker.publishUpdate("island_homes", islandUuid);
     }
 
@@ -410,7 +415,6 @@ public class Cache {
                 homes.remove(homeName);
             }
         }
-
         cacheBroker.publishUpdate("island_homes", islandUuid);
     }
 
@@ -438,7 +442,6 @@ public class Cache {
         databaseHandler.updateWarpPoint(islandUuid, playerUuid, warpName, warpLocation);
 
         islandWarps.computeIfAbsent(islandUuid, k -> new ConcurrentHashMap<>()).computeIfAbsent(playerUuid, k -> new ConcurrentHashMap<>()).put(warpName, warpLocation);
-
         cacheBroker.publishUpdate("island_warps", islandUuid);
     }
 
@@ -452,7 +455,6 @@ public class Cache {
                 warps.remove(warpName);
             }
         }
-
         cacheBroker.publishUpdate("island_warps", islandUuid);
     }
 
@@ -480,7 +482,6 @@ public class Cache {
         databaseHandler.updateBanPlayer(islandUuid, playerUuid);
 
         islandBans.computeIfAbsent(islandUuid, k -> ConcurrentHashMap.newKeySet()).add(playerUuid);
-
         cacheBroker.publishUpdate("island_bans", islandUuid);
     }
 
@@ -511,7 +512,6 @@ public class Cache {
         databaseHandler.updateCoopPlayer(islandUuid, playerUuid);
 
         islandCoops.computeIfAbsent(islandUuid, k -> ConcurrentHashMap.newKeySet()).add(playerUuid);
-
         cacheBroker.publishUpdate("island_coops", islandUuid);
     }
 
@@ -555,7 +555,6 @@ public class Cache {
         databaseHandler.updateIslandLock(islandUuid, lock);
 
         islandData.computeIfAbsent(islandUuid, k -> new ConcurrentHashMap<>()).put("lock", String.valueOf(lock));
-
         cacheBroker.publishUpdate("island_data", islandUuid);
     }
 
@@ -570,7 +569,6 @@ public class Cache {
         databaseHandler.updateIslandPvp(islandUuid, pvp);
 
         islandData.computeIfAbsent(islandUuid, k -> new ConcurrentHashMap<>()).put("pvp", String.valueOf(pvp));
-
         cacheBroker.publishUpdate("island_data", islandUuid);
     }
 
@@ -585,7 +583,6 @@ public class Cache {
         databaseHandler.updateIslandLevel(islandUuid, level);
 
         islandLevels.put(islandUuid, level);
-
         cacheBroker.publishUpdate("island_levels", islandUuid);
     }
 
