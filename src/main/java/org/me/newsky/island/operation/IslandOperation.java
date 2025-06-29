@@ -86,7 +86,8 @@ public class IslandOperation {
             } else {
                 teleportHandler.addPendingTeleport(playerUuid, location);
             }
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> {
+        }, plugin.getBukkitAsyncExecutor());
     }
 
 
