@@ -109,6 +109,10 @@ public class ConfigHandler {
         return config.getString("MySQL.properties");
     }
 
+    public String getMySQLTablePrefix() {
+        return config.getString("MySQL.prefix");
+    }
+
     public int getMySQLMaxPoolSize() {
         return config.getInt("MySQL.max-pool-size");
     }

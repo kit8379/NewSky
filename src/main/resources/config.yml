@@ -10,6 +10,7 @@ MySQL:
   username: "root"
   password: "password"
   properties: "?useSSL=false&autoReconnect=true&useUnicode=true&characterEncoding=utf8"
+  prefix: "newsky_"
 
   # The settings for the HikariCP connection pool.
   # Usually no need to change these values.
