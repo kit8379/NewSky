@@ -17,6 +17,7 @@
         <mysql.version>9.2.0</mysql.version>
         <hikari.version>6.3.0</hikari.version>
         <jedis.version>5.2.0</jedis.version>
+
     </properties>
 
     <build>

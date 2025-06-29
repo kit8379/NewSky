@@ -8,72 +8,72 @@ import org.me.newsky.util.ColorUtils;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public class ConfigHandler {
     private final NewSky plugin;
-    private FileConfiguration config;
-    private FileConfiguration messages;
-    private FileConfiguration commands;
-    private FileConfiguration levels;
+
+    private final FileConfiguration config;
+    private final FileConfiguration messages;
+    private final FileConfiguration commands;
+    private final FileConfiguration levels;
 
     public ConfigHandler(NewSky plugin) {
         this.plugin = plugin;
-        loadConfigs();
-        updateConfigs();
+
+        this.config = load("config.yml");
+        this.messages = load("messages.yml");
+        this.commands = load("commands.yml");
+        this.levels = load("levels.yml");
     }
 
-    private void loadConfigs() {
-        config = loadConfig("config.yml");
-        messages = loadConfig("messages.yml");
-        commands = loadConfig("commands.yml");
-        levels = loadConfig("levels.yml");
-    }
-
-    private FileConfiguration loadConfig(String fileName) {
+    private FileConfiguration load(String fileName) {
         File file = new File(plugin.getDataFolder(), fileName);
         if (!file.exists()) {
             plugin.saveResource(fileName, false);
         }
-        return YamlConfiguration.loadConfiguration(file);
+
+        FileConfiguration userConfig = YamlConfiguration.loadConfiguration(file);
+        FileConfiguration defaultConfig = loadDefaultConfig(fileName);
+        if (defaultConfig == null) {
+            plugin.severe("Missing default config: " + fileName);
+            return userConfig;
+        }
+
+        YamlConfiguration rebuiltConfig = new YamlConfiguration();
+        copyDefaults(defaultConfig, userConfig, rebuiltConfig, "");
+        saveConfig(rebuiltConfig, fileName);
+        return rebuiltConfig;
     }
 
-    private void updateConfigs() {
-        updateConfig(config, "config.yml");
-        updateConfig(messages, "messages.yml");
-        updateConfig(commands, "commands.yml");
-        updateConfig(levels, "levels.yml");
+    private FileConfiguration loadDefaultConfig(String fileName) {
+        try (InputStream in = plugin.getResource(fileName)) {
+            if (in == null) return null;
+            return YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            plugin.severe("Error loading default config: " + fileName, e);
+            return null;
+        }
     }
 
-    private void updateConfig(FileConfiguration config, String fileName) {
-        File defaultFile = new File(plugin.getDataFolder(), fileName);
-        FileConfiguration defaultConfig = YamlConfiguration.loadConfiguration(defaultFile);
-        Set<String> defaultKeys = defaultConfig.getKeys(true);
-        Set<String> currentKeys = config.getKeys(true);
-        boolean updated = false;
-
-        // Add new keys
-        for (String key : defaultKeys) {
-            if (!config.contains(key)) {
-                config.set(key, defaultConfig.get(key));
-                updated = true;
+    private void copyDefaults(FileConfiguration defaultConfig, FileConfiguration userConfig, YamlConfiguration rebuiltConfig, String path) {
+        Set<String> keys = Objects.requireNonNull(defaultConfig.getConfigurationSection(path)).getKeys(false);
+        for (String key : keys) {
+            String fullPath = path.isEmpty() ? key : path + "." + key;
+            if (defaultConfig.isConfigurationSection(fullPath)) {
+                rebuiltConfig.createSection(fullPath);
+                copyDefaults(defaultConfig, userConfig, rebuiltConfig, fullPath);
+            } else {
+                Object value = userConfig.contains(fullPath) ? userConfig.get(fullPath) : defaultConfig.get(fullPath);
+                rebuiltConfig.set(fullPath, value);
             }
         }
-
-        // Remove old keys
-        for (String key : currentKeys) {
-            if (!defaultConfig.contains(key)) {
-                config.set(key, null);
-                updated = true;
-            }
-        }
-
-        if (updated) {
-            saveConfig(config, fileName);
-        }
     }
 
-    public void saveConfig(FileConfiguration config, String fileName) {
+    private void saveConfig(FileConfiguration config, String fileName) {
         try {
             config.save(new File(plugin.getDataFolder(), fileName));
         } catch (IOException e) {
@@ -81,7 +81,7 @@ public class ConfigHandler {
         }
     }
 
-    // ================================================================================================================
+// ================================================================================================================
     // Config Section
     // ================================================================================================================
 
@@ -250,7 +250,7 @@ public class ConfigHandler {
     }
 
     public int getBlockLevel(String material) {
-        return levels.getInt("blocks." + material, 0);
+        return levels.getInt("blocks." + material);
     }
 
     // ================================================================================================================
