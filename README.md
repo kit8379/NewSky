@@ -91,6 +91,142 @@ Optional:
 
 ---
 
+### 📜 Configuration
+The plugin uses YAML configuration files for easy customization. Key files include:
+- `config.yml`: Main plugin settings (Redis, MySQL, server roles)
+- `commands.yml`: Command definitions and permissions
+- `messages.yml`: Customizable messages for commands and events
+- `levels.yml`: Block levels configuration
+
+config.yml:
+```yaml
+# Whether the plugin is in debug mode. More detailed logs will be printed if this is set to true.
+debug: false
+
+# The settings for the plugin.
+# The plugin uses MySQL/MariaDB to store the island data.
+MySQL:
+  host: "localhost"
+  port: 3306
+  database: "newsky"
+  username: "root"
+  password: "password"
+  properties: "?useSSL=false&autoReconnect=true&useUnicode=true&characterEncoding=utf8"
+  prefix: "newsky_"
+
+  # The settings for the HikariCP connection pool.
+  # Usually no need to change these values.
+  max-pool-size: 10
+  connection-timeout: 30000
+  cache-prep-statements: true
+  prep-stmt-cache-size: 250
+  prep-stmt-cache-sql-limit: 2048
+
+# The settings for the Redis server.
+# The plugin uses Redis to communicate between servers in the broker and to store the island cache data.
+redis:
+  host: "localhost"
+  port: 6379
+  password: ""
+  # The below two settings are usually not needed to change.
+  # The database index to use for centralized cache.
+  # The channel to use for pub/sub communication between servers.
+  # If you have different groups of servers under the same broker, you can change the database and channel to separate them.
+  database: 0
+  channel:
+    cache: "newsky-cache-channel-0"
+    island: "newsky-island-channel-0"
+
+
+# The settings for the server.
+server:
+  # The name of this server.
+  # Must be equal to the server name in the BungeeCord / Velocity config.
+  name: "server1"
+  # Whether the server is the lobby server.
+  # If the server is the lobby server, the plugin will not load islands on this server.
+  lobby: false
+  # The interval that the server send heartbeat to the other server.
+  # Normally, the server will add/remove itself from the active server list when the server starts/stops.
+  # But if the server is down unexpectedly, the other servers will not know about it.
+  # So this heartbeat system will send heartbeat to the other servers periodically to let them know that this server is still active.
+  # Usually no need to change this value.
+  # The default value is 5 seconds.
+  heartbeat-interval: 5
+  # The selector type. Can be "random" or "round-robin".
+  # "random" means the plugin will randomly select a server from the server list.
+  # "round-robin" means the plugin will select the next server in the list.
+  # "mspt" means the plugin will select the server with the lowest average MSPT (milliseconds per tick).
+  # This selector will apply for both island server and lobby server selection logic.
+  selector: "round-robin"
+  # If the selector is "mspt", this is the interval that the plugin updates the MSPT data.
+  # If you are not using "mspt" selector, this value will be ignored.
+  # The default value is 10 seconds.
+  mspt-update-interval: 10
+
+# The fallback lobby configuration for when players need to be teleported out of an island.
+# E.G. lock island, delete island, unload island, etc.
+lobby:
+  # The list of server names of the lobby servers.
+  # These must match the server names defined in your BungeeCord / Velocity config.
+  # The plugin will select one of these servers to teleport the player based on the selector type above.
+  server-names:
+    - "lobby"
+  # The world name of the lobby.
+  # Only one lobby world is supported.
+  # All the servers you listed above must have this world.
+  world-name: "world"
+  location:
+    x: 0.0
+    y: 100.0
+    z: 0.0
+    yaw: 0.0
+    pitch: 0.0
+
+
+# The settings for the island.
+island:
+  # The template world name of the new island.
+  # The plugin will create a new island based on this template.
+  # The template world store in the template folder in the plugin folder.
+  template: "default"
+
+  # The max size of the island. 100 means the island is 100x100.
+  size: 100
+
+  # The default spawn point of the island.
+  spawn:
+    x: 0
+    y: 132
+    z: 0
+    yaw: 180
+    pitch: 0
+
+  # The interval that the server checks and unloads the inactive islands.
+  # The default value is 300 seconds (5 minutes).
+  island-unload-interval: 300
+
+  # The interval that the plugin update the island level.
+  # The default value is 120 seconds (2 minutes).
+  level-update-interval: 120
+
+  # The gamerules to apply to island worlds during loading.
+  gamerules:
+    keepInventory: true
+    doImmediateRespawn: false
+
+# The settings for the command
+command:
+  # The mode when the player uses the /island command.
+  # The mode can be "island", "help".
+  # The "help" mode means the player will see the help message of the island command.
+  # The "island" mode means the player will directly teleport to default home if they have island or directly create a new island if they don't have one.
+  # The default mode is "help".
+  base-command-mode: "island"
+```
+
+---
+
 ### ✅ Completed Milestones
 
 - Redis-based command synchronization
