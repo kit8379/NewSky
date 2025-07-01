@@ -12,6 +12,14 @@ import java.util.concurrent.CompletableFuture;
 
 public class ServerUtil {
 
+    /**
+     * Connects a player to a specified server using BungeeCord plugin messaging.
+     *
+     * @param plugin     the NewSky plugin instance
+     * @param playerUuid the UUID of the player to connect
+     * @param serverName the name of the server to connect to
+     * @return a CompletableFuture that completes when the connection message is sent
+     */
     public static CompletableFuture<Void> connectToServer(NewSky plugin, UUID playerUuid, String serverName) {
         return CompletableFuture.runAsync(() -> {
             Player player = Bukkit.getPlayer(playerUuid);
@@ -28,6 +36,7 @@ public class ServerUtil {
             } else {
                 throw new IllegalStateException("Player not found: " + playerUuid);
             }
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> {
+        }, plugin.getBukkitAsyncExecutor());
     }
 }
