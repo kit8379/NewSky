@@ -4,11 +4,15 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.model.*;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public class DatabaseHandler {
@@ -118,79 +122,207 @@ public class DatabaseHandler {
         executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "player_uuid (" + "uuid VARCHAR(56) PRIMARY KEY, " + "name VARCHAR(64) NOT NULL" + ");", PreparedStatement::execute);
     }
 
-
-    public void selectAllIslandData(ResultProcessor processor) {
+    public List<IslandData> getAllIslandData() {
+        List<IslandData> list = new ArrayList<>();
         executeQuery("SELECT * FROM " + prefix + "islands", stmt -> {
-        }, processor);
+        }, rs -> {
+            while (rs.next()) {
+                UUID uuid = UUID.fromString(rs.getString("island_uuid"));
+                boolean lock = rs.getBoolean("lock");
+                boolean pvp = rs.getBoolean("pvp");
+                list.add(new IslandData(uuid, lock, pvp));
+            }
+        });
+        return list;
     }
 
-    public void selectAllIslandPlayers(ResultProcessor processor) {
+    public List<IslandPlayer> getAllIslandPlayers() {
+        List<IslandPlayer> list = new ArrayList<>();
         executeQuery("SELECT * FROM " + prefix + "island_players", stmt -> {
-        }, processor);
+        }, rs -> {
+            while (rs.next()) {
+                UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));
+                UUID playerUuid = UUID.fromString(rs.getString("player_uuid"));
+                String role = rs.getString("role");
+                list.add(new IslandPlayer(playerUuid, islandUuid, role));
+            }
+        });
+        return list;
     }
 
-    public void selectAllIslandHomes(ResultProcessor processor) {
+    public List<IslandHome> getAllIslandHomes() {
+        List<IslandHome> list = new ArrayList<>();
         executeQuery("SELECT * FROM " + prefix + "island_homes", stmt -> {
-        }, processor);
+        }, rs -> {
+            while (rs.next()) {
+                UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));
+                UUID playerUuid = UUID.fromString(rs.getString("player_uuid"));
+                String homeName = rs.getString("home_name");
+                String homeLocation = rs.getString("home_location");
+                list.add(new IslandHome(playerUuid, islandUuid, homeName, homeLocation));
+            }
+        });
+        return list;
     }
 
-    public void selectAllIslandWarps(ResultProcessor processor) {
+    public List<IslandWarp> getAllIslandWarps() {
+        List<IslandWarp> list = new ArrayList<>();
         executeQuery("SELECT * FROM " + prefix + "island_warps", stmt -> {
-        }, processor);
+        }, rs -> {
+            while (rs.next()) {
+                UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));
+                UUID playerUuid = UUID.fromString(rs.getString("player_uuid"));
+                String warpName = rs.getString("warp_name");
+                String warpLocation = rs.getString("warp_location");
+                list.add(new IslandWarp(playerUuid, islandUuid, warpName, warpLocation));
+            }
+        });
+        return list;
     }
 
-    public void selectAllIslandBans(ResultProcessor processor) {
+    public List<IslandBan> getAllIslandBans() {
+        List<IslandBan> list = new ArrayList<>();
         executeQuery("SELECT * FROM " + prefix + "island_bans", stmt -> {
-        }, processor);
+        }, rs -> {
+            while (rs.next()) {
+                UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));
+                UUID bannedPlayer = UUID.fromString(rs.getString("banned_player"));
+                list.add(new IslandBan(islandUuid, bannedPlayer));
+            }
+        });
+        return list;
     }
 
-    public void selectAllIslandCoops(ResultProcessor processor) {
+    public List<IslandCoop> getAllIslandCoops() {
+        List<IslandCoop> list = new ArrayList<>();
         executeQuery("SELECT * FROM " + prefix + "island_coops", stmt -> {
-        }, processor);
+        }, rs -> {
+            while (rs.next()) {
+                UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));
+                UUID coopedPlayer = UUID.fromString(rs.getString("cooped_player"));
+                list.add(new IslandCoop(islandUuid, coopedPlayer));
+            }
+        });
+        return list;
     }
 
-    public void selectAllIslandLevels(ResultProcessor processor) {
+    public List<IslandLevel> getAllIslandLevels() {
+        List<IslandLevel> list = new ArrayList<>();
         executeQuery("SELECT * FROM " + prefix + "island_levels", stmt -> {
-        }, processor);
+        }, rs -> {
+            while (rs.next()) {
+                UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));
+                int level = rs.getInt("level");
+                list.add(new IslandLevel(islandUuid, level));
+            }
+        });
+        return list;
     }
 
-    public void selectAllPlayerUuid(ResultProcessor processor) {
+    public List<PlayerName> getAllPlayerNames() {
+        List<PlayerName> list = new ArrayList<>();
         executeQuery("SELECT uuid, name FROM " + prefix + "player_uuid", stmt -> {
-        }, processor);
+        }, rs -> {
+            while (rs.next()) {
+                UUID uuid = UUID.fromString(rs.getString("uuid"));
+                String name = rs.getString("name");
+                list.add(new PlayerName(uuid, name));
+            }
+        });
+        return list;
     }
 
-    public void selectIslandData(UUID islandUuid, ResultProcessor processor) {
-        executeQuery("SELECT * FROM " + prefix + "islands WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), processor);
+    public Optional<IslandData> getIslandData(UUID islandUuid) {
+        List<IslandData> list = new ArrayList<>();
+        executeQuery("SELECT * FROM " + prefix + "islands WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), rs -> {
+            if (rs.next()) {
+                list.add(new IslandData(islandUuid, rs.getBoolean("lock"), rs.getBoolean("pvp")));
+            }
+        });
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
     }
 
-    public void selectIslandPlayers(UUID islandUuid, ResultProcessor processor) {
-        executeQuery("SELECT * FROM " + prefix + "island_players WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), processor);
+    public List<IslandPlayer> getIslandPlayers(UUID islandUuid) {
+        List<IslandPlayer> list = new ArrayList<>();
+        executeQuery("SELECT * FROM " + prefix + "island_players WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), rs -> {
+            while (rs.next()) {
+                UUID playerUuid = UUID.fromString(rs.getString("player_uuid"));
+                String role = rs.getString("role");
+                list.add(new IslandPlayer(playerUuid, islandUuid, role));
+            }
+        });
+        return list;
     }
 
-    public void selectIslandHomes(UUID islandUuid, ResultProcessor processor) {
-        executeQuery("SELECT * FROM " + prefix + "island_homes WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), processor);
+    public List<IslandHome> getIslandHomes(UUID islandUuid) {
+        List<IslandHome> list = new ArrayList<>();
+        executeQuery("SELECT * FROM " + prefix + "island_homes WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), rs -> {
+            while (rs.next()) {
+                UUID playerUuid = UUID.fromString(rs.getString("player_uuid"));
+                String homeName = rs.getString("home_name");
+                String homeLocation = rs.getString("home_location");
+                list.add(new IslandHome(playerUuid, islandUuid, homeName, homeLocation));
+            }
+        });
+        return list;
     }
 
-    public void selectIslandWarps(UUID islandUuid, ResultProcessor processor) {
-        executeQuery("SELECT * FROM " + prefix + "island_warps WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), processor);
+    public List<IslandWarp> getIslandWarps(UUID islandUuid) {
+        List<IslandWarp> list = new ArrayList<>();
+        executeQuery("SELECT * FROM " + prefix + "island_warps WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), rs -> {
+            while (rs.next()) {
+                UUID playerUuid = UUID.fromString(rs.getString("player_uuid"));
+                String warpName = rs.getString("warp_name");
+                String warpLocation = rs.getString("warp_location");
+                list.add(new IslandWarp(playerUuid, islandUuid, warpName, warpLocation));
+            }
+        });
+        return list;
     }
 
-    public void selectIslandBans(UUID islandUuid, ResultProcessor processor) {
-        executeQuery("SELECT * FROM " + prefix + "island_bans WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), processor);
+    public List<IslandBan> getIslandBans(UUID islandUuid) {
+        List<IslandBan> list = new ArrayList<>();
+        executeQuery("SELECT * FROM " + prefix + "island_bans WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), rs -> {
+            while (rs.next()) {
+                UUID bannedPlayer = UUID.fromString(rs.getString("banned_player"));
+                list.add(new IslandBan(islandUuid, bannedPlayer));
+            }
+        });
+        return list;
     }
 
-    public void selectIslandCoops(UUID islandUuid, ResultProcessor processor) {
-        executeQuery("SELECT * FROM " + prefix + "island_coops WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), processor);
+    public List<IslandCoop> getIslandCoops(UUID islandUuid) {
+        List<IslandCoop> list = new ArrayList<>();
+        executeQuery("SELECT * FROM " + prefix + "island_coops WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), rs -> {
+            while (rs.next()) {
+                UUID coopedPlayer = UUID.fromString(rs.getString("cooped_player"));
+                list.add(new IslandCoop(islandUuid, coopedPlayer));
+            }
+        });
+        return list;
     }
 
-    public void selectIslandLevel(UUID islandUuid, ResultProcessor processor) {
-        executeQuery("SELECT * FROM " + prefix + "island_levels WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), processor);
+    public Optional<IslandLevel> getIslandLevel(UUID islandUuid) {
+        List<IslandLevel> list = new ArrayList<>();
+        executeQuery("SELECT * FROM " + prefix + "island_levels WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), rs -> {
+            if (rs.next()) {
+                int level = rs.getInt("level");
+                list.add(new IslandLevel(islandUuid, level));
+            }
+        });
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
     }
 
-    public void selectPlayerUuid(UUID playerUuid, ResultProcessor processor) {
-        executeQuery("SELECT * FROM " + prefix + "player_uuid WHERE uuid = ?", stmt -> stmt.setString(1, playerUuid.toString()), processor);
+    public Optional<PlayerName> getPlayerName(UUID playerUuid) {
+        List<PlayerName> list = new ArrayList<>();
+        executeQuery("SELECT * FROM " + prefix + "player_uuid WHERE uuid = ?", stmt -> stmt.setString(1, playerUuid.toString()), rs -> {
+            if (rs.next()) {
+                String name = rs.getString("name");
+                list.add(new PlayerName(playerUuid, name));
+            }
+        });
+        return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
     }
-
 
     public void addIslandData(UUID islandUuid, UUID ownerUuid, String homePoint) {
         executeUpdate("INSERT INTO " + prefix + "islands (island_uuid) VALUES (?);", stmt -> stmt.setString(1, islandUuid.toString()));
