@@ -8,7 +8,6 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.me.newsky.NewSky;
 import org.me.newsky.redis.RedisCache;
 
-import java.util.Set;
 import java.util.UUID;
 
 public class IslandCoopListener implements Listener {
@@ -25,15 +24,12 @@ public class IslandCoopListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         UUID playerUuid = player.getUniqueId();
-        String playerName = player.getName();
 
         // Delay to allow proxy switch to complete if applicable
         plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> {
-            Set<String> onlinePlayers = redisCache.getOnlinePlayers();
-
-            if (!onlinePlayers.contains(playerName)) {
+            if (!redisCache.getOnlinePlayersUUIDs().contains(playerUuid)) {
                 plugin.getApi().removeAllCoopOfPlayer(playerUuid);
-                plugin.debug("IslandCoopListener", "Removed all coop of player " + playerName + " (" + playerUuid + ") due to logout");
+                plugin.debug("IslandCoopListener", "Removed all coop entries for player " + player.getName() + " on quit.");
             }
         }, 60L);
     }

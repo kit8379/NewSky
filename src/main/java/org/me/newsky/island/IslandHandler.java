@@ -22,40 +22,39 @@ public class IslandHandler {
     }
 
     public CompletableFuture<Void> createIsland(UUID ownerUuid) {
-        return CompletableFuture.supplyAsync(() -> {
+        return CompletableFuture.runAsync(() -> {
             if (cache.getIslandUuid(ownerUuid).isPresent()) {
                 throw new IslandAlreadyExistException();
             }
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> {
             UUID islandUuid = UUID.randomUUID();
             cache.createIsland(islandUuid, ownerUuid);
             return islandDistributor.createIsland(islandUuid);
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(f -> f);
+        });
     }
 
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> {
-            cache.deleteIsland(islandUuid);
-            return islandDistributor.deleteIsland(islandUuid);
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(f -> f);
+        return CompletableFuture.runAsync(() -> cache.deleteIsland(islandUuid), plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.deleteIsland(islandUuid));
     }
 
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> islandUuid, plugin.getBukkitAsyncExecutor()).thenCompose(islandDistributor::loadIsland);
+        return CompletableFuture.runAsync(() -> {
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.loadIsland(islandUuid));
     }
 
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> islandUuid, plugin.getBukkitAsyncExecutor()).thenCompose(islandDistributor::unloadIsland);
+        return CompletableFuture.runAsync(() -> {
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.unloadIsland(islandUuid));
     }
 
     public CompletableFuture<Boolean> toggleIslandLock(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> {
-            boolean isLocked = cache.isIslandLock(islandUuid);
-            if (!isLocked) {
-                islandDistributor.lockIsland(islandUuid);
+        return CompletableFuture.supplyAsync(() -> cache.isIslandLock(islandUuid), plugin.getBukkitAsyncExecutor()).thenCompose(isLocked -> {
+            if (isLocked) {
+                return CompletableFuture.runAsync(() -> cache.updateIslandLock(islandUuid, false), plugin.getBukkitAsyncExecutor()).thenApply(v -> false); // return !isLocked
+            } else {
+                return islandDistributor.lockIsland(islandUuid).thenRunAsync(() -> cache.updateIslandLock(islandUuid, true), plugin.getBukkitAsyncExecutor()).thenApply(v -> true); // return !isLocked
             }
-            cache.updateIslandLock(islandUuid, !isLocked);
-            return !isLocked;
-        }, plugin.getBukkitAsyncExecutor());
+        });
     }
 
     public CompletableFuture<Boolean> toggleIslandPvp(UUID islandUuid) {

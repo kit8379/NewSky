@@ -48,6 +48,7 @@ public class NewSkyAPI {
      * @param ownerPlayerUuid The UUID of the player who will own the island.
      * @return A CompletableFuture that completes when the island is created.
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Void> createIsland(UUID ownerPlayerUuid) {
         return islandHandler.createIsland(ownerPlayerUuid);
     }
@@ -58,6 +59,7 @@ public class NewSkyAPI {
      * @param islandUuid The UUID of the island to delete.
      * @return A CompletableFuture that completes when the island is deleted.
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
         return islandHandler.deleteIsland(islandUuid);
     }
@@ -68,6 +70,7 @@ public class NewSkyAPI {
      * @param islandUuid The UUID of the island to load.
      * @return A CompletableFuture that completes when the island is loaded.
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
         return islandHandler.loadIsland(islandUuid);
     }
@@ -78,6 +81,7 @@ public class NewSkyAPI {
      * @param islandUuid The UUID of the island to unload.
      * @return A CompletableFuture that completes when the island is unloaded.
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
         return islandHandler.unloadIsland(islandUuid);
     }
@@ -90,6 +94,7 @@ public class NewSkyAPI {
      * @param role       The role to assign to the member.
      * @return A CompletableFuture that completes when the member is added.
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role) {
         return playerHandler.addMember(islandUuid, playerUuid, role);
     }
@@ -101,6 +106,7 @@ public class NewSkyAPI {
      * @param playerUuid The UUID of the player to remove.
      * @return A CompletableFuture that completes when the member is removed.
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Void> removeMember(UUID islandUuid, UUID playerUuid) {
         return playerHandler.removeMember(islandUuid, playerUuid);
     }
@@ -112,6 +118,7 @@ public class NewSkyAPI {
      * @param newOwnerPlayerUuid The UUID of the player who will become the new owner.
      * @return A CompletableFuture that completes when the owner is set.
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Void> setOwner(UUID islandUuid, UUID newOwnerPlayerUuid) {
         return playerHandler.setOwner(islandUuid, newOwnerPlayerUuid);
     }
@@ -123,6 +130,7 @@ public class NewSkyAPI {
      * @param location   The new spawn location for the island.
      * @return A CompletableFuture that completes when the spawn location is set.
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, Location location) {
         return homeHandler.setHome(playerUuid, homeName, location);
     }
@@ -134,6 +142,7 @@ public class NewSkyAPI {
      * @param homeName   The name of the home to delete.
      * @return A CompletableFuture that completes when the home is deleted.
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Void> delHome(UUID playerUuid, String homeName) {
         return homeHandler.delHome(playerUuid, homeName);
     }
@@ -146,6 +155,7 @@ public class NewSkyAPI {
      * @param targetPlayerUuid The UUID of the player to teleport (can be null for self-teleport).
      * @return A CompletableFuture that completes when the teleport is done.
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Void> home(UUID playerUuid, String homeName, UUID targetPlayerUuid) {
         return homeHandler.home(playerUuid, homeName, targetPlayerUuid);
     }
@@ -158,6 +168,7 @@ public class NewSkyAPI {
      * @param location   The location of the warp point.
      * @return A CompletableFuture that completes when the warp is set.
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, Location location) {
         return warpHandler.setWarp(playerUuid, warpName, location);
     }
@@ -169,6 +180,7 @@ public class NewSkyAPI {
      * @param warpName   The name of the warp point to delete.
      * @return A CompletableFuture that completes when the warp is deleted.
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Void> delWarp(UUID playerUuid, String warpName) {
         return warpHandler.delWarp(playerUuid, warpName);
     }
@@ -181,6 +193,7 @@ public class NewSkyAPI {
      * @param targetPlayerUuid The UUID of the player to teleport (can be null for self-teleport).
      * @return A CompletableFuture that completes when the teleport is done.
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Void> warp(UUID playerUuid, String warpName, UUID targetPlayerUuid) {
         return warpHandler.warp(playerUuid, warpName, targetPlayerUuid);
     }
@@ -192,6 +205,7 @@ public class NewSkyAPI {
      * @param playerUuid The UUID of the player to expel.
      * @return A CompletableFuture that completes when the player is expelled.
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
         return playerHandler.expelPlayer(islandUuid, playerUuid);
     }
@@ -203,6 +217,7 @@ public class NewSkyAPI {
      * @param playerUuid The UUID of the player to ban.
      * @return A CompletableFuture that completes when the player is banned.
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Void> banPlayer(UUID islandUuid, UUID playerUuid) {
         return banHandler.banPlayer(islandUuid, playerUuid);
     }
@@ -214,6 +229,7 @@ public class NewSkyAPI {
      * @param playerUuid The UUID of the player to unban.
      * @return A CompletableFuture that completes when the player is unbanned.
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Void> unbanPlayer(UUID islandUuid, UUID playerUuid) {
         return banHandler.unbanPlayer(islandUuid, playerUuid);
     }
@@ -225,6 +241,7 @@ public class NewSkyAPI {
      * @param playerUuid The UUID of the player to add as a co-op.
      * @return A CompletableFuture that completes when the co-op is added.
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Void> addCoop(UUID islandUuid, UUID playerUuid) {
         return coopHandler.coopPlayer(islandUuid, playerUuid);
     }
@@ -236,6 +253,7 @@ public class NewSkyAPI {
      * @param playerUuid The UUID of the player to remove from co-op.
      * @return A CompletableFuture that completes when the co-op is removed.
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Void> removeCoop(UUID islandUuid, UUID playerUuid) {
         return coopHandler.unCoopPlayer(islandUuid, playerUuid);
     }
@@ -245,6 +263,7 @@ public class NewSkyAPI {
      *
      * @param playerUuid The UUID of the player whose co-ops will be removed.
      */
+    @SuppressWarnings("unused")
     public void removeAllCoopOfPlayer(UUID playerUuid) {
         coopHandler.deleteAllCoopOfPlayer(playerUuid);
     }
@@ -255,6 +274,7 @@ public class NewSkyAPI {
      * @param islandUuid The UUID of the island.
      * @return A CompletableFuture that completes with true if the island was locked, false if it was unlocked.
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Boolean> toggleIslandLock(UUID islandUuid) {
         return islandHandler.toggleIslandLock(islandUuid);
     }
@@ -265,6 +285,7 @@ public class NewSkyAPI {
      * @param islandUuid The UUID of the island.
      * @return A CompletableFuture that completes with true if PvP was enabled, false if it was disabled.
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Boolean> toggleIslandPvp(UUID islandUuid) {
         return islandHandler.toggleIslandPvp(islandUuid);
     }
@@ -275,6 +296,7 @@ public class NewSkyAPI {
      * @param playerUuid The UUID of the player.
      * @return The UUID of the island the player belongs to, or null if the player has no island.
      */
+    @SuppressWarnings("unused")
     public UUID getIslandUuid(UUID playerUuid) {
         return islandHandler.getIslandUuid(playerUuid);
     }
@@ -285,18 +307,31 @@ public class NewSkyAPI {
      * @param islandUuid The UUID of the island.
      * @return The UUID of the owner of the island.
      */
+    @SuppressWarnings("unused")
     public UUID getIslandOwner(UUID islandUuid) {
         return playerHandler.getIslandOwner(islandUuid);
     }
 
     /**
-     * Get the island members for a given island UUID.
+     * Get all the island members except the owner for a given island UUID.
      *
      * @param islandUuid The UUID of the island.
      * @return A set of UUIDs representing the members of the island.
      */
+    @SuppressWarnings("unused")
     public Set<UUID> getIslandMembers(UUID islandUuid) {
         return playerHandler.getIslandMembers(islandUuid);
+    }
+
+    /**
+     * Gets all players associated with a given island UUID.
+     *
+     * @param islandUuid The UUID of the island.
+     * @return A set of UUIDs representing all players on the island.
+     */
+    @SuppressWarnings("unused")
+    public Set<UUID> getIslandPlayers(UUID islandUuid) {
+        return playerHandler.getIslandPlayers(islandUuid);
     }
 
     /**
@@ -305,6 +340,7 @@ public class NewSkyAPI {
      * @param playerUuid The UUID of the player.
      * @return A set of home names for the player.
      */
+    @SuppressWarnings("unused")
     public Set<String> getHomeNames(UUID playerUuid) {
         return homeHandler.getHomeNames(playerUuid);
     }
@@ -315,6 +351,7 @@ public class NewSkyAPI {
      * @param playerUuid The UUID of the player.
      * @return A set of warp names for the player.
      */
+    @SuppressWarnings("unused")
     public Set<String> getWarpNames(UUID playerUuid) {
         return warpHandler.getWarpNames(playerUuid);
     }
@@ -325,6 +362,7 @@ public class NewSkyAPI {
      * @param islandUuid The UUID of the island.
      * @return A set of UUIDs representing the banned players.
      */
+    @SuppressWarnings("unused")
     public Set<UUID> getBannedPlayers(UUID islandUuid) {
         return banHandler.getBannedPlayers(islandUuid);
     }
@@ -335,6 +373,7 @@ public class NewSkyAPI {
      * @param islandUuid The UUID of the island.
      * @return A set of UUIDs representing the cooped players.
      */
+    @SuppressWarnings("unused")
     public Set<UUID> getCoopedPlayers(UUID islandUuid) {
         return coopHandler.getCoopedPlayers(islandUuid);
     }
@@ -345,6 +384,7 @@ public class NewSkyAPI {
      * @param islandUuid The UUID of the island.
      * @return The level of the island, or 0 if the island does not exist.
      */
+    @SuppressWarnings("unused")
     public int getIslandLevel(UUID islandUuid) {
         return levelHandler.getIslandLevel(islandUuid);
     }
@@ -355,6 +395,7 @@ public class NewSkyAPI {
      * @param size The number of top levels to retrieve.
      * @return A map of island UUIDs to their levels, sorted by level in descending order.
      */
+    @SuppressWarnings("unused")
     public Map<UUID, Integer> getTopIslandLevels(int size) {
         return levelHandler.getTopIslandLevels(size);
     }
@@ -368,6 +409,7 @@ public class NewSkyAPI {
      * @param ttlSeconds  Time in seconds before the invite expires.
      * @return CompletableFuture that completes when the invite is added
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Void> addPendingInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {
         return playerHandler.addPendingInvite(inviteeUuid, islandUuid, inviterUuid, ttlSeconds);
     }
@@ -378,6 +420,7 @@ public class NewSkyAPI {
      * @param playerUuid UUID of the player whose invite should be removed.
      * @return CompletableFuture that completes when the invite is removed
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Void> removePendingInvite(UUID playerUuid) {
         return playerHandler.removePendingInvite(playerUuid);
     }
@@ -388,6 +431,7 @@ public class NewSkyAPI {
      * @param playerUuid UUID of the player.
      * @return Optional containing Invitation if an invitation exists.
      */
+    @SuppressWarnings("unused")
     public Optional<Invitation> getPendingInvite(UUID playerUuid) {
         return playerHandler.getPendingInvite(playerUuid);
     }
@@ -398,27 +442,21 @@ public class NewSkyAPI {
      * @param playerUuid The UUID of the player to teleport.
      * @return A CompletableFuture that completes when the teleport is handled.
      */
+    @SuppressWarnings("unused")
     public CompletableFuture<Void> lobby(UUID playerUuid) {
         return lobbyHandler.lobby(playerUuid);
     }
 
     /**
-     * Sends a message to a specific player cross-server.
+     * Sends a message to a player.
      *
      * @param playerUuid The UUID of the player to send the message to.
      * @param message    The message to send, as a Component.
+     * @return A CompletableFuture that completes when the message is sent.
      */
-    public void sendMessage(UUID playerUuid, Component message) {
-        messageHandler.sendMessage(playerUuid, message);
-    }
-
-    /**
-     * Gets the online players in all sky block servers.
-     *
-     * @return A set of player names currently online.
-     */
-    public Set<String> getOnlinePlayers() {
-        return plugin.getOnlinePlayers();
+    @SuppressWarnings("unused")
+    public CompletableFuture<Void> sendMessage(UUID playerUuid, Component message) {
+        return messageHandler.sendMessage(playerUuid, message);
     }
 
     /**
@@ -427,6 +465,7 @@ public class NewSkyAPI {
      * @param uuid The new UUID of the player.
      * @param name The name of the player.
      */
+    @SuppressWarnings("unused")
     public void updatePlayerUuid(UUID uuid, String name) {
         uuidHandler.updatePlayerUuid(uuid, name);
     }
@@ -437,6 +476,7 @@ public class NewSkyAPI {
      * @param name The name of the player.
      * @return An Optional containing the player's UUID if found, or empty if not found.
      */
+    @SuppressWarnings("unused")
     public Optional<UUID> getPlayerUuid(String name) {
         return uuidHandler.getPlayerUuid(name);
     }
@@ -447,7 +487,28 @@ public class NewSkyAPI {
      * @param uuid The UUID of the player.
      * @return An Optional containing the player's name if found, or empty if not found.
      */
+    @SuppressWarnings("unused")
     public Optional<String> getPlayerName(UUID uuid) {
         return uuidHandler.getPlayerName(uuid);
+    }
+
+    /**
+     * Gets the online players' UUIDs in all sky block servers.
+     *
+     * @return A set of player UUIDs currently online.
+     */
+    @SuppressWarnings("unused")
+    public Set<UUID> getOnlinePlayersUUIDs() {
+        return plugin.getOnlinePlayersUUIDs();
+    }
+
+    /**
+     * Gets the online players in all sky block servers.
+     *
+     * @return A set of player names currently online.
+     */
+    @SuppressWarnings("unused")
+    public Set<String> getOnlinePlayersNames() {
+        return plugin.getOnlinePlayersNames();
     }
 }

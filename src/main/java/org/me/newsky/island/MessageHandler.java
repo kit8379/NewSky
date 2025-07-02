@@ -17,7 +17,9 @@ public class MessageHandler {
         this.islandDistributor = islandDistributor;
     }
 
-    public void sendMessage(UUID playerUuid, Component message) {
-        CompletableFuture.runAsync(() -> islandDistributor.sendMessage(playerUuid, message), plugin.getBukkitAsyncExecutor());
+    public CompletableFuture<Void> sendMessage(UUID playerUuid, Component message) {
+        return CompletableFuture.runAsync(() -> {
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.sendMessage(playerUuid, message));
     }
+
 }

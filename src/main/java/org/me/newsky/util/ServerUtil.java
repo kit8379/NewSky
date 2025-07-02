@@ -28,7 +28,6 @@ public class ServerUtil {
                     out.writeUTF("Connect");
                     out.writeUTF(serverName);
                     player.sendPluginMessage(plugin, "BungeeCord", byteArray.toByteArray());
-                    plugin.debug("ServerUtil", "Sent plugin message to player " + player.getName() + " to connect to server: " + serverName);
                 } catch (IOException e) {
                     plugin.severe("Failed to send plugin message to player " + player.getName(), e);
                     throw new RuntimeException(e);
@@ -36,7 +35,6 @@ public class ServerUtil {
             } else {
                 throw new IllegalStateException("Player not found: " + playerUuid);
             }
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> {
-        }, plugin.getBukkitAsyncExecutor());
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("ServerUtil", "Sent connect message to player " + playerUuid + " for server: " + serverName), plugin.getBukkitAsyncExecutor());
     }
 }

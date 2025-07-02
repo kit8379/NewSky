@@ -35,6 +35,7 @@ import org.me.newsky.world.WorldHandler;
 import java.lang.reflect.Constructor;
 import java.util.Collections;
 import java.util.Set;
+import java.util.UUID;
 import java.util.logging.Level;
 
 public class NewSky extends JavaPlugin {
@@ -132,7 +133,7 @@ public class NewSky extends JavaPlugin {
             info("Server selector loaded");
 
             info("Starting handlers for island remote requests");
-            IslandOperation islandOperation = new IslandOperation(this, cache, redisCache, worldHandler, teleportHandler, serverID);
+            IslandOperation islandOperation = new IslandOperation(this, redisCache, worldHandler, teleportHandler, serverID);
             IslandDistributor islandDistributor = new IslandDistributor(this, redisCache, islandOperation, serverSelector, serverID);
             info("All handlers for remote requests loaded");
 
@@ -262,35 +263,48 @@ public class NewSky extends JavaPlugin {
         info("Plugin reloaded!");
     }
 
-    public Set<String> getOnlinePlayers() {
-        return redisCache.getOnlinePlayers();
+    @SuppressWarnings("unused")
+    public Set<UUID> getOnlinePlayersUUIDs() {
+        return redisCache.getOnlinePlayersUUIDs();
     }
 
+    @SuppressWarnings("unused")
+    public Set<String> getOnlinePlayersNames() {
+        return redisCache.getOnlinePlayersNames();
+    }
+
+    @SuppressWarnings("unused")
     public BukkitAsyncExecutor getBukkitAsyncExecutor() {
         return bukkitAsyncExecutor;
     }
+
 
     @SuppressWarnings("unused")
     public NewSkyAPI getApi() {
         return api;
     }
 
+    @SuppressWarnings("unused")
     public void info(String message) {
         getLogger().log(Level.INFO, message);
     }
 
+    @SuppressWarnings("unused")
     public void warning(String message) {
         getLogger().log(Level.WARNING, message);
     }
 
+    @SuppressWarnings("unused")
     public void severe(String message) {
         getLogger().log(Level.SEVERE, message);
     }
 
+    @SuppressWarnings("unused")
     public void severe(String message, Throwable throwable) {
         getLogger().log(Level.SEVERE, message, throwable);
     }
 
+    @SuppressWarnings("unused")
     public void debug(String source, String message) {
         if (config.isDebug()) {
             getLogger().log(Level.INFO, "[" + source + "] " + message);

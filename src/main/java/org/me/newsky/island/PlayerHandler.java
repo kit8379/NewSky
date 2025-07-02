@@ -88,8 +88,7 @@ public class PlayerHandler {
             if (players.contains(playerUuid)) {
                 throw new CannotExpelIslandPlayerException();
             }
-            islandDistributor.expelPlayer(islandUuid, playerUuid);
-        }, plugin.getBukkitAsyncExecutor());
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.expelPlayer(islandUuid, playerUuid));
     }
 
     public CompletableFuture<Void> addPendingInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {
@@ -130,5 +129,9 @@ public class PlayerHandler {
 
     public Set<UUID> getIslandMembers(UUID islandUuid) {
         return cache.getIslandMembers(islandUuid);
+    }
+
+    public Set<UUID> getIslandPlayers(UUID islandUuid) {
+        return cache.getIslandPlayers(islandUuid);
     }
 }

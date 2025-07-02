@@ -111,7 +111,7 @@ public class PlayerBanCommand implements SubCommand, TabComplete {
     public List<String> tabComplete(CommandSender sender, String label, String[] args) {
         if (args.length == 2) {
             String prefix = args[1].toLowerCase();
-            return api.getOnlinePlayers().stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+            return api.getOnlinePlayersNames().stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
         }
         return Collections.emptyList();
     }

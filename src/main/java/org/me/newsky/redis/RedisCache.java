@@ -3,12 +3,12 @@ package org.me.newsky.redis;
 import org.me.newsky.NewSky;
 import org.me.newsky.model.Invitation;
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.Pipeline;
 
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 public class RedisCache {
 
@@ -24,12 +24,10 @@ public class RedisCache {
     public void updateActiveServer(String serverName, boolean lobby) {
         try (Jedis jedis = redisHandler.getJedis()) {
             String timestamp = String.valueOf(System.currentTimeMillis());
-            Pipeline p = jedis.pipelined();
-            p.hset("server_heartbeats", serverName, timestamp);
+            jedis.hset("server_heartbeats", serverName, timestamp);
             if (!lobby) {
-                p.hset("active_game_servers", serverName, timestamp);
+                jedis.hset("active_game_servers", serverName, timestamp);
             }
-            p.sync();
         } catch (Exception e) {
             plugin.severe("Failed to update active server for: " + serverName, e);
         }
@@ -37,25 +35,24 @@ public class RedisCache {
 
     public void removeActiveServer(String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline p = jedis.pipelined();
-            p.hdel("server_heartbeats", serverName);
-            p.hdel("active_game_servers", serverName);
+            jedis.hdel("server_heartbeats", serverName);
+            jedis.hdel("active_game_servers", serverName);
 
             Map<String, String> islandServerMap = jedis.hgetAll("island_server");
             for (Map.Entry<String, String> entry : islandServerMap.entrySet()) {
                 if (entry.getValue().equals(serverName)) {
-                    p.hdel("island_server", entry.getKey());
+                    jedis.hdel("island_server", entry.getKey());
                 }
             }
 
             Map<String, String> onlinePlayers = jedis.hgetAll("online_players");
             for (Map.Entry<String, String> entry : onlinePlayers.entrySet()) {
                 if (entry.getValue().equals(serverName)) {
-                    p.hdel("online_players", entry.getKey());
+                    jedis.hdel("online_players", entry.getKey());
+                    jedis.hdel("uuid_to_name", entry.getKey());
                 }
             }
 
-            p.sync();
             plugin.debug("RedisCache", "Cleaned up all data for server: " + serverName);
         } catch (Exception e) {
             plugin.severe("Failed to remove active server: " + serverName, e);
@@ -107,28 +104,56 @@ public class RedisCache {
         }
     }
 
+    public Optional<String> getPlayerOnlineServer(UUID playerUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            String server = jedis.hget("player_server", playerUuid.toString());
+            return Optional.ofNullable(server);
+        } catch (Exception e) {
+            plugin.severe("Failed to get player server for: " + playerUuid, e);
+            return Optional.empty();
+        }
+    }
+
     // Global Online players
-    public void addOnlinePlayer(String playerName, String serverName) {
+    public void addOnlinePlayer(UUID playerUuid, String playerName, String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.hset("online_players", playerName, serverName);
+            jedis.hset("online_players", playerUuid.toString(), serverName);
+            jedis.hset("uuid_to_name", playerUuid.toString(), playerName);
         } catch (Exception e) {
-            plugin.severe("Failed to add online player: " + playerName, e);
+            plugin.severe("Failed to add online player: " + playerUuid, e);
         }
     }
 
-    public void removeOnlinePlayer(String playerName) {
+    public void removeOnlinePlayer(UUID playerUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.hdel("online_players", playerName);
+            jedis.hdel("online_players", playerUuid.toString());
+            jedis.hdel("uuid_to_name", playerUuid.toString());
         } catch (Exception e) {
-            plugin.severe("Failed to remove online player: " + playerName, e);
+            plugin.severe("Failed to remove online player: " + playerUuid, e);
         }
     }
 
-    public Set<String> getOnlinePlayers() {
+    public Set<UUID> getOnlinePlayersUUIDs() {
         try (Jedis jedis = redisHandler.getJedis()) {
-            return jedis.hkeys("online_players");
+            return jedis.hkeys("online_players").stream().map(key -> {
+                try {
+                    return UUID.fromString(key);
+                } catch (IllegalArgumentException e) {
+                    plugin.severe("Invalid UUID in online_players: " + key, e);
+                    return null;
+                }
+            }).filter(uuid -> uuid != null).collect(Collectors.toSet());
         } catch (Exception e) {
             plugin.severe("Failed to get online players", e);
+            return Set.of();
+        }
+    }
+
+    public Set<String> getOnlinePlayersNames() {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            return Set.copyOf(jedis.hvals("uuid_to_name"));
+        } catch (Exception e) {
+            plugin.severe("Failed to get online player names", e);
             return Set.of();
         }
     }
