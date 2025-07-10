@@ -291,6 +291,17 @@ public class NewSkyAPI {
     }
 
     /**
+     * Calculates the island level for the given island UUID asynchronously.
+     *
+     * @param islandUuid The UUID of the island to calculate level for.
+     * @return A CompletableFuture that completes with the calculated level.
+     */
+    @SuppressWarnings("unused")
+    public CompletableFuture<Integer> calIslandLevel(UUID islandUuid) {
+        return levelHandler.calIslandLevel(islandUuid);
+    }
+
+    /**
      * Gets the UUID of the island for a given player.
      *
      * @param playerUuid The UUID of the player.

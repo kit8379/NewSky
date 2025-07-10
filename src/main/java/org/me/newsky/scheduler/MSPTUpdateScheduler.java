@@ -32,9 +32,7 @@ public class MSPTUpdateScheduler {
         }
 
         plugin.debug("MSPTUpdateScheduler", "Starting MSPT update scheduler with interval: " + updateInterval + " seconds.");
-
         task = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::updateMspt, 0, updateInterval * 20L);
-
         plugin.debug("MSPTUpdateScheduler", "MSPT update task scheduled successfully.");
     }
 

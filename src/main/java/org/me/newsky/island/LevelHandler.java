@@ -25,11 +25,10 @@ public class LevelHandler {
         this.cache = cache;
     }
 
-    public void calIslandLevel(UUID islandUuid) {
+    public CompletableFuture<Integer> calIslandLevel(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         int halfSize = config.getIslandSize() / 2;
-
         int minX = (-halfSize) >> 4;
         int minZ = (-halfSize) >> 4;
         int maxX = (halfSize) >> 4;
@@ -38,7 +37,7 @@ public class LevelHandler {
         World world = plugin.getServer().getWorld(islandName);
         if (world == null) {
             plugin.getLogger().warning("World is not loaded for island UUID: " + islandUuid + ". Cannot calculate level.");
-            return;
+            return CompletableFuture.failedFuture(new IllegalStateException("Island world not loaded"));
         }
 
         List<CompletableFuture<ChunkSnapshot>> snapshotFutures = new ArrayList<>();
@@ -50,14 +49,20 @@ public class LevelHandler {
                         return CompletableFuture.completedFuture(null);
                     }
                     CompletableFuture<ChunkSnapshot> snapshotFuture = new CompletableFuture<>();
-                    plugin.getServer().getScheduler().runTask(plugin, () -> snapshotFuture.complete(chunk.getChunkSnapshot()));
+                    plugin.getServer().getScheduler().runTask(plugin, () -> {
+                        try {
+                            snapshotFuture.complete(chunk.getChunkSnapshot());
+                        } catch (Exception ex) {
+                            snapshotFuture.completeExceptionally(ex);
+                        }
+                    });
                     return snapshotFuture;
                 });
                 snapshotFutures.add(future);
             }
         }
 
-        CompletableFuture.allOf(snapshotFutures.toArray(new CompletableFuture[0])).thenApply(v -> snapshotFutures.stream().map(CompletableFuture::join).filter(snapshot -> snapshot != null).toList()).thenApplyAsync(snapshots -> {
+        return CompletableFuture.allOf(snapshotFutures.toArray(new CompletableFuture[0])).thenApply(v -> snapshotFutures.stream().map(CompletableFuture::join).filter(snapshot -> snapshot != null).toList()).thenApplyAsync(snapshots -> {
             int minY = world.getMinHeight();
             int maxY = world.getMaxHeight();
 
@@ -73,10 +78,11 @@ public class LevelHandler {
                 }
                 return points;
             }).sum();
-        }, plugin.getBukkitAsyncExecutor()).thenAccept(totalPoints -> {
+        }, plugin.getBukkitAsyncExecutor()).thenApply(totalPoints -> {
             int totalLevel = (int) Math.round((double) totalPoints / 100);
             cache.updateIslandLevel(islandUuid, totalLevel);
             plugin.debug("LevelHandler", "Calculated level for island " + islandUuid + ": " + totalLevel);
+            return totalLevel;
         });
     }
 

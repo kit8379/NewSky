@@ -1,6 +1,5 @@
 package org.me.newsky.listener;
 
-import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -20,12 +19,12 @@ public class UuidUpdateListener implements Listener {
         this.cache = cache;
     }
 
-    @EventHandler(priority = EventPriority.NORMAL)
+    @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
     public void onPlayerJoin(PlayerJoinEvent event) {
         UUID uuid = event.getPlayer().getUniqueId();
         String name = event.getPlayer().getName();
 
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             cache.updatePlayerUuid(uuid, name);
             plugin.debug("UuidUpdateListener", "Updated UUID for player: " + name + " (" + uuid + ")");
         });
