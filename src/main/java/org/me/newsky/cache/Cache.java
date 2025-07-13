@@ -3,7 +3,6 @@ package org.me.newsky.cache;
 import org.me.newsky.broker.CacheBroker;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
-import org.me.newsky.model.*;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -46,143 +45,207 @@ public class Cache {
     }
 
     public void cacheIslandData() {
-        for (IslandData data : databaseHandler.getAllIslandData()) {
-            UUID islandUuid = data.getIslandUuid();
-            Map<String, String> map = new HashMap<>();
-            map.put("lock", String.valueOf(data.isLock()));
-            map.put("pvp", String.valueOf(data.isPvp()));
-            islandData.put(islandUuid, map);
-        }
+        databaseHandler.selectAllIslandData(rs -> {
+            while (rs.next()) {
+                UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));
+                Map<String, String> data = new HashMap<>();
+                data.put("lock", String.valueOf(rs.getBoolean("lock")));
+                data.put("pvp", String.valueOf(rs.getBoolean("pvp")));
+                islandData.put(islandUuid, data);
+            }
+        });
     }
 
     public void cacheIslandPlayers() {
-        for (IslandPlayer entry : databaseHandler.getAllIslandPlayers()) {
-            islandPlayers.computeIfAbsent(entry.getIslandUuid(), k -> new ConcurrentHashMap<>()).put(entry.getPlayerUuid(), entry.getRole());
-        }
+        databaseHandler.selectAllIslandPlayers(rs -> {
+            while (rs.next()) {
+                UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));
+                UUID playerUuid = UUID.fromString(rs.getString("player_uuid"));
+                String role = rs.getString("role");
+                islandPlayers.computeIfAbsent(islandUuid, k -> new ConcurrentHashMap<>()).put(playerUuid, role);
+            }
+        });
     }
 
     public void cacheIslandHomes() {
-        for (IslandHome home : databaseHandler.getAllIslandHomes()) {
-            islandHomes.computeIfAbsent(home.getIslandUuid(), k -> new ConcurrentHashMap<>()).computeIfAbsent(home.getPlayerUuid(), k -> new ConcurrentHashMap<>()).put(home.getHomeName(), home.getHomeLocation());
-        }
+        databaseHandler.selectAllIslandHomes(rs -> {
+            while (rs.next()) {
+                UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));
+                UUID playerUuid = UUID.fromString(rs.getString("player_uuid"));
+                String homeName = rs.getString("home_name");
+                String homeLocation = rs.getString("home_location");
+                islandHomes.computeIfAbsent(islandUuid, k -> new ConcurrentHashMap<>()).computeIfAbsent(playerUuid, k -> new ConcurrentHashMap<>()).put(homeName, homeLocation);
+            }
+        });
     }
 
     public void cacheIslandWarps() {
-        for (IslandWarp warp : databaseHandler.getAllIslandWarps()) {
-            islandWarps.computeIfAbsent(warp.getIslandUuid(), k -> new ConcurrentHashMap<>()).computeIfAbsent(warp.getPlayerUuid(), k -> new ConcurrentHashMap<>()).put(warp.getWarpName(), warp.getWarpLocation());
-        }
+        databaseHandler.selectAllIslandWarps(rs -> {
+            while (rs.next()) {
+                UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));
+                UUID playerUuid = UUID.fromString(rs.getString("player_uuid"));
+                String warpName = rs.getString("warp_name");
+                String warpLocation = rs.getString("warp_location");
+                islandWarps.computeIfAbsent(islandUuid, k -> new ConcurrentHashMap<>()).computeIfAbsent(playerUuid, k -> new ConcurrentHashMap<>()).put(warpName, warpLocation);
+            }
+        });
     }
 
     public void cacheIslandBans() {
-        for (IslandBan ban : databaseHandler.getAllIslandBans()) {
-            islandBans.computeIfAbsent(ban.getIslandUuid(), k -> ConcurrentHashMap.newKeySet()).add(ban.getBannedPlayer());
-        }
+        databaseHandler.selectAllIslandBans(rs -> {
+            while (rs.next()) {
+                UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));
+                UUID bannedPlayer = UUID.fromString(rs.getString("banned_player"));
+                islandBans.computeIfAbsent(islandUuid, k -> ConcurrentHashMap.newKeySet()).add(bannedPlayer);
+            }
+        });
     }
 
     public void cacheIslandCoops() {
-        for (IslandCoop coop : databaseHandler.getAllIslandCoops()) {
-            islandCoops.computeIfAbsent(coop.getIslandUuid(), k -> ConcurrentHashMap.newKeySet()).add(coop.getCoopedPlayer());
-        }
+        databaseHandler.selectAllIslandCoops(rs -> {
+            while (rs.next()) {
+                UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));
+                UUID playerUuid = UUID.fromString(rs.getString("cooped_player"));
+                islandCoops.computeIfAbsent(islandUuid, k -> ConcurrentHashMap.newKeySet()).add(playerUuid);
+            }
+        });
     }
 
     public void cacheIslandLevels() {
-        for (IslandLevel level : databaseHandler.getAllIslandLevels()) {
-            islandLevels.put(level.getIslandUuid(), level.getLevel());
-        }
+        databaseHandler.selectAllIslandLevels(rs -> {
+            while (rs.next()) {
+                UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));
+                int level = rs.getInt("level");
+                islandLevels.put(islandUuid, level);
+            }
+        });
     }
 
     public void cachePlayerUuidMap() {
-        for (PlayerName entry : databaseHandler.getAllPlayerNames()) {
-            playerUuidToName.put(entry.getUuid(), entry.getName());
-            playerNameToUuid.put(entry.getName().toLowerCase(), entry.getUuid());
-        }
+        databaseHandler.selectAllPlayerUuid(rs -> {
+            while (rs.next()) {
+                UUID uuid = UUID.fromString(rs.getString("uuid"));
+                String name = rs.getString("name");
+                playerUuidToName.put(uuid, name);
+                playerNameToUuid.put(name.toLowerCase(), uuid);
+            }
+        });
     }
 
     public void reloadIslandData(UUID islandUuid) {
-        databaseHandler.getIslandData(islandUuid).ifPresentOrElse(data -> {
-            Map<String, String> map = new ConcurrentHashMap<>();
-            map.put("lock", String.valueOf(data.isLock()));
-            map.put("pvp", String.valueOf(data.isPvp()));
-            islandData.put(islandUuid, map);
-        }, () -> islandData.remove(islandUuid));
+        databaseHandler.selectIslandData(islandUuid, rs -> {
+            if (rs.next()) {
+                Map<String, String> data = new ConcurrentHashMap<>();
+                data.put("lock", String.valueOf(rs.getBoolean("lock")));
+                data.put("pvp", String.valueOf(rs.getBoolean("pvp")));
+                islandData.put(islandUuid, data);
+            } else {
+                islandData.remove(islandUuid);
+            }
+        });
     }
 
     public void reloadIslandPlayers(UUID islandUuid) {
-        List<IslandPlayer> players = databaseHandler.getIslandPlayers(islandUuid);
-        if (players.isEmpty()) {
-            islandPlayers.remove(islandUuid);
-        } else {
+        databaseHandler.selectIslandPlayers(islandUuid, rs -> {
             Map<UUID, String> map = new ConcurrentHashMap<>();
-            for (IslandPlayer player : players) {
-                map.put(player.getPlayerUuid(), player.getRole());
+            while (rs.next()) {
+                UUID playerUuid = UUID.fromString(rs.getString("player_uuid"));
+                String role = rs.getString("role");
+                map.put(playerUuid, role);
             }
-            islandPlayers.put(islandUuid, map);
-        }
+            if (map.isEmpty()) {
+                islandPlayers.remove(islandUuid);
+            } else {
+                islandPlayers.put(islandUuid, map);
+            }
+        });
     }
 
     public void reloadIslandHomes(UUID islandUuid) {
-        List<IslandHome> homes = databaseHandler.getIslandHomes(islandUuid);
-        if (homes.isEmpty()) {
-            islandHomes.remove(islandUuid);
-        } else {
+        databaseHandler.selectIslandHomes(islandUuid, rs -> {
             Map<UUID, Map<String, String>> map = new ConcurrentHashMap<>();
-            for (IslandHome home : homes) {
-                map.computeIfAbsent(home.getPlayerUuid(), k -> new ConcurrentHashMap<>()).put(home.getHomeName(), home.getHomeLocation());
+            while (rs.next()) {
+                UUID playerUuid = UUID.fromString(rs.getString("player_uuid"));
+                String homeName = rs.getString("home_name");
+                String homeLocation = rs.getString("home_location");
+                map.computeIfAbsent(playerUuid, k -> new ConcurrentHashMap<>()).put(homeName, homeLocation);
             }
-            islandHomes.put(islandUuid, map);
-        }
+            if (map.isEmpty()) {
+                islandHomes.remove(islandUuid);
+            } else {
+                islandHomes.put(islandUuid, map);
+            }
+        });
     }
 
     public void reloadIslandWarps(UUID islandUuid) {
-        List<IslandWarp> warps = databaseHandler.getIslandWarps(islandUuid);
-        if (warps.isEmpty()) {
-            islandWarps.remove(islandUuid);
-        } else {
+        databaseHandler.selectIslandWarps(islandUuid, rs -> {
             Map<UUID, Map<String, String>> map = new ConcurrentHashMap<>();
-            for (IslandWarp warp : warps) {
-                map.computeIfAbsent(warp.getPlayerUuid(), k -> new ConcurrentHashMap<>()).put(warp.getWarpName(), warp.getWarpLocation());
+            while (rs.next()) {
+                UUID playerUuid = UUID.fromString(rs.getString("player_uuid"));
+                String warpName = rs.getString("warp_name");
+                String warpLocation = rs.getString("warp_location");
+                map.computeIfAbsent(playerUuid, k -> new ConcurrentHashMap<>()).put(warpName, warpLocation);
             }
-            islandWarps.put(islandUuid, map);
-        }
+            if (map.isEmpty()) {
+                islandWarps.remove(islandUuid);
+            } else {
+                islandWarps.put(islandUuid, map);
+            }
+        });
     }
 
     public void reloadIslandBans(UUID islandUuid) {
-        List<IslandBan> bans = databaseHandler.getIslandBans(islandUuid);
-        if (bans.isEmpty()) {
-            islandBans.remove(islandUuid);
-        } else {
+        databaseHandler.selectIslandBans(islandUuid, rs -> {
             Set<UUID> set = ConcurrentHashMap.newKeySet();
-            for (IslandBan ban : bans) {
-                set.add(ban.getBannedPlayer());
+            while (rs.next()) {
+                UUID bannedPlayer = UUID.fromString(rs.getString("banned_player"));
+                set.add(bannedPlayer);
             }
-            islandBans.put(islandUuid, set);
-        }
+            if (set.isEmpty()) {
+                islandBans.remove(islandUuid);
+            } else {
+                islandBans.put(islandUuid, set);
+            }
+        });
     }
 
     public void reloadIslandCoops(UUID islandUuid) {
-        List<IslandCoop> coops = databaseHandler.getIslandCoops(islandUuid);
-        if (coops.isEmpty()) {
-            islandCoops.remove(islandUuid);
-        } else {
+        databaseHandler.selectIslandCoops(islandUuid, rs -> {
             Set<UUID> set = ConcurrentHashMap.newKeySet();
-            for (IslandCoop coop : coops) {
-                set.add(coop.getCoopedPlayer());
+            while (rs.next()) {
+                UUID playerUuid = UUID.fromString(rs.getString("cooped_player"));
+                set.add(playerUuid);
             }
-            islandCoops.put(islandUuid, set);
-        }
+            if (set.isEmpty()) {
+                islandCoops.remove(islandUuid);
+            } else {
+                islandCoops.put(islandUuid, set);
+            }
+        });
     }
 
     public void reloadIslandLevels(UUID islandUuid) {
-        databaseHandler.getIslandLevel(islandUuid).ifPresentOrElse(level -> islandLevels.put(islandUuid, level.getLevel()), () -> islandLevels.remove(islandUuid));
+        databaseHandler.selectIslandLevel(islandUuid, rs -> {
+            if (rs.next()) {
+                int level = rs.getInt("level");
+                islandLevels.put(islandUuid, level);
+            } else {
+                islandLevels.remove(islandUuid);
+            }
+        });
     }
 
     public void reloadPlayerUuid(UUID playerUuid) {
-        databaseHandler.getPlayerName(playerUuid).ifPresentOrElse(playerName -> {
-            playerUuidToName.put(playerUuid, playerName.getName());
-            playerNameToUuid.put(playerName.getName().toLowerCase(), playerUuid);
-        }, () -> {
-            playerUuidToName.remove(playerUuid);
-            playerNameToUuid.values().removeIf(existing -> existing.equals(playerUuid));
+        databaseHandler.selectPlayerUuid(playerUuid, rs -> {
+            if (rs.next()) {
+                String name = rs.getString("name");
+                playerUuidToName.put(playerUuid, name);
+                playerNameToUuid.put(name.toLowerCase(), playerUuid);
+            } else {
+                playerUuidToName.remove(playerUuid);
+                playerNameToUuid.values().removeIf(existing -> existing.equals(playerUuid));
+            }
         });
     }
 
