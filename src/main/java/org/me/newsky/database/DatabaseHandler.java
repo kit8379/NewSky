@@ -314,7 +314,6 @@ public class DatabaseHandler {
         executeUpdate("DELETE FROM " + prefix + "island_homes WHERE island_uuid = ?;", stmt -> stmt.setString(1, islandUuid.toString()));
         executeUpdate("DELETE FROM " + prefix + "island_players WHERE island_uuid = ?;", stmt -> stmt.setString(1, islandUuid.toString()));
         executeUpdate("DELETE FROM " + prefix + "islands WHERE island_uuid = ?;", stmt -> stmt.setString(1, islandUuid.toString()));
-        executeUpdate("DELETE FROM " + prefix + "island_limit WHERE island_uuid = ?;", stmt -> stmt.setString(1, islandUuid.toString()));
     }
 
     public void deleteIslandPlayer(UUID islandUuid, UUID playerUuid) {

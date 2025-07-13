@@ -136,6 +136,14 @@ public class WorldHandler {
         }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
     }
 
+    public void removePlayersFromWorld(World world) {
+        plugin.debug("WorldHandler", "Removing players from world: " + world.getName());
+        for (Player player : world.getPlayers()) {
+            plugin.debug("WorldHandler", "Teleporting player: " + player.getName());
+            player.teleport(Bukkit.getWorlds().getFirst().getSpawnLocation());
+            plugin.getApi().lobby(player.getUniqueId());
+        }
+    }
 
     public void unloadAllWorldsOnShutdown() {
         plugin.debug("WorldHandler", "Unloading all worlds on shutdown...");
@@ -143,7 +151,10 @@ public class WorldHandler {
         for (SlimeWorldInstance worldInstance : loadedWorlds) {
             try {
                 asp.saveWorld(worldInstance);
-                removePlayersFromWorld(worldInstance.getBukkitWorld());
+                for (Player player : worldInstance.getBukkitWorld().getPlayers()) {
+                    plugin.debug("WorldHandler", "Teleporting player: " + player.getName());
+                    player.teleport(Bukkit.getWorlds().getFirst().getSpawnLocation());
+                }
                 if (Bukkit.unloadWorld(worldInstance.getName(), false)) {
                     plugin.debug("WorldHandler", "World unloaded successfully from Bukkit: " + worldInstance.getName());
                 } else {
@@ -152,15 +163,6 @@ public class WorldHandler {
             } catch (Exception e) {
                 plugin.severe("Failed to unload world on shutdown: " + worldInstance.getName(), e);
             }
-        }
-    }
-
-    public void removePlayersFromWorld(World world) {
-        plugin.debug("WorldHandler", "Removing players from world: " + world.getName());
-        for (Player player : world.getPlayers()) {
-            plugin.debug("WorldHandler", "Teleporting player: " + player.getName());
-            player.teleport(Bukkit.getWorlds().getFirst().getSpawnLocation());
-            plugin.getApi().lobby(player.getUniqueId());
         }
     }
 }

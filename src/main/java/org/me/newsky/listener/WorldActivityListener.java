@@ -20,7 +20,7 @@ public class WorldActivityListener implements Listener {
     }
 
     @EventHandler
-    public void onJoin(PlayerJoinEvent event) {
+    public void onPlayerJoin(PlayerJoinEvent event) {
         String world = event.getPlayer().getWorld().getName();
         if (IslandUtils.isIslandWorld(world)) {
             plugin.debug("WorldActivityListener", "Player " + event.getPlayer().getName() + " entered island world: " + world);
@@ -29,7 +29,7 @@ public class WorldActivityListener implements Listener {
     }
 
     @EventHandler
-    public void onQuit(PlayerQuitEvent event) {
+    public void onPlayerQuit(PlayerQuitEvent event) {
         String world = event.getPlayer().getWorld().getName();
         if (IslandUtils.isIslandWorld(world)) {
             plugin.debug("WorldActivityListener", "Player " + event.getPlayer().getName() + " left island world: " + world);
