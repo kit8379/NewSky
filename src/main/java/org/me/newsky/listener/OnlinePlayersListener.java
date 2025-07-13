@@ -22,13 +22,17 @@ public class OnlinePlayersListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     private void onPlayerJoin(PlayerJoinEvent event) {
-        redisCache.addOnlinePlayer(event.getPlayer().getUniqueId(), event.getPlayer().getName(), serverID);
-        plugin.debug("OnlinePlayersListener", "Player " + event.getPlayer().getName() + " joined on server " + serverID);
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            redisCache.addOnlinePlayer(event.getPlayer().getUniqueId(), event.getPlayer().getName(), serverID);
+            plugin.debug("OnlinePlayersListener", "Player " + event.getPlayer().getName() + " joined on server " + serverID);
+        });
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onPlayerQuit(PlayerQuitEvent event) {
-        redisCache.removeOnlinePlayer(event.getPlayer().getUniqueId());
-        plugin.debug("OnlinePlayersListener", "Player " + event.getPlayer().getName() + " quit from server " + serverID);
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            redisCache.removeOnlinePlayer(event.getPlayer().getUniqueId());
+            plugin.debug("OnlinePlayersListener", "Player " + event.getPlayer().getName() + " quit from server " + serverID);
+        });
     }
 }
