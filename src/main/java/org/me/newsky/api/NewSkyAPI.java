@@ -346,6 +346,28 @@ public class NewSkyAPI {
     }
 
     /**
+     * Checks if the island is locked.
+     *
+     * @param islandUuid The UUID of the island.
+     * @return true if the island is locked, false otherwise.
+     */
+    @SuppressWarnings("unused")
+    public boolean isIslandLock(UUID islandUuid) {
+        return islandHandler.isIslandLock(islandUuid);
+    }
+
+    /**
+     * Checks if the island allows PvP.
+     *
+     * @param islandUuid The UUID of the island.
+     * @return true if PvP is enabled on the island, false otherwise.
+     */
+    @SuppressWarnings("unused")
+    public boolean isIslandPvp(UUID islandUuid) {
+        return islandHandler.isIslandPvp(islandUuid);
+    }
+
+    /**
      * Gets the names of all homes for a given player UUID.
      *
      * @param playerUuid The UUID of the player.
@@ -368,6 +390,18 @@ public class NewSkyAPI {
     }
 
     /**
+     * Checks if a player is banned from the specified island.
+     *
+     * @param islandUuid The UUID of the island.
+     * @param playerUuid The UUID of the player to check.
+     * @return true if the player is banned, false otherwise.
+     */
+    @SuppressWarnings("unused")
+    public boolean isPlayerBanned(UUID islandUuid, UUID playerUuid) {
+        return banHandler.isPlayerBanned(islandUuid, playerUuid);
+    }
+
+    /**
      * Get the names of all players who are banned from the specified island.
      *
      * @param islandUuid The UUID of the island.
@@ -376,6 +410,18 @@ public class NewSkyAPI {
     @SuppressWarnings("unused")
     public Set<UUID> getBannedPlayers(UUID islandUuid) {
         return banHandler.getBannedPlayers(islandUuid);
+    }
+
+    /**
+     * Checks if a player is cooped to the specified island.
+     *
+     * @param islandUuid The UUID of the island.
+     * @param playerUuid The UUID of the player to check.
+     * @return true if the player is cooped, false otherwise.
+     */
+    @SuppressWarnings("unused")
+    public boolean isPlayerCooped(UUID islandUuid, UUID playerUuid) {
+        return coopHandler.isPlayerCooped(islandUuid, playerUuid);
     }
 
     /**

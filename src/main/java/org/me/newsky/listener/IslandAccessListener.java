@@ -8,7 +8,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.Cache;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.util.IslandUtils;
 
@@ -18,12 +17,10 @@ public class IslandAccessListener implements Listener {
 
     private final NewSky plugin;
     private final ConfigHandler config;
-    private final Cache cache;
 
-    public IslandAccessListener(NewSky plugin, ConfigHandler config, Cache cache) {
+    public IslandAccessListener(NewSky plugin, ConfigHandler config) {
         this.plugin = plugin;
         this.config = config;
-        this.cache = cache;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -49,8 +46,8 @@ public class IslandAccessListener implements Listener {
         UUID islandUuid = IslandUtils.nameToUUID(worldName);
         UUID playerUuid = player.getUniqueId();
 
-        boolean banned = cache.isPlayerBanned(islandUuid, playerUuid);
-        boolean locked = cache.isIslandLock(islandUuid) && !cache.getIslandPlayers(islandUuid).contains(playerUuid);
+        boolean banned = plugin.getApi().isPlayerBanned(islandUuid, playerUuid);
+        boolean locked = plugin.getApi().isIslandLock(islandUuid) && !plugin.getApi().getIslandPlayers(islandUuid).contains(playerUuid);
 
         if (banned || locked) {
             player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());

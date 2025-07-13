@@ -48,6 +48,10 @@ public class BanHandler {
         }, plugin.getBukkitAsyncExecutor());
     }
 
+    public boolean isPlayerBanned(UUID islandUuid, UUID playerUuid) {
+        return cache.isPlayerBanned(islandUuid, playerUuid);
+    }
+
     public Set<UUID> getBannedPlayers(UUID islandUuid) {
         return cache.getBannedPlayers(islandUuid);
     }

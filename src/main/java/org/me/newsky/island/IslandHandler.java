@@ -65,6 +65,14 @@ public class IslandHandler {
         }, plugin.getBukkitAsyncExecutor());
     }
 
+    public boolean isIslandLock(UUID islandUuid) {
+        return cache.isIslandLock(islandUuid);
+    }
+
+    public boolean isIslandPvp(UUID islandUuid) {
+        return cache.isIslandPvp(islandUuid);
+    }
+
     public UUID getIslandUuid(UUID playerUuid) {
         return cache.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
     }

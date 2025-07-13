@@ -19,7 +19,6 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.InventoryHolder;
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.Cache;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.util.IslandUtils;
 
@@ -29,13 +28,11 @@ public class IslandProtectionListener implements Listener {
 
     private final NewSky plugin;
     private final ConfigHandler config;
-    private final Cache cache;
     private final int islandSize;
 
-    public IslandProtectionListener(NewSky plugin, ConfigHandler config, Cache cache) {
+    public IslandProtectionListener(NewSky plugin, ConfigHandler config) {
         this.plugin = plugin;
         this.config = config;
-        this.cache = cache;
         this.islandSize = config.getIslandSize();
     }
 
@@ -61,7 +58,7 @@ public class IslandProtectionListener implements Listener {
         }
         UUID islandUuid = IslandUtils.nameToUUID(location.getWorld().getName());
         UUID playerUuid = player.getUniqueId();
-        return cache.getIslandPlayers(islandUuid).contains(playerUuid) || cache.isPlayerCooped(islandUuid, playerUuid);
+        return plugin.getApi().getIslandPlayers(islandUuid).contains(playerUuid) || plugin.getApi().isPlayerCooped(islandUuid, playerUuid);
     }
 
     private void deny(Player player) {
