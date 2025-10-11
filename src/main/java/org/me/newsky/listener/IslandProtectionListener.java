@@ -92,7 +92,7 @@ public class IslandProtectionListener implements Listener {
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onBucketUse(PlayerBucketEmptyEvent event) {
         if (!canPlayerEdit(event.getPlayer(), event.getBlock().getLocation())) {
             event.setCancelled(true);
@@ -101,7 +101,7 @@ public class IslandProtectionListener implements Listener {
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onFluidSpread(BlockFromToEvent event) {
         if (!isInsideIslandBoundary(event.getToBlock().getLocation())) {
             event.setCancelled(true);
@@ -109,7 +109,7 @@ public class IslandProtectionListener implements Listener {
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onBlockForm(BlockFormEvent event) {
         if (!isInsideIslandBoundary(event.getBlock().getLocation())) {
             event.setCancelled(true);
@@ -117,7 +117,7 @@ public class IslandProtectionListener implements Listener {
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPistonExtend(BlockPistonExtendEvent event) {
         for (Block block : event.getBlocks()) {
             Block toBlock = block.getRelative(event.getDirection());
@@ -129,7 +129,7 @@ public class IslandProtectionListener implements Listener {
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPistonRetract(BlockPistonRetractEvent event) {
         for (Block block : event.getBlocks()) {
             Block toBlock = block.getRelative(event.getDirection());
@@ -141,7 +141,7 @@ public class IslandProtectionListener implements Listener {
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onMobTrample(EntityChangeBlockEvent event) {
         if (!isInsideIslandBoundary(event.getBlock().getLocation())) {
             event.setCancelled(true);
@@ -189,7 +189,7 @@ public class IslandProtectionListener implements Listener {
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onFishingRodPull(PlayerFishEvent event) {
         if (event.getState() == PlayerFishEvent.State.CAUGHT_ENTITY && event.getCaught() != null) {
             if (!canPlayerEdit(event.getPlayer(), event.getCaught().getLocation())) {
@@ -200,7 +200,7 @@ public class IslandProtectionListener implements Listener {
         }
     }
 
-    @EventHandler(ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onTeleport(PlayerTeleportEvent event) {
         if ((event.getCause() == PlayerTeleportEvent.TeleportCause.ENDER_PEARL || event.getCause() == PlayerTeleportEvent.TeleportCause.CHORUS_FRUIT) && !canPlayerEdit(event.getPlayer(), event.getTo())) {
             event.setCancelled(true);

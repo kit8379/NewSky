@@ -32,7 +32,7 @@ messages:
   new-member-notification: "<green>{player} has joined your island!"
   cannot-remove-owner: "<red>You cannot remove the island owner!"
   unknown-player: "<red>{player} has never joined the server before!"
-  unknown-exception: "<red>An unknown error occurred while processing your request. Please try again later."
+  unknown-exception: "<red>An unknown error occurred while processing your request. Please try again later or contact the administrator."
 
   # Player Command Messages
   player-usage-command: "<red>Correct usage: <aqua>/is {command} {syntax}"
