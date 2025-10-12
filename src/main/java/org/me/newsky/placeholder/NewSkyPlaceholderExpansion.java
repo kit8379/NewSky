@@ -64,18 +64,18 @@ public class NewSkyPlaceholderExpansion extends PlaceholderExpansion {
         switch (identifier) {
             case "island_uuid":
                 return islandUuid.toString();
-            case "island_owner":
-                return formatUuid(cache.getIslandOwner(islandUuid));
-            case "island_members":
-                return formatList(cache.getIslandMembers(islandUuid));
-            case "island_players":
-                return formatList(cache.getIslandPlayers(islandUuid));
             case "island_lock":
                 return String.valueOf(cache.isIslandLock(islandUuid));
             case "island_pvp":
                 return String.valueOf(cache.isIslandPvp(islandUuid));
             case "island_level":
                 return String.valueOf(cache.getIslandLevel(islandUuid));
+            case "island_owner":
+                return formatUuid(cache.getIslandOwner(islandUuid));
+            case "island_members":
+                return formatList(cache.getIslandMembers(islandUuid));
+            case "island_players":
+                return formatList(cache.getIslandPlayers(islandUuid));
             case "island_coops":
                 return formatList(cache.getCoopedPlayers(islandUuid));
             case "island_bans":

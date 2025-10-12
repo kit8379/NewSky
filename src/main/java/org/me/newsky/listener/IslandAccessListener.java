@@ -38,12 +38,11 @@ public class IslandAccessListener implements Listener {
             return;
         }
 
-        String worldName = player.getWorld().getName();
-        if (!IslandUtils.isIslandWorld(worldName)) {
+        if (!IslandUtils.isIslandWorld(player.getWorld().getName())) {
             return;
         }
 
-        UUID islandUuid = IslandUtils.nameToUUID(worldName);
+        UUID islandUuid = IslandUtils.nameToUUID(player.getWorld().getName());
         UUID playerUuid = player.getUniqueId();
 
         boolean banned = plugin.getApi().isPlayerBanned(islandUuid, playerUuid);

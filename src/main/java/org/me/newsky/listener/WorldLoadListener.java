@@ -35,15 +35,19 @@ public class WorldLoadListener implements Listener {
         this.config = config;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onWorldLoad(WorldLoadEvent event) {
         World world = event.getWorld();
         String name = world.getName();
+
         if (!IslandUtils.isIslandWorld(name)) {
-            applyGameRules(world);
-            applyWorldBorder(world);
-            calculateIslandLevel(name);
+            return;
         }
+
+        applyGameRules(world);
+        applyWorldBorder(world);
+        calculateIslandLevel(name);
+        calculateIslandLimit(name);
     }
 
     @SuppressWarnings("unchecked")
@@ -89,5 +93,10 @@ public class WorldLoadListener implements Listener {
     private void calculateIslandLevel(String worldName) {
         plugin.getApi().calIslandLevel(IslandUtils.nameToUUID(worldName));
         plugin.debug("WorldLoadListener", "Force-calculated island level for " + worldName);
+    }
+
+    private void calculateIslandLimit(String worldName) {
+        plugin.getApi().calIslandLimit(IslandUtils.nameToUUID(worldName));
+        plugin.debug("WorldLoadListener", "Force-calculated island limit for " + worldName);
     }
 }

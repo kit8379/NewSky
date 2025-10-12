@@ -17,7 +17,7 @@ public class WorldInitListener implements Listener {
         this.plugin = plugin;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST)
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void worldInit(WorldInitEvent event) {
         World world = event.getWorld();
         String worldName = world.getName();

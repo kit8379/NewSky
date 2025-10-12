@@ -9,7 +9,6 @@ import org.me.newsky.config.ConfigHandler;
 public class MSPTUpdateScheduler {
 
     private final NewSky plugin;
-    private final ConfigHandler config;
     private final RedisCache redisCache;
     private final String serverID;
     private final long updateInterval;
@@ -17,7 +16,6 @@ public class MSPTUpdateScheduler {
 
     public MSPTUpdateScheduler(NewSky plugin, ConfigHandler config, RedisCache redisCache, String serverID) {
         this.plugin = plugin;
-        this.config = config;
         this.redisCache = redisCache;
         this.serverID = serverID;
         this.updateInterval = config.getMsptUpdateInterval();
@@ -26,11 +24,6 @@ public class MSPTUpdateScheduler {
     }
 
     public void start() {
-        if (config.isLobby()) {
-            plugin.debug("MSPTUpdateScheduler", "This server is lobby; MSPT update scheduler will not start.");
-            return;
-        }
-
         plugin.debug("MSPTUpdateScheduler", "Starting MSPT update scheduler with interval: " + updateInterval + " seconds.");
         task = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::updateMspt, 0, updateInterval * 20L);
         plugin.debug("MSPTUpdateScheduler", "MSPT update task scheduled successfully.");

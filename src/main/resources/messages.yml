@@ -21,7 +21,6 @@ messages:
   player-not-online: "<red>Player <aqua>{player} <red>is not online!"
   block-value: "<green>Block Value: <white>{value}"
   no-item-in-hand: "<red>You must be holding an item!"
-  block-limit-reached: "<red>Your island has reached the limit for block <aqua>{block}<red>!"
   already-has-island: "<red>Player <aqua>{player} <red>already owns an island!"
   was-added-to-island: "<green>You were added to the island of <aqua>{owner}<green>!"
   was-removed-from-island: "<green>You were removed from the island of <aqua>{owner}<green>!"
@@ -31,6 +30,7 @@ messages:
   was-uncooped-from-island: "<green>You were removed as a co-op member from the island of <aqua>{owner}<green>!"
   new-member-notification: "<green>{player} has joined your island!"
   cannot-remove-owner: "<red>You cannot remove the island owner!"
+  block-limit-reached: "&cYou island has reached the limit of {limit} for {block}."
   unknown-player: "<red>{player} has never joined the server before!"
   unknown-exception: "<red>An unknown error occurred while processing your request. Please try again later or contact the administrator."
 

@@ -68,7 +68,7 @@ lobby:
   # The list of server names of the lobby servers.
   # These must match the server names defined in your BungeeCord / Velocity config.
   # You can have multiple lobby servers for load balancing.
-  # The plugin will select one of the servers in this list to teleport the player to based on the selector setting above.
+  # The plugin will select one of the best servers in this list to teleport the player to base on the server selector setting above.
   server-names:
     - "lobby"
   # The world name of the lobby.

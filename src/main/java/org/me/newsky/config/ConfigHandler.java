@@ -20,6 +20,7 @@ public class ConfigHandler {
     private final FileConfiguration messages;
     private final FileConfiguration commands;
     private final FileConfiguration levels;
+    private final FileConfiguration limits;
 
     public ConfigHandler(NewSky plugin) {
         this.plugin = plugin;
@@ -28,6 +29,7 @@ public class ConfigHandler {
         this.messages = load("messages.yml");
         this.commands = load("commands.yml");
         this.levels = load("levels.yml");
+        this.limits = load("limits.yml");
     }
 
     private FileConfiguration load(String fileName) {
@@ -81,7 +83,7 @@ public class ConfigHandler {
         }
     }
 
-// ================================================================================================================
+    // ================================================================================================================
     // Config Section
     // ================================================================================================================
 
@@ -241,10 +243,6 @@ public class ConfigHandler {
         return config.getInt("island.island-unload-interval");
     }
 
-    public int getIslandLevelUpdateInterval() {
-        return config.getInt("island.level-update-interval");
-    }
-
     public Map<String, Object> getIslandGameRules() {
         return Objects.requireNonNull(plugin.getConfig().getConfigurationSection("island.gamerules")).getValues(false);
     }
@@ -255,6 +253,14 @@ public class ConfigHandler {
 
     public int getBlockLevel(String material) {
         return levels.getInt("blocks." + material);
+    }
+
+    public int getBlockLimit(String material) {
+        return limits.getInt("limits." + material);
+    }
+
+    public int getEntityLimit(String entity) {
+        return limits.getInt("limits." + entity);
     }
 
     // ================================================================================================================
@@ -1182,6 +1188,10 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.cannot-remove-owner"));
     }
 
+    public Component getBlockLimitReachedMessage(String block, int limit) {
+        return ColorUtils.colorize(java.util.Objects.requireNonNull(messages.getString("messages.block-limit-reached")).replace("{limit}", String.valueOf(limit)).replace("{block}", block));
+    }
+
     public Component getUnknownPlayerMessage(String player) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.unknown-player")).replace("{player}", player));
     }
@@ -1492,12 +1502,12 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.player-info-not-in-island"));
     }
 
-    public Component getPlayerNoItemInHandMessage() {
-        return ColorUtils.colorize(messages.getString("messages.no-item-in-hand"));
-    }
-
     public Component getPlayerBlockValueCommandMessage(String block, int value) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.block-value")).replace("{block}", block).replace("{value}", String.valueOf(value)));
+    }
+
+    public Component getPlayerNoItemInHandMessage() {
+        return ColorUtils.colorize(messages.getString("messages.no-item-in-hand"));
     }
 
     public Component getPlayerNotOnlineMessage(String player) {
