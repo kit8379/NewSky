@@ -304,16 +304,6 @@ public class NewSkyAPI {
     }
 
     /**
-     * Recalculates the block limits for the given island UUID asynchronously.
-     *
-     * @param islandUuid The UUID of the island to recalculate limits for.
-     */
-    @SuppressWarnings("unused")
-    public void calIslandBlockCount(UUID islandUuid) {
-        limitHandler.calIslandBlockCount(islandUuid);
-    }
-
-    /**
      * Gets the UUID of the island for a given player.
      *
      * @param playerUuid The UUID of the player.

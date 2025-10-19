@@ -46,7 +46,6 @@ public class WorldLoadListener implements Listener {
 
         applyGameRules(world);
         applyWorldBorder(world);
-        calIslandBlockCount(name);
     }
 
     @SuppressWarnings("unchecked")
@@ -87,10 +86,5 @@ public class WorldLoadListener implements Listener {
         border.setDamageAmount(0.1);
         border.setDamageBuffer(1.0);
         plugin.debug("WorldLoadListener", "Set world border for " + world.getName());
-    }
-
-    private void calIslandBlockCount(String worldName) {
-        plugin.getApi().calIslandBlockCount(IslandUtils.nameToUUID(worldName));
-        plugin.debug("WorldLoadListener", "Force-calculated island limit for " + worldName);
     }
 }
