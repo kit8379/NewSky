@@ -14,7 +14,6 @@ public class IslandUnloadScheduler {
     private final RedisCache redisCache;
     private final WorldHandler worldHandler;
     private final WorldActivityHandler worldActivityHandler;
-
     private final long unloadInterval;
     private BukkitTask task;
 

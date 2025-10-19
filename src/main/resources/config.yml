@@ -41,7 +41,7 @@ server:
   # The name of this server.
   # Must be equal to the server name in the BungeeCord / Velocity config.
   name: "server1"
-  # Whether the server is the lobby server.
+  # Whether the server is only for using as the lobby.
   # If the server is the lobby server, the plugin will not load islands on this server.
   lobby: false
   # The interval that the server send heartbeat to the other server.
