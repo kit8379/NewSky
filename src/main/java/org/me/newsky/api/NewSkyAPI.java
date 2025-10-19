@@ -307,11 +307,10 @@ public class NewSkyAPI {
      * Recalculates the block limits for the given island UUID asynchronously.
      *
      * @param islandUuid The UUID of the island to recalculate limits for.
-     * @return A CompletableFuture that completes when the recalculation is done.
      */
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> calIslandLimit(UUID islandUuid) {
-        return limitHandler.calIslandLimit(islandUuid);
+    public void calIslandBlockCount(UUID islandUuid) {
+        limitHandler.calIslandBlockCount(islandUuid);
     }
 
     /**

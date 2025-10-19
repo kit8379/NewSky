@@ -34,7 +34,7 @@ public class IslandLimitListener implements Listener {
         UUID islandUuid = IslandUtils.nameToUUID(event.getBlock().getWorld().getName());
 
         Material type = event.getBlockPlaced().getType();
-        if (!limits.isLimited(type)) {
+        if (limits.getLimit(type) <= 0) {
             return;
         }
 
@@ -52,7 +52,7 @@ public class IslandLimitListener implements Listener {
         UUID islandUuid = IslandUtils.nameToUUID(event.getBlock().getWorld().getName());
 
         Material type = event.getBlock().getType();
-        if (!limits.isLimited(type)) {
+        if (limits.getLimit(type) <= 0) {
             return;
         }
 
@@ -60,12 +60,16 @@ public class IslandLimitListener implements Listener {
         plugin.debug("IslandLimitListener", "Break ok: " + type.name() + " on " + islandUuid + " decremented.");
     }
 
+
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onCreatureSpawn(CreatureSpawnEvent event) {
         World world = event.getLocation().getWorld();
+        if (world == null) {
+            return;
+        }
 
         EntityType type = event.getEntityType();
-        if (!limits.isLimited(type)) {
+        if (limits.getLimit(type) <= 0) {
             return;
         }
 
