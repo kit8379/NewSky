@@ -147,7 +147,6 @@ public class NewSky extends JavaPlugin {
             HomeHandler homeHandler = new HomeHandler(this, cache, islandDistributor);
             WarpHandler warpHandler = new WarpHandler(this, cache, islandDistributor);
             LevelHandler levelHandler = new LevelHandler(this, config, cache);
-            LimitHandler limithandler = new LimitHandler(this, config);
             BanHandler banHandler = new BanHandler(this, cache, islandDistributor);
             CoopHandler coopHandler = new CoopHandler(this, cache);
             LobbyHandler lobbyHandler = new LobbyHandler(this, config, islandDistributor);
@@ -162,24 +161,25 @@ public class NewSky extends JavaPlugin {
 
             info("Starting all schedulers for the plugin");
             islandUnloadScheduler = new IslandUnloadScheduler(this, config, redisCache, worldHandler, worldActivityHandler);
-            msptUpdateScheduler = new MSPTUpdateScheduler(this, config, redisCache, serverID);
+            if (serverSelector instanceof MSPTServerSelector) {
+                info("MSPT server selector detected, starting MSPT update scheduler");
+                msptUpdateScheduler = new MSPTUpdateScheduler(this, config, redisCache, serverID);
+            }
             info("All schedulers loaded");
 
             info("Starting API");
-            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, limithandler, banHandler, coopHandler, lobbyHandler, messageHandler, uuidHandler);
+            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, messageHandler, uuidHandler);
             info("API loaded");
 
             info("Starting listeners");
             getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, redisCache, serverID), this);
             getServer().getPluginManager().registerEvents(new WorldInitListener(this), this);
             getServer().getPluginManager().registerEvents(new WorldLoadListener(this, config), this);
-            getServer().getPluginManager().registerEvents(new WorldUnloadListener(this, limithandler), this);
             getServer().getPluginManager().registerEvents(new WorldActivityListener(this, worldActivityHandler), this);
             getServer().getPluginManager().registerEvents(new TeleportRequestListener(this, teleportHandler), this);
             getServer().getPluginManager().registerEvents(new IslandProtectionListener(this, config), this);
             getServer().getPluginManager().registerEvents(new IslandAccessListener(this, config), this);
             getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config), this);
-            getServer().getPluginManager().registerEvents(new IslandLimitListener(this, config, limithandler), this);
             getServer().getPluginManager().registerEvents(new UuidUpdateListener(this), this);
             info("All listeners loaded");
 

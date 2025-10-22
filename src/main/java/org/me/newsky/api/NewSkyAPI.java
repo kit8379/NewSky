@@ -21,21 +21,19 @@ public class NewSkyAPI {
     private final HomeHandler homeHandler;
     private final WarpHandler warpHandler;
     private final LevelHandler levelHandler;
-    private final LimitHandler limitHandler;
     private final BanHandler banHandler;
     private final CoopHandler coopHandler;
     private final LobbyHandler lobbyHandler;
     private final MessageHandler messageHandler;
     private final UuidHandler uuidHandler;
 
-    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, LimitHandler limitHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, MessageHandler messageHandler, UuidHandler uuidHandler) {
+    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, MessageHandler messageHandler, UuidHandler uuidHandler) {
         this.plugin = plugin;
         this.islandHandler = islandHandler;
         this.playerHandler = playerHandler;
         this.homeHandler = homeHandler;
         this.warpHandler = warpHandler;
         this.levelHandler = levelHandler;
-        this.limitHandler = limitHandler;
         this.banHandler = banHandler;
         this.coopHandler = coopHandler;
         this.lobbyHandler = lobbyHandler;
