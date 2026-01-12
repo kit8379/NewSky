@@ -1,6 +1,6 @@
+// HomeHandler.java
 package org.me.newsky.island;
 
-import org.bukkit.Location;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.Cache;
 import org.me.newsky.exceptions.HomeDoesNotExistException;
@@ -8,7 +8,6 @@ import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
 import org.me.newsky.island.distributor.IslandDistributor;
 import org.me.newsky.util.IslandUtils;
-import org.me.newsky.util.LocationUtils;
 
 import java.util.Optional;
 import java.util.Set;
@@ -27,18 +26,19 @@ public class HomeHandler {
         this.islandDistributor = islandDistributor;
     }
 
-    public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, Location location) {
+    public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, String worldName, double x, double y, double z, float yaw, float pitch) {
         return CompletableFuture.supplyAsync(() -> cache.getIslandUuid(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
 
             UUID islandUuid = islandUuidOpt.get();
-            if (location.getWorld() == null || !location.getWorld().getName().equals("island-" + islandUuid)) {
+
+            if (worldName == null || !worldName.equals("island-" + islandUuid)) {
                 throw new LocationNotInIslandException();
             }
 
-            String homeLocation = LocationUtils.locationToString(location);
+            String homeLocation = x + "," + y + "," + z + "," + yaw + "," + pitch;
 
             cache.updateHomePoint(islandUuid, playerUuid, homeName, homeLocation);
             return CompletableFuture.completedFuture(null);
@@ -87,7 +87,6 @@ public class HomeHandler {
         }
 
         UUID islandUuid = islandUuidOpt.get();
-
         return cache.getHomeNames(islandUuid, playerUuid);
     }
 }

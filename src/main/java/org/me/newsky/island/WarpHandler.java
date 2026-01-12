@@ -1,12 +1,11 @@
+// WarpHandler.java
 package org.me.newsky.island;
 
-import org.bukkit.Location;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.Cache;
 import org.me.newsky.exceptions.*;
 import org.me.newsky.island.distributor.IslandDistributor;
 import org.me.newsky.util.IslandUtils;
-import org.me.newsky.util.LocationUtils;
 
 import java.util.Optional;
 import java.util.Set;
@@ -25,18 +24,19 @@ public class WarpHandler {
         this.islandDistributor = islandDistributor;
     }
 
-    public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, Location location) {
+    public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
         return CompletableFuture.supplyAsync(() -> cache.getIslandUuid(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
 
             UUID islandUuid = islandUuidOpt.get();
-            if (location.getWorld() == null || !location.getWorld().getName().equals("island-" + islandUuid)) {
+
+            if (worldName == null || !worldName.equals("island-" + islandUuid)) {
                 throw new LocationNotInIslandException();
             }
 
-            String warpLocation = LocationUtils.locationToString(location);
+            String warpLocation = x + "," + y + "," + z + "," + yaw + "," + pitch;
 
             cache.updateWarpPoint(islandUuid, playerUuid, warpName, warpLocation);
             return CompletableFuture.completedFuture(null);

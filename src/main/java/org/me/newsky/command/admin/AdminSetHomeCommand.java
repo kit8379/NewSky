@@ -1,3 +1,4 @@
+// AdminSetHomeCommand.java
 package org.me.newsky.command.admin;
 
 import org.bukkit.Location;
@@ -74,9 +75,16 @@ public class AdminSetHomeCommand implements SubCommand, TabComplete {
         }
 
         UUID targetUuid = targetUuidOpt.get();
-        Location loc = player.getLocation();
 
-        api.setHome(targetUuid, homeName, loc).thenRun(() -> sender.sendMessage(config.getAdminSetHomeSuccessMessage(homePlayerName, homeName))).exceptionally(ex -> {
+        Location loc = player.getLocation();
+        String worldName = loc.getWorld().getName();
+        double x = loc.getX();
+        double y = loc.getY();
+        double z = loc.getZ();
+        float yaw = loc.getYaw();
+        float pitch = loc.getPitch();
+
+        api.setHome(targetUuid, homeName, worldName, x, y, z, yaw, pitch).thenRun(() -> sender.sendMessage(config.getAdminSetHomeSuccessMessage(homePlayerName, homeName))).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 sender.sendMessage(config.getAdminNoIslandMessage(homePlayerName));
@@ -86,6 +94,7 @@ public class AdminSetHomeCommand implements SubCommand, TabComplete {
                 sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.severe("Error setting home " + homeName + " for " + homePlayerName, ex);
             }
+
             return null;
         });
 

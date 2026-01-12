@@ -7,9 +7,9 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.exceptions.AlreadyOwnerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
+import org.me.newsky.exceptions.PlayerAlreadyOwnerException;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -86,7 +86,7 @@ public class PlayerSetOwnerCommand implements SubCommand, TabComplete {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandPlayerDoesNotExistException) {
                 player.sendMessage(config.getIslandMemberNotExistsMessage(targetPlayerName));
-            } else if (cause instanceof AlreadyOwnerException) {
+            } else if (cause instanceof PlayerAlreadyOwnerException) {
                 player.sendMessage(config.getPlayerAlreadyOwnerMessage(targetPlayerName));
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());

@@ -1,3 +1,4 @@
+// AdminSetWarpCommand.java
 package org.me.newsky.command.admin;
 
 import org.bukkit.Location;
@@ -75,8 +76,14 @@ public class AdminSetWarpCommand implements SubCommand, TabComplete {
         UUID targetUuid = targetUuidOpt.get();
 
         Location loc = player.getLocation();
+        String worldName = loc.getWorld().getName();
+        double x = loc.getX();
+        double y = loc.getY();
+        double z = loc.getZ();
+        float yaw = loc.getYaw();
+        float pitch = loc.getPitch();
 
-        api.setWarp(targetUuid, warpName, loc).thenRun(() -> sender.sendMessage(config.getAdminSetWarpSuccessMessage(warpPlayerName, warpName))).exceptionally(ex -> {
+        api.setWarp(targetUuid, warpName, worldName, x, y, z, yaw, pitch).thenRun(() -> sender.sendMessage(config.getAdminSetWarpSuccessMessage(warpPlayerName, warpName))).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 sender.sendMessage(config.getAdminNoIslandMessage(warpPlayerName));
@@ -86,6 +93,7 @@ public class AdminSetWarpCommand implements SubCommand, TabComplete {
                 sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.severe("Error setting warp " + warpName + " for " + warpPlayerName, ex);
             }
+
             return null;
         });
 

@@ -1,3 +1,4 @@
+// PlayerSetWarpCommand.java
 package org.me.newsky.command.player;
 
 import org.bukkit.Location;
@@ -64,11 +65,17 @@ public class PlayerSetWarpCommand implements SubCommand, TabComplete {
         }
 
         String warpName = (args.length >= 2) ? args[1] : "default";
-
         UUID playerUuid = player.getUniqueId();
-        Location loc = player.getLocation();
 
-        api.setWarp(playerUuid, warpName, loc).thenRun(() -> player.sendMessage(config.getPlayerSetWarpSuccessMessage(warpName))).exceptionally(ex -> {
+        Location loc = player.getLocation();
+        String worldName = loc.getWorld().getName();
+        double x = loc.getX();
+        double y = loc.getY();
+        double z = loc.getZ();
+        float yaw = loc.getYaw();
+        float pitch = loc.getPitch();
+
+        api.setWarp(playerUuid, warpName, worldName, x, y, z, yaw, pitch).thenRun(() -> player.sendMessage(config.getPlayerSetWarpSuccessMessage(warpName))).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
@@ -78,6 +85,7 @@ public class PlayerSetWarpCommand implements SubCommand, TabComplete {
                 player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.severe("Error setting warp for player " + player.getName(), ex);
             }
+
             return null;
         });
 

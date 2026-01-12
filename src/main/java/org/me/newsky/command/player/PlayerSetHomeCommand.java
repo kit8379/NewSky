@@ -1,3 +1,4 @@
+// PlayerSetHomeCommand.java
 package org.me.newsky.command.player;
 
 import org.bukkit.Location;
@@ -65,9 +66,16 @@ public class PlayerSetHomeCommand implements SubCommand, TabComplete {
 
         String homeName = (args.length >= 2) ? args[1] : "default";
         UUID playerUuid = player.getUniqueId();
-        Location loc = player.getLocation();
 
-        api.setHome(playerUuid, homeName, loc).thenRun(() -> player.sendMessage(config.getPlayerSetHomeSuccessMessage(homeName))).exceptionally(ex -> {
+        Location loc = player.getLocation();
+        String worldName = loc.getWorld().getName();
+        double x = loc.getX();
+        double y = loc.getY();
+        double z = loc.getZ();
+        float yaw = loc.getYaw();
+        float pitch = loc.getPitch();
+
+        api.setHome(playerUuid, homeName, worldName, x, y, z, yaw, pitch).thenRun(() -> player.sendMessage(config.getPlayerSetHomeSuccessMessage(homeName))).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
@@ -77,6 +85,7 @@ public class PlayerSetHomeCommand implements SubCommand, TabComplete {
                 player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.severe("Error setting home for player " + player.getName(), ex);
             }
+
             return null;
         });
 

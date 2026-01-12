@@ -106,7 +106,7 @@ public class RedisCache {
 
     public Optional<String> getPlayerOnlineServer(UUID playerUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            String server = jedis.hget("player_server", playerUuid.toString());
+            String server = jedis.hget("online_players", playerUuid.toString());
             return Optional.ofNullable(server);
         } catch (Exception e) {
             plugin.severe("Failed to get player server for: " + playerUuid, e);

@@ -1,7 +1,6 @@
 package org.me.newsky.api;
 
 import net.kyori.adventure.text.Component;
-import org.bukkit.Location;
 import org.me.newsky.NewSky;
 import org.me.newsky.island.*;
 import org.me.newsky.model.Invitation;
@@ -124,15 +123,21 @@ public class NewSkyAPI {
     }
 
     /**
-     * Sets the spawn location for the island with the specified player.
+     * Sets a home for the specified player.
      *
      * @param playerUuid The UUID of the player.
-     * @param location   The new spawn location for the island.
-     * @return A CompletableFuture that completes when the spawn location is set.
+     * @param homeName   The name of the home.
+     * @param worldName  The name of the world where the home is located.
+     * @param x          The x-coordinate of the home.
+     * @param y          The y-coordinate of the home.
+     * @param z          The z-coordinate of the home.
+     * @param yaw        The yaw orientation of the home.
+     * @param pitch      The pitch orientation of the home.
+     * @return A CompletableFuture that completes when the home is set.
      */
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, Location location) {
-        return homeHandler.setHome(playerUuid, homeName, location);
+    public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, String worldName, double x, double y, double z, float yaw, float pitch) {
+        return homeHandler.setHome(playerUuid, homeName, worldName, x, y, z, yaw, pitch);
     }
 
     /**
@@ -165,12 +170,17 @@ public class NewSkyAPI {
      *
      * @param playerUuid The UUID of the player.
      * @param warpName   The name of the warp point.
-     * @param location   The location of the warp point.
+     * @param worldName  The name of the world where the warp point is located.
+     * @param x          The x-coordinate of the warp point.
+     * @param y          The y-coordinate of the warp point.
+     * @param z          The z-coordinate of the warp point.
+     * @param yaw        The yaw orientation of the warp point.
+     * @param pitch      The pitch orientation of the warp point.
      * @return A CompletableFuture that completes when the warp is set.
      */
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, Location location) {
-        return warpHandler.setWarp(playerUuid, warpName, location);
+    public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
+        return warpHandler.setWarp(playerUuid, warpName, worldName, x, y, z, yaw, pitch);
     }
 
     /**

@@ -74,9 +74,8 @@ public class IslandOperation {
 
 
     public CompletableFuture<Void> teleport(UUID playerUuid, String teleportWorld, String teleportLocation) {
-        Location location = LocationUtils.stringToLocation(teleportWorld, teleportLocation);
-
         return CompletableFuture.runAsync(() -> {
+            Location location = LocationUtils.stringToLocation(teleportWorld, teleportLocation);
             Player player = Bukkit.getPlayer(playerUuid);
             if (player != null) {
                 player.teleportAsync(location);

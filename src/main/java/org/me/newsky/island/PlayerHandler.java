@@ -75,7 +75,7 @@ public class PlayerHandler {
 
             UUID oldOwnerUuid = cache.getIslandOwner(islandUuid);
             if (oldOwnerUuid.equals(newOwnerUuid)) {
-                throw new AlreadyOwnerException();
+                throw new PlayerAlreadyOwnerException();
             }
 
             cache.updateIslandOwner(islandUuid, oldOwnerUuid, newOwnerUuid);

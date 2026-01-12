@@ -22,14 +22,4 @@ public class LocationUtils {
         float pitch = Float.parseFloat(parts[4]);
         return new Location(world, x, y, z, yaw, pitch);
     }
-
-    /**
-     * Converts a Location object to a string.
-     *
-     * @param location The Location object to convert.
-     * @return The string representation of the Location object.
-     */
-    public static String locationToString(Location location) {
-        return location.getX() + "," + location.getY() + "," + location.getZ() + "," + location.getYaw() + "," + location.getPitch();
-    }
 }
