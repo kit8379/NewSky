@@ -31,7 +31,7 @@ public class HeartBeatHandler {
 
         plugin.debug("HeartBeatHandler", "Starting heartbeat task with interval: " + heartbeatInterval + " seconds.");
         heartbeatTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-            redisCache.updateActiveServer(serverID, config.isLobby());
+            redisCache.updateActiveServer(serverID, config.isLobbyOnly());
             plugin.debug("HeartBeatHandler", "Sent heartbeat for server: " + serverID);
 
             long now = System.currentTimeMillis();

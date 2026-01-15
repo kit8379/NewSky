@@ -4,7 +4,7 @@ import org.me.newsky.NewSky;
 import org.me.newsky.cache.Cache;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
-import org.me.newsky.island.distributor.IslandDistributor;
+import org.me.newsky.network.distributor.Distributor;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -13,12 +13,12 @@ public class IslandHandler {
 
     private final NewSky plugin;
     private final Cache cache;
-    private final IslandDistributor islandDistributor;
+    private final Distributor distributor;
 
-    public IslandHandler(NewSky plugin, Cache cache, IslandDistributor islandDistributor) {
+    public IslandHandler(NewSky plugin, Cache cache, Distributor distributor) {
         this.plugin = plugin;
         this.cache = cache;
-        this.islandDistributor = islandDistributor;
+        this.distributor = distributor;
     }
 
     public CompletableFuture<Void> createIsland(UUID ownerUuid) {
@@ -29,22 +29,22 @@ public class IslandHandler {
         }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> {
             UUID islandUuid = UUID.randomUUID();
             cache.createIsland(islandUuid, ownerUuid);
-            return islandDistributor.createIsland(islandUuid);
+            return distributor.createIsland(islandUuid);
         });
     }
 
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
-        return CompletableFuture.runAsync(() -> cache.deleteIsland(islandUuid), plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.deleteIsland(islandUuid));
+        return CompletableFuture.runAsync(() -> cache.deleteIsland(islandUuid), plugin.getBukkitAsyncExecutor()).thenCompose(v -> distributor.deleteIsland(islandUuid));
     }
 
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
         return CompletableFuture.runAsync(() -> {
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.loadIsland(islandUuid));
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> distributor.loadIsland(islandUuid));
     }
 
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
         return CompletableFuture.runAsync(() -> {
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.unloadIsland(islandUuid));
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> distributor.unloadIsland(islandUuid));
     }
 
     public CompletableFuture<Boolean> toggleIslandLock(UUID islandUuid) {
@@ -52,7 +52,7 @@ public class IslandHandler {
             if (isLocked) {
                 return CompletableFuture.runAsync(() -> cache.updateIslandLock(islandUuid, false), plugin.getBukkitAsyncExecutor()).thenApply(v -> false); // return !isLocked
             } else {
-                return islandDistributor.lockIsland(islandUuid).thenRunAsync(() -> cache.updateIslandLock(islandUuid, true), plugin.getBukkitAsyncExecutor()).thenApply(v -> true); // return !isLocked
+                return distributor.lockIsland(islandUuid).thenRunAsync(() -> cache.updateIslandLock(islandUuid, true), plugin.getBukkitAsyncExecutor()).thenApply(v -> true); // return !isLocked
             }
         });
     }

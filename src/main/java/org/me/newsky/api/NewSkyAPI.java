@@ -3,6 +3,8 @@ package org.me.newsky.api;
 import net.kyori.adventure.text.Component;
 import org.me.newsky.NewSky;
 import org.me.newsky.island.*;
+import org.me.newsky.lobby.LobbyHandler;
+import org.me.newsky.message.MessageHandler;
 import org.me.newsky.model.Invitation;
 import org.me.newsky.uuid.UuidHandler;
 

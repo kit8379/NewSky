@@ -26,24 +26,27 @@ public class DatabaseHandler {
         String database = config.getMySQLDB();
         String username = config.getMySQLUsername();
         String password = config.getMySQLPassword();
+        boolean useSsl = config.getMySQLUseSSL();
         String properties = config.getMySQLProperties();
-        int maxPoolSize = config.getMySQLMaxPoolSize();
-        int connectionTimeout = config.getMySQLConnectionTimeout();
-        boolean cachePrepStmts = config.getMySQLCachePrepStmts();
-        int prepStmtCacheSize = config.getMySQLPrepStmtCacheSize();
-        int prepStmtCacheSqlLimit = config.getMySQLPrepStmtCacheSqlLimit();
 
         HikariConfig hikariConfig = new HikariConfig();
-        hikariConfig.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + database + properties);
+        hikariConfig.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + database + "?useSSL=" + useSsl + "&" + properties);
         hikariConfig.setUsername(username);
         hikariConfig.setPassword(password);
-        hikariConfig.setMaximumPoolSize(maxPoolSize);
-        hikariConfig.setConnectionTimeout(connectionTimeout);
-        hikariConfig.addDataSourceProperty("cachePrepStmts", cachePrepStmts);
-        hikariConfig.addDataSourceProperty("prepStmtCacheSize", prepStmtCacheSize);
-        hikariConfig.addDataSourceProperty("prepStmtCacheSqlLimit", prepStmtCacheSqlLimit);
+        hikariConfig.addDataSourceProperty("cachePrepStmts", "true");
+        hikariConfig.addDataSourceProperty("prepStmtCacheSize", "250");
+        hikariConfig.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+        hikariConfig.addDataSourceProperty("useServerPrepStmts", "true");
+        hikariConfig.addDataSourceProperty("useLocalSessionState", "true");
+        hikariConfig.addDataSourceProperty("rewriteBatchedStatements", "true");
+        hikariConfig.addDataSourceProperty("cacheResultSetMetadata", "true");
+        hikariConfig.addDataSourceProperty("cacheServerConfiguration", "true");
+        hikariConfig.addDataSourceProperty("elideSetAutoCommits", "true");
+        hikariConfig.addDataSourceProperty("maintainTimeStats", "false");
+
         this.dataSource = new HikariDataSource(hikariConfig);
     }
+
 
     public void close() {
         dataSource.close();

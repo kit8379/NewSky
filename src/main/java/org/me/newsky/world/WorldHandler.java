@@ -34,7 +34,7 @@ public class WorldHandler {
         this.teleportHandler = teleportHandler;
 
         try {
-            this.slimeLoader = new MysqlLoader("jdbc:mysql://{host}:{port}/{database}?useSSL={usessl}&autoReconnect=true&useUnicode=true&characterEncoding=utf8", config.getMySQLHost(), config.getMySQLPort(), config.getMySQLDB(), false, config.getMySQLUsername(), config.getMySQLPassword());
+            this.slimeLoader = new MysqlLoader("jdbc:mysql://{host}:{port}/{database}?useSSL={usessl}&" + config.getMySQLProperties(), config.getMySQLHost(), config.getMySQLPort(), config.getMySQLDB(), config.getMySQLUseSSL(), config.getMySQLUsername(), config.getMySQLPassword());
             plugin.debug("WorldHandler", "Initialized MySQL slimeLoader successfully.");
         } catch (SQLException e) {
             plugin.severe("Failed to initialize MySQL slimeLoader", e);

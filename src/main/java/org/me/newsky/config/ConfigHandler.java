@@ -107,32 +107,16 @@ public class ConfigHandler {
         return config.getString("MySQL.password");
     }
 
+    public boolean getMySQLUseSSL() {
+        return config.getBoolean("MySQL.use-ssl");
+    }
+
     public String getMySQLProperties() {
         return config.getString("MySQL.properties");
     }
 
     public String getMySQLTablePrefix() {
         return config.getString("MySQL.prefix");
-    }
-
-    public int getMySQLMaxPoolSize() {
-        return config.getInt("MySQL.max-pool-size");
-    }
-
-    public int getMySQLConnectionTimeout() {
-        return config.getInt("MySQL.connection-timeout");
-    }
-
-    public boolean getMySQLCachePrepStmts() {
-        return config.getBoolean("MySQL.cache-prep-statements");
-    }
-
-    public int getMySQLPrepStmtCacheSize() {
-        return config.getInt("MySQL.prep-stmt-cache-size");
-    }
-
-    public int getMySQLPrepStmtCacheSqlLimit() {
-        return config.getInt("MySQL.prep-stmt-cache-sql-limit");
     }
 
     public String getRedisHost() {
@@ -167,8 +151,8 @@ public class ConfigHandler {
         return config.getString("server.name");
     }
 
-    public boolean isLobby() {
-        return config.getBoolean("server.lobby");
+    public boolean isLobbyOnly() {
+        return config.getBoolean("server.lobby-only");
     }
 
     public int getHeartbeatInterval() {

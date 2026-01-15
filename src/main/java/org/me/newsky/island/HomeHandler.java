@@ -6,7 +6,7 @@ import org.me.newsky.cache.Cache;
 import org.me.newsky.exceptions.HomeDoesNotExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
-import org.me.newsky.island.distributor.IslandDistributor;
+import org.me.newsky.network.distributor.Distributor;
 import org.me.newsky.util.IslandUtils;
 
 import java.util.Optional;
@@ -18,12 +18,12 @@ public class HomeHandler {
 
     private final NewSky plugin;
     private final Cache cache;
-    private final IslandDistributor islandDistributor;
+    private final Distributor distributor;
 
-    public HomeHandler(NewSky plugin, Cache cache, IslandDistributor islandDistributor) {
+    public HomeHandler(NewSky plugin, Cache cache, Distributor distributor) {
         this.plugin = plugin;
         this.cache = cache;
-        this.islandDistributor = islandDistributor;
+        this.distributor = distributor;
     }
 
     public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, String worldName, double x, double y, double z, float yaw, float pitch) {
@@ -76,7 +76,7 @@ public class HomeHandler {
             String homeWorld = IslandUtils.UUIDToName(islandUuid);
             String homeLocation = homeLocationOpt.get();
 
-            return islandDistributor.teleportIsland(islandUuid, targetPlayerUuid, homeWorld, homeLocation);
+            return distributor.teleportIsland(islandUuid, targetPlayerUuid, homeWorld, homeLocation);
         });
     }
 

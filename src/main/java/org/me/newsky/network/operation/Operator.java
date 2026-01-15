@@ -1,4 +1,4 @@
-package org.me.newsky.island.operation;
+package org.me.newsky.network.operation;
 
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
@@ -16,11 +16,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-/**
- * Handles post-island operations such as creating, deleting, loading, unloading, and locking islands.
- * This class is responsible for performing these operations on the server where the actual operation is to be performed.
- */
-public class IslandOperation {
+public class Operator {
 
     private final NewSky plugin;
     private final RedisCache redisCache;
@@ -28,7 +24,7 @@ public class IslandOperation {
     private final TeleportHandler teleportHandler;
     private final String serverID;
 
-    public IslandOperation(NewSky plugin, RedisCache redisCache, WorldHandler worldHandler, TeleportHandler teleportHandler, String serverID) {
+    public Operator(NewSky plugin, RedisCache redisCache, WorldHandler worldHandler, TeleportHandler teleportHandler, String serverID) {
         this.plugin = plugin;
         this.redisCache = redisCache;
         this.worldHandler = worldHandler;
@@ -41,7 +37,7 @@ public class IslandOperation {
 
         return worldHandler.createWorld(islandName).thenRun(() -> {
             redisCache.updateIslandLoadedServer(islandUuid, serverID);
-            plugin.debug("IslandOperation", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
+            plugin.debug("Operator", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
         });
     }
 
@@ -50,7 +46,7 @@ public class IslandOperation {
 
         return worldHandler.deleteWorld(islandName).thenRun(() -> {
             redisCache.removeIslandLoadedServer(islandUuid);
-            plugin.debug("IslandOperation", "Removed island loaded server for UUID: " + islandUuid);
+            plugin.debug("Operator", "Removed island loaded server for UUID: " + islandUuid);
         });
     }
 
@@ -59,7 +55,7 @@ public class IslandOperation {
 
         return worldHandler.loadWorld(islandName).thenRun(() -> {
             redisCache.updateIslandLoadedServer(islandUuid, serverID);
-            plugin.debug("IslandOperation", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
+            plugin.debug("Operator", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
         });
     }
 
@@ -68,7 +64,7 @@ public class IslandOperation {
 
         return worldHandler.unloadWorld(islandName).thenRun(() -> {
             redisCache.removeIslandLoadedServer(islandUuid);
-            plugin.debug("IslandOperation", "Removed island loaded server for UUID: " + islandUuid);
+            plugin.debug("Operator", "Removed island loaded server for UUID: " + islandUuid);
         });
     }
 
@@ -82,7 +78,7 @@ public class IslandOperation {
             } else {
                 teleportHandler.addPendingTeleport(playerUuid, location);
             }
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("IslandOperation", "Teleported player " + playerUuid + " to location: " + teleportLocation + " in world: " + teleportWorld), plugin.getBukkitAsyncExecutor());
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("Operator", "Teleported player " + playerUuid + " to location: " + teleportLocation + " in world: " + teleportWorld), plugin.getBukkitAsyncExecutor());
     }
 
 
@@ -101,7 +97,7 @@ public class IslandOperation {
                     }
                 }
             }
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("IslandOperation", "Locked island " + islandName + " and removed all foreign players."), plugin.getBukkitAsyncExecutor());
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("Operator", "Locked island " + islandName + " and removed all foreign players."), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
@@ -116,7 +112,7 @@ public class IslandOperation {
                     plugin.getApi().lobby(playerUuid);
                 }
             }
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("IslandOperation", "Expelled player " + playerUuid + " from island " + islandName), plugin.getBukkitAsyncExecutor());
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("Operator", "Expelled player " + playerUuid + " from island " + islandName), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> sendMessage(UUID playerUuid, Component message) {
@@ -125,6 +121,6 @@ public class IslandOperation {
             if (player != null) {
                 player.sendMessage(message);
             }
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("IslandOperation", "Sent message to player " + playerUuid + ": " + message), plugin.getBukkitAsyncExecutor());
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("Operator", "Sent message to player " + playerUuid + ": " + message), plugin.getBukkitAsyncExecutor());
     }
 }
