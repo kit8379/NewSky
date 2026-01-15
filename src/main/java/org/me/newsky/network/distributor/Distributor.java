@@ -2,11 +2,11 @@ package org.me.newsky.network.distributor;
 
 import net.kyori.adventure.text.Component;
 import org.me.newsky.NewSky;
-import org.me.newsky.broker.IslandBroker;
+import org.me.newsky.broker.Broker;
 import org.me.newsky.exceptions.IslandAlreadyLoadedException;
 import org.me.newsky.exceptions.IslandNotLoadedException;
 import org.me.newsky.exceptions.NoActiveServerException;
-import org.me.newsky.network.operation.Operator;
+import org.me.newsky.network.operator.Operator;
 import org.me.newsky.redis.RedisCache;
 import org.me.newsky.routing.ServerSelector;
 import org.me.newsky.util.ComponentUtils;
@@ -26,7 +26,7 @@ public class Distributor {
     private final ServerSelector serverSelector;
     private final String serverID;
 
-    private IslandBroker islandBroker;
+    private Broker broker;
 
     public Distributor(NewSky plugin, RedisCache redisCache, Operator operator, ServerSelector serverSelector, String serverID) {
         this.plugin = plugin;
@@ -36,8 +36,8 @@ public class Distributor {
         this.serverID = serverID;
     }
 
-    public void setIslandBroker(IslandBroker islandBroker) {
-        this.islandBroker = islandBroker;
+    public void setIslandBroker(Broker broker) {
+        this.broker = broker;
     }
 
     public CompletableFuture<Void> createIsland(UUID islandUuid) {
@@ -55,7 +55,7 @@ public class Distributor {
             return operator.createIsland(islandUuid);
         } else {
             plugin.debug("Distributor", "Sending create request to remote server: " + targetServer);
-            return islandBroker.sendRequest(targetServer, "create", islandUuid.toString());
+            return broker.sendRequest(targetServer, "create", islandUuid.toString());
         }
     }
 
@@ -74,7 +74,7 @@ public class Distributor {
             return operator.deleteIsland(islandUuid);
         } else {
             plugin.debug("Distributor", "Sending delete request to remote server: " + islandServer);
-            return islandBroker.sendRequest(islandServer, "delete", islandUuid.toString());
+            return broker.sendRequest(islandServer, "delete", islandUuid.toString());
         }
     }
 
@@ -98,7 +98,7 @@ public class Distributor {
                 return operator.loadIsland(islandUuid);
             } else {
                 plugin.debug("Distributor", "Sending load request to remote server: " + targetServer);
-                return islandBroker.sendRequest(targetServer, "load", islandUuid.toString());
+                return broker.sendRequest(targetServer, "load", islandUuid.toString());
             }
         } else {
             plugin.debug("Distributor", "Island already loaded on server: " + islandServer);
@@ -121,7 +121,7 @@ public class Distributor {
             return operator.unloadIsland(islandUuid);
         } else {
             plugin.debug("Distributor", "Sending unload request to remote server: " + islandServer);
-            return islandBroker.sendRequest(islandServer, "unload", islandUuid.toString());
+            return broker.sendRequest(islandServer, "unload", islandUuid.toString());
         }
     }
 
@@ -148,9 +148,9 @@ public class Distributor {
                 });
             } else {
                 plugin.debug("Distributor", "Sending load request to remote server: " + targetServer);
-                return islandBroker.sendRequest(targetServer, "load", islandUuid.toString()).thenCompose(v -> {
+                return broker.sendRequest(targetServer, "load", islandUuid.toString()).thenCompose(v -> {
                     plugin.debug("Distributor", "Sending teleport request to remote server: " + targetServer);
-                    return islandBroker.sendRequest(targetServer, "teleport", playerUuid.toString(), teleportWorld, teleportLocation);
+                    return broker.sendRequest(targetServer, "teleport", playerUuid.toString(), teleportWorld, teleportLocation);
                 }).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, targetServer));
             }
         } else {
@@ -159,7 +159,7 @@ public class Distributor {
                 return operator.teleport(playerUuid, teleportWorld, teleportLocation);
             } else {
                 plugin.debug("Distributor", "Sending teleport request to remote server: " + islandServer);
-                return islandBroker.sendRequest(islandServer, "teleport", playerUuid.toString(), teleportWorld, teleportLocation).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, islandServer));
+                return broker.sendRequest(islandServer, "teleport", playerUuid.toString(), teleportWorld, teleportLocation).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, islandServer));
             }
         }
     }
@@ -179,7 +179,7 @@ public class Distributor {
             return operator.teleport(playerUuid, lobbyWorld, lobbyLocation);
         } else {
             plugin.debug("Distributor", "Sending lobby teleport request to remote server: " + targetLobbyServer);
-            return islandBroker.sendRequest(targetLobbyServer, "teleport", playerUuid.toString(), lobbyWorld, lobbyLocation).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, targetLobbyServer));
+            return broker.sendRequest(targetLobbyServer, "teleport", playerUuid.toString(), lobbyWorld, lobbyLocation).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, targetLobbyServer));
         }
     }
 
@@ -198,7 +198,7 @@ public class Distributor {
             return operator.lockIsland(islandUuid);
         } else {
             plugin.debug("Distributor", "Sending lock request to remote server: " + islandServer);
-            return islandBroker.sendRequest(islandServer, "lock", islandUuid.toString());
+            return broker.sendRequest(islandServer, "lock", islandUuid.toString());
         }
     }
 
@@ -218,7 +218,7 @@ public class Distributor {
             return operator.expelPlayer(islandUuid, playerUuid);
         } else {
             plugin.debug("Distributor", "Sending expel request to remote server: " + islandServer);
-            return islandBroker.sendRequest(islandServer, "expel", islandUuid.toString(), playerUuid.toString());
+            return broker.sendRequest(islandServer, "expel", islandUuid.toString(), playerUuid.toString());
         }
     }
 
@@ -237,7 +237,7 @@ public class Distributor {
             return operator.sendMessage(playerUuid, message);
         } else {
             plugin.debug("Distributor", "Forwarding message to player on server " + playerServer);
-            return islandBroker.sendRequest(playerServer, "message", playerUuid.toString(), ComponentUtils.serialize(message));
+            return broker.sendRequest(playerServer, "message", playerUuid.toString(), ComponentUtils.serialize(message));
         }
     }
 

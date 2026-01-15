@@ -1,4 +1,4 @@
-package org.me.newsky.network.operation;
+package org.me.newsky.network.operator;
 
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;

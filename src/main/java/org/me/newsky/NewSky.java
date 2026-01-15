@@ -5,8 +5,8 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.broker.Broker;
 import org.me.newsky.broker.CacheBroker;
-import org.me.newsky.broker.IslandBroker;
 import org.me.newsky.cache.Cache;
 import org.me.newsky.command.IslandAdminCommand;
 import org.me.newsky.command.IslandPlayerCommand;
@@ -15,7 +15,7 @@ import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.island.*;
 import org.me.newsky.network.distributor.Distributor;
-import org.me.newsky.network.operation.Operator;
+import org.me.newsky.network.operator.Operator;
 import org.me.newsky.listener.*;
 import org.me.newsky.lobby.LobbyHandler;
 import org.me.newsky.message.MessageHandler;
@@ -52,7 +52,7 @@ public class NewSky extends JavaPlugin {
     private IslandUnloadScheduler islandUnloadScheduler;
     private MSPTUpdateScheduler msptUpdateScheduler;
     private CacheBroker cacheBroker;
-    private IslandBroker islandBroker;
+    private Broker broker;
     private NewSkyAPI api;
     private BukkitAsyncExecutor bukkitAsyncExecutor;
 
@@ -139,8 +139,8 @@ public class NewSky extends JavaPlugin {
             info("Starting message broker");
             cacheBroker = new CacheBroker(this, redisHandler, cache, serverID, config.getRedisCacheChannel());
             cache.setCacheBroker(cacheBroker);
-            islandBroker = new IslandBroker(this, redisHandler, operator, serverID, config.getRedisIslandChannel());
-            distributor.setIslandBroker(islandBroker);
+            broker = new Broker(this, redisHandler, operator, serverID, config.getRedisIslandChannel());
+            distributor.setIslandBroker(broker);
             info("Message broker loaded");
 
             info("Starting main handlers for the plugin");
@@ -210,7 +210,7 @@ public class NewSky extends JavaPlugin {
 
             databaseHandler.createTables();
             cacheBroker.subscribe();
-            islandBroker.subscribe();
+            broker.subscribe();
             cache.cacheAllData();
             heartBeatHandler.start();
             islandUnloadScheduler.start();
@@ -244,7 +244,7 @@ public class NewSky extends JavaPlugin {
         msptUpdateScheduler.stop();
         worldHandler.unloadAllWorldsOnShutdown();
         heartBeatHandler.stop();
-        islandBroker.unsubscribe();
+        broker.unsubscribe();
         cacheBroker.unsubscribe();
         redisHandler.disconnect();
         databaseHandler.close();

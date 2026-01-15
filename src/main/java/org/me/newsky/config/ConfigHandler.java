@@ -87,6 +87,14 @@ public class ConfigHandler {
     // Config Section
     // ================================================================================================================
 
+    public String getServerName() {
+        return config.getString("server.name");
+    }
+
+    public boolean isLobbyOnly() {
+        return config.getBoolean("server.lobby-only");
+    }
+
     public String getMySQLHost() {
         return config.getString("MySQL.host");
     }
@@ -143,28 +151,17 @@ public class ConfigHandler {
         return config.getString("redis.channel.island");
     }
 
-    public boolean isDebug() {
-        return config.getBoolean("debug");
-    }
-
-    public String getServerName() {
-        return config.getString("server.name");
-    }
-
-    public boolean isLobbyOnly() {
-        return config.getBoolean("server.lobby-only");
-    }
 
     public int getHeartbeatInterval() {
-        return config.getInt("server.heartbeat-interval");
+        return config.getInt("network.heartbeat-interval-seconds");
     }
 
     public String getServerSelector() {
-        return config.getString("server.selector");
+        return config.getString("network.selector");
     }
 
     public int getMsptUpdateInterval() {
-        return config.getInt("server.mspt-update-interval");
+        return config.getInt("network.mspt-update-interval-seconds");
     }
 
     public List<String> getLobbyServerNames() {
@@ -224,7 +221,7 @@ public class ConfigHandler {
     }
 
     public int getIslandUnloadInterval() {
-        return config.getInt("island.island-unload-interval");
+        return config.getInt("island.island-unload-interval-seconds");
     }
 
     public Map<String, Object> getIslandGameRules() {
@@ -233,6 +230,10 @@ public class ConfigHandler {
 
     public String getBaseCommandMode() {
         return config.getString("command.base-command-mode");
+    }
+
+    public boolean isDebug() {
+        return config.getBoolean("debug");
     }
 
     public int getBlockLevel(String material) {

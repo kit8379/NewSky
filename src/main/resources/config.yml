@@ -30,8 +30,8 @@ mysql:
 
   # Whether to use SSL for the database connection.
   use-ssl: false
+
   # JDBC properties appended to the connection URL.
-  # Must keep AT LEAST ONE property. (Format requires at least one key=value pair.)
   # Format: "key1=value1&key2=value2"
   # Example: "autoReconnect=true&useUnicode=true&characterEncoding=utf8"
   properties: "autoReconnect=true&useUnicode=true&characterEncoding=utf8"
@@ -48,7 +48,7 @@ redis:
   port: 6379
   password: ""
 
-  # Use these to separate multiple independent NewSky networks sharing the same Redis.
+  # Use these to separate multiple independent NewSky networks sharing the same Redis (should be identical on all servers in the same network).
   database: 0
 
   # Pub/Sub channels (should be identical on all servers in the same network).
