@@ -1,8 +1,6 @@
 package org.me.newsky.listener;
 
-import org.bukkit.GameRule;
-import org.bukkit.World;
-import org.bukkit.WorldBorder;
+import org.bukkit.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -11,21 +9,9 @@ import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.util.IslandUtils;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 
 public class WorldLoadListener implements Listener {
-
-    private static final Map<String, GameRule<?>> GAME_RULES;
-
-    static {
-        Map<String, GameRule<?>> map = new HashMap<>();
-        for (GameRule<?> rule : GameRule.values()) {
-            map.put(rule.getName().toLowerCase(), rule);
-        }
-        GAME_RULES = Collections.unmodifiableMap(map);
-    }
 
     private final NewSky plugin;
     private final ConfigHandler config;
@@ -54,26 +40,46 @@ public class WorldLoadListener implements Listener {
         if (gamerules == null || gamerules.isEmpty()) return;
 
         for (Map.Entry<String, Object> entry : gamerules.entrySet()) {
-            String key = entry.getKey().toLowerCase();
+            String keyString = "minecraft:" + entry.getKey();
             Object value = entry.getValue();
-            GameRule<?> rule = GAME_RULES.get(key);
+
+            NamespacedKey key = NamespacedKey.fromString(keyString);
+            if (key == null) {
+                plugin.warning("Invalid gamerule key (not a valid NamespacedKey): " + keyString);
+                continue;
+            }
+
+            GameRule<?> rule = Registry.GAME_RULE.get(key);
             if (rule == null) {
-                plugin.warning("Invalid gamerule: " + key);
+                plugin.warning("Unknown gamerule (not found in registry): " + keyString);
                 continue;
             }
 
             try {
-                if (value instanceof Boolean) {
+                Class<?> type = rule.getType();
+
+                if (type == Boolean.class) {
+                    if (!(value instanceof Boolean)) {
+                        plugin.warning("Unsupported gamerule value type (expected boolean): " + keyString + " = " + value);
+                        continue;
+                    }
                     world.setGameRule((GameRule<Boolean>) rule, (Boolean) value);
-                } else if (value instanceof Number) {
+                    plugin.debug("WorldLoadListener", "Set gamerule " + keyString + " = " + value);
+
+                } else if (type == Integer.class) {
+                    if (!(value instanceof Number)) {
+                        plugin.warning("Unsupported gamerule value type (expected int): " + keyString + " = " + value);
+                        continue;
+                    }
                     world.setGameRule((GameRule<Integer>) rule, ((Number) value).intValue());
+                    plugin.debug("WorldLoadListener", "Set gamerule " + keyString + " = " + value);
+
                 } else {
-                    plugin.warning("Unsupported gamerule type: " + key + " = " + value);
-                    continue;
+                    plugin.warning("Unsupported gamerule type: " + keyString + " (type=" + type.getName() + ")");
                 }
-                plugin.debug("WorldLoadListener", "Set gamerule " + key + " = " + value);
+
             } catch (Exception ex) {
-                plugin.warning("Failed to set gamerule " + key + ": " + ex.getMessage());
+                plugin.warning("Failed to set gamerule " + keyString + ": " + ex.getMessage());
             }
         }
     }

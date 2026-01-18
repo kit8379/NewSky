@@ -119,8 +119,8 @@ island:
 
   # Gamerules applied to island worlds when they are loaded.
   gamerules:
-    keepInventory: true
-    doImmediateRespawn: false
+    keep_inventory: true
+    immediate_respawn: false
 
 
 # ===================================================================

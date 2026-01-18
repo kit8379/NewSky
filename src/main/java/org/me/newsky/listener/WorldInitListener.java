@@ -1,6 +1,6 @@
 package org.me.newsky.listener;
 
-import org.bukkit.GameRule;
+import org.bukkit.GameRules;
 import org.bukkit.World;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -23,7 +23,8 @@ public class WorldInitListener implements Listener {
         String worldName = world.getName();
 
         if (IslandUtils.isIslandWorld(worldName)) {
-            world.setGameRule(GameRule.SPAWN_CHUNK_RADIUS, 0);
+            // Set the spawn chunk radius to 0 can increase performance for world loading
+            world.setGameRule(GameRules.RESPAWN_RADIUS, 0);
             plugin.debug("WorldInitListener", "Set spawn chunk radius to 0 for island world: " + worldName);
         }
     }
