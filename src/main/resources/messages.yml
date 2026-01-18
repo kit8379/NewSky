@@ -4,6 +4,7 @@ messages:
   only-player-can-run-command: "<red>Only players can run this command!"
   no-permission-command: "<red>You don't have permission to use this command."
   no-active-server: "<red>No active server found!"
+  island-busy: "<red>Another island member is currently loading the island. Please try again later!"
   island-not-loaded: "<red>The island is not loaded!"
   island-already-loaded: "<red>The island is already loaded!"
   island-level: "<#FFD700>Island Level: <white>{level}"
@@ -30,7 +31,6 @@ messages:
   was-uncooped-from-island: "<green>You were removed as a co-op member from the island of <aqua>{owner}<green>!"
   new-member-notification: "<green>{player} has joined your island!"
   cannot-remove-owner: "<red>You cannot remove the island owner!"
-  block-limit-reached: "&cYou island has reached the limit of {limit} for {block}."
   unknown-player: "<red>{player} has never joined the server before!"
   unknown-exception: "<red>An unknown error occurred while processing your request. Please try again later or contact the administrator."
 

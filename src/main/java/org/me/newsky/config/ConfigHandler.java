@@ -20,7 +20,6 @@ public class ConfigHandler {
     private final FileConfiguration messages;
     private final FileConfiguration commands;
     private final FileConfiguration levels;
-    private final FileConfiguration limits;
 
     public ConfigHandler(NewSky plugin) {
         this.plugin = plugin;
@@ -29,7 +28,6 @@ public class ConfigHandler {
         this.messages = load("messages.yml");
         this.commands = load("commands.yml");
         this.levels = load("levels.yml");
-        this.limits = load("limits.yml");
     }
 
     private FileConfiguration load(String fileName) {
@@ -238,14 +236,6 @@ public class ConfigHandler {
 
     public int getBlockLevel(String material) {
         return levels.getInt("blocks." + material);
-    }
-
-    public int getBlockLimit(String material) {
-        return limits.getInt("limits." + material);
-    }
-
-    public int getEntityLimit(String entity) {
-        return limits.getInt("limits." + entity);
     }
 
     // ================================================================================================================
@@ -1081,6 +1071,10 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.no-active-server"));
     }
 
+    public Component getIslandBusyMessage() {
+        return ColorUtils.colorize(messages.getString("messages.island-busy"));
+    }
+
     public Component getIslandNotLoadedMessage() {
         return ColorUtils.colorize(messages.getString("messages.island-not-loaded"));
     }
@@ -1171,10 +1165,6 @@ public class ConfigHandler {
 
     public Component getCannotRemoveOwnerMessage() {
         return ColorUtils.colorize(messages.getString("messages.cannot-remove-owner"));
-    }
-
-    public Component getBlockLimitReachedMessage(String block, int limit) {
-        return ColorUtils.colorize(java.util.Objects.requireNonNull(messages.getString("messages.block-limit-reached")).replace("{limit}", String.valueOf(limit)).replace("{block}", block));
     }
 
     public Component getUnknownPlayerMessage(String player) {

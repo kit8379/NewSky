@@ -1,9 +1,12 @@
 package org.me.newsky.network.distributor;
 
 import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
+import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
 import org.me.newsky.broker.Broker;
 import org.me.newsky.exceptions.IslandAlreadyLoadedException;
+import org.me.newsky.exceptions.IslandBusyException;
 import org.me.newsky.exceptions.IslandNotLoadedException;
 import org.me.newsky.exceptions.NoActiveServerException;
 import org.me.newsky.network.operator.Operator;
@@ -14,11 +17,58 @@ import org.me.newsky.util.ServerUtil;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+/**
+ * Distributor routes island-related operations across multiple servers in a distributed setup.
+ *
+ * <p>Key goals:
+ * <ul>
+ *   <li>Choose the best server to perform an operation (via {@link ServerSelector}).</li>
+ *   <li>Coordinate island loading/unloading/deleting across servers via Redis.</li>
+ *   <li>Prevent race conditions using a distributed lock for sensitive operations.</li>
+ *   <li>Provide reusable primitives like {@link #ensureIslandLoaded(UUID)} to avoid duplicated logic.</li>
+ * </ul>
+ *
+ * <p>Lock policy:
+ * <ul>
+ *   <li>ONLY operations that can cause distributed races are locked: load / unload / delete.</li>
+ *   <li>Teleport is NOT locked. However, when teleport requires a load, it uses {@link #ensureIslandLoaded(UUID)}
+ *       which locks only during the load stage, then releases immediately.</li>
+ * </ul>
+ *
+ * <p>Redis keys involved (via {@link RedisCache}):
+ * <ul>
+ *   <li>island_server (hash): islandUuid -> serverId</li>
+ *   <li>island_op_lock:* (string): lock for sensitive island operations</li>
+ * </ul>
+ */
 public class Distributor {
+
+    // =====================================================================================
+    // Lock configuration
+    // =====================================================================================
+
+    /**
+     * Default lock TTL. Must be long enough to cover worst-case island load/unload/delete.
+     * Extended periodically by heartbeat while the operation is running.
+     */
+    private static final long ISLAND_OP_LOCK_TTL_MS = TimeUnit.MINUTES.toMillis(5);
+
+    /**
+     * How often to extend the lock TTL while a sensitive operation is running.
+     * Keep it comfortably below TTL to avoid expiry during pauses.
+     */
+    private static final long ISLAND_OP_LOCK_HEARTBEAT_MS = TimeUnit.MINUTES.toMillis(1);
+
+    // =====================================================================================
+    // Dependencies
+    // =====================================================================================
 
     private final NewSky plugin;
     private final RedisCache redisCache;
@@ -40,184 +90,261 @@ public class Distributor {
         this.broker = broker;
     }
 
+    // =====================================================================================
+    // High-level Reusable Primitive
+    // =====================================================================================
+
+    /**
+     * Ensure the island is loaded on SOME server and return which server is hosting it.
+     *
+     * <p>This method is the reusable building block used by teleport logic.
+     * It applies the distributed lock ONLY while the island is being loaded.
+     *
+     * <p>Behavior:
+     * <ul>
+     *   <li>If already loaded -> completes immediately with that server id.</li>
+     *   <li>If not loaded -> acquires lock, selects best server, performs load (local or remote),
+     *       then releases lock and completes with the resulting server id.</li>
+     * </ul>
+     */
+    private CompletableFuture<String> ensureIslandLoaded(UUID islandUuid) {
+        // Fast-path: if already loaded, return immediately without lock.
+        String already = getServerByIsland(islandUuid);
+        if (already != null) {
+            return CompletableFuture.completedFuture(already);
+        }
+
+        // Not loaded: acquire lock only for the load phase.
+        return withIslandOpLock(islandUuid, () -> {
+            // Re-check after lock acquired: someone else might have loaded it just before we got the lock.
+            String recheck = getServerByIsland(islandUuid);
+            if (recheck != null) {
+                return CompletableFuture.completedFuture(recheck);
+            }
+
+            plugin.debug("Distributor", "ensureIslandLoaded: island not loaded. Selecting server to load " + islandUuid);
+
+            String targetServer = selectServer(redisCache.getActiveGameServers());
+            if (targetServer == null) {
+                plugin.debug("Distributor", "ensureIslandLoaded: no active server available to load island " + islandUuid);
+                return CompletableFuture.failedFuture(new NoActiveServerException());
+            }
+
+            plugin.debug("Distributor", "ensureIslandLoaded: selected server " + targetServer + " to load island " + islandUuid);
+
+            CompletableFuture<Void> loadFuture;
+            if (targetServer.equals(serverID)) {
+                plugin.debug("Distributor", "ensureIslandLoaded: loading island locally on " + serverID);
+                loadFuture = operator.loadIsland(islandUuid);
+            } else {
+                plugin.debug("Distributor", "ensureIslandLoaded: sending load request to remote server " + targetServer);
+                loadFuture = broker.sendRequest(targetServer, "load", islandUuid.toString());
+            }
+
+            // After load completes, Operator should have set island_server in Redis.
+            return loadFuture.thenApply(v -> {
+                String loadedOn = getServerByIsland(islandUuid);
+                if (loadedOn == null) {
+                    // If this happens, it indicates Redis isn't updated as expected. It's safer to fail hard.
+                    throw new IllegalStateException("Island load completed but island_server not set for " + islandUuid);
+                }
+                return loadedOn;
+            });
+        });
+    }
+
+    // =====================================================================================
+    // Sensitive operations : load/unload/delete
+    // =====================================================================================
+
+    /**
+     * Create island is not locked (not requested), but still distributed by selecting best server.
+     */
     public CompletableFuture<Void> createIsland(UUID islandUuid) {
         String targetServer = selectServer(redisCache.getActiveGameServers());
-
         if (targetServer == null) {
-            plugin.debug("Distributor", "No active server available for island creation.");
+            plugin.debug("Distributor", "createIsland: No active server available.");
             return CompletableFuture.failedFuture(new NoActiveServerException());
         }
 
-        plugin.debug("Distributor", "Selected server " + targetServer + " to create island " + islandUuid);
+        plugin.debug("Distributor", "createIsland: selected server " + targetServer + " to create island " + islandUuid);
 
         if (targetServer.equals(serverID)) {
-            plugin.debug("Distributor", "Creating island on local server: " + serverID);
+            plugin.debug("Distributor", "createIsland: creating island on local server " + serverID);
             return operator.createIsland(islandUuid);
         } else {
-            plugin.debug("Distributor", "Sending create request to remote server: " + targetServer);
+            plugin.debug("Distributor", "createIsland: sending create request to remote server " + targetServer);
             return broker.sendRequest(targetServer, "create", islandUuid.toString());
         }
     }
 
-    public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
-        String islandServer = getServerByIsland(islandUuid);
-
-        if (islandServer == null) {
-            plugin.debug("Distributor", "Island not loaded on any server. Deleting locally.");
-            return operator.deleteIsland(islandUuid);
-        }
-
-        plugin.debug("Distributor", "Island loaded on server: " + islandServer);
-
-        if (islandServer.equals(serverID)) {
-            plugin.debug("Distributor", "Deleting island on local server: " + serverID);
-            return operator.deleteIsland(islandUuid);
-        } else {
-            plugin.debug("Distributor", "Sending delete request to remote server: " + islandServer);
-            return broker.sendRequest(islandServer, "delete", islandUuid.toString());
-        }
-    }
-
+    /**
+     * Load island explicitly. This is a "strict" command-level method:
+     * if island already loaded anywhere -> throws {@link IslandAlreadyLoadedException}.
+     *
+     * <p>Uses distributed lock to prevent concurrent load/unload/delete on the same island.
+     */
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
-        String islandServer = getServerByIsland(islandUuid);
+        return withIslandOpLock(islandUuid, () -> {
+            // Re-check after lock acquired
+            String islandServer = getServerByIsland(islandUuid);
+            if (islandServer != null) {
+                plugin.debug("Distributor", "loadIsland: island already loaded on server " + islandServer);
+                return CompletableFuture.failedFuture(new IslandAlreadyLoadedException());
+            }
 
-        if (islandServer == null) {
-            plugin.debug("Distributor", "Island not loaded on any server. Selecting server to load the island.");
+            plugin.debug("Distributor", "loadIsland: island not loaded. Selecting server to load " + islandUuid);
 
             String targetServer = selectServer(redisCache.getActiveGameServers());
-
             if (targetServer == null) {
-                plugin.debug("Distributor", "No active server available to load the island.");
+                plugin.debug("Distributor", "loadIsland: no active server available.");
                 return CompletableFuture.failedFuture(new NoActiveServerException());
             }
 
-            plugin.debug("Distributor", "Selected server " + targetServer + " to load island " + islandUuid);
+            plugin.debug("Distributor", "loadIsland: selected server " + targetServer + " to load island " + islandUuid);
 
             if (targetServer.equals(serverID)) {
-                plugin.debug("Distributor", "Loading island on local server: " + serverID);
+                plugin.debug("Distributor", "loadIsland: loading island locally on " + serverID);
                 return operator.loadIsland(islandUuid);
             } else {
-                plugin.debug("Distributor", "Sending load request to remote server: " + targetServer);
+                plugin.debug("Distributor", "loadIsland: sending load request to remote server " + targetServer);
                 return broker.sendRequest(targetServer, "load", islandUuid.toString());
             }
-        } else {
-            plugin.debug("Distributor", "Island already loaded on server: " + islandServer);
-            return CompletableFuture.failedFuture(new IslandAlreadyLoadedException());
-        }
+        });
     }
 
+    /**
+     * Unload island explicitly.
+     *
+     * <p>Uses distributed lock to prevent concurrent load/unload/delete on the same island.
+     */
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
-        String islandServer = getServerByIsland(islandUuid);
+        return withIslandOpLock(islandUuid, () -> {
+            // Re-check after lock acquired
+            String islandServer = getServerByIsland(islandUuid);
+            if (islandServer == null) {
+                plugin.debug("Distributor", "unloadIsland: island not loaded anywhere, cannot unload " + islandUuid);
+                return CompletableFuture.failedFuture(new IslandNotLoadedException());
+            }
 
-        if (islandServer == null) {
-            plugin.debug("Distributor", "Island not loaded on any server. Cannot unload.");
-            return CompletableFuture.failedFuture(new IslandNotLoadedException());
-        }
+            plugin.debug("Distributor", "unloadIsland: island loaded on server " + islandServer);
 
-        plugin.debug("Distributor", "Island loaded on server: " + islandServer);
-
-        if (islandServer.equals(serverID)) {
-            plugin.debug("Distributor", "Unloading island on local server: " + serverID);
-            return operator.unloadIsland(islandUuid);
-        } else {
-            plugin.debug("Distributor", "Sending unload request to remote server: " + islandServer);
-            return broker.sendRequest(islandServer, "unload", islandUuid.toString());
-        }
+            if (islandServer.equals(serverID)) {
+                plugin.debug("Distributor", "unloadIsland: unloading island locally on " + serverID);
+                return operator.unloadIsland(islandUuid);
+            } else {
+                plugin.debug("Distributor", "unloadIsland: sending unload request to remote server " + islandServer);
+                return broker.sendRequest(islandServer, "unload", islandUuid.toString());
+            }
+        });
     }
 
-    public CompletableFuture<Void> teleportIsland(UUID islandUuid, UUID playerUuid, String teleportWorld, String teleportLocation) {
-        String islandServer = getServerByIsland(islandUuid);
+    /**
+     * Delete island explicitly.
+     *
+     * <p>Uses distributed lock to prevent concurrent load/unload/delete on the same island.
+     */
+    public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
+        return withIslandOpLock(islandUuid, () -> {
+            String islandServer = getServerByIsland(islandUuid);
 
-        if (islandServer == null) {
-            plugin.debug("Distributor", "Island not loaded on any server. Selecting server to load the island.");
-
-            String targetServer = selectServer(redisCache.getActiveGameServers());
-
-            if (targetServer == null) {
-                plugin.debug("Distributor", "No active server available to load the island.");
-                return CompletableFuture.failedFuture(new NoActiveServerException());
+            // If not loaded anywhere, delete locally. (Your original behavior)
+            if (islandServer == null) {
+                plugin.debug("Distributor", "deleteIsland: island not loaded anywhere, deleting locally " + islandUuid);
+                return operator.deleteIsland(islandUuid);
             }
 
-            plugin.debug("Distributor", "Selected server " + targetServer + " to load island " + islandUuid);
+            plugin.debug("Distributor", "deleteIsland: island loaded on server " + islandServer);
 
-            if (targetServer.equals(serverID)) {
-                plugin.debug("Distributor", "Loading island on local server: " + serverID);
-                return operator.loadIsland(islandUuid).thenCompose(v -> {
-                    plugin.debug("Distributor", "Teleporting player on local server: " + serverID);
-                    return operator.teleport(playerUuid, teleportWorld, teleportLocation);
-                });
-            } else {
-                plugin.debug("Distributor", "Sending load request to remote server: " + targetServer);
-                return broker.sendRequest(targetServer, "load", islandUuid.toString()).thenCompose(v -> {
-                    plugin.debug("Distributor", "Sending teleport request to remote server: " + targetServer);
-                    return broker.sendRequest(targetServer, "teleport", playerUuid.toString(), teleportWorld, teleportLocation);
-                }).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, targetServer));
-            }
-        } else {
             if (islandServer.equals(serverID)) {
-                plugin.debug("Distributor", "Teleporting player on local server: " + serverID);
+                plugin.debug("Distributor", "deleteIsland: deleting locally on " + serverID);
+                return operator.deleteIsland(islandUuid);
+            } else {
+                plugin.debug("Distributor", "deleteIsland: sending delete request to remote server " + islandServer);
+                return broker.sendRequest(islandServer, "delete", islandUuid.toString());
+            }
+        });
+    }
+
+    // =====================================================================================
+    // Teleport operations (NOT locked)
+    // =====================================================================================
+
+    /**
+     * Teleport player to island home.
+     *
+     * <p>If island isn't loaded, it calls {@link #ensureIslandLoaded(UUID)} which locks only
+     * during the loading phase. Once loaded, teleport proceeds without holding the lock.
+     */
+    public CompletableFuture<Void> teleportIsland(UUID islandUuid, UUID playerUuid, String teleportWorld, String teleportLocation) {
+        return ensureIslandLoaded(islandUuid).thenCompose(loadedServer -> {
+            if (loadedServer.equals(serverID)) {
+                plugin.debug("Distributor", "teleportIsland: teleporting locally on " + serverID);
                 return operator.teleport(playerUuid, teleportWorld, teleportLocation);
             } else {
-                plugin.debug("Distributor", "Sending teleport request to remote server: " + islandServer);
-                return broker.sendRequest(islandServer, "teleport", playerUuid.toString(), teleportWorld, teleportLocation).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, islandServer));
+                plugin.debug("Distributor", "teleportIsland: forwarding teleport to server " + loadedServer);
+                return broker.sendRequest(loadedServer, "teleport", playerUuid.toString(), teleportWorld, teleportLocation).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, loadedServer));
             }
-        }
+        });
     }
 
     public CompletableFuture<Void> teleportLobby(UUID playerUuid, List<String> lobbyServers, String lobbyWorld, String lobbyLocation) {
         String targetLobbyServer = selectServer(redisCache.getActiveServers().entrySet().stream().filter(entry -> lobbyServers.contains(entry.getKey())).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
 
         if (targetLobbyServer == null) {
-            plugin.debug("Distributor", "No active lobby server available.");
+            plugin.debug("Distributor", "teleportLobby: No active lobby server available.");
             return CompletableFuture.failedFuture(new NoActiveServerException());
         }
 
-        plugin.debug("Distributor", "Selected active lobby server: " + targetLobbyServer + " for player: " + playerUuid);
+        plugin.debug("Distributor", "teleportLobby: selected lobby server " + targetLobbyServer + " for player " + playerUuid);
 
         if (targetLobbyServer.equals(serverID)) {
-            plugin.debug("Distributor", "Teleporting player to local lobby world: " + lobbyWorld);
+            plugin.debug("Distributor", "teleportLobby: teleporting locally on " + serverID);
             return operator.teleport(playerUuid, lobbyWorld, lobbyLocation);
         } else {
-            plugin.debug("Distributor", "Sending lobby teleport request to remote server: " + targetLobbyServer);
+            plugin.debug("Distributor", "teleportLobby: forwarding teleport to server " + targetLobbyServer);
             return broker.sendRequest(targetLobbyServer, "teleport", playerUuid.toString(), lobbyWorld, lobbyLocation).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, targetLobbyServer));
         }
     }
+
+    // =====================================================================================
+    // Other operations (unchanged)
+    // =====================================================================================
 
     public CompletableFuture<Void> lockIsland(UUID islandUuid) {
         String islandServer = getServerByIsland(islandUuid);
 
         if (islandServer == null) {
-            plugin.debug("Distributor", "Island not loaded on any server.");
+            plugin.debug("Distributor", "lockIsland: island not loaded on any server.");
             return CompletableFuture.completedFuture(null);
         }
 
-        plugin.debug("Distributor", "Island loaded on server: " + islandServer);
+        plugin.debug("Distributor", "lockIsland: island loaded on server " + islandServer);
 
         if (islandServer.equals(serverID)) {
-            plugin.debug("Distributor", "Locking island on local server: " + serverID);
+            plugin.debug("Distributor", "lockIsland: locking island locally on " + serverID);
             return operator.lockIsland(islandUuid);
         } else {
-            plugin.debug("Distributor", "Sending lock request to remote server: " + islandServer);
+            plugin.debug("Distributor", "lockIsland: sending lock request to remote server " + islandServer);
             return broker.sendRequest(islandServer, "lock", islandUuid.toString());
         }
     }
-
 
     public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
         String islandServer = getServerByIsland(islandUuid);
 
         if (islandServer == null) {
-            plugin.debug("Distributor", "Island not loaded on any server.");
+            plugin.debug("Distributor", "expelPlayer: island not loaded on any server.");
             return CompletableFuture.completedFuture(null);
         }
 
-        plugin.debug("Distributor", "Island loaded on server: " + islandServer);
+        plugin.debug("Distributor", "expelPlayer: island loaded on server " + islandServer);
 
         if (islandServer.equals(serverID)) {
-            plugin.debug("Distributor", "Expelling player on local server: " + serverID);
+            plugin.debug("Distributor", "expelPlayer: expelling locally on " + serverID);
             return operator.expelPlayer(islandUuid, playerUuid);
         } else {
-            plugin.debug("Distributor", "Sending expel request to remote server: " + islandServer);
+            plugin.debug("Distributor", "expelPlayer: sending expel request to remote server " + islandServer);
             return broker.sendRequest(islandServer, "expel", islandUuid.toString(), playerUuid.toString());
         }
     }
@@ -226,21 +353,64 @@ public class Distributor {
         String playerServer = getServerByPlayer(playerUuid);
 
         if (playerServer == null) {
-            plugin.debug("Distributor", "Player is not currently online on any server");
+            plugin.debug("Distributor", "sendMessage: player not online on any server: " + playerUuid);
             return CompletableFuture.completedFuture(null);
         }
 
-        plugin.debug("Distributor", "Player " + playerUuid + " is on server: " + playerServer);
+        plugin.debug("Distributor", "sendMessage: player " + playerUuid + " is on server " + playerServer);
 
         if (playerServer.equals(serverID)) {
-            plugin.debug("Distributor", "Sending message to player on current server " + serverID);
+            plugin.debug("Distributor", "sendMessage: sending locally on " + serverID);
             return operator.sendMessage(playerUuid, message);
         } else {
-            plugin.debug("Distributor", "Forwarding message to player on server " + playerServer);
+            plugin.debug("Distributor", "sendMessage: forwarding message to server " + playerServer);
             return broker.sendRequest(playerServer, "message", playerUuid.toString(), ComponentUtils.serialize(message));
         }
     }
 
+    // =====================================================================================
+    // Internal helpers
+    // =====================================================================================
+
+    /**
+     * Lock wrapper for sensitive island operations.
+     *
+     * <p>Acquires distributed Redis lock for this island. If already locked, throws {@link IslandBusyException}.
+     * Maintains lock TTL via heartbeat until the returned future completes, then releases lock.
+     */
+    private <T> CompletableFuture<T> withIslandOpLock(UUID islandUuid, Supplier<CompletableFuture<T>> action) {
+        String token = serverID + ":" + UUID.randomUUID();
+
+        Optional<String> acquired = redisCache.tryAcquireIslandOpLock(islandUuid, token, ISLAND_OP_LOCK_TTL_MS);
+        if (acquired.isEmpty()) {
+            long pttl = redisCache.getIslandOpLockTtlMillis(islandUuid);
+            plugin.debug("Distributor", "withIslandOpLock: busy lock for " + islandUuid + " (pttl=" + pttl + "ms)");
+            return CompletableFuture.failedFuture(new IslandBusyException());
+        }
+
+        BukkitTask heartbeat = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
+            boolean ok = redisCache.extendIslandOpLock(islandUuid, token, ISLAND_OP_LOCK_TTL_MS);
+            if (!ok) {
+                // If extend fails, it likely means token no longer matches (lost lock ownership).
+                // We still allow the operation to continue to finish, but it may no longer be protected.
+                plugin.debug("Distributor", "withIslandOpLock: failed to extend lock (lost ownership?) island=" + islandUuid);
+            }
+        }, Math.max(1L, ISLAND_OP_LOCK_HEARTBEAT_MS / 50L), Math.max(1L, ISLAND_OP_LOCK_HEARTBEAT_MS / 50L));
+
+        CompletableFuture<T> future;
+        try {
+            future = action.get();
+        } catch (Throwable t) {
+            heartbeat.cancel();
+            redisCache.releaseIslandOpLock(islandUuid, token);
+            return CompletableFuture.failedFuture(t);
+        }
+
+        return future.whenComplete((res, err) -> {
+            heartbeat.cancel();
+            redisCache.releaseIslandOpLock(islandUuid, token);
+        });
+    }
 
     private String selectServer(Map<String, String> servers) {
         return serverSelector.selectServer(servers);

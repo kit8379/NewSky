@@ -6,6 +6,8 @@ import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.IslandBusyException;
+import org.me.newsky.exceptions.NoActiveServerException;
 import org.me.newsky.model.Invitation;
 
 import java.util.Optional;
@@ -72,11 +74,20 @@ public class PlayerAcceptInviteCommand implements SubCommand {
         api.removePendingInvite(playerUuid).thenCompose(v -> api.addMember(islandUuid, playerUuid, "member")).thenCompose(v -> {
             player.sendMessage(config.getPlayerInviteAcceptedMessage());
             api.sendMessage(inviterUuid, config.getPlayerInviteAcceptedNotifyMessage(player.getName()));
+
             api.getIslandMembers(islandUuid).stream().filter(uuid -> !uuid.equals(playerUuid) && !uuid.equals(inviterUuid)).forEach(uuid -> api.sendMessage(uuid, config.getNewMemberNotificationMessage(player.getName())));
+
             return api.home(playerUuid, "default", playerUuid);
         }).exceptionally(ex -> {
-            player.sendMessage(config.getUnknownExceptionMessage());
-            plugin.severe("Error accepting invite or teleporting for player " + player.getName(), ex);
+            Throwable cause = ex.getCause();
+            if (cause instanceof IslandBusyException) {
+                sender.sendMessage(config.getIslandBusyMessage());
+            } else if (cause instanceof NoActiveServerException) {
+                player.sendMessage(config.getNoActiveServerMessage());
+            } else {
+                player.sendMessage(config.getUnknownExceptionMessage());
+                plugin.severe("Error accepting invite or teleporting for player " + player.getName(), ex);
+            }
             return null;
         });
 

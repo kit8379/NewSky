@@ -84,6 +84,8 @@ public class PlayerWarpCommand implements SubCommand, TabComplete {
                 player.sendMessage(config.getPlayerBannedMessage());
             } else if (cause instanceof IslandLockedException) {
                 player.sendMessage(config.getIslandLockedMessage());
+            } else if (cause instanceof IslandBusyException) {
+                sender.sendMessage(config.getIslandBusyMessage());
             } else if (cause instanceof NoActiveServerException) {
                 player.sendMessage(config.getNoActiveServerMessage());
             } else {

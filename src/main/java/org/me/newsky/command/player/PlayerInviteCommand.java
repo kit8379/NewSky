@@ -9,6 +9,7 @@ import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.InvitedAlreadyException;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
+import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
 
 import java.util.Collections;
@@ -85,7 +86,7 @@ public class PlayerInviteCommand implements SubCommand, TabComplete {
         UUID islandUuid;
         try {
             islandUuid = api.getIslandUuid(playerUuid);
-        } catch (Exception e) {
+        } catch (IslandDoesNotExistException e) {
             player.sendMessage(config.getPlayerNoIslandMessage());
             return true;
         }

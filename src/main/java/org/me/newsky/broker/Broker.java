@@ -79,7 +79,7 @@ public class Broker {
         plugin.debug("Broker", "Sending request " + operation + " to server " + targetServer + " with ID " + requestId);
         redisHandler.publish(channelID, json.toString());
 
-        future.orTimeout(30, TimeUnit.SECONDS).exceptionally(error -> {
+        future.orTimeout(60, TimeUnit.SECONDS).exceptionally(error -> {
             pendingRequests.remove(requestId);
             plugin.severe("Request " + operation + " to server " + targetServer + " timed out.", error);
             return null;

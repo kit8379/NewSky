@@ -11,16 +11,81 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class RedisCache {
-
     private final RedisHandler redisHandler;
     private final NewSky plugin;
+    private static final String ISLAND_OP_LOCK_PREFIX = "island_op_lock:";
+    private static final String LUA_RELEASE_LOCK = "if redis.call('GET', KEYS[1]) == ARGV[1] then " + " return redis.call('DEL', KEYS[1]) " + "else " + " return 0 " + "end";
+    private static final String LUA_EXTEND_LOCK = "if redis.call('GET', KEYS[1]) == ARGV[1] then " + " return redis.call('PEXPIRE', KEYS[1], ARGV[2]) " + "else " + " return 0 " + "end";
 
     public RedisCache(NewSky plugin, RedisHandler redisHandler) {
         this.plugin = plugin;
         this.redisHandler = redisHandler;
     }
 
-    // Server heartbeats
+    private String islandOpLockKey(UUID islandUuid) {
+        return ISLAND_OP_LOCK_PREFIX + islandUuid;
+    }
+
+    // ========================= Island Operation Locking =========================
+
+    /**
+     * Try to acquire lock for island operations (load/unload/delete). * * @return token if acquired, empty if already locked
+     */
+    public Optional<String> tryAcquireIslandOpLock(UUID islandUuid, String token, long ttlMillis) {
+        String key = islandOpLockKey(islandUuid);
+        try (Jedis jedis = redisHandler.getJedis()) {
+            String result = jedis.set(key, token, redis.clients.jedis.params.SetParams.setParams().nx().px(ttlMillis));
+            if ("OK".equalsIgnoreCase(result)) {
+                return Optional.of(token);
+            }
+            return Optional.empty();
+        } catch (Exception e) {
+            plugin.severe("Failed to acquire island op lock for: " + islandUuid, e);
+            return Optional.empty();
+        }
+    }
+
+    /**
+     * Extend lock TTL if still owned by token. * * @return true if extended, false otherwise
+     */
+    public boolean extendIslandOpLock(UUID islandUuid, String token, long ttlMillis) {
+        String key = islandOpLockKey(islandUuid);
+        try (Jedis jedis = redisHandler.getJedis()) {
+            Object res = jedis.eval(LUA_EXTEND_LOCK, 1, key, token, String.valueOf(ttlMillis));
+            if (res instanceof Long) {
+                return ((Long) res) > 0;
+            }
+            return false;
+        } catch (Exception e) {
+            plugin.severe("Failed to extend island op lock for: " + islandUuid, e);
+            return false;
+        }
+    }
+
+    /**
+     * Release lock only if still owned by token.
+     */
+    public void releaseIslandOpLock(UUID islandUuid, String token) {
+        String key = islandOpLockKey(islandUuid);
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.eval(LUA_RELEASE_LOCK, 1, key, token);
+        } catch (Exception e) {
+            plugin.severe("Failed to release island op lock for: " + islandUuid, e);
+        }
+    }
+
+    public long getIslandOpLockTtlMillis(UUID islandUuid) {
+        String key = islandOpLockKey(islandUuid);
+        try (Jedis jedis = redisHandler.getJedis()) {
+            return jedis.pttl(key);
+        } catch (Exception e) {
+            plugin.severe("Failed to get island op lock TTL for: " + islandUuid, e);
+            return -1;
+        }
+    }
+
+    // ======================== Heartbeats and Active Servers ========================
+
     public void updateActiveServer(String serverName, boolean lobby) {
         try (Jedis jedis = redisHandler.getJedis()) {
             String timestamp = String.valueOf(System.currentTimeMillis());
@@ -37,14 +102,12 @@ public class RedisCache {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hdel("server_heartbeats", serverName);
             jedis.hdel("active_game_servers", serverName);
-
             Map<String, String> islandServerMap = jedis.hgetAll("island_server");
             for (Map.Entry<String, String> entry : islandServerMap.entrySet()) {
                 if (entry.getValue().equals(serverName)) {
                     jedis.hdel("island_server", entry.getKey());
                 }
             }
-
             Map<String, String> onlinePlayers = jedis.hgetAll("online_players");
             for (Map.Entry<String, String> entry : onlinePlayers.entrySet()) {
                 if (entry.getValue().equals(serverName)) {
@@ -52,7 +115,6 @@ public class RedisCache {
                     jedis.hdel("uuid_to_name", entry.getKey());
                 }
             }
-
             plugin.debug("RedisCache", "Cleaned up all data for server: " + serverName);
         } catch (Exception e) {
             plugin.severe("Failed to remove active server: " + serverName, e);
@@ -77,7 +139,8 @@ public class RedisCache {
         }
     }
 
-    // Island loaded server
+    // ======================== Island Loaded Servers =========================
+
     public void updateIslandLoadedServer(UUID islandUuid, String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset("island_server", islandUuid.toString(), serverName);
@@ -104,6 +167,8 @@ public class RedisCache {
         }
     }
 
+    // ======================== Online Players =========================
+
     public Optional<String> getPlayerOnlineServer(UUID playerUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             String server = jedis.hget("online_players", playerUuid.toString());
@@ -114,7 +179,6 @@ public class RedisCache {
         }
     }
 
-    // Global Online players
     public void addOnlinePlayer(UUID playerUuid, String playerName, String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset("online_players", playerUuid.toString(), serverName);
@@ -158,7 +222,8 @@ public class RedisCache {
         }
     }
 
-    // Server MSPT
+    // ======================== Server MSPT and Round-Robin =========================
+
     public void updateServerMSPT(String serverName, double mspt) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset("server_mspt", serverName, String.format("%.2f", mspt));
@@ -179,7 +244,6 @@ public class RedisCache {
         return -1;
     }
 
-    // Round-robin counter
     public long getRoundRobinCounter() {
         try (Jedis jedis = redisHandler.getJedis()) {
             long value = jedis.incr("round_robin_counter");
@@ -194,7 +258,8 @@ public class RedisCache {
         }
     }
 
-    // Island Invitation
+    // ======================== Island Invitations =========================
+
     public void addIslandInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {
         try (Jedis jedis = redisHandler.getJedis()) {
             String value = islandUuid + ":" + inviterUuid;
