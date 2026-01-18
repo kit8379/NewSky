@@ -33,6 +33,7 @@ public class HeartBeatHandler {
         heartbeatTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
             redisCache.updateActiveServer(serverID, config.isLobbyOnly());
             plugin.debug("HeartBeatHandler", "Sent heartbeat for server: " + serverID);
+            plugin.debug("HeartBeatHandler", "Active servers check initiated: " + redisCache.getActiveServers().keySet());
 
             long now = System.currentTimeMillis();
             long threshold = now - (heartbeatInterval * 1000L * 2);

@@ -14,11 +14,11 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.island.*;
-import org.me.newsky.network.distributor.Distributor;
-import org.me.newsky.network.operator.Operator;
 import org.me.newsky.listener.*;
 import org.me.newsky.lobby.LobbyHandler;
 import org.me.newsky.message.MessageHandler;
+import org.me.newsky.network.distributor.Distributor;
+import org.me.newsky.network.operator.Operator;
 import org.me.newsky.placeholder.NewSkyPlaceholderExpansion;
 import org.me.newsky.redis.RedisCache;
 import org.me.newsky.redis.RedisHandler;
@@ -164,8 +164,10 @@ public class NewSky extends JavaPlugin {
             info("Starting all schedulers for the plugin");
             islandUnloadScheduler = new IslandUnloadScheduler(this, config, redisCache, worldHandler, worldActivityHandler);
             if (serverSelector instanceof MSPTServerSelector) {
-                info("MSPT server selector detected, starting MSPT update scheduler");
+                info("MSPT server selector detected, creating MSPT update scheduler");
                 msptUpdateScheduler = new MSPTUpdateScheduler(this, config, redisCache, serverID);
+            } else {
+                msptUpdateScheduler = null;
             }
             info("All schedulers loaded");
 
@@ -214,7 +216,12 @@ public class NewSky extends JavaPlugin {
             cache.cacheAllData();
             heartBeatHandler.start();
             islandUnloadScheduler.start();
-            msptUpdateScheduler.start();
+
+            if (msptUpdateScheduler != null) {
+                msptUpdateScheduler.start();
+            } else {
+                info("MSPT update scheduler not enabled (server selector is not MSPT), skipping start.");
+            }
 
         } catch (Exception e) {
             getLogger().log(Level.SEVERE, "An error occurred during plugin initialization", e);
@@ -240,8 +247,10 @@ public class NewSky extends JavaPlugin {
     }
 
     public void shutdown() {
+        if (msptUpdateScheduler != null) {
+            msptUpdateScheduler.stop();
+        }
         islandUnloadScheduler.stop();
-        msptUpdateScheduler.stop();
         worldHandler.unloadAllWorldsOnShutdown();
         heartBeatHandler.stop();
         broker.unsubscribe();

@@ -66,7 +66,9 @@ public class PlayerHomeCommand implements SubCommand, TabComplete {
         String homeName = (args.length >= 2) ? args[1] : "default";
         UUID playerUuid = player.getUniqueId();
 
-        api.home(playerUuid, homeName, playerUuid).thenRun(() -> api.sendMessage(playerUuid, config.getPlayerHomeSuccessMessage(homeName))).exceptionally(ex -> {
+        api.home(playerUuid, homeName, playerUuid).thenRun(() -> {
+            api.sendMessage(playerUuid, config.getPlayerHomeSuccessMessage(homeName));
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());

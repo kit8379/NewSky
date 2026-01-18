@@ -94,35 +94,35 @@ public class ConfigHandler {
     }
 
     public String getMySQLHost() {
-        return config.getString("MySQL.host");
+        return config.getString("mysql.host");
     }
 
     public int getMySQLPort() {
-        return config.getInt("MySQL.port");
+        return config.getInt("mysql.port");
     }
 
     public String getMySQLDB() {
-        return config.getString("MySQL.database");
+        return config.getString("mysql.database");
     }
 
     public String getMySQLUsername() {
-        return config.getString("MySQL.username");
+        return config.getString("mysql.username");
     }
 
     public String getMySQLPassword() {
-        return config.getString("MySQL.password");
+        return config.getString("mysql.password");
     }
 
     public boolean getMySQLUseSSL() {
-        return config.getBoolean("MySQL.use-ssl");
+        return config.getBoolean("mysql.use-ssl");
     }
 
     public String getMySQLProperties() {
-        return config.getString("MySQL.properties");
+        return config.getString("mysql.properties");
     }
 
     public String getMySQLTablePrefix() {
-        return config.getString("MySQL.prefix");
+        return config.getString("mysql.prefix");
     }
 
     public String getRedisHost() {
@@ -1353,12 +1353,28 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.player-create-island-success"));
     }
 
-    public Component getPlayerDeleteWarningMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-delete-warning"));
+    public Component getPlayerDeleteFirstWarningMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-delete-first-warning"));
+    }
+
+    public Component getPlayerDeleteFinalWarningMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-delete-final-warning"));
+    }
+
+    public Component getPlayerDeleteOwnerRequiredMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-delete-owner-required"));
+    }
+
+    public Component getPlayerDeleteOwnerMismatchMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-delete-owner-mismatch"));
     }
 
     public Component getPlayerDeleteSuccessMessage() {
         return ColorUtils.colorize(messages.getString("messages.player-delete-island-success"));
+    }
+
+    public Component getPlayerDeleteNotOwnerMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-delete-not-owner"));
     }
 
     public Component getPlayerSetHomeSuccessMessage(String home) {

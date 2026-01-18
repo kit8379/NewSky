@@ -74,6 +74,22 @@ public class RedisCache {
         }
     }
 
+    /**
+     * Check if island is currently operation locked.
+     */
+    public boolean isIslandOpLocked(UUID islandUuid) {
+        String key = islandOpLockKey(islandUuid);
+        try (Jedis jedis = redisHandler.getJedis()) {
+            return jedis.exists(key);
+        } catch (Exception e) {
+            plugin.severe("Failed to check island op lock for: " + islandUuid, e);
+            return false;
+        }
+    }
+
+    /**
+     * Get remaining TTL of island operation lock.
+     */
     public long getIslandOpLockTtlMillis(UUID islandUuid) {
         String key = islandOpLockKey(islandUuid);
         try (Jedis jedis = redisHandler.getJedis()) {

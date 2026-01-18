@@ -111,6 +111,9 @@ public class Distributor {
         // Fast-path: if already loaded, return immediately without lock.
         String already = getServerByIsland(islandUuid);
         if (already != null) {
+            if (redisCache.isIslandOpLocked(islandUuid)) {
+                return CompletableFuture.failedFuture(new IslandBusyException());
+            }
             return CompletableFuture.completedFuture(already);
         }
 
