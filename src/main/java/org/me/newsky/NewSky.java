@@ -5,8 +5,9 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.me.newsky.api.NewSkyAPI;
-import org.me.newsky.broker.Broker;
 import org.me.newsky.broker.CacheBroker;
+import org.me.newsky.broker.IslandBroker;
+import org.me.newsky.broker.PlayerMessageBroker;
 import org.me.newsky.cache.Cache;
 import org.me.newsky.command.IslandAdminCommand;
 import org.me.newsky.command.IslandPlayerCommand;
@@ -15,10 +16,9 @@ import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.island.*;
 import org.me.newsky.listener.*;
-import org.me.newsky.lobby.LobbyHandler;
-import org.me.newsky.message.MessageHandler;
-import org.me.newsky.network.distributor.Distributor;
-import org.me.newsky.network.operator.Operator;
+import org.me.newsky.message.PlayerMessageHandler;
+import org.me.newsky.network.distributor.IslandDistributor;
+import org.me.newsky.network.operator.IslandOperator;
 import org.me.newsky.placeholder.NewSkyPlaceholderExpansion;
 import org.me.newsky.redis.RedisCache;
 import org.me.newsky.redis.RedisHandler;
@@ -52,7 +52,8 @@ public class NewSky extends JavaPlugin {
     private IslandUnloadScheduler islandUnloadScheduler;
     private MSPTUpdateScheduler msptUpdateScheduler;
     private CacheBroker cacheBroker;
-    private Broker broker;
+    private IslandBroker islandBroker;
+    private PlayerMessageBroker playerMessageBroker;
     private NewSkyAPI api;
     private BukkitAsyncExecutor bukkitAsyncExecutor;
 
@@ -131,28 +132,34 @@ public class NewSky extends JavaPlugin {
             }
             info("Server selector loaded");
 
+
             info("Starting handlers for island remote requests");
-            Operator operator = new Operator(this, redisCache, worldHandler, teleportHandler, serverID);
-            Distributor distributor = new Distributor(this, redisCache, operator, serverSelector, serverID);
+            IslandOperator islandOperator = new IslandOperator(this, redisCache, worldHandler, teleportHandler, serverID);
+            IslandDistributor islandDistributor = new IslandDistributor(this, redisCache, islandOperator, serverSelector, serverID);
             info("All handlers for remote requests loaded");
 
-            info("Starting message broker");
+            info("Starting player message handler");
+            PlayerMessageHandler playerMessageHandler = new PlayerMessageHandler(redisCache);
+            info("Player message handler loaded");
+
+            info("Starting all brokers for the plugin");
             cacheBroker = new CacheBroker(this, redisHandler, cache, serverID, config.getRedisCacheChannel());
             cache.setCacheBroker(cacheBroker);
-            broker = new Broker(this, redisHandler, operator, serverID, config.getRedisIslandChannel());
-            distributor.setIslandBroker(broker);
-            info("Message broker loaded");
+            islandBroker = new IslandBroker(this, redisHandler, islandOperator, serverID, config.getRedisIslandChannel());
+            islandDistributor.setIslandBroker(islandBroker);
+            playerMessageBroker = new PlayerMessageBroker(this, redisHandler, serverID, config.getRedisPlayerMessageChannel());
+            playerMessageHandler.setPlayerMessageBroker(playerMessageBroker);
+            info("All brokers loaded");
 
             info("Starting main handlers for the plugin");
-            IslandHandler islandHandler = new IslandHandler(this, cache, distributor);
-            PlayerHandler playerHandler = new PlayerHandler(this, cache, redisCache, distributor);
-            HomeHandler homeHandler = new HomeHandler(this, cache, distributor);
-            WarpHandler warpHandler = new WarpHandler(this, cache, distributor);
+            IslandHandler islandHandler = new IslandHandler(this, cache, islandDistributor);
+            PlayerHandler playerHandler = new PlayerHandler(this, cache, redisCache, islandDistributor);
+            HomeHandler homeHandler = new HomeHandler(this, cache, islandDistributor);
+            WarpHandler warpHandler = new WarpHandler(this, cache, islandDistributor);
             LevelHandler levelHandler = new LevelHandler(this, config, cache);
-            BanHandler banHandler = new BanHandler(this, cache, distributor);
+            BanHandler banHandler = new BanHandler(this, cache, islandDistributor);
             CoopHandler coopHandler = new CoopHandler(this, cache);
-            LobbyHandler lobbyHandler = new LobbyHandler(this, config, distributor);
-            MessageHandler messageHandler = new MessageHandler(this, distributor);
+            LobbyHandler lobbyHandler = new LobbyHandler(this, config, islandDistributor);
             UuidHandler uuidHandler = new UuidHandler(this, cache);
             WorldActivityHandler worldActivityHandler = new WorldActivityHandler(this);
             info("All main handlers loaded");
@@ -172,7 +179,7 @@ public class NewSky extends JavaPlugin {
             info("All schedulers loaded");
 
             info("Starting API");
-            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, messageHandler, uuidHandler);
+            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, playerMessageHandler, uuidHandler);
             info("API loaded");
 
             info("Starting listeners");
@@ -212,7 +219,8 @@ public class NewSky extends JavaPlugin {
 
             databaseHandler.createTables();
             cacheBroker.subscribe();
-            broker.subscribe();
+            islandBroker.subscribe();
+            playerMessageBroker.subscribe();
             cache.cacheAllData();
             heartBeatHandler.start();
             islandUnloadScheduler.start();
@@ -253,7 +261,8 @@ public class NewSky extends JavaPlugin {
         islandUnloadScheduler.stop();
         worldHandler.unloadAllWorldsOnShutdown();
         heartBeatHandler.stop();
-        broker.unsubscribe();
+        playerMessageBroker.unsubscribe();
+        islandBroker.unsubscribe();
         cacheBroker.unsubscribe();
         redisHandler.disconnect();
         databaseHandler.close();

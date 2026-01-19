@@ -55,6 +55,7 @@ redis:
   channel:
     cache: "newsky-cache-channel-0"
     island: "newsky-island-channel-0"
+    playermessage: "newsky-playermessage-channel-0"
 
 
 # ===================================================================

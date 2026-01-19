@@ -58,7 +58,9 @@ public class PlayerCreateIslandCommand implements SubCommand {
 
         api.createIsland(playerUuid).thenRun(() -> {
             player.sendMessage(config.getPlayerCreateSuccessMessage());
-            api.home(playerUuid, "default", playerUuid).thenRun(() -> api.sendMessage(playerUuid, config.getPlayerHomeSuccessMessage("default")));
+            api.home(playerUuid, "default", playerUuid).thenRun(() -> {
+                api.sendPlayerMessage(playerUuid, config.getPlayerHomeSuccessMessage("default"));
+            });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandAlreadyExistException) {

@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-public class Operator {
+public class IslandOperator {
 
     private final NewSky plugin;
     private final RedisCache redisCache;
@@ -24,7 +24,7 @@ public class Operator {
     private final TeleportHandler teleportHandler;
     private final String serverID;
 
-    public Operator(NewSky plugin, RedisCache redisCache, WorldHandler worldHandler, TeleportHandler teleportHandler, String serverID) {
+    public IslandOperator(NewSky plugin, RedisCache redisCache, WorldHandler worldHandler, TeleportHandler teleportHandler, String serverID) {
         this.plugin = plugin;
         this.redisCache = redisCache;
         this.worldHandler = worldHandler;
@@ -37,7 +37,7 @@ public class Operator {
 
         return worldHandler.createWorld(islandName).thenRun(() -> {
             redisCache.updateIslandLoadedServer(islandUuid, serverID);
-            plugin.debug("Operator", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
+            plugin.debug("IslandOperator", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
         });
     }
 
@@ -46,7 +46,7 @@ public class Operator {
 
         return worldHandler.deleteWorld(islandName).thenRun(() -> {
             redisCache.removeIslandLoadedServer(islandUuid);
-            plugin.debug("Operator", "Removed island loaded server for UUID: " + islandUuid);
+            plugin.debug("IslandOperator", "Removed island loaded server for UUID: " + islandUuid);
         });
     }
 
@@ -55,7 +55,7 @@ public class Operator {
 
         return worldHandler.loadWorld(islandName).thenRun(() -> {
             redisCache.updateIslandLoadedServer(islandUuid, serverID);
-            plugin.debug("Operator", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
+            plugin.debug("IslandOperator", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
         });
     }
 
@@ -64,7 +64,7 @@ public class Operator {
 
         return worldHandler.unloadWorld(islandName).thenRun(() -> {
             redisCache.removeIslandLoadedServer(islandUuid);
-            plugin.debug("Operator", "Removed island loaded server for UUID: " + islandUuid);
+            plugin.debug("IslandOperator", "Removed island loaded server for UUID: " + islandUuid);
         });
     }
 
@@ -78,7 +78,7 @@ public class Operator {
             } else {
                 teleportHandler.addPendingTeleport(playerUuid, location);
             }
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("Operator", "Teleported player " + playerUuid + " to location: " + teleportLocation + " in world: " + teleportWorld), plugin.getBukkitAsyncExecutor());
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("IslandOperator", "Teleported player " + playerUuid + " to location: " + teleportLocation + " in world: " + teleportWorld), plugin.getBukkitAsyncExecutor());
     }
 
 
@@ -97,7 +97,7 @@ public class Operator {
                     }
                 }
             }
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("Operator", "Locked island " + islandName + " and removed all foreign players."), plugin.getBukkitAsyncExecutor());
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("IslandOperator", "Locked island " + islandName + " and removed all foreign players."), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
@@ -112,7 +112,7 @@ public class Operator {
                     plugin.getApi().lobby(playerUuid);
                 }
             }
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("Operator", "Expelled player " + playerUuid + " from island " + islandName), plugin.getBukkitAsyncExecutor());
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("IslandOperator", "Expelled player " + playerUuid + " from island " + islandName), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> sendMessage(UUID playerUuid, Component message) {
@@ -121,6 +121,8 @@ public class Operator {
             if (player != null) {
                 player.sendMessage(message);
             }
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("Operator", "Sent message to player " + playerUuid + ": " + message), plugin.getBukkitAsyncExecutor());
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> {
+            plugin.debug("IslandOperator", "Sent message to player " + playerUuid + ": " + message);
+        }, plugin.getBukkitAsyncExecutor());
     }
 }

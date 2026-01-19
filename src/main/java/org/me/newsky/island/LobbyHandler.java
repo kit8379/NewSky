@@ -1,8 +1,8 @@
-package org.me.newsky.lobby;
+package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.network.distributor.Distributor;
+import org.me.newsky.network.distributor.IslandDistributor;
 
 import java.util.List;
 import java.util.UUID;
@@ -12,12 +12,12 @@ public class LobbyHandler {
 
     private final NewSky plugin;
     private final ConfigHandler config;
-    private final Distributor distributor;
+    private final IslandDistributor islandDistributor;
 
-    public LobbyHandler(NewSky plugin, ConfigHandler config, Distributor distributor) {
+    public LobbyHandler(NewSky plugin, ConfigHandler config, IslandDistributor islandDistributor) {
         this.plugin = plugin;
         this.config = config;
-        this.distributor = distributor;
+        this.islandDistributor = islandDistributor;
     }
 
     public CompletableFuture<Void> lobby(UUID playerUuid) {
@@ -26,7 +26,7 @@ public class LobbyHandler {
             String lobbyWorld = config.getLobbyWorldName();
             String lobbyLocation = config.getLobbyX() + "," + config.getLobbyY() + "," + config.getLobbyZ() + "," + config.getLobbyYaw() + "," + config.getLobbyPitch();
 
-            return distributor.teleportLobby(playerUuid, lobbyServers, lobbyWorld, lobbyLocation);
+            return islandDistributor.teleportLobby(playerUuid, lobbyServers, lobbyWorld, lobbyLocation);
         }, plugin.getBukkitAsyncExecutor()).thenCompose(f -> f);
     }
 }

@@ -3,7 +3,7 @@ package org.me.newsky.broker;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.me.newsky.NewSky;
-import org.me.newsky.network.operator.Operator;
+import org.me.newsky.network.operator.IslandOperator;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.util.ComponentUtils;
 import redis.clients.jedis.JedisPubSub;
@@ -13,21 +13,21 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-public class Broker {
+public class IslandBroker {
 
     private static final ConcurrentHashMap<String, CompletableFuture<Void>> pendingRequests = new ConcurrentHashMap<>();
 
     private final NewSky plugin;
     private final RedisHandler redisHandler;
-    private final Operator operator;
+    private final IslandOperator islandOperator;
     private final String serverID;
     private final String channelID;
     private JedisPubSub subscriber;
 
-    public Broker(NewSky plugin, RedisHandler redisHandler, Operator operator, String serverID, String channelID) {
+    public IslandBroker(NewSky plugin, RedisHandler redisHandler, IslandOperator islandOperator, String serverID, String channelID) {
         this.plugin = plugin;
         this.redisHandler = redisHandler;
-        this.operator = operator;
+        this.islandOperator = islandOperator;
         this.serverID = serverID;
         this.channelID = channelID;
     }
@@ -36,7 +36,7 @@ public class Broker {
         subscriber = new JedisPubSub() {
             @Override
             public void onMessage(String channel, String message) {
-                plugin.debug("Broker", "Received message on channel " + channel + ": " + message);
+                plugin.debug("IslandBroker", "Received message on channel " + channel + ": " + message);
                 try {
                     JSONObject json = new JSONObject(message);
                     String type = json.getString("type");
@@ -53,13 +53,13 @@ public class Broker {
         };
 
         redisHandler.subscribe(subscriber, channelID);
-        plugin.debug("Broker", "Subscribed to channel " + channelID);
+        plugin.debug("IslandBroker", "Subscribed to channel " + channelID);
     }
 
     public void unsubscribe() {
         if (subscriber != null) {
             subscriber.unsubscribe();
-            plugin.debug("Broker", "Unsubscribed from channel " + channelID);
+            plugin.debug("IslandBroker", "Unsubscribed from channel " + channelID);
         }
     }
 
@@ -73,10 +73,10 @@ public class Broker {
         json.put("requestId", requestId);
         json.put("source", serverID);
         json.put("target", targetServer);
-        json.put("operator", operation);
+        json.put("islandOperator", operation);
         json.put("args", args);
 
-        plugin.debug("Broker", "Sending request " + operation + " to server " + targetServer + " with ID " + requestId);
+        plugin.debug("IslandBroker", "Sending request " + operation + " to server " + targetServer + " with ID " + requestId);
         redisHandler.publish(channelID, json.toString());
 
         future.orTimeout(60, TimeUnit.SECONDS).exceptionally(error -> {
@@ -96,7 +96,7 @@ public class Broker {
         json.put("source", serverID);
         json.put("target", destination);
 
-        plugin.debug("Broker", "Sending response for request " + requestId + " with status " + status + " to server " + destination);
+        plugin.debug("IslandBroker", "Sending response for request " + requestId + " with status " + status + " to server " + destination);
         redisHandler.publish(channelID, json.toString());
     }
 
@@ -104,11 +104,11 @@ public class Broker {
         String requestId = json.getString("requestId");
         String source = json.getString("source");
         String target = json.getString("target");
-        String operation = json.getString("operator");
-        plugin.debug("Broker", "Received request " + operation + " from server " + source + " with ID " + requestId);
+        String operation = json.getString("islandOperator");
+        plugin.debug("IslandBroker", "Received request " + operation + " from server " + source + " with ID " + requestId);
 
         if (!serverID.equals(target)) {
-            plugin.debug("Broker", "Ignoring request because target server " + target + " does not match this server " + serverID);
+            plugin.debug("IslandBroker", "Ignoring request because target server " + target + " does not match this server " + serverID);
             return;
         }
 
@@ -130,10 +130,10 @@ public class Broker {
         String requestId = json.getString("requestId");
         String source = json.getString("source");
         String target = json.getString("target");
-        plugin.debug("Broker", "Received response for request " + requestId + " from " + source + " with status " + status);
+        plugin.debug("IslandBroker", "Received response for request " + requestId + " from " + source + " with status " + status);
 
         if (!serverID.equals(target)) {
-            plugin.debug("Broker", "Ignoring response because target server " + target + " does not match this server " + serverID);
+            plugin.debug("IslandBroker", "Ignoring response because target server " + target + " does not match this server " + serverID);
             return;
         }
 
@@ -154,26 +154,26 @@ public class Broker {
         try {
             switch (operation) {
                 case "create":
-                    return operator.createIsland(UUID.fromString(args[0]));
+                    return islandOperator.createIsland(UUID.fromString(args[0]));
                 case "delete":
-                    return operator.deleteIsland(UUID.fromString(args[0]));
+                    return islandOperator.deleteIsland(UUID.fromString(args[0]));
                 case "load":
-                    return operator.loadIsland(UUID.fromString(args[0]));
+                    return islandOperator.loadIsland(UUID.fromString(args[0]));
                 case "unload":
-                    return operator.unloadIsland(UUID.fromString(args[0]));
+                    return islandOperator.unloadIsland(UUID.fromString(args[0]));
                 case "teleport":
-                    return operator.teleport(UUID.fromString(args[0]), args[1], args[2]);
+                    return islandOperator.teleport(UUID.fromString(args[0]), args[1], args[2]);
                 case "lock":
-                    return operator.lockIsland(UUID.fromString(args[0]));
+                    return islandOperator.lockIsland(UUID.fromString(args[0]));
                 case "expel":
-                    return operator.expelPlayer(UUID.fromString(args[0]), UUID.fromString(args[1]));
+                    return islandOperator.expelPlayer(UUID.fromString(args[0]), UUID.fromString(args[1]));
                 case "message":
-                    return operator.sendMessage(UUID.fromString(args[0]), ComponentUtils.deserialize(args[1]));
+                    return islandOperator.sendMessage(UUID.fromString(args[0]), ComponentUtils.deserialize(args[1]));
                 default:
-                    return CompletableFuture.failedFuture(new IllegalArgumentException("Unknown request operator: " + operation));
+                    return CompletableFuture.failedFuture(new IllegalArgumentException("Unknown request islandOperator: " + operation));
             }
         } catch (Exception e) {
-            plugin.severe("Error processing request operator " + operation + " with args: " + String.join(", ", args), e);
+            plugin.severe("Error processing request islandOperator " + operation + " with args: " + String.join(", ", args), e);
             return CompletableFuture.failedFuture(e);
         }
     }

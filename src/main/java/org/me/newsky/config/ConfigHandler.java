@@ -149,6 +149,9 @@ public class ConfigHandler {
         return config.getString("redis.channel.island");
     }
 
+    public String getRedisPlayerMessageChannel() {
+        return config.getString("redis.channel.playermessage");
+    }
 
     public int getHeartbeatInterval() {
         return config.getInt("network.heartbeat-interval-seconds");
@@ -238,9 +241,9 @@ public class ConfigHandler {
         return levels.getInt("blocks." + material);
     }
 
-    // ================================================================================================================
-    // Commands Section
-    // ================================================================================================================
+// ================================================================================================================
+// Commands Section
+// ================================================================================================================
 
     public List<String> getPlayerCommandOrder() {
         return Objects.requireNonNull(commands.getConfigurationSection("commands.player")).getKeys(false).stream().toList();
@@ -1050,9 +1053,9 @@ public class ConfigHandler {
         return commands.getString("commands.admin.lobby.description");
     }
 
-    // =========================================================
-    // Messages Section
-    // =========================================================
+// =========================================================
+// Messages Section
+// =========================================================
 
     // General Messages
     public Component getPluginReloadedMessage() {

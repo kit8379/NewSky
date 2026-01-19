@@ -93,7 +93,7 @@ public class PlayerCoopCommand implements SubCommand, TabComplete {
 
         api.addCoop(islandUuid, targetUuid).thenRun(() -> {
             player.sendMessage(config.getPlayerCoopSuccessMessage(targetPlayerName));
-            api.sendMessage(targetUuid, config.getWasCoopedToIslandMessage(player.getName()));
+            api.sendPlayerMessage(targetUuid, config.getWasCoopedToIslandMessage(player.getName()));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof PlayerAlreadyCoopedException) {

@@ -93,7 +93,7 @@ public class PlayerInviteCommand implements SubCommand, TabComplete {
 
         api.addPendingInvite(targetPlayerUuid, islandUuid, playerUuid, 600).thenRun(() -> {
             player.sendMessage(config.getPlayerInviteSentMessage(targetPlayerName));
-            api.sendMessage(targetPlayerUuid, config.getPlayerInviteReceiveMessage(player.getName()));
+            api.sendPlayerMessage(targetPlayerUuid, config.getPlayerInviteReceiveMessage(player.getName()));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof InvitedAlreadyException) {

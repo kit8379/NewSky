@@ -89,7 +89,7 @@ public class AdminCoopCommand implements SubCommand, TabComplete {
 
         api.addCoop(islandUuid, targetUuid).thenRun(() -> {
             sender.sendMessage(config.getAdminCoopSuccessMessage(ownerName, targetName));
-            api.sendMessage(targetUuid, config.getWasCoopedToIslandMessage(ownerName));
+            api.sendPlayerMessage(targetUuid, config.getWasCoopedToIslandMessage(ownerName));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof PlayerAlreadyCoopedException) {

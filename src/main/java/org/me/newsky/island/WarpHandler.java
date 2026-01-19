@@ -4,7 +4,7 @@ package org.me.newsky.island;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.Cache;
 import org.me.newsky.exceptions.*;
-import org.me.newsky.network.distributor.Distributor;
+import org.me.newsky.network.distributor.IslandDistributor;
 import org.me.newsky.util.IslandUtils;
 
 import java.util.Optional;
@@ -16,12 +16,12 @@ public class WarpHandler {
 
     private final NewSky plugin;
     private final Cache cache;
-    private final Distributor distributor;
+    private final IslandDistributor islandDistributor;
 
-    public WarpHandler(NewSky plugin, Cache cache, Distributor distributor) {
+    public WarpHandler(NewSky plugin, Cache cache, IslandDistributor islandDistributor) {
         this.plugin = plugin;
         this.cache = cache;
-        this.distributor = distributor;
+        this.islandDistributor = islandDistributor;
     }
 
     public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
@@ -84,7 +84,7 @@ public class WarpHandler {
             String warpWorld = IslandUtils.UUIDToName(islandUuid);
             String warpLocation = warpLocationOpt.get();
 
-            return distributor.teleportIsland(islandUuid, targetPlayerUuid, warpWorld, warpLocation);
+            return islandDistributor.teleportIsland(islandUuid, targetPlayerUuid, warpWorld, warpLocation);
         });
     }
 

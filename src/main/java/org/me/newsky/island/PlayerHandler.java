@@ -3,7 +3,7 @@ package org.me.newsky.island;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.Cache;
 import org.me.newsky.exceptions.*;
-import org.me.newsky.network.distributor.Distributor;
+import org.me.newsky.network.distributor.IslandDistributor;
 import org.me.newsky.model.Invitation;
 import org.me.newsky.redis.RedisCache;
 
@@ -17,13 +17,13 @@ public class PlayerHandler {
     private final NewSky plugin;
     private final Cache cache;
     private final RedisCache redisCache;
-    private final Distributor distributor;
+    private final IslandDistributor islandDistributor;
 
-    public PlayerHandler(NewSky plugin, Cache cache, RedisCache redisCache, Distributor distributor) {
+    public PlayerHandler(NewSky plugin, Cache cache, RedisCache redisCache, IslandDistributor islandDistributor) {
         this.plugin = plugin;
         this.cache = cache;
         this.redisCache = redisCache;
-        this.distributor = distributor;
+        this.islandDistributor = islandDistributor;
     }
 
     public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role) {
@@ -88,7 +88,7 @@ public class PlayerHandler {
             if (players.contains(playerUuid)) {
                 throw new CannotExpelIslandPlayerException();
             }
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> distributor.expelPlayer(islandUuid, playerUuid));
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.expelPlayer(islandUuid, playerUuid));
     }
 
     public CompletableFuture<Void> addPendingInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {

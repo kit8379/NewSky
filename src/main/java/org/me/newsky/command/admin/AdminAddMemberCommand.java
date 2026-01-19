@@ -89,7 +89,7 @@ public class AdminAddMemberCommand implements SubCommand, TabComplete {
 
         api.addMember(islandUuid, targetMemberUuid, "member").thenRun(() -> {
             sender.sendMessage(config.getAdminAddMemberSuccessMessage(targetMemberName, islandOwnerName));
-            api.sendMessage(targetMemberUuid, config.getWasAddedToIslandMessage(islandOwnerName));
+            api.sendPlayerMessage(targetMemberUuid, config.getWasAddedToIslandMessage(islandOwnerName));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandAlreadyExistException) {

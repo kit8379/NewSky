@@ -22,7 +22,7 @@ quality but also discouraged long-term player retention due to unstable performa
 
 NewSky addresses this by enabling **horizontal scaling**—the ability to distribute island worlds across multiple servers
 in a cluster. Each server handles a subset of island worlds, reducing load and isolating lag. Redis acts as the central
-message broker and sync layer, allowing servers to share island metadata, player presence, teleport requests, and more
+message islandBroker and sync layer, allowing servers to share island metadata, player presence, teleport requests, and more
 in real time.
 
 This approach provides:
@@ -43,7 +43,7 @@ NewSky provide smoother gameplay and better scalability for modern Minecraft net
 
 ---
 
-### ✨ Features (So Far)
+### ✨ Features
 
 - 🏝️ Dynamic Island Creation & Management (via Redis-powered server distribution)
 - 🌐 Cross-Server Compatibility (island data sync, teleport, player presence)
@@ -62,9 +62,9 @@ NewSky provide smoother gameplay and better scalability for modern Minecraft net
 Required:
 
 - ✅ Redis Server
-- ✅ MySQL Server
-- ✅ [AdvancedSlimePaper Core 1.21.4](https://infernalsuite.com/download/asp/)
-- ✅ [AdvancedSlimePaper Plugin 1.21.4](https://infernalsuite.com/download/asp/)
+- ✅ MySQL/MariaDB Server
+- ✅ [AdvancedSlimePaper Core 1.21.11](https://infernalsuite.com/download/asp/)
+- ✅ [AdvancedSlimePaper Plugin 1.21.11](https://infernalsuite.com/download/asp/)
 
 Optional:
 
@@ -100,129 +100,147 @@ The plugin uses YAML configuration files for easy customization. Key files inclu
 
 config.yml:
 ```yaml
-# Whether the plugin is in debug mode. More detailed logs will be printed if this is set to true.
-debug: false
+# ===================================================================
+# NewSky Configuration
+#
+# Design:
+# - `server`   : per-server identity (the only section that usually differs)
+# - everything else: usually the same across all servers in the network
+# ===================================================================
 
-# The settings for the plugin.
-# The plugin uses MySQL/MariaDB to store the island data.
-MySQL:
-  host: "localhost"
-  port: 3306
-  database: "newsky"
-  username: "root"
-  password: "password"
-  properties: "?useSSL=false&autoReconnect=true&useUnicode=true&characterEncoding=utf8"
-  prefix: "newsky_"
-
-  # The settings for the HikariCP connection pool.
-  # Usually no need to change these values.
-  max-pool-size: 10
-  connection-timeout: 30000
-  cache-prep-statements: true
-  prep-stmt-cache-size: 250
-  prep-stmt-cache-sql-limit: 2048
-
-# The settings for the Redis server.
-# The plugin uses Redis to communicate between servers in the broker and to store the island cache data.
-redis:
-  host: "localhost"
-  port: 6379
-  password: ""
-  # The below two settings are usually not needed to change.
-  # The database index to use for centralized cache.
-  # The channel to use for pub/sub communication between servers.
-  # If you have different groups of servers under the same broker, you can change the database and channel to separate them.
-  database: 0
-  channel:
-    cache: "newsky-cache-channel-0"
-    island: "newsky-island-channel-0"
-
-
-# The settings for the server.
+# ===================================================================
+# Server Identity (per-server)
+# ===================================================================
 server:
-  # The name of this server.
-  # Must be equal to the server name in the BungeeCord / Velocity config.
-  name: "server1"
-  # Whether the server is the lobby server.
-  # If the server is the lobby server, the plugin will not load islands on this server.
-  lobby: false
-  # The interval that the server send heartbeat to the other server.
-  # Normally, the server will add/remove itself from the active server list when the server starts/stops.
-  # But if the server is down unexpectedly, the other servers will not know about it.
-  # So this heartbeat system will send heartbeat to the other servers periodically to let them know that this server is still active.
-  # Usually no need to change this value.
-  # The default value is 5 seconds.
-  heartbeat-interval: 5
-  # The selector type. Can be "random" or "round-robin".
-  # "random" means the plugin will randomly select a server from the server list.
-  # "round-robin" means the plugin will select the next server in the list.
-  # "mspt" means the plugin will select the server with the lowest average MSPT (milliseconds per tick).
-  # This selector will apply for both island server and lobby server selection logic.
-  selector: "round-robin"
-  # If the selector is "mspt", this is the interval that the plugin updates the MSPT data.
-  # If you are not using "mspt" selector, this value will be ignored.
-  # The default value is 10 seconds.
-  mspt-update-interval: 10
+   # Must match the server name in your BungeeCord / Velocity config.
+   name: "server1"
 
-# The fallback lobby configuration for when players need to be teleported out of an island.
-# E.G. lock island, delete island, unload island, etc.
+   # If true, this server acts as a lobby-only node and will NOT load islands.
+   lobby-only: false
+
+
+# ===================================================================
+# Database
+# ===================================================================
+# Stores persistent island/player data.
+mysql:
+   host: "localhost"
+   port: 3306
+   database: "newsky"
+   username: "root"
+   password: "password"
+
+   # Whether to use SSL for the database connection.
+   use-ssl: false
+
+   # JDBC properties appended to the connection URL.
+   # Format: "key1=value1&key2=value2"
+   # Example: "autoReconnect=true&useUnicode=true&characterEncoding=utf8"
+   properties: "autoReconnect=true&useUnicode=true&characterEncoding=utf8"
+
+   # Table prefix for all plugin tables.
+   prefix: "newsky_"
+
+# ===================================================================
+# Redis
+# ===================================================================
+# Used for cross-server communication and centralized caching.
+redis:
+   host: "localhost"
+   port: 6379
+   password: ""
+
+   # Use these to separate multiple independent NewSky networks sharing the same Redis (should be identical on all servers in the same network).
+   database: 0
+
+   # Pub/Sub channels (should be identical on all servers in the same network).
+   channel:
+      cache: "newsky-cache-channel-0"
+      island: "newsky-island-channel-0"
+
+
+# ===================================================================
+# Network
+# ===================================================================
+network:
+   # Heartbeat period (seconds).
+   # Other servers use this to detect whether this server is still active.
+   heartbeat-interval-seconds: 5
+
+   # Server selection strategy used when choosing an island server / lobby server.
+   # Options: "random", "round-robin", "mspt"
+   selector: "round-robin"
+
+   # MSPT refresh period (seconds). Only used when selector = "mspt".
+   mspt-update-interval-seconds: 10
+
+
+# ===================================================================
+# Lobby Fallback
+# ===================================================================
+# Where players are sent when they must leave an island forcibly
+# (e.g., island unload/delete/lock, expelled, etc.).
 lobby:
-  # The list of server names of the lobby servers.
-  # These must match the server names defined in your BungeeCord / Velocity config.
-  # The plugin will select one of these servers to teleport the player based on the selector type above.
-  server-names:
-    - "lobby"
-  # The world name of the lobby.
-  # Only one lobby world is supported.
-  # All the servers you listed above must have this world.
-  world-name: "world"
-  location:
-    x: 0.0
-    y: 100.0
-    z: 0.0
-    yaw: 0.0
-    pitch: 0.0
+   # Names must match BungeeCord / Velocity server names.
+   # Multiple servers are supported for load balancing.
+   server-names:
+      - "lobby"
+
+   # Lobby world name (must exist on all lobby servers above).
+   world-name: "world"
+
+   # Fallback spawn location inside the lobby world.
+   location:
+      x: 0.0
+      y: 100.0
+      z: 0.0
+      yaw: 0.0
+      pitch: 0.0
 
 
-# The settings for the island.
+# ===================================================================
+# Island
+# ===================================================================
 island:
-  # The template world name of the new island.
-  # The plugin will create a new island based on this template.
-  # The template world store in the template folder in the plugin folder.
-  template: "default"
+   # Template world folder name under the plugin template directory.
+   template: "default"
 
-  # The max size of the island. 100 means the island is 100x100.
-  size: 100
+   # Island size (100 means 100x100).
+   size: 100
 
-  # The default spawn point of the island.
-  spawn:
-    x: 0
-    y: 132
-    z: 0
-    yaw: 180
-    pitch: 0
+   # Default island spawn position.
+   spawn:
+      x: 0
+      y: 132
+      z: 0
+      yaw: 180
+      pitch: 0
 
-  # The interval that the server checks and unloads the inactive islands.
-  # The default value is 300 seconds (5 minutes).
-  island-unload-interval: 300
+   # Inactive island unload check interval (seconds).
+   island-unload-interval-seconds: 300
 
-  # The interval that the plugin update the island level.
-  # The default value is 120 seconds (2 minutes).
-  level-update-interval: 120
+   # Gamerules applied to island worlds when they are loaded.
+   gamerules:
+      keep_inventory: true
+      immediate_respawn: false
 
-  # The gamerules to apply to island worlds during loading.
-  gamerules:
-    keepInventory: true
-    doImmediateRespawn: false
 
-# The settings for the command
+# ===================================================================
+# Commands
+# ===================================================================
 command:
-  # The mode when the player uses the /island command.
-  # The mode can be "island", "help".
-  # The "help" mode means the player will see the help message of the island command.
-  # The "island" mode means the player will directly teleport to default home if they have island or directly create a new island if they don't have one.
-  # The default mode is "help".
-  base-command-mode: "island"
+   # Default behavior of `/island` when used with no arguments.
+   # Options:
+   # - "help"   : show help
+   # - "island" : teleport to island home if exists, otherwise create a new island
+   base-command-mode: "island"
+
+
+# ===================================================================
+# Debug
+# ===================================================================
+# If true, prints more detailed logs.
+debug: false
 ```
 
 commands.yml:
@@ -232,318 +250,309 @@ commands.yml:
 # The permission nodes are the default permission nodes for the commands and the name that use in plugins.yml.
 # If you want to change the permission nodes, you need to manually add them to your permissions plugin.
 commands:
-  player:
-    create:
-      aliases: [ ]
-      permission: "island.player.create"
-      syntax: ""
-      description: "Create a new island"
+   player:
+      create:
+         aliases: [ ]
+         permission: "island.player.create"
+         syntax: ""
+         description: "Create a new island"
 
-    delete:
-      aliases: [ ]
-      permission: "island.player.delete"
-      syntax: ""
-      description: "Delete your island"
+      delete:
+         aliases: [ ]
+         permission: "island.player.delete"
+         syntax: ""
+         description: "Delete your island"
 
-    setowner:
-      aliases: [ ]
-      permission: "island.player.setowner"
-      syntax: "<player>"
-      description: "Set a new owner for your island"
+      setowner:
+         aliases: [ ]
+         permission: "island.player.setowner"
+         syntax: "<player>"
+         description: "Set a new owner for your island"
 
-    leave:
-      aliases: [ ]
-      permission: "island.player.leave"
-      syntax: ""
-      description: "Leave your island"
+      leave:
+         aliases: [ ]
+         permission: "island.player.leave"
+         syntax: ""
+         description: "Leave your island"
 
-    invite:
-      aliases: [ ]
-      permission: "island.player.invite"
-      syntax: "<player>"
-      description: "Invite a player to join your island"
+      invite:
+         aliases: [ ]
+         permission: "island.player.invite"
+         syntax: "<player>"
+         description: "Invite a player to join your island"
 
-    accept:
-      aliases: [ ]
-      permission: "island.player.accept"
-      syntax: ""
-      description: "Accept a pending island invitation"
+      accept:
+         aliases: [ ]
+         permission: "island.player.accept"
+         syntax: ""
+         description: "Accept a pending island invitation"
 
-    reject:
-      aliases: [ ]
-      permission: "island.player.reject"
-      syntax: ""
-      description: "Reject a pending island invitation"
+      reject:
+         aliases: [ ]
+         permission: "island.player.reject"
+         syntax: ""
+         description: "Reject a pending island invitation"
 
-    removemember:
-      aliases: [ ]
-      permission: "island.player.removemember"
-      syntax: "<player>"
-      description: "Remove a member from your island"
+      removemember:
+         aliases: [ ]
+         permission: "island.player.removemember"
+         syntax: "<player>"
+         description: "Remove a member from your island"
 
-    expel:
-      aliases: [ ]
-      permission: "island.player.expel"
-      syntax: "<player>"
-      description: "Expel a player from your island"
+      expel:
+         aliases: [ ]
+         permission: "island.player.expel"
+         syntax: "<player>"
+         description: "Expel a player from your island"
 
-    coop:
-      aliases: [ ]
-      permission: "island.player.coop"
-      syntax: "<player>"
-      description: "Set a player as your island co-op partner"
+      coop:
+         aliases: [ ]
+         permission: "island.player.coop"
+         syntax: "<player>"
+         description: "Set a player as your island co-op partner"
 
-    uncoop:
-      aliases: [ ]
-      permission: "island.player.uncoop"
-      syntax: "<player>"
-      description: "Remove a co-op partner from your island"
+      uncoop:
+         aliases: [ ]
+         permission: "island.player.uncoop"
+         syntax: "<player>"
+         description: "Remove a co-op partner from your island"
 
-    cooplist:
-      aliases: [ ]
-      permission: "island.player.cooplist"
-      syntax: ""
-      description: "Show the list of your island’s co-op members"
+      cooplist:
+         aliases: [ ]
+         permission: "island.player.cooplist"
+         syntax: ""
+         description: "Show the list of your island’s co-op members"
 
-    ban:
-      aliases: [ ]
-      permission: "island.player.ban"
-      syntax: "<player>"
-      description: "Ban a player from your island"
+      ban:
+         aliases: [ ]
+         permission: "island.player.ban"
+         syntax: "<player>"
+         description: "Ban a player from your island"
 
-    unban:
-      aliases: [ ]
-      permission: "island.player.unban"
-      syntax: "<player>"
-      description: "Unban a player from your island"
+      unban:
+         aliases: [ ]
+         permission: "island.player.unban"
+         syntax: "<player>"
+         description: "Unban a player from your island"
 
-    banlist:
-      aliases: [ ]
-      permission: "island.player.banlist"
-      syntax: ""
-      description: "Show the list of players banned from your island"
+      banlist:
+         aliases: [ ]
+         permission: "island.player.banlist"
+         syntax: ""
+         description: "Show the list of players banned from your island"
 
-    lock:
-      aliases: [ ]
-      permission: "island.player.lock"
-      syntax: ""
-      description: "Toggle your island lock state"
+      lock:
+         aliases: [ ]
+         permission: "island.player.lock"
+         syntax: ""
+         description: "Toggle your island lock state"
 
-    pvp:
-      aliases: [ ]
-      permission: "island.player.pvp"
-      syntax: ""
-      description: "Toggle PvP state on your island"
+      pvp:
+         aliases: [ ]
+         permission: "island.player.pvp"
+         syntax: ""
+         description: "Toggle PvP state on your island"
 
-    sethome:
-      aliases: [ ]
-      permission: "island.player.sethome"
-      syntax: "[homeName]"
-      description: "Set a new home for your island"
+      sethome:
+         aliases: [ ]
+         permission: "island.player.sethome"
+         syntax: "[homeName]"
+         description: "Set a new home for your island"
 
-    delhome:
-      aliases: [ ]
-      permission: "island.player.delhome"
-      syntax: "<homeName>"
-      description: "Delete an existing home on your island"
+      delhome:
+         aliases: [ ]
+         permission: "island.player.delhome"
+         syntax: "<homeName>"
+         description: "Delete an existing home on your island"
 
-    home:
-      aliases: [ "go" ]
-      permission: "island.player.home"
-      syntax: "[homeName]"
-      description: "Teleport to your island home"
+      home:
+         aliases: [ "go" ]
+         permission: "island.player.home"
+         syntax: "[homeName]"
+         description: "Teleport to your island home"
 
 
-    setwarp:
-      aliases: [ ]
-      permission: "island.player.setwarp"
-      syntax: "[warpName]"
-      description: "Set a new warp for your island"
+      setwarp:
+         aliases: [ ]
+         permission: "island.player.setwarp"
+         syntax: "[warpName]"
+         description: "Set a new warp for your island"
 
-    delwarp:
-      aliases: [ ]
-      permission: "island.player.delwarp"
-      syntax: "<warpName>"
-      description: "Delete an existing warp on your island"
+      delwarp:
+         aliases: [ ]
+         permission: "island.player.delwarp"
+         syntax: "<warpName>"
+         description: "Delete an existing warp on your island"
 
-    warp:
-      aliases: [ ]
-      permission: "island.player.warp"
-      syntax: "<player> [warpName]"
-      description: "Teleport to another player's island warp"
+      warp:
+         aliases: [ ]
+         permission: "island.player.warp"
+         syntax: "<player> [warpName]"
+         description: "Teleport to another player's island warp"
 
-    info:
-      aliases: [ ]
-      permission: "island.player.info"
-      syntax: "[player]"
-      description: "Show island information"
+      info:
+         aliases: [ ]
+         permission: "island.player.info"
+         syntax: "[player]"
+         description: "Show island information"
 
-    level:
-      aliases: [ ]
-      permission: "island.player.level"
-      syntax: ""
-      description: "Show your island level"
+      level:
+         aliases: [ ]
+         permission: "island.player.level"
+         syntax: ""
+         description: "Show your island level"
 
-    top:
-      aliases: [ ]
-      permission: "island.player.top"
-      syntax: ""
-      description: "Show top islands ranked by level"
+      top:
+         aliases: [ ]
+         permission: "island.player.top"
+         syntax: ""
+         description: "Show top islands ranked by level"
 
-    value:
-      aliases: [ ]
-      permission: "island.player.value"
-      syntax: ""
-      description: "Show the value of the block in your hand"
+      value:
+         aliases: [ ]
+         permission: "island.player.value"
+         syntax: ""
+         description: "Show the value of the block in your hand"
 
-    lobby:
-      aliases: [ ]
-      permission: "island.player.lobby"
-      syntax: ""
-      description: "Teleport to the lobby"
+      lobby:
+         aliases: [ ]
+         permission: "island.player.lobby"
+         syntax: ""
+         description: "Teleport to the lobby"
 
-    help:
-      aliases: [ ]
-      permission: "island.player.help"
-      syntax: "[page]"
-      description: "Show available island commands"
+      help:
+         aliases: [ ]
+         permission: "island.player.help"
+         syntax: "[page]"
+         description: "Show available island commands"
 
-  admin:
-    create:
-      aliases: [ ]
-      permission: "newsky.admin.create"
-      syntax: "<player>"
-      description: "Create an island for a player"
+   admin:
+      create:
+         aliases: [ ]
+         permission: "newsky.admin.create"
+         syntax: "<player>"
+         description: "Create an island for a player"
 
-    delete:
-      aliases: [ ]
-      permission: "newsky.admin.delete"
-      syntax: "<player>"
-      description: "Delete a player's island"
+      delete:
+         aliases: [ ]
+         permission: "newsky.admin.delete"
+         syntax: "<player>"
+         description: "Delete a player's island"
 
-    load:
-      aliases: [ ]
-      permission: "newsky.admin.load"
-      syntax: "<player>"
-      description: "Load another player's island"
+      load:
+         aliases: [ ]
+         permission: "newsky.admin.load"
+         syntax: "<player>"
+         description: "Load another player's island"
 
-    unload:
-      aliases: [ ]
-      permission: "newsky.admin.unload"
-      syntax: "<player>"
-      description: "Unload another player's island"
+      unload:
+         aliases: [ ]
+         permission: "newsky.admin.unload"
+         syntax: "<player>"
+         description: "Unload another player's island"
 
-    addmember:
-      aliases: [ ]
-      permission: "newsky.admin.addmember"
-      syntax: "<member> <owner>"
-      description: "Force-add a member to another player's island"
+      addmember:
+         aliases: [ ]
+         permission: "newsky.admin.addmember"
+         syntax: "<member> <owner>"
+         description: "Force-add a member to another player's island"
 
-    removemember:
-      aliases: [ ]
-      permission: "newsky.admin.removemember"
-      syntax: "<member> <owner>"
-      description: "Force-remove a member from another player's island"
+      removemember:
+         aliases: [ ]
+         permission: "newsky.admin.removemember"
+         syntax: "<member> <owner>"
+         description: "Force-remove a member from another player's island"
 
-    coop:
-      aliases: [ ]
-      permission: "newsky.admin.coop"
-      syntax: "<owner> <player>"
-      description: "Add a co-op partner to another player's island"
+      coop:
+         aliases: [ ]
+         permission: "newsky.admin.coop"
+         syntax: "<owner> <player>"
+         description: "Add a co-op partner to another player's island"
 
-    uncoop:
-      aliases: [ ]
-      permission: "newsky.admin.uncoop"
-      syntax: "<owner> <player>"
-      description: "Remove a co-op partner from another player's island"
+      uncoop:
+         aliases: [ ]
+         permission: "newsky.admin.uncoop"
+         syntax: "<owner> <player>"
+         description: "Remove a co-op partner from another player's island"
 
-    ban:
-      aliases: [ ]
-      permission: "newsky.admin.ban"
-      syntax: "<owner> <player>"
-      description: "Ban a player from another player's island"
+      ban:
+         aliases: [ ]
+         permission: "newsky.admin.ban"
+         syntax: "<owner> <player>"
+         description: "Ban a player from another player's island"
 
-    unban:
-      aliases: [ ]
-      permission: "newsky.admin.unban"
-      syntax: "<owner> <player>"
-      description: "Unban a player from another player's island"
+      unban:
+         aliases: [ ]
+         permission: "newsky.admin.unban"
+         syntax: "<owner> <player>"
+         description: "Unban a player from another player's island"
 
-    lock:
-      aliases: [ ]
-      permission: "newsky.admin.lock"
-      syntax: "<player>"
-      description: "Toggle lock state of another player's island"
+      lock:
+         aliases: [ ]
+         permission: "newsky.admin.lock"
+         syntax: "<player>"
+         description: "Toggle lock state of another player's island"
 
-    pvp:
-      aliases: [ ]
-      permission: "newsky.admin.pvp"
-      syntax: "<player>"
-      description: "Toggle PvP state of another player's island"
+      pvp:
+         aliases: [ ]
+         permission: "newsky.admin.pvp"
+         syntax: "<player>"
+         description: "Toggle PvP state of another player's island"
 
-    sethome:
-      aliases: [ ]
-      permission: "newsky.admin.sethome"
-      syntax: "<player> <home>"
-      description: "Set a home on another player's island at your location"
+      sethome:
+         aliases: [ ]
+         permission: "newsky.admin.sethome"
+         syntax: "<player> <home>"
+         description: "Set a home on another player's island at your location"
 
-    delhome:
-      aliases: [ ]
-      permission: "newsky.admin.delhome"
-      syntax: "<player> <home>"
-      description: "Delete a home from another player's island"
+      delhome:
+         aliases: [ ]
+         permission: "newsky.admin.delhome"
+         syntax: "<player> <home>"
+         description: "Delete a home from another player's island"
 
-    home:
-      aliases: [ "go" ]
-      permission: "newsky.admin.home"
-      syntax: "<player> [home] [target]"
-      description: "Teleport a player to another player's home"
+      home:
+         aliases: [ "go" ]
+         permission: "newsky.admin.home"
+         syntax: "<player> [home] [target]"
+         description: "Teleport a player to another player's home"
 
-    setwarp:
-      aliases: [ ]
-      permission: "newsky.admin.setwarp"
-      syntax: "<player> <warp>"
-      description: "Set a warp on another player's island at your location"
+      setwarp:
+         aliases: [ ]
+         permission: "newsky.admin.setwarp"
+         syntax: "<player> <warp>"
+         description: "Set a warp on another player's island at your location"
 
-    delwarp:
-      aliases: [ ]
-      permission: "newsky.admin.delwarp"
-      syntax: "<player> <warp>"
-      description: "Delete a warp from another player's island"
+      delwarp:
+         aliases: [ ]
+         permission: "newsky.admin.delwarp"
+         syntax: "<player> <warp>"
+         description: "Delete a warp from another player's island"
 
-    warp:
-      aliases: [ ]
-      permission: "newsky.admin.warp"
-      syntax: "<player> [warp] [target]"
-      description: "Teleport a player to another player's warp"
+      warp:
+         aliases: [ ]
+         permission: "newsky.admin.warp"
+         syntax: "<player> [warp] [target]"
+         description: "Teleport a player to another player's warp"
 
-    lobby:
-      aliases: [ ]
-      permission: "newsky.admin.lobby"
-      syntax: "<player>"
-      description: "Teleport a player to the lobby"
+      lobby:
+         aliases: [ ]
+         permission: "newsky.admin.lobby"
+         syntax: "<player>"
+         description: "Teleport a player to the lobby"
 
-    reload:
-      aliases: [ ]
-      permission: "newsky.admin.reload"
-      syntax: ""
-      description: "Reload plugin configuration files"
+      reload:
+         aliases: [ ]
+         permission: "newsky.admin.reload"
+         syntax: ""
+         description: "Reload plugin configuration files"
 
-    help:
-      aliases: [ ]
-      permission: "newsky.admin.help"
-      syntax: "[page]"
-      description: "Show available admin commands"
+      help:
+         aliases: [ ]
+         permission: "newsky.admin.help"
+         syntax: "[page]"
+         description: "Show available admin commands"
 ```
-
----
-
-### ✅ Completed Milestones
-
-- Redis-based command synchronization
-- Fully async database + Redis centralized caching system
-- Cross-server teleport handling
-- Local + distributed island world operation
 
 ---
 
@@ -561,7 +570,6 @@ We welcome PRs and community involvement! You can help by:
 - Submitting bug reports and feature suggestions
 - Improving the plugin code or performance
 - Writing documentation and usage examples
-- Translating `messages.yml` to your native language
 
 🔗 **GitHub**: [https://github.com/kit8379/NewSky](https://github.com/kit8379/NewSky)  
 💬 **Issues**: Use the GitHub Issues tab to report bugs or suggest features  

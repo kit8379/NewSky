@@ -3,8 +3,7 @@ package org.me.newsky.api;
 import net.kyori.adventure.text.Component;
 import org.me.newsky.NewSky;
 import org.me.newsky.island.*;
-import org.me.newsky.lobby.LobbyHandler;
-import org.me.newsky.message.MessageHandler;
+import org.me.newsky.message.PlayerMessageHandler;
 import org.me.newsky.model.Invitation;
 import org.me.newsky.uuid.UuidHandler;
 
@@ -25,10 +24,10 @@ public class NewSkyAPI {
     private final BanHandler banHandler;
     private final CoopHandler coopHandler;
     private final LobbyHandler lobbyHandler;
-    private final MessageHandler messageHandler;
+    private final PlayerMessageHandler playerMessageHandler;
     private final UuidHandler uuidHandler;
 
-    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, MessageHandler messageHandler, UuidHandler uuidHandler) {
+    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, PlayerMessageHandler playerMessageHandler, UuidHandler uuidHandler) {
         this.plugin = plugin;
         this.islandHandler = islandHandler;
         this.playerHandler = playerHandler;
@@ -38,7 +37,7 @@ public class NewSkyAPI {
         this.banHandler = banHandler;
         this.coopHandler = coopHandler;
         this.lobbyHandler = lobbyHandler;
-        this.messageHandler = messageHandler;
+        this.playerMessageHandler = playerMessageHandler;
         this.uuidHandler = uuidHandler;
     }
 
@@ -517,15 +516,14 @@ public class NewSkyAPI {
     }
 
     /**
-     * Sends a message to a player.
+     * Sends a message to a player cross-server.
      *
      * @param playerUuid The UUID of the player to send the message to.
      * @param message    The message to send, as a Component.
-     * @return A CompletableFuture that completes when the message is sent.
      */
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> sendMessage(UUID playerUuid, Component message) {
-        return messageHandler.sendMessage(playerUuid, message);
+    public void sendPlayerMessage(UUID playerUuid, Component message) {
+        playerMessageHandler.sendPlayerMessage(playerUuid, message);
     }
 
     /**
