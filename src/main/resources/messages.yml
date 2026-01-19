@@ -51,7 +51,7 @@ messages:
   player-already-invited: "<red>Player <aqua>{player} <red>already has a pending island invitation!"
   player-no-pending-invite: "<red>You have no pending island invitations!"
   player-remove-member-success: "<green>Successfully removed player <aqua>{player} <green>from your island!"
-  player-cannot-remove-self: "<red>You cannot remove yourself from your own island!"
+  player-cannot-remove-self: "<red>You cannot remove yourself fr om your own island!"
   player-create-island-success: "<green>Island created successfully!"
   player-delete-first-warning: "<red>Are you sure you want to delete your island? This action is irreversible!"
   player-delete-final-warning: -|
