@@ -226,7 +226,7 @@ public class ConfigHandler {
     }
 
     public Map<String, Object> getIslandGameRules() {
-        return Objects.requireNonNull(plugin.getConfig().getConfigurationSection("island.gamerules")).getValues(false);
+        return Objects.requireNonNull(config.getConfigurationSection("island.gamerules")).getValues(false);
     }
 
     public String getBaseCommandMode() {
