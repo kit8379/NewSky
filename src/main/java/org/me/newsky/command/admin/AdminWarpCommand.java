@@ -68,23 +68,25 @@ public class AdminWarpCommand implements SubCommand, TabComplete {
         }
         UUID warpPlayerUuid = warpPlayerUuidOpt.get();
 
-        UUID senderUuid;
+        UUID teleportPlayerUuid;
         if (teleportPlayerName == null) {
             if (!(sender instanceof Player player)) {
                 sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
                 return true;
             }
-            senderUuid = player.getUniqueId();
+            teleportPlayerUuid = player.getUniqueId();
         } else {
-            Optional<UUID> targetUuidOpt = api.getPlayerUuid(teleportPlayerName);
-            if (targetUuidOpt.isEmpty()) {
+            Optional<UUID> teleportPlayerUuidOpt = api.getPlayerUuid(teleportPlayerName);
+            if (teleportPlayerUuidOpt.isEmpty()) {
                 sender.sendMessage(config.getUnknownPlayerMessage(teleportPlayerName));
                 return true;
             }
-            senderUuid = targetUuidOpt.get();
+            teleportPlayerUuid = teleportPlayerUuidOpt.get();
         }
 
-        api.warp(warpPlayerUuid, warpName, senderUuid).thenRun(() -> sender.sendMessage(config.getWarpSuccessMessage(warpName))).exceptionally(ex -> {
+        api.warp(warpPlayerUuid, warpName, teleportPlayerUuid).thenRun(() -> {
+            api.sendPlayerMessage(teleportPlayerUuid, config.getWarpSuccessMessage(warpName));
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 sender.sendMessage(config.getNoIslandMessage(warpPlayerName));

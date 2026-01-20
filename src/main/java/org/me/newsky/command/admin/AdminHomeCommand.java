@@ -86,7 +86,9 @@ public class AdminHomeCommand implements SubCommand, TabComplete {
             teleportPlayerUuid = teleportPlayerUuidOpt.get();
         }
 
-        api.home(homePlayerUuid, homeName, teleportPlayerUuid).thenRun(() -> sender.sendMessage(config.getAdminHomeSuccessMessage(homePlayerName, homeName))).exceptionally(ex -> {
+        api.home(homePlayerUuid, homeName, teleportPlayerUuid).thenRun(() -> {
+            api.sendPlayerMessage(teleportPlayerUuid, config.getAdminHomeSuccessMessage(homePlayerName, homeName));
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 sender.sendMessage(config.getAdminNoIslandMessage(homePlayerName));
