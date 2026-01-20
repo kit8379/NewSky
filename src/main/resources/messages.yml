@@ -54,11 +54,11 @@ messages:
   player-cannot-remove-self: "<red>You cannot remove yourself from your own island!"
   player-create-island-success: "<green>Island created successfully!"
   player-delete-first-warning: "<red>Are you sure you want to delete your island? This action is irreversible!"
-  player-delete-final-warning: -|
+  player-delete-final-warning: |
     <red>This is your final warning!
-    <red>Type <aqua>/is delete <ownerName> <red>to permanently delete your island!"
-  player-delete-owner-required: "<red>You must enter the island owner's name to delete the island. Delete command cancelled!"
-  player-delete-owner-mismatch: "<red>You entered an incorrect owner name! You must enter the name correctly to delete the island. Delete command cancelled!"
+    <gray>Your island, items, and progress will be removed.
+    <gray>This action cannot be undone.
+    <red>Type <aqua>/is delete <red>to permanently delete your island!
   player-delete-island-success: "<green>Your island has been deleted!"
   player-delete-not-owner: "<red>Only the island owner can delete the island!"
   player-set-home-success: "<green>Home <aqua>{home}<green> set successfully!"

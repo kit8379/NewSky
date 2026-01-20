@@ -45,7 +45,7 @@ public class HeartBeatHandler {
                     if (lastSeen < threshold) {
                         plugin.debug("HeartBeatHandler", "Detected dead server: " + server);
                         redisCache.removeActiveServer(server);
-                        plugin.debug("HeartBeatHandler", "Removed active server entry for server" + server);
+                        plugin.debug("HeartBeatHandler", "Removed active server entry for server: " + server);
                     }
                 } catch (NumberFormatException e) {
                     plugin.severe("Invalid heartbeat timestamp for server: " + server, e);

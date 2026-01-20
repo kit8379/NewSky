@@ -1364,14 +1364,6 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.player-delete-final-warning"));
     }
 
-    public Component getPlayerDeleteOwnerRequiredMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-delete-owner-required"));
-    }
-
-    public Component getPlayerDeleteOwnerMismatchMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-delete-owner-mismatch"));
-    }
-
     public Component getPlayerDeleteSuccessMessage() {
         return ColorUtils.colorize(messages.getString("messages.player-delete-island-success"));
     }

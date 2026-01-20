@@ -71,7 +71,9 @@ public class PlayerDelHomeCommand implements SubCommand, TabComplete {
             return true;
         }
 
-        api.delHome(player.getUniqueId(), homeName).thenRun(() -> player.sendMessage(config.getPlayerDelHomeSuccessMessage(homeName))).exceptionally(ex -> {
+        api.delHome(player.getUniqueId(), homeName).thenRun(() -> {
+            player.sendMessage(config.getPlayerDelHomeSuccessMessage(homeName));
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());

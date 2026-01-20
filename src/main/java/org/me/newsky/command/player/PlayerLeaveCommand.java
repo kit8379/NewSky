@@ -68,7 +68,9 @@ public class PlayerLeaveCommand implements SubCommand {
             return true;
         }
 
-        api.removeMember(islandUuid, playerUuid).thenRun(() -> player.sendMessage(config.getPlayerLeaveSuccessMessage())).exceptionally(ex -> {
+        api.removeMember(islandUuid, playerUuid).thenRun(() -> {
+            api.sendPlayerMessage(playerUuid, config.getPlayerLeaveSuccessMessage());
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof CannotRemoveOwnerException) {
                 player.sendMessage(config.getPlayerCannotLeaveAsOwnerMessage());

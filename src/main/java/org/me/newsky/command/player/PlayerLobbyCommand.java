@@ -8,6 +8,8 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.NoActiveServerException;
 
+import java.util.UUID;
+
 public class PlayerLobbyCommand implements SubCommand {
     private final NewSky plugin;
     private final NewSkyAPI api;
@@ -51,7 +53,11 @@ public class PlayerLobbyCommand implements SubCommand {
             return true;
         }
 
-        api.lobby(player.getUniqueId()).thenRun(() -> player.sendMessage(config.getPlayerLobbySuccessMessage())).exceptionally(ex -> {
+        UUID playerUuid = player.getUniqueId();
+
+        api.lobby(playerUuid).thenRun(() -> {
+            api.sendPlayerMessage(playerUuid, config.getPlayerLobbySuccessMessage());
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof NoActiveServerException) {
                 player.sendMessage(config.getNoActiveServerMessage());

@@ -14,14 +14,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * /is delete
- * <p>
- * Confirmation flow (OWNER ONLY):
- * 1st  /is delete
- * 2nd  /is delete
- * 3rd  /is delete <ownerName>
- */
 public class PlayerDeleteIslandCommand implements SubCommand {
 
     private static final long CONFIRM_TIMEOUT_MS = 15_000L;
@@ -30,11 +22,6 @@ public class PlayerDeleteIslandCommand implements SubCommand {
     private final NewSkyAPI api;
     private final ConfigHandler config;
 
-    /**
-     * 0 = not started
-     * 1 = first warning shown
-     * 2 = final confirmation required
-     */
     private final Map<UUID, Integer> confirmStage = new HashMap<>();
     private final Map<UUID, Long> lastConfirmTime = new HashMap<>();
 
@@ -80,7 +67,8 @@ public class PlayerDeleteIslandCommand implements SubCommand {
         long now = System.currentTimeMillis();
 
         // Timeout reset
-        if (lastConfirmTime.containsKey(playerUuid) && now - lastConfirmTime.get(playerUuid) > CONFIRM_TIMEOUT_MS) {
+        Long last = lastConfirmTime.get(playerUuid);
+        if (last != null && now - last > CONFIRM_TIMEOUT_MS) {
             reset(playerUuid);
         }
 
@@ -93,9 +81,6 @@ public class PlayerDeleteIslandCommand implements SubCommand {
             return true;
         }
 
-        // -------------------------
-        // OWNER CHECK (hard gate)
-        // -------------------------
         UUID ownerUuid = api.getIslandOwner(islandUuid);
         if (ownerUuid == null || !ownerUuid.equals(playerUuid)) {
             player.sendMessage(config.getPlayerDeleteNotOwnerMessage());
@@ -116,7 +101,7 @@ public class PlayerDeleteIslandCommand implements SubCommand {
         }
 
         // -------------------------
-        // Stage 1 → Final warning
+        // Stage 1 → Final warning (tell them type /is delete again)
         // -------------------------
         if (stage == 1) {
             confirmStage.put(playerUuid, 2);
@@ -126,29 +111,14 @@ public class PlayerDeleteIslandCommand implements SubCommand {
         }
 
         // -------------------------
-        // Stage 2 → Validate input
+        // Stage 2 → Delete now (3rd time)
         // -------------------------
         if (stage == 2) {
-
-            if (args.length < 1) {
-                player.sendMessage(config.getPlayerDeleteOwnerRequiredMessage());
-                reset(playerUuid);
-                return true;
-            }
-
-            String inputName = args[0];
-            String ownerName = player.getName(); // owner must run the command
-
-            if (!ownerName.equalsIgnoreCase(inputName)) {
-                player.sendMessage(config.getPlayerDeleteOwnerMismatchMessage());
-                reset(playerUuid);
-                return true;
-            }
-
-            // Final delete
             reset(playerUuid);
 
-            api.deleteIsland(islandUuid).thenRun(() -> player.sendMessage(config.getPlayerDeleteSuccessMessage())).exceptionally(ex -> {
+            api.deleteIsland(islandUuid).thenRun(() -> {
+                api.sendPlayerMessage(playerUuid, config.getPlayerDeleteSuccessMessage());
+            }).exceptionally(ex -> {
                 Throwable cause = ex.getCause();
                 if (cause instanceof IslandBusyException) {
                     player.sendMessage(config.getIslandBusyMessage());

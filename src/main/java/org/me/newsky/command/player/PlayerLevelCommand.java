@@ -66,7 +66,9 @@ public class PlayerLevelCommand implements SubCommand {
             return true;
         }
 
-        api.calIslandLevel(islandUuid).thenAccept(level -> player.sendMessage(config.getIslandLevelMessage(level))).exceptionally(ex -> {
+        api.calIslandLevel(islandUuid).thenAccept(level -> {
+            player.sendMessage(config.getIslandLevelMessage(level));
+        }).exceptionally(ex -> {
             plugin.severe("Error calculating island level for player " + player.getName(), ex);
             player.sendMessage(config.getUnknownExceptionMessage());
             return null;

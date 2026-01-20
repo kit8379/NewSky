@@ -90,7 +90,9 @@ public class PlayerExpelCommand implements SubCommand, TabComplete {
             return true;
         }
 
-        api.expelPlayer(islandUuid, targetPlayerUuid).thenRun(() -> player.sendMessage(config.getPlayerExpelSuccessMessage(targetPlayerName))).exceptionally(ex -> {
+        api.expelPlayer(islandUuid, targetPlayerUuid).thenRun(() -> {
+            player.sendMessage(config.getPlayerExpelSuccessMessage(targetPlayerName));
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof CannotExpelIslandPlayerException) {
                 player.sendMessage(config.getPlayerCannotExpelIslandPlayerMessage());
