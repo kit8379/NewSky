@@ -1,5 +1,6 @@
 package org.me.newsky.island;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChunkSnapshot;
 import org.bukkit.World;
 import org.me.newsky.NewSky;
@@ -26,6 +27,10 @@ public class LevelHandler {
     }
 
     public CompletableFuture<Integer> calIslandLevel(UUID islandUuid) {
+        if (!Bukkit.isPrimaryThread()) {
+            throw new IllegalStateException("calIslandLevel must be called from the main server thread");
+        }
+
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         int halfSize = config.getIslandSize() / 2;

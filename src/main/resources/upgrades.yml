@@ -1,0 +1,66 @@
+upgrades:
+  coop-limit:
+    '1':
+      coop-limit: 2
+    '2':
+      require-level: 8
+      price: 15000
+      coop-limit: 3
+    '3':
+      require-level: 25
+      price: 50000
+      coop-limit: 4
+
+  team-limit:
+    '1':
+      team-limit: 2
+    '2':
+      require-level: 10
+      price: 25000
+      team-limit: 3
+    '3':
+      require-level: 25
+      price: 75000
+      team-limit: 4
+
+  warps-limit:
+    '1':
+      warps-limit: 1
+    '2':
+      require-level: 5
+      price: 20000
+      warps-limit: 2
+    '3':
+      require-level: 20
+      price: 60000
+      warps-limit: 3
+
+  island-size:
+    '1':
+      island-size: 75
+    '2':
+      require-level: 10
+      price: 50000
+      island-size: 100
+    '3':
+      require-level: 30
+      price: 150000
+      island-size: 125
+
+  generator-rates:
+    '1':
+      generator-rates:
+        COBBLESTONE: 100
+    '2':
+      require-level: 15
+      price: 50000
+      generator-rates:
+        COBBLESTONE: 80
+        IRON_ORE: 20
+    '3':
+      require-level: 35
+      price: 150000
+      generator-rates:
+        COBBLESTONE: 60
+        IRON_ORE: 30
+        DIAMOND_ORE: 10

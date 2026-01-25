@@ -20,6 +20,7 @@ public class ConfigHandler {
     private final FileConfiguration messages;
     private final FileConfiguration commands;
     private final FileConfiguration levels;
+    private final FileConfiguration upgrades;
 
     public ConfigHandler(NewSky plugin) {
         this.plugin = plugin;
@@ -28,6 +29,7 @@ public class ConfigHandler {
         this.messages = load("messages.yml");
         this.commands = load("commands.yml");
         this.levels = load("levels.yml");
+        this.upgrades = load("upgrades.yml");
     }
 
     private FileConfiguration load(String fileName) {
@@ -237,8 +239,136 @@ public class ConfigHandler {
         return config.getBoolean("debug");
     }
 
+// ================================================================================================================
+// Levels Section
+// ================================================================================================================
+
     public int getBlockLevel(String material) {
         return levels.getInt("blocks." + material);
+    }
+
+// ================================================================================================================
+// Upgrades Section
+// ================================================================================================================
+
+    /**6
+     * Returns all upgrade ids under "upgrades".
+     * Example: team-limit, warps-limit, coop-limit, island-size, generator-rates
+     */
+    public Set<String> getUpgradeIds() {
+        if (upgrades == null) return Collections.emptySet();
+        if (upgrades.getConfigurationSection("upgrades") == null) return Collections.emptySet();
+        return Objects.requireNonNull(upgrades.getConfigurationSection("upgrades")).getKeys(false);
+    }
+
+    /**
+     * Returns all integer levels defined for an upgrade id.
+     * Example: upgrades.team-limit.'1', '2', '3'
+     */
+    public Set<Integer> getUpgradeLevels(String upgradeId) {
+        if (upgrades == null) return Collections.emptySet();
+        if (upgradeId == null || upgradeId.isBlank()) return Collections.emptySet();
+
+        String path = "upgrades." + upgradeId;
+        if (upgrades.getConfigurationSection(path) == null) return Collections.emptySet();
+
+        Set<String> keys = Objects.requireNonNull(upgrades.getConfigurationSection(path)).getKeys(false);
+        Set<Integer> levels = new HashSet<>();
+
+        for (String k : keys) {
+            try {
+                levels.add(Integer.parseInt(k));
+            } catch (NumberFormatException ignored) {
+                // ignore non-numeric keys
+            }
+        }
+
+        return levels;
+    }
+
+    /**
+     * require-level gate for buying THIS level.
+     * Default 0 if missing.
+     */
+    public int getUpgradeRequireIslandLevel(String upgradeId, int level) {
+        if (upgrades == null) return 0;
+        return upgrades.getInt("upgrades." + upgradeId + "." + level + ".require-level", 0);
+    }
+
+    /**
+     * price for buying THIS level.
+     * Default 0 if missing.
+     */
+    public double getUpgradePrice(String upgradeId, int level) {
+        if (upgrades == null) return 0.0D;
+        return upgrades.getDouble("upgrades." + upgradeId + "." + level + ".price", 0.0D);
+    }
+
+    /**
+     * upgrades.team-limit.<level>.team-limit
+     * Default 0 if missing.
+     */
+    public int getUpgradeTeamLimit(int level) {
+        if (upgrades == null) return 0;
+        return upgrades.getInt("upgrades.team-limit." + level + ".team-limit", 0);
+    }
+
+    /**
+     * upgrades.warps-limit.<level>.warps-limit
+     * Default 0 if missing.
+     */
+    public int getUpgradeWarpsLimit(int level) {
+        if (upgrades == null) return 0;
+        return upgrades.getInt("upgrades.warps-limit." + level + ".warps-limit", 0);
+    }
+
+    /**
+     * upgrades.coop-limit.<level>.coop-limit
+     * Default 0 if missing.
+     */
+    public int getUpgradeCoopLimit(int level) {
+        if (upgrades == null) return 0;
+        return upgrades.getInt("upgrades.coop-limit." + level + ".coop-limit", 0);
+    }
+
+    /**
+     * upgrades.island-size.<level>.island-size
+     * Default 0 if missing.
+     */
+    public int getUpgradeIslandSize(int level) {
+        if (upgrades == null) return 0;
+        return upgrades.getInt("upgrades.island-size." + level + ".island-size", 0);
+    }
+
+    /**
+     * upgrades.generator-rates.<level>.generator-rates.<MATERIAL>: <weight>
+     * <p>
+     * Returns raw map as String->Integer (MaterialName -> weight).
+     * MUST return emptyMap when missing (not null).
+     */
+    public Map<String, Integer> getUpgradeGeneratorRates(int level) {
+        if (upgrades == null) {
+            return Collections.emptyMap();
+        }
+
+        String path = "upgrades.generator-rates." + level + ".generator-rates";
+        if (upgrades.getConfigurationSection(path) == null) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, Object> values = Objects.requireNonNull(upgrades.getConfigurationSection(path)).getValues(false);
+        if (values.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, Integer> out = new LinkedHashMap<>();
+        for (Map.Entry<String, Object> e : values.entrySet()) {
+            Object v = e.getValue();
+            if (v instanceof Number n) {
+                out.put(e.getKey(), n.intValue());
+            }
+        }
+        return out;
     }
 
 // ================================================================================================================
