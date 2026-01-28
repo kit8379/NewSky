@@ -19,6 +19,7 @@ public class Cache {
     private final Map<UUID, Set<UUID>> islandBans = new ConcurrentHashMap<>();
     private final Map<UUID, Set<UUID>> islandCoops = new ConcurrentHashMap<>();
     private final Map<UUID, Integer> islandLevels = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<String, Integer>> islandUpgrades = new ConcurrentHashMap<>();
     private final Map<UUID, String> playerUuidToName = new ConcurrentHashMap<>();
     private final Map<String, UUID> playerNameToUuid = new ConcurrentHashMap<>();
 
@@ -41,6 +42,7 @@ public class Cache {
         cacheIslandBans();
         cacheIslandCoops();
         cacheIslandLevels();
+        cacheIslandUpgrades();
         cachePlayerUuidMap();
     }
 
@@ -117,6 +119,18 @@ public class Cache {
                 UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));
                 int level = rs.getInt("level");
                 islandLevels.put(islandUuid, level);
+            }
+        });
+    }
+
+    public void cacheIslandUpgrades() {
+        databaseHandler.selectAllIslandUpgrades(rs -> {
+            while (rs.next()) {
+                UUID islandUuid = UUID.fromString(rs.getString("island_uuid"));
+                String upgradeId = rs.getString("upgrade_id");
+                int level = rs.getInt("level");
+
+                islandUpgrades.computeIfAbsent(islandUuid, k -> new ConcurrentHashMap<>()).put(upgradeId, level);
             }
         });
     }
@@ -236,6 +250,23 @@ public class Cache {
         });
     }
 
+    public void reloadIslandUpgrades(UUID islandUuid) {
+        databaseHandler.selectIslandUpgrades(islandUuid, rs -> {
+            Map<String, Integer> map = new ConcurrentHashMap<>();
+            while (rs.next()) {
+                String upgradeId = rs.getString("upgrade_id");
+                int level = rs.getInt("level");
+                map.put(upgradeId, level);
+            }
+
+            if (map.isEmpty()) {
+                islandUpgrades.remove(islandUuid);
+            } else {
+                islandUpgrades.put(islandUuid, map);
+            }
+        });
+    }
+
     public void reloadPlayerUuid(UUID playerUuid) {
         databaseHandler.selectPlayerUuid(playerUuid, rs -> {
             if (rs.next()) {
@@ -291,6 +322,9 @@ public class Cache {
 
     public void deleteIsland(UUID islandUuid) {
         databaseHandler.deleteIsland(islandUuid);
+
+        islandUpgrades.remove(islandUuid);
+        cacheBroker.publishUpdate("island_upgrades", islandUuid);
 
         islandLevels.remove(islandUuid);
         cacheBroker.publishUpdate("island_levels", islandUuid);
@@ -614,6 +648,34 @@ public class Cache {
         }
 
         return result;
+    }
+
+    // ================================================================================================================
+    // Upgrade
+    // =================================================================================================================
+    public void updateIslandUpgradeLevel(UUID islandUuid, String upgradeId, int level) {
+        if (level <= 1) {
+            databaseHandler.deleteIslandUpgrade(islandUuid, upgradeId);
+
+            Map<String, Integer> map = islandUpgrades.get(islandUuid);
+            if (map != null) {
+                map.remove(upgradeId);
+                if (map.isEmpty()) {
+                    islandUpgrades.remove(islandUuid);
+                }
+            }
+        } else {
+            databaseHandler.upsertIslandUpgrade(islandUuid, upgradeId, level);
+            islandUpgrades.computeIfAbsent(islandUuid, k -> new ConcurrentHashMap<>()).put(upgradeId, level);
+        }
+
+        cacheBroker.publishUpdate("island_upgrades", islandUuid);
+    }
+
+    public int getIslandUpgradeLevel(UUID islandUuid, String upgradeId) {
+        Map<String, Integer> map = islandUpgrades.get(islandUuid);
+        if (map == null) return 1;
+        return map.getOrDefault(upgradeId, 1);
     }
 
     // =================================================================================================================

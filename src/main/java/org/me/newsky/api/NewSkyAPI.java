@@ -5,6 +5,7 @@ import org.me.newsky.NewSky;
 import org.me.newsky.island.*;
 import org.me.newsky.message.PlayerMessageHandler;
 import org.me.newsky.model.Invitation;
+import org.me.newsky.model.UpgradeResult;
 import org.me.newsky.uuid.UuidHandler;
 
 import java.util.Map;
@@ -25,9 +26,11 @@ public class NewSkyAPI {
     private final CoopHandler coopHandler;
     private final LobbyHandler lobbyHandler;
     private final PlayerMessageHandler playerMessageHandler;
+    private final UpgradeHandler upgradeHandler;
     private final UuidHandler uuidHandler;
 
-    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, PlayerMessageHandler playerMessageHandler, UuidHandler uuidHandler) {
+    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, PlayerMessageHandler playerMessageHandler, UuidHandler uuidHandler, UpgradeHandler upgradeHandler) {
+
         this.plugin = plugin;
         this.islandHandler = islandHandler;
         this.playerHandler = playerHandler;
@@ -38,6 +41,7 @@ public class NewSkyAPI {
         this.coopHandler = coopHandler;
         this.lobbyHandler = lobbyHandler;
         this.playerMessageHandler = playerMessageHandler;
+        this.upgradeHandler = upgradeHandler;
         this.uuidHandler = uuidHandler;
     }
 
@@ -109,6 +113,42 @@ public class NewSkyAPI {
     @SuppressWarnings("unused")
     public CompletableFuture<Void> removeMember(UUID islandUuid, UUID playerUuid) {
         return playerHandler.removeMember(islandUuid, playerUuid);
+    }
+
+    /**
+     * Adds a pending invite for the specified player.
+     *
+     * @param inviteeUuid UUID of the player receiving the invite.
+     * @param islandUuid  UUID of the island offering the invite.
+     * @param inviterUuid UUID of the inviter.
+     * @param ttlSeconds  Time in seconds before the invite expires.
+     * @return CompletableFuture that completes when the invite is added
+     */
+    @SuppressWarnings("unused")
+    public CompletableFuture<Void> addPendingInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {
+        return playerHandler.addPendingInvite(inviteeUuid, islandUuid, inviterUuid, ttlSeconds);
+    }
+
+    /**
+     * Removes a pending invite for a player.
+     *
+     * @param playerUuid UUID of the player whose invite should be removed.
+     * @return CompletableFuture that completes when the invite is removed
+     */
+    @SuppressWarnings("unused")
+    public CompletableFuture<Void> removePendingInvite(UUID playerUuid) {
+        return playerHandler.removePendingInvite(playerUuid);
+    }
+
+    /**
+     * Gets the pending invite data for a player.
+     *
+     * @param playerUuid UUID of the player.
+     * @return Optional containing Invitation if an invitation exists.
+     */
+    @SuppressWarnings("unused")
+    public Optional<Invitation> getPendingInvite(UUID playerUuid) {
+        return playerHandler.getPendingInvite(playerUuid);
     }
 
     /**
@@ -469,39 +509,39 @@ public class NewSkyAPI {
     }
 
     /**
-     * Adds a pending invite for the specified player.
+     * Gets all configured upgrade IDs.
      *
-     * @param inviteeUuid UUID of the player receiving the invite.
-     * @param islandUuid  UUID of the island offering the invite.
-     * @param inviterUuid UUID of the inviter.
-     * @param ttlSeconds  Time in seconds before the invite expires.
-     * @return CompletableFuture that completes when the invite is added
+     * @return A set of upgrade IDs from upgrades.yml.
      */
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> addPendingInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {
-        return playerHandler.addPendingInvite(inviteeUuid, islandUuid, inviterUuid, ttlSeconds);
+    public Set<String> getUpgradeIds() {
+        return upgradeHandler.getUpgradeIds();
     }
 
     /**
-     * Removes a pending invite for a player.
+     * Buys the next level of an upgrade for an island.
+     * The Price is temporarily removed (will be handled by island bank later).
      *
-     * @param playerUuid UUID of the player whose invite should be removed.
-     * @return CompletableFuture that completes when the invite is removed
+     * @param islandUuid Island UUID.
+     * @param upgradeId  Upgrade ID.
+     * @return Upgrade result (old/new level + value strings).
      */
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> removePendingInvite(UUID playerUuid) {
-        return playerHandler.removePendingInvite(playerUuid);
+    public CompletableFuture<UpgradeResult> upgradeToNextLevel(UUID islandUuid, String upgradeId) {
+        return upgradeHandler.upgradeToNextLevel(islandUuid, upgradeId);
     }
 
     /**
-     * Gets the pending invite data for a player.
+     * Sets the upgrade level for an island (admin usage).
      *
-     * @param playerUuid UUID of the player.
-     * @return Optional containing Invitation if an invitation exists.
+     * @param islandUuid Island UUID.
+     * @param upgradeId  Upgrade ID.
+     * @param level      Target level.
+     * @return CompletableFuture completed when applied.
      */
     @SuppressWarnings("unused")
-    public Optional<Invitation> getPendingInvite(UUID playerUuid) {
-        return playerHandler.getPendingInvite(playerUuid);
+    public CompletableFuture<Void> setIslandUpgradeLevel(UUID islandUuid, String upgradeId, int level) {
+        return upgradeHandler.setUpgradeLevel(islandUuid, upgradeId, level);
     }
 
     /**

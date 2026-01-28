@@ -99,6 +99,9 @@ public class CacheBroker {
                 case "island_levels":
                     cache.reloadIslandLevels(uuid);
                     break;
+                case "island_upgrades":
+                    cache.reloadIslandUpgrades(uuid);
+                    break;
                 case "player_uuid":
                     cache.reloadPlayerUuid(uuid);
                     break;

@@ -86,6 +86,7 @@ public class DatabaseHandler {
         createIslandBanTable();
         createIslandCoopTable();
         createIslandLevelsTable();
+        createIslandUpgradesTable();
         createPlayerUuidTable();
     }
 
@@ -117,10 +118,13 @@ public class DatabaseHandler {
         executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_levels (" + "island_uuid VARCHAR(56) PRIMARY KEY, " + "level INT NOT NULL" + ");", PreparedStatement::execute);
     }
 
+    private void createIslandUpgradesTable() {
+        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_upgrades (" + "island_uuid VARCHAR(56) NOT NULL, " + "upgrade_id VARCHAR(64) NOT NULL, " + "level INT NOT NULL, " + "PRIMARY KEY (island_uuid, upgrade_id), " + "FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid)" + ");", PreparedStatement::execute);
+    }
+
     public void createPlayerUuidTable() {
         executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "player_uuid (" + "uuid VARCHAR(56) PRIMARY KEY, " + "name VARCHAR(64) NOT NULL" + ");", PreparedStatement::execute);
     }
-
 
     public void selectAllIslandData(ResultProcessor processor) {
         executeQuery("SELECT * FROM " + prefix + "islands", stmt -> {
@@ -157,6 +161,11 @@ public class DatabaseHandler {
         }, processor);
     }
 
+    public void selectAllIslandUpgrades(ResultProcessor processor) {
+        executeQuery("SELECT * FROM " + prefix + "island_upgrades", stmt -> {
+        }, processor);
+    }
+
     public void selectAllPlayerUuid(ResultProcessor processor) {
         executeQuery("SELECT uuid, name FROM " + prefix + "player_uuid", stmt -> {
         }, processor);
@@ -190,10 +199,13 @@ public class DatabaseHandler {
         executeQuery("SELECT * FROM " + prefix + "island_levels WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), processor);
     }
 
+    public void selectIslandUpgrades(UUID islandUuid, ResultProcessor processor) {
+        executeQuery("SELECT * FROM " + prefix + "island_upgrades WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), processor);
+    }
+
     public void selectPlayerUuid(UUID playerUuid, ResultProcessor processor) {
         executeQuery("SELECT * FROM " + prefix + "player_uuid WHERE uuid = ?", stmt -> stmt.setString(1, playerUuid.toString()), processor);
     }
-
 
     public void addIslandData(UUID islandUuid, UUID ownerUuid, String homePoint) {
         executeUpdate("INSERT INTO " + prefix + "islands (island_uuid) VALUES (?);", stmt -> stmt.setString(1, islandUuid.toString()));
@@ -301,6 +313,15 @@ public class DatabaseHandler {
         });
     }
 
+    public void upsertIslandUpgrade(UUID islandUuid, String upgradeId, int level) {
+        executeUpdate("INSERT INTO " + prefix + "island_upgrades (island_uuid, upgrade_id, level) VALUES (?, ?, ?) " + "ON DUPLICATE KEY UPDATE level = ?;", stmt -> {
+            stmt.setString(1, islandUuid.toString());
+            stmt.setString(2, upgradeId);
+            stmt.setInt(3, level);
+            stmt.setInt(4, level);
+        });
+    }
+
     public void updatePlayerName(UUID uuid, String name) {
         executeUpdate("INSERT INTO " + prefix + "player_uuid (uuid, name) VALUES (?, ?) " + "ON DUPLICATE KEY UPDATE name = ?;", stmt -> {
             stmt.setString(1, uuid.toString());
@@ -310,6 +331,7 @@ public class DatabaseHandler {
     }
 
     public void deleteIsland(UUID islandUuid) {
+        executeUpdate("DELETE FROM " + prefix + "island_upgrades WHERE island_uuid = ?;", stmt -> stmt.setString(1, islandUuid.toString()));
         executeUpdate("DELETE FROM " + prefix + "island_levels WHERE island_uuid = ?;", stmt -> stmt.setString(1, islandUuid.toString()));
         executeUpdate("DELETE FROM " + prefix + "island_coops WHERE island_uuid = ?;", stmt -> stmt.setString(1, islandUuid.toString()));
         executeUpdate("DELETE FROM " + prefix + "island_bans WHERE island_uuid = ?;", stmt -> stmt.setString(1, islandUuid.toString()));
@@ -362,6 +384,12 @@ public class DatabaseHandler {
         executeUpdate("DELETE FROM " + prefix + "island_coops WHERE cooped_player = ?;", stmt -> stmt.setString(1, playerUuid.toString()));
     }
 
+    public void deleteIslandUpgrade(UUID islandUuid, String upgradeId) {
+        executeUpdate("DELETE FROM " + prefix + "island_upgrades WHERE island_uuid = ? AND upgrade_id = ?;", stmt -> {
+            stmt.setString(1, islandUuid.toString());
+            stmt.setString(2, upgradeId);
+        });
+    }
 
     @FunctionalInterface
     public interface ResultProcessor {

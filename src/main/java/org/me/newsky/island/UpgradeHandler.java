@@ -1,15 +1,25 @@
+// UpgradeHandler.java
 package org.me.newsky.island;
 
-import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
+import org.me.newsky.cache.Cache;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.UpgradeDoesNotExistException;
+import org.me.newsky.exceptions.UpgradeIslandLevelTooLowException;
+import org.me.newsky.exceptions.UpgradeMaxedException;
+import org.me.newsky.model.UpgradeResult;
 
 import java.util.Collections;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public final class UpgradeHandler {
+
+    private final NewSky plugin;
+    private final ConfigHandler config;
+    private final Cache cache;
 
     public static final String UPGRADE_TEAM_LIMIT = "team-limit";
     public static final String UPGRADE_WARPS_LIMIT = "warps-limit";
@@ -17,12 +27,10 @@ public final class UpgradeHandler {
     public static final String UPGRADE_ISLAND_SIZE = "island-size";
     public static final String UPGRADE_GENERATOR_RATES = "generator-rates";
 
-    private final NewSky plugin;
-    private final ConfigHandler config;
-
-    public UpgradeHandler(NewSky plugin, ConfigHandler config) {
+    public UpgradeHandler(NewSky plugin, ConfigHandler config, Cache cache) {
         this.plugin = plugin;
         this.config = config;
+        this.cache = cache;
     }
 
     // ================================================================================================================
@@ -31,7 +39,10 @@ public final class UpgradeHandler {
 
     public Set<String> getUpgradeIds() {
         Set<String> ids = config.getUpgradeIds();
-        return ids == null ? Collections.emptySet() : ids;
+        if (ids == null) {
+            return Collections.emptySet();
+        }
+        return ids;
     }
 
     public boolean hasUpgrade(String upgradeId) {
@@ -39,119 +50,113 @@ public final class UpgradeHandler {
     }
 
     // ================================================================================================================
-    // Levels (STRUCTURE) - generic
+    // Levels
     // ================================================================================================================
 
-    public Set<Integer> getLevels(String upgradeId) {
-        Objects.requireNonNull(upgradeId, "upgradeId");
-        Set<Integer> levels = config.getUpgradeLevels(upgradeId);
-        return levels == null ? Collections.emptySet() : levels;
-    }
 
-    public int getMaxLevel(String upgradeId) {
-        int max = 0;
-        for (int lvl : getLevels(upgradeId)) {
-            if (lvl > max) max = lvl;
+    public Set<Integer> getLevels(String upgradeId) {
+        Set<Integer> levels = config.getUpgradeLevels(upgradeId);
+        if (levels == null) {
+            return Collections.emptySet();
         }
-        return max;
+        return levels;
     }
 
     public int getNextLevel(String upgradeId, int currentLevel) {
         int next = Integer.MAX_VALUE;
         for (int lvl : getLevels(upgradeId)) {
-            if (lvl > currentLevel && lvl < next) next = lvl;
+            if (lvl > currentLevel && lvl < next) {
+                next = lvl;
+            }
         }
-        return (next == Integer.MAX_VALUE) ? -1 : next;
-    }
-
-    public boolean isMaxed(String upgradeId, int currentLevel) {
-        int max = getMaxLevel(upgradeId);
-        return max > 0 && currentLevel >= max;
-    }
-
-    // ================================================================================================================
-    // Purchase gate (require-level only; economy elsewhere)
-    // ================================================================================================================
-
-    /**
-     * Checks if player can purchase the NEXT level of an upgrade.
-     * This method does NOT check economy, it only returns "next level + required island level + price".
-     *
-     * @param player       buyer (kept for API symmetry; not used after removing permission checks)
-     * @param upgradeId    upgrade type
-     * @param currentLevel current upgrade level for this type (from island data)
-     * @param islandLevel  island level (your /is level)
-     */
-    public PurchaseResult canPurchaseNext(Player player, String upgradeId, int currentLevel, int islandLevel) {
-        Objects.requireNonNull(player, "player");
-        Objects.requireNonNull(upgradeId, "upgradeId");
-
-        int next = getNextLevel(upgradeId, currentLevel);
-        if (next == -1) {
-            return PurchaseResult.fail(PurchaseFailReason.NO_NEXT_LEVEL);
+        if (next == Integer.MAX_VALUE) {
+            return -1;
         }
+        return next;
+    }
 
-        int requireIslandLevel = config.getUpgradeRequireIslandLevel(upgradeId, next);
-        if (islandLevel < requireIslandLevel) {
-            return PurchaseResult.fail(PurchaseFailReason.ISLAND_LEVEL_TOO_LOW, next, requireIslandLevel);
+    // ================================================================================================================
+    // Value getters (fallback to level 1 when missing)
+    // ================================================================================================================
+
+    public int getTeamLimit(int level) {
+        int v = config.getUpgradeTeamLimit(level);
+        if (v > 0) {
+            return v;
         }
-
-        double price = config.getUpgradePrice(upgradeId, next);
-        return PurchaseResult.ok(next, requireIslandLevel, price);
+        return config.getUpgradeTeamLimit(1);
     }
 
-    // ================================================================================================================
-    // Upgrade VALUE getters (per-upgrade, dedicated ConfigHandler getters)
-    // ================================================================================================================
-
-    public int getTeamLimit(int upgradeLevel) {
-        int v = config.getUpgradeTeamLimit(upgradeLevel);
-        return v > 0 ? v : config.getUpgradeTeamLimit(1);
+    public int getWarpsLimit(int level) {
+        int v = config.getUpgradeWarpsLimit(level);
+        if (v > 0) {
+            return v;
+        }
+        return config.getUpgradeWarpsLimit(1);
     }
 
-    public int getWarpsLimit(int upgradeLevel) {
-        int v = config.getUpgradeWarpsLimit(upgradeLevel);
-        return v > 0 ? v : config.getUpgradeWarpsLimit(1);
+    public int getCoopLimit(int level) {
+        int v = config.getUpgradeCoopLimit(level);
+        if (v > 0) {
+            return v;
+        }
+        return config.getUpgradeCoopLimit(1);
     }
 
-    public int getCoopLimit(int upgradeLevel) {
-        int v = config.getUpgradeCoopLimit(upgradeLevel);
-        return v > 0 ? v : config.getUpgradeCoopLimit(1);
+    public int getIslandSize(int level) {
+        int v = config.getUpgradeIslandSize(level);
+        if (v > 0) {
+            return v;
+        }
+        return config.getUpgradeIslandSize(1);
     }
 
-    public int getIslandSize(int upgradeLevel) {
-        int v = config.getUpgradeIslandSize(upgradeLevel);
-        return v > 0 ? v : config.getUpgradeIslandSize(1);
-    }
-
-    public Map<String, Integer> getGeneratorRates(int upgradeLevel) {
-        Map<String, Integer> raw = config.getUpgradeGeneratorRates(upgradeLevel);
+    public Map<String, Integer> getGeneratorRates(int level) {
+        Map<String, Integer> raw = config.getUpgradeGeneratorRates(level);
         if (raw == null || raw.isEmpty()) {
-            raw = config.getUpgradeGeneratorRates(1);
+            return config.getUpgradeGeneratorRates(1);
         }
-        return raw == null ? Collections.emptyMap() : raw;
+        return raw;
     }
 
     // ================================================================================================================
-    // Types
+    // Upgrade operations
     // ================================================================================================================
 
-    public enum PurchaseFailReason {
-        NO_NEXT_LEVEL, ISLAND_LEVEL_TOO_LOW
+    public CompletableFuture<UpgradeResult> upgradeToNextLevel(UUID islandUuid, String upgradeId) {
+        return CompletableFuture.supplyAsync(() -> {
+            if (!hasUpgrade(upgradeId)) {
+                throw new UpgradeDoesNotExistException();
+            }
+
+            int islandLevel = cache.getIslandLevel(islandUuid);
+            int oldLevel = cache.getIslandUpgradeLevel(islandUuid, upgradeId);
+            if (oldLevel <= 0) {
+                oldLevel = 1;
+            }
+
+            int nextLevel = getNextLevel(upgradeId, oldLevel);
+            if (nextLevel == -1) {
+                throw new UpgradeMaxedException();
+            }
+
+            int requireIslandLevel = config.getUpgradeRequireIslandLevel(upgradeId, nextLevel);
+            if (islandLevel < requireIslandLevel) {
+                throw new UpgradeIslandLevelTooLowException();
+            }
+
+            cache.updateIslandUpgradeLevel(islandUuid, upgradeId, nextLevel);
+
+            return new UpgradeResult(upgradeId, oldLevel, nextLevel, requireIslandLevel);
+        }, plugin.getBukkitAsyncExecutor());
     }
 
-    public record PurchaseResult(boolean ok, PurchaseFailReason failReason, int nextLevel, int requireIslandLevel,
-                                 double price) {
-        public static PurchaseResult ok(int nextLevel, int requireIslandLevel, double price) {
-            return new PurchaseResult(true, null, nextLevel, requireIslandLevel, price);
-        }
-
-        public static PurchaseResult fail(PurchaseFailReason reason) {
-            return new PurchaseResult(false, reason, -1, 0, 0.0D);
-        }
-
-        public static PurchaseResult fail(PurchaseFailReason reason, int nextLevel, int requireIslandLevel) {
-            return new PurchaseResult(false, reason, nextLevel, requireIslandLevel, 0.0D);
-        }
+    public CompletableFuture<Void> setUpgradeLevel(UUID islandUuid, String upgradeId, int level) {
+        return CompletableFuture.runAsync(() -> {
+            if (!hasUpgrade(upgradeId)) {
+                throw new UpgradeDoesNotExistException();
+            }
+            cache.updateIslandUpgradeLevel(islandUuid, upgradeId, Math.max(level, 1));
+        }, plugin.getBukkitAsyncExecutor());
     }
 }
