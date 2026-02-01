@@ -509,16 +509,6 @@ public class NewSkyAPI {
     }
 
     /**
-     * Gets all configured upgrade IDs.
-     *
-     * @return A set of upgrade IDs from upgrades.yml.
-     */
-    @SuppressWarnings("unused")
-    public Set<String> getUpgradeIds() {
-        return upgradeHandler.getUpgradeIds();
-    }
-
-    /**
      * Buys the next level of an upgrade for an island.
      * The Price is temporarily removed (will be handled by island bank later).
      *
@@ -540,8 +530,112 @@ public class NewSkyAPI {
      * @return CompletableFuture completed when applied.
      */
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> setIslandUpgradeLevel(UUID islandUuid, String upgradeId, int level) {
+    public CompletableFuture<Void> setUpgradeLevel(UUID islandUuid, String upgradeId, int level) {
         return upgradeHandler.setUpgradeLevel(islandUuid, upgradeId, level);
+    }
+
+    /**
+     * Gets all configured upgrade IDs.
+     *
+     * @return A set of upgrade IDs from upgrades.yml.
+     */
+    @SuppressWarnings("unused")
+    public Set<String> getUpgradeIds() {
+        return upgradeHandler.getUpgradeIds();
+    }
+
+    /**
+     * Gets all possible levels for a specific upgrade.
+     *
+     * @param upgradeId The ID of the upgrade.
+     * @return A set of possible levels for the specified upgrade.
+     */
+    @SuppressWarnings("unused")
+    public Set<Integer> getUpgradeLevels(String upgradeId) {
+        return upgradeHandler.getUpgradeLevels(upgradeId);
+    }
+
+    /**
+     * Gets the next level for a specific upgrade based on the current level.
+     *
+     * @param upgradeId    The ID of the upgrade.
+     * @param currentLevel The current level of the upgrade.
+     * @return The next level of the specified upgrade, or -1 if there is no next level.
+     */
+    @SuppressWarnings("unused")
+    public int getNextUpgradeLevel(String upgradeId, int currentLevel) {
+        return upgradeHandler.getNextUpgradeLevel(upgradeId, currentLevel);
+    }
+
+    public int getUpgradeRequireIslandLevel(String upgradeId, int level) {
+        return upgradeHandler.getUpgradeRequireIslandLevel(upgradeId, level);
+    }
+
+    /**
+     * Gets the team limit for a specific upgrade level.
+     *
+     * @param level The level of the upgrade.
+     * @return The team limit for the specified level.
+     */
+    @SuppressWarnings("unused")
+    public int getTeamLimit(int level) {
+        return upgradeHandler.getTeamLimit(level);
+    }
+
+    /**
+     * Gets the warps limit for a specific upgrade level.
+     *
+     * @param level The level of the upgrade.
+     * @return The warps limit for the specified level.
+     */
+    @SuppressWarnings("unused")
+    public int getWarpsLimit(int level) {
+        return upgradeHandler.getWarpsLimit(level);
+    }
+
+    /**
+     * Gets the coop limit for a specific upgrade level.
+     *
+     * @param level The level of the upgrade.
+     * @return The coop limit for the specified level.
+     */
+    @SuppressWarnings("unused")
+    public int getCoopLimit(int level) {
+        return upgradeHandler.getCoopLimit(level);
+    }
+
+    /**
+     * Gets the island size for a specific upgrade level.
+     *
+     * @param level The level of the upgrade.
+     * @return The island size for the specified level.
+     */
+    @SuppressWarnings("unused")
+    public int getIslandSize(int level) {
+        return upgradeHandler.getIslandSize(level);
+    }
+
+    /**
+     * Gets the generator rates for a specific upgrade level.
+     *
+     * @param level The level of the upgrade.
+     * @return A map of generator types to their rates for the specified level.
+     */
+    @SuppressWarnings("unused")
+    public Map<String, Integer> getGeneratorRates(int level) {
+        return upgradeHandler.getGeneratorRates(level);
+    }
+
+    /**
+     * Gets the current level of a specific upgrade for an island.
+     *
+     * @param islandUuid The UUID of the island.
+     * @param upgradeId  The ID of the upgrade.
+     * @return The current level of the specified upgrade for the island.
+     */
+    @SuppressWarnings("unused")
+    public int getCurrentUpgradeLevel(UUID islandUuid, String upgradeId) {
+        return upgradeHandler.getCurrentUpgradeLevel(islandUuid, upgradeId);
     }
 
     /**

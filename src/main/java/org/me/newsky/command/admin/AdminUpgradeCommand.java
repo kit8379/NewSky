@@ -1,3 +1,4 @@
+// AdminUpgradeCommand.java
 package org.me.newsky.command.admin;
 
 import org.bukkit.command.CommandSender;
@@ -8,11 +9,11 @@ import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.UpgradeDoesNotExistException;
+import org.me.newsky.exceptions.UpgradeLevelDoesNotExistException;
+import org.me.newsky.island.UpgradeHandler;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * /isadmin upgrade
@@ -58,14 +59,10 @@ public class AdminUpgradeCommand implements SubCommand, TabComplete {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        // /isadmin upgrade
-        // Show overview
-        if (args.length <= 1) {
-            // TODO: Implement overview of all upgrades
-            return true;
+        if (args.length < 3 || args.length == 4) {
+            return false;
         }
 
-        // /isadmin upgrade <player> ...
         String targetPlayerName = args[1];
 
         Optional<UUID> targetUuidOpt = api.getPlayerUuid(targetPlayerName);
@@ -91,48 +88,139 @@ public class AdminUpgradeCommand implements SubCommand, TabComplete {
         // /isadmin upgrade <player> <upgradeId>
         // Show specific upgrade details
         if (args.length == 3) {
-            // TODO: Implement showing specific upgrade details
+            String upgradeId = args[2].toLowerCase();
+
+            try {
+                if (!api.getUpgradeIds().contains(upgradeId)) {
+                    sender.sendMessage(config.getPlayerUpgradeInvalidIdMessage(upgradeId));
+                    return true;
+                }
+
+                int currentLevel = api.getCurrentUpgradeLevel(islandUuid, upgradeId);
+
+                String currentValue = formatUpgradeValue(upgradeId, currentLevel);
+
+                sender.sendMessage(config.getAdminUpgradeDetailsHeaderMessage(targetPlayerName, upgradeId));
+                sender.sendMessage(config.getAdminUpgradeDetailsCurrentLevelMessage(upgradeId, currentLevel));
+                sender.sendMessage(config.getAdminUpgradeDetailsCurrentValueMessage(currentValue));
+
+            } catch (Exception e) {
+                sender.sendMessage(config.getUnknownExceptionMessage());
+                plugin.severe("Error showing admin upgrade details target=" + targetPlayerName + " upgradeId=" + upgradeId, e);
+            }
+
             return true;
         }
 
         // /isadmin upgrade <player> <upgradeId> set <level>
-        if (args.length == 5) {
-            String upgradeId = args[2].toLowerCase();
+        if (!args[3].equalsIgnoreCase("set")) {
+            return false;
+        }
 
-            if (!args[3].equalsIgnoreCase("set")) {
-                return false;
-            }
+        String upgradeId = args[2].toLowerCase();
+        int level;
 
-            int level;
-            try {
-                level = Integer.parseInt(args[4]);
-            } catch (NumberFormatException e) {
-                sender.sendMessage(config.getAdminUpgradeInvalidLevelMessage());
-                return true;
-            }
-
-            api.setIslandUpgradeLevel(islandUuid, upgradeId, level).thenRun(() -> {
-                sender.sendMessage(config.getAdminUpgradeSetSuccessMessage(upgradeId, level));
-            }).exceptionally(ex -> {
-                Throwable cause = ex.getCause();
-                if (cause instanceof UpgradeDoesNotExistException) {
-                    sender.sendMessage(config.getPlayerUpgradeInvalidIdMessage(upgradeId));
-                } else {
-                    sender.sendMessage(config.getUnknownExceptionMessage());
-                    plugin.severe("Error setting upgrade level target=" + targetPlayerName + " upgradeId=" + upgradeId + " level=" + level, ex);
-                }
-                return null;
-            });
-
+        try {
+            level = Integer.parseInt(args[4]);
+        } catch (NumberFormatException e) {
+            sender.sendMessage(config.getAdminUpgradeInvalidLevelMessage());
             return true;
         }
 
-        return false;
+        api.setUpgradeLevel(islandUuid, upgradeId, level).thenRun(() -> {
+            sender.sendMessage(config.getAdminUpgradeSetSuccessMessage(upgradeId, level));
+        }).exceptionally(ex -> {
+            Throwable cause = ex.getCause();
+            if (cause instanceof UpgradeDoesNotExistException) {
+                sender.sendMessage(config.getPlayerUpgradeInvalidIdMessage(upgradeId));
+            } else if (cause instanceof UpgradeLevelDoesNotExistException) {
+                sender.sendMessage(config.getAdminUpgradeInvalidLevelMessage());
+            } else {
+                sender.sendMessage(config.getUnknownExceptionMessage());
+                plugin.severe("Error setting upgrade level target=" + targetPlayerName + " upgradeId=" + upgradeId + " level=" + level, ex);
+            }
+            return null;
+        });
+
+        return true;
+    }
+
+    private String formatUpgradeValue(String upgradeId, int level) {
+        if (UpgradeHandler.UPGRADE_TEAM_LIMIT.equals(upgradeId)) {
+            return String.valueOf(api.getTeamLimit(level));
+        }
+
+        if (UpgradeHandler.UPGRADE_WARPS_LIMIT.equals(upgradeId)) {
+            return String.valueOf(api.getWarpsLimit(level));
+        }
+
+        if (UpgradeHandler.UPGRADE_COOP_LIMIT.equals(upgradeId)) {
+            return String.valueOf(api.getCoopLimit(level));
+        }
+
+        if (UpgradeHandler.UPGRADE_ISLAND_SIZE.equals(upgradeId)) {
+            return String.valueOf(api.getIslandSize(level));
+        }
+
+        if (UpgradeHandler.UPGRADE_GENERATOR_RATES.equals(upgradeId)) {
+            Map<String, Integer> rates = api.getGeneratorRates(level);
+            return formatRates(rates);
+        }
+
+        return "N/A";
+    }
+
+    private String formatRates(Map<String, Integer> rates) {
+        if (rates == null || rates.isEmpty()) {
+            return "N/A";
+        }
+
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+
+        for (Map.Entry<String, Integer> e : rates.entrySet()) {
+            String key = e.getKey();
+            Integer val = e.getValue();
+            if (key == null || val == null) continue;
+
+            if (!first) sb.append(", ");
+            first = false;
+            sb.append(key).append(": ").append(val);
+        }
+
+        return sb.toString();
     }
 
     @Override
     public List<String> tabComplete(CommandSender sender, String label, String[] args) {
-        // TODO: Implement tab completion
+        // /isadmin upgrade <player>
+        if (args.length == 2) {
+            String prefix = args[1].toLowerCase();
+            return api.getOnlinePlayersNames().stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+        }
+
+        // /isadmin upgrade <player> <upgradeId>
+        if (args.length == 3) {
+            Set<String> ids;
+            try {
+                ids = api.getUpgradeIds();
+            } catch (Exception e) {
+                return Collections.emptyList();
+            }
+
+            String prefix = args[2].toLowerCase();
+            return ids.stream().filter(id -> id.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+        }
+
+        // /isadmin upgrade <player> <upgradeId> set
+        if (args.length == 4) {
+            String prefix = args[3].toLowerCase();
+            if ("set".startsWith(prefix)) {
+                return Collections.singletonList("set");
+            }
+            return Collections.emptyList();
+        }
+
         return Collections.emptyList();
     }
 }

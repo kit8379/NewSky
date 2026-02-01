@@ -7,28 +7,21 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockFormEvent;
+import org.me.newsky.NewSky;
 import org.me.newsky.island.CobblestoneGeneratorHandler;
+import org.me.newsky.island.UpgradeHandler;
 import org.me.newsky.util.IslandUtils;
 
-import java.util.Objects;
+import java.util.UUID;
 
 public final class CobblestoneGeneratorListener implements Listener {
 
-    @FunctionalInterface
-    public interface GeneratorLevelResolver {
-        /**
-         * Resolve the generator-rates upgrade level for the island in this world.
-         * Return <= 0 to treat as level 1.
-         */
-        int resolveGeneratorUpgradeLevel(World world);
-    }
-
+    private final NewSky plugin;
     private final CobblestoneGeneratorHandler generatorHandler;
-    private final GeneratorLevelResolver levelResolver;
 
-    public CobblestoneGeneratorListener(CobblestoneGeneratorHandler generatorHandler, GeneratorLevelResolver levelResolver) {
-        this.generatorHandler = Objects.requireNonNull(generatorHandler, "generatorHandler");
-        this.levelResolver = Objects.requireNonNull(levelResolver, "levelResolver");
+    public CobblestoneGeneratorListener(NewSky plugin, CobblestoneGeneratorHandler generatorHandler) {
+        this.plugin = plugin;
+        this.generatorHandler = generatorHandler;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -41,12 +34,14 @@ public final class CobblestoneGeneratorListener implements Listener {
             return;
         }
 
-        // Only act on cobblestone generation
+        UUID islandUuid = IslandUtils.nameToUUID(world.getName());
+
+        // Only act on cobblestone generator
         if (event.getNewState().getType() != Material.COBBLESTONE) {
             return;
         }
 
-        int genLevel = levelResolver.resolveGeneratorUpgradeLevel(world);
+        int genLevel = plugin.getApi().getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_GENERATOR_RATES);
 
         Material result = generatorHandler.roll(genLevel);
         event.getNewState().setType(result);

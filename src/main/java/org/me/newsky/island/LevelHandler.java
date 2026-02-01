@@ -1,8 +1,6 @@
 package org.me.newsky.island;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChunkSnapshot;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.Cache;
 import org.me.newsky.config.ConfigHandler;
@@ -20,10 +18,25 @@ public class LevelHandler {
     private final ConfigHandler config;
     private final Cache cache;
 
+
+    private volatile int[] pointsByMaterialOrdinal;
+
     public LevelHandler(NewSky plugin, ConfigHandler config, Cache cache) {
         this.plugin = plugin;
         this.config = config;
         this.cache = cache;
+        reload();
+    }
+
+    public void reload() {
+        Material[] materials = Material.values();
+        int[] table = new int[materials.length];
+
+        for (Material material : materials) {
+            table[material.ordinal()] = config.getBlockLevel(material.name());
+        }
+
+        this.pointsByMaterialOrdinal = table;
     }
 
     public CompletableFuture<Integer> calIslandLevel(UUID islandUuid) {
@@ -34,10 +47,12 @@ public class LevelHandler {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         int halfSize = config.getIslandSize() / 2;
-        int minX = (-halfSize) >> 4;
-        int minZ = (-halfSize) >> 4;
-        int maxX = (halfSize) >> 4;
-        int maxZ = (halfSize) >> 4;
+
+        // Correct chunk bounds (floor) for negative values too.
+        int minChunkX = Math.floorDiv(-halfSize, 16);
+        int minChunkZ = Math.floorDiv(-halfSize, 16);
+        int maxChunkX = Math.floorDiv(halfSize, 16);
+        int maxChunkZ = Math.floorDiv(halfSize, 16);
 
         World world = plugin.getServer().getWorld(islandName);
         if (world == null) {
@@ -46,50 +61,67 @@ public class LevelHandler {
             return CompletableFuture.completedFuture(cachedLevel);
         }
 
-        List<CompletableFuture<ChunkSnapshot>> snapshotFutures = new ArrayList<>();
-
-        for (int x = minX; x <= maxX; x++) {
-            for (int z = minZ; z <= maxZ; z++) {
-                CompletableFuture<ChunkSnapshot> future = world.getChunkAtAsync(x, z, true).thenCompose(chunk -> {
-                    if (chunk == null) {
-                        return CompletableFuture.completedFuture(null);
-                    }
-                    CompletableFuture<ChunkSnapshot> snapshotFuture = new CompletableFuture<>();
-                    plugin.getServer().getScheduler().runTask(plugin, () -> {
-                        try {
-                            snapshotFuture.complete(chunk.getChunkSnapshot());
-                        } catch (Exception ex) {
-                            snapshotFuture.completeExceptionally(ex);
-                        }
-                    });
-                    return snapshotFuture;
-                });
-                snapshotFutures.add(future);
+        // 1) Load all chunks asynchronously (Paper API)
+        List<CompletableFuture<Chunk>> chunkFutures = new ArrayList<>();
+        for (int cx = minChunkX; cx <= maxChunkX; cx++) {
+            for (int cz = minChunkZ; cz <= maxChunkZ; cz++) {
+                chunkFutures.add(world.getChunkAtAsync(cx, cz, true));
             }
         }
 
-        return CompletableFuture.allOf(snapshotFutures.toArray(new CompletableFuture[0])).thenApply(v -> snapshotFutures.stream().map(CompletableFuture::join).filter(snapshot -> snapshot != null).toList()).thenApplyAsync(snapshots -> {
+        CompletableFuture<Void> allLoaded = CompletableFuture.allOf(chunkFutures.toArray(new CompletableFuture[0]));
+
+        // 2) Capture all snapshots on the main thread in ONE task (avoid per-chunk scheduling overhead)
+        CompletableFuture<List<ChunkSnapshot>> snapshotsFuture = allLoaded.thenCompose(v -> {
+            CompletableFuture<List<ChunkSnapshot>> result = new CompletableFuture<>();
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                try {
+                    List<ChunkSnapshot> snapshots = new ArrayList<>(chunkFutures.size());
+                    for (CompletableFuture<Chunk> f : chunkFutures) {
+                        Chunk chunk = f.join();
+                        if (chunk == null) continue;
+                        snapshots.add(chunk.getChunkSnapshot());
+                    }
+                    result.complete(snapshots);
+                } catch (Throwable t) {
+                    result.completeExceptionally(t);
+                }
+            });
+            return result;
+        });
+
+        // 3) Heavy scan off-thread using fast lookup table
+        return snapshotsFuture.thenApplyAsync(snapshots -> {
             int minY = world.getMinHeight();
             int maxY = world.getMaxHeight();
+            int[] table = this.pointsByMaterialOrdinal;
 
-            return snapshots.parallelStream().mapToInt(snapshot -> {
-                int points = 0;
-                for (int x = 0; x < 16; x++) {
-                    for (int z = 0; z < 16; z++) {
-                        for (int y = minY; y < maxY; y++) {
-                            String typeName = snapshot.getBlockType(x, y, z).name();
-                            points += config.getBlockLevel(typeName);
-                        }
-                    }
-                }
-                return points;
-            }).sum();
-        }, plugin.getBukkitAsyncExecutor()).thenApply(totalPoints -> {
-            int totalLevel = (int) Math.round((double) totalPoints / 100);
+            long totalPoints = 0;
+            for (ChunkSnapshot snapshot : snapshots) {
+                totalPoints += calculateSnapshotPoints(snapshot, minY, maxY, table);
+            }
+
+            return (int) Math.round((double) totalPoints / 100.0);
+        }, plugin.getBukkitAsyncExecutor()).thenApply(totalLevel -> {
             cache.updateIslandLevel(islandUuid, totalLevel);
             plugin.debug("LevelHandler", "Calculated level for island " + islandUuid + ": " + totalLevel);
             return totalLevel;
         });
+    }
+
+    private static long calculateSnapshotPoints(ChunkSnapshot snapshot, int minY, int maxY, int[] table) {
+        long points = 0;
+
+        for (int y = minY; y < maxY; y++) {
+            for (int z = 0; z < 16; z++) {
+                for (int x = 0; x < 16; x++) {
+                    Material mat = snapshot.getBlockType(x, y, z);
+                    points += table[mat.ordinal()];
+                }
+            }
+        }
+
+        return points;
     }
 
     public int getIslandLevel(UUID islandUuid) {

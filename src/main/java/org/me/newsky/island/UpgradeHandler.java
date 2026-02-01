@@ -6,10 +6,10 @@ import org.me.newsky.cache.Cache;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.UpgradeDoesNotExistException;
 import org.me.newsky.exceptions.UpgradeIslandLevelTooLowException;
+import org.me.newsky.exceptions.UpgradeLevelDoesNotExistException;
 import org.me.newsky.exceptions.UpgradeMaxedException;
 import org.me.newsky.model.UpgradeResult;
 
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -34,89 +34,55 @@ public final class UpgradeHandler {
     }
 
     // ================================================================================================================
-    // Upgrade IDs
+    // Config Value getters
     // ================================================================================================================
 
     public Set<String> getUpgradeIds() {
-        Set<String> ids = config.getUpgradeIds();
-        if (ids == null) {
-            return Collections.emptySet();
-        }
-        return ids;
+        return config.getUpgradeIds();
     }
 
-    public boolean hasUpgrade(String upgradeId) {
-        return getUpgradeIds().contains(upgradeId);
+    public Set<Integer> getUpgradeLevels(String upgradeId) {
+        return config.getUpgradeLevels(upgradeId);
     }
 
-    // ================================================================================================================
-    // Levels
-    // ================================================================================================================
-
-
-    public Set<Integer> getLevels(String upgradeId) {
-        Set<Integer> levels = config.getUpgradeLevels(upgradeId);
-        if (levels == null) {
-            return Collections.emptySet();
-        }
-        return levels;
-    }
-
-    public int getNextLevel(String upgradeId, int currentLevel) {
+    public int getNextUpgradeLevel(String upgradeId, int currentLevel) {
         int next = Integer.MAX_VALUE;
-        for (int lvl : getLevels(upgradeId)) {
+
+        for (int lvl : getUpgradeLevels(upgradeId)) {
             if (lvl > currentLevel && lvl < next) {
                 next = lvl;
             }
         }
+
         if (next == Integer.MAX_VALUE) {
             return -1;
         }
+
         return next;
     }
 
-    // ================================================================================================================
-    // Value getters (fallback to level 1 when missing)
-    // ================================================================================================================
+    public int getUpgradeRequireIslandLevel(String upgradeId, int level) {
+        return config.getUpgradeRequireIslandLevel(upgradeId, level);
+    }
 
     public int getTeamLimit(int level) {
-        int v = config.getUpgradeTeamLimit(level);
-        if (v > 0) {
-            return v;
-        }
-        return config.getUpgradeTeamLimit(1);
+        return config.getUpgradeTeamLimit(level);
     }
 
     public int getWarpsLimit(int level) {
-        int v = config.getUpgradeWarpsLimit(level);
-        if (v > 0) {
-            return v;
-        }
-        return config.getUpgradeWarpsLimit(1);
+        return config.getUpgradeWarpsLimit(level);
     }
 
     public int getCoopLimit(int level) {
-        int v = config.getUpgradeCoopLimit(level);
-        if (v > 0) {
-            return v;
-        }
-        return config.getUpgradeCoopLimit(1);
+        return config.getUpgradeCoopLimit(level);
     }
 
     public int getIslandSize(int level) {
-        int v = config.getUpgradeIslandSize(level);
-        if (v > 0) {
-            return v;
-        }
-        return config.getUpgradeIslandSize(1);
+        return config.getUpgradeIslandSize(level);
     }
 
     public Map<String, Integer> getGeneratorRates(int level) {
-        Map<String, Integer> raw = config.getUpgradeGeneratorRates(level);
-        if (raw == null || raw.isEmpty()) {
-            return config.getUpgradeGeneratorRates(1);
-        }
-        return raw;
+        return config.getUpgradeGeneratorRates(level);
     }
 
     // ================================================================================================================
@@ -125,17 +91,15 @@ public final class UpgradeHandler {
 
     public CompletableFuture<UpgradeResult> upgradeToNextLevel(UUID islandUuid, String upgradeId) {
         return CompletableFuture.supplyAsync(() -> {
-            if (!hasUpgrade(upgradeId)) {
+            if (!getUpgradeIds().contains(upgradeId)) {
                 throw new UpgradeDoesNotExistException();
             }
 
             int islandLevel = cache.getIslandLevel(islandUuid);
-            int oldLevel = cache.getIslandUpgradeLevel(islandUuid, upgradeId);
-            if (oldLevel <= 0) {
-                oldLevel = 1;
-            }
 
-            int nextLevel = getNextLevel(upgradeId, oldLevel);
+            int oldLevel = cache.getIslandUpgradeLevel(islandUuid, upgradeId);
+
+            int nextLevel = getNextUpgradeLevel(upgradeId, oldLevel);
             if (nextLevel == -1) {
                 throw new UpgradeMaxedException();
             }
@@ -153,10 +117,21 @@ public final class UpgradeHandler {
 
     public CompletableFuture<Void> setUpgradeLevel(UUID islandUuid, String upgradeId, int level) {
         return CompletableFuture.runAsync(() -> {
-            if (!hasUpgrade(upgradeId)) {
+            if (!getUpgradeIds().contains(upgradeId)) {
                 throw new UpgradeDoesNotExistException();
             }
-            cache.updateIslandUpgradeLevel(islandUuid, upgradeId, Math.max(level, 1));
+
+            Set<Integer> levels = getUpgradeLevels(upgradeId);
+            if (!levels.contains(level)) {
+                throw new UpgradeLevelDoesNotExistException();
+            }
+
+            cache.updateIslandUpgradeLevel(islandUuid, upgradeId, level);
         }, plugin.getBukkitAsyncExecutor());
+    }
+
+
+    public int getCurrentUpgradeLevel(UUID islandUuid, String upgradeId) {
+        return cache.getIslandUpgradeLevel(islandUuid, upgradeId);
     }
 }

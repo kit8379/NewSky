@@ -16,15 +16,18 @@ import java.util.*;
 public class ConfigHandler {
     private final NewSky plugin;
 
-    private final FileConfiguration config;
-    private final FileConfiguration messages;
-    private final FileConfiguration commands;
-    private final FileConfiguration levels;
-    private final FileConfiguration upgrades;
+    private volatile FileConfiguration config;
+    private volatile FileConfiguration messages;
+    private volatile FileConfiguration commands;
+    private volatile FileConfiguration levels;
+    private volatile FileConfiguration upgrades;
 
     public ConfigHandler(NewSky plugin) {
         this.plugin = plugin;
+        reload();
+    }
 
+    public void reload() {
         this.config = load("config.yml");
         this.messages = load("messages.yml");
         this.commands = load("commands.yml");
@@ -244,33 +247,19 @@ public class ConfigHandler {
 // ================================================================================================================
 
     public int getBlockLevel(String material) {
-        return levels.getInt("blocks." + material);
+        return levels.getInt("blocks." + material, 0);
     }
 
 // ================================================================================================================
 // Upgrades Section
 // ================================================================================================================
 
-    /**6
-     * Returns all upgrade ids under "upgrades".
-     * Example: team-limit, warps-limit, coop-limit, island-size, generator-rates
-     */
     public Set<String> getUpgradeIds() {
-        if (upgrades == null) return Collections.emptySet();
-        if (upgrades.getConfigurationSection("upgrades") == null) return Collections.emptySet();
         return Objects.requireNonNull(upgrades.getConfigurationSection("upgrades")).getKeys(false);
     }
 
-    /**
-     * Returns all integer levels defined for an upgrade id.
-     * Example: upgrades.team-limit.'1', '2', '3'
-     */
     public Set<Integer> getUpgradeLevels(String upgradeId) {
-        if (upgrades == null) return Collections.emptySet();
-        if (upgradeId == null || upgradeId.isBlank()) return Collections.emptySet();
-
         String path = "upgrades." + upgradeId;
-        if (upgrades.getConfigurationSection(path) == null) return Collections.emptySet();
 
         Set<String> keys = Objects.requireNonNull(upgrades.getConfigurationSection(path)).getKeys(false);
         Set<Integer> levels = new HashSet<>();
@@ -286,75 +275,28 @@ public class ConfigHandler {
         return levels;
     }
 
-    /**
-     * require-level gate for buying THIS level.
-     * Default 0 if missing.
-     */
     public int getUpgradeRequireIslandLevel(String upgradeId, int level) {
-        if (upgrades == null) return 0;
         return upgrades.getInt("upgrades." + upgradeId + "." + level + ".require-level", 0);
     }
 
-    /**
-     * price for buying THIS level.
-     * Default 0 if missing.
-     */
-    public double getUpgradePrice(String upgradeId, int level) {
-        if (upgrades == null) return 0.0D;
-        return upgrades.getDouble("upgrades." + upgradeId + "." + level + ".price", 0.0D);
-    }
-
-    /**
-     * upgrades.team-limit.<level>.team-limit
-     * Default 0 if missing.
-     */
     public int getUpgradeTeamLimit(int level) {
-        if (upgrades == null) return 0;
         return upgrades.getInt("upgrades.team-limit." + level + ".team-limit", 0);
     }
 
-    /**
-     * upgrades.warps-limit.<level>.warps-limit
-     * Default 0 if missing.
-     */
     public int getUpgradeWarpsLimit(int level) {
-        if (upgrades == null) return 0;
         return upgrades.getInt("upgrades.warps-limit." + level + ".warps-limit", 0);
     }
 
-    /**
-     * upgrades.coop-limit.<level>.coop-limit
-     * Default 0 if missing.
-     */
     public int getUpgradeCoopLimit(int level) {
-        if (upgrades == null) return 0;
         return upgrades.getInt("upgrades.coop-limit." + level + ".coop-limit", 0);
     }
 
-    /**
-     * upgrades.island-size.<level>.island-size
-     * Default 0 if missing.
-     */
     public int getUpgradeIslandSize(int level) {
-        if (upgrades == null) return 0;
         return upgrades.getInt("upgrades.island-size." + level + ".island-size", 0);
     }
 
-    /**
-     * upgrades.generator-rates.<level>.generator-rates.<MATERIAL>: <weight>
-     * <p>
-     * Returns raw map as String->Integer (MaterialName -> weight).
-     * MUST return emptyMap when missing (not null).
-     */
     public Map<String, Integer> getUpgradeGeneratorRates(int level) {
-        if (upgrades == null) {
-            return Collections.emptyMap();
-        }
-
         String path = "upgrades.generator-rates." + level + ".generator-rates";
-        if (upgrades.getConfigurationSection(path) == null) {
-            return Collections.emptyMap();
-        }
 
         Map<String, Object> values = Objects.requireNonNull(upgrades.getConfigurationSection(path)).getValues(false);
         if (values.isEmpty()) {
@@ -843,6 +785,22 @@ public class ConfigHandler {
         return commands.getString("commands.player.lobby.description");
     }
 
+    public String[] getPlayerUpgradeAliases() {
+        return commands.getStringList("commands.player.upgrade.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerUpgradePermission() {
+        return commands.getString("commands.player.upgrade.permission");
+    }
+
+    public String getPlayerUpgradeSyntax() {
+        return commands.getString("commands.player.upgrade.syntax");
+    }
+
+    public String getPlayerUpgradeDescription() {
+        return commands.getString("commands.player.upgrade.description");
+    }
+
     public List<String> getAdminCommandOrder() {
         return Objects.requireNonNull(commands.getConfigurationSection("commands.admin")).getKeys(false).stream().toList();
     }
@@ -1183,6 +1141,22 @@ public class ConfigHandler {
         return commands.getString("commands.admin.lobby.description");
     }
 
+    public String[] getAdminUpgradeAliases() {
+        return commands.getStringList("commands.admin.upgrade.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminUpgradePermission() {
+        return commands.getString("commands.admin.upgrade.permission");
+    }
+
+    public String getAdminUpgradeSyntax() {
+        return commands.getString("commands.admin.upgrade.syntax");
+    }
+
+    public String getAdminUpgradeDescription() {
+        return commands.getString("commands.admin.upgrade.description");
+    }
+
 // =========================================================
 // Messages Section
 // =========================================================
@@ -1411,6 +1385,26 @@ public class ConfigHandler {
 
     public Component getAdminUncoopSuccessMessage(String owner, String target) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-uncoop-success")).replace("{owner}", owner).replace("{target}", target));
+    }
+
+    public Component getAdminUpgradeDetailsHeaderMessage(String player, String upgradeId) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-upgrade-details-header")).replace("{player}", player).replace("{upgrade}", upgradeId));
+    }
+
+    public Component getAdminUpgradeDetailsCurrentLevelMessage(String upgradeId, int level) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-upgrade-details-current-level")).replace("{upgrade}", upgradeId).replace("{level}", String.valueOf(level)));
+    }
+
+    public Component getAdminUpgradeDetailsCurrentValueMessage(String valueString) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-upgrade-details-current-value")).replace("{value}", valueString));
+    }
+
+    public Component getAdminUpgradeInvalidLevelMessage() {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-upgrade-invalid-level")));
+    }
+
+    public Component getAdminUpgradeSetSuccessMessage(String upgradeId, int level) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-upgrade-set-success")).replace("{upgrade}", upgradeId).replace("{level}", String.valueOf(level)));
     }
 
     public Component getAdminLobbySuccessMessage(String player) {
@@ -1696,6 +1690,59 @@ public class ConfigHandler {
 
     public Component getNoCoopedPlayersMessage() {
         return ColorUtils.colorize(messages.getString("messages.cooped-player-no-cooped"));
+    }
+
+    // Upgrade
+    public Component getPlayerUpgradeInvalidIdMessage(String upgradeId) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-invalid-id")).replace("{upgrade}", upgradeId));
+    }
+
+    public Component getPlayerUpgradeDetailsHeaderMessage(String upgradeId) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-header")).replace("{upgrade}", upgradeId));
+    }
+
+    public Component getPlayerUpgradeDetailsCurrentLevelMessage(int level) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-current-level")).replace("{level}", String.valueOf(level)));
+    }
+
+    public Component getPlayerUpgradeDetailsCurrentValueMessage(String valueString) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-current-value")).replace("{value}", valueString));
+    }
+
+    public Component getPlayerUpgradeDetailsNextLevelMessage(String nextLevelOrMaxed) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-next-level")).replace("{level}", nextLevelOrMaxed));
+    }
+
+    public Component getPlayerUpgradeDetailsNextValueMessage(String valueString) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-next-value")).replace("{value}", valueString));
+    }
+
+    public Component getPlayerUpgradeDetailsRequireIslandLevelMessage(int requireLevel) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-require-island-level")).replace("{level}", String.valueOf(requireLevel)));
+    }
+
+    public Component getPlayerUpgradeDetailsYourIslandLevelMessage(int islandLevel) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-your-island-level")).replace("{level}", String.valueOf(islandLevel)));
+    }
+
+    public Component getPlayerUpgradeDetailsStatusLockedMessage() {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-status-locked")));
+    }
+
+    public Component getPlayerUpgradeDetailsStatusAvailableMessage() {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-status-available")));
+    }
+
+    public Component getPlayerUpgradeBuySuccessMessage(String upgradeId, int oldLevel, int newLevel, int requireIslandLevel) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-buy-success")).replace("{upgrade}", upgradeId).replace("{old_level}", String.valueOf(oldLevel)).replace("{new_level}", String.valueOf(newLevel)).replace("{require_level}", String.valueOf(requireIslandLevel)));
+    }
+
+    public Component getPlayerUpgradeMaxedMessage(String upgradeId) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-maxed")).replace("{upgrade}", upgradeId));
+    }
+
+    public Component getPlayerUpgradeIslandLevelTooLowMessage(String upgradeId) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-island-level-too-low")).replace("{upgrade}", upgradeId));
     }
 
     // Help

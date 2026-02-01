@@ -22,15 +22,16 @@ public class CobblestoneGeneratorHandler {
     private static final WeightedTable DEFAULT_TABLE = WeightedTable.ofSingle();
 
     public CobblestoneGeneratorHandler(NewSky plugin, UpgradeHandler upgradeHandler) {
-        this.plugin = Objects.requireNonNull(plugin, "plugin");
-        this.upgradeHandler = Objects.requireNonNull(upgradeHandler, "upgradeHandler");
+        this.plugin = plugin;
+        this.upgradeHandler = upgradeHandler;
+        reload();
     }
 
     /**
      * Rebuild all cached weighted tables from upgrades.yml (generator-rates).
      * Call this on enable and on config reload.
      */
-    public void start() {
+    public void reload() {
         Map<Integer, WeightedTable> built = new HashMap<>();
 
         // Always build base (level 1)
@@ -39,7 +40,7 @@ public class CobblestoneGeneratorHandler {
         built.put(1, level1);
 
         // Build all other defined levels for generator-rates
-        Set<Integer> levels = upgradeHandler.getLevels(UpgradeHandler.UPGRADE_GENERATOR_RATES);
+        Set<Integer> levels = upgradeHandler.getUpgradeLevels(UpgradeHandler.UPGRADE_GENERATOR_RATES);
         for (int lvl : levels) {
             if (lvl <= 1) continue;
             WeightedTable t = buildTableForLevel(lvl);

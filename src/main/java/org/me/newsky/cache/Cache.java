@@ -674,7 +674,6 @@ public class Cache {
 
     public int getIslandUpgradeLevel(UUID islandUuid, String upgradeId) {
         Map<String, Integer> map = islandUpgrades.get(islandUuid);
-        if (map == null) return 1;
         return map.getOrDefault(upgradeId, 1);
     }
 

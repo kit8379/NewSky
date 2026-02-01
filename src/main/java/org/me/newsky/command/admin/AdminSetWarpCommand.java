@@ -56,13 +56,13 @@ public class AdminSetWarpCommand implements SubCommand, TabComplete {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        if (args.length < 3) {
-            return false;
-        }
-
         if (!(sender instanceof Player player)) {
             sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
             return true;
+        }
+
+        if (args.length < 3) {
+            return false;
         }
 
         String warpPlayerName = args[1];

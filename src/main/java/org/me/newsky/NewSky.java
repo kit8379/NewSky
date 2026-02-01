@@ -54,6 +54,8 @@ public class NewSky extends JavaPlugin {
     private CacheBroker cacheBroker;
     private IslandBroker islandBroker;
     private PlayerMessageBroker playerMessageBroker;
+    private LevelHandler levelHandler;
+    private CobblestoneGeneratorHandler cobblestoneGeneratorHandler;
     private NewSkyAPI api;
     private BukkitAsyncExecutor bukkitAsyncExecutor;
 
@@ -156,9 +158,11 @@ public class NewSky extends JavaPlugin {
             PlayerHandler playerHandler = new PlayerHandler(this, cache, redisCache, islandDistributor);
             HomeHandler homeHandler = new HomeHandler(this, cache, islandDistributor);
             WarpHandler warpHandler = new WarpHandler(this, cache, islandDistributor);
-            LevelHandler levelHandler = new LevelHandler(this, config, cache);
+            levelHandler = new LevelHandler(this, config, cache);
             BanHandler banHandler = new BanHandler(this, cache, islandDistributor);
             CoopHandler coopHandler = new CoopHandler(this, cache);
+            UpgradeHandler upgradeHandler = new UpgradeHandler(this, config, cache);
+            cobblestoneGeneratorHandler = new CobblestoneGeneratorHandler(this, upgradeHandler);
             LobbyHandler lobbyHandler = new LobbyHandler(this, config, islandDistributor);
             UuidHandler uuidHandler = new UuidHandler(this, cache);
             WorldActivityHandler worldActivityHandler = new WorldActivityHandler(this);
@@ -179,7 +183,7 @@ public class NewSky extends JavaPlugin {
             info("All schedulers loaded");
 
             info("Starting API");
-            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, playerMessageHandler, uuidHandler);
+            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, playerMessageHandler, uuidHandler, upgradeHandler);
             info("API loaded");
 
             info("Starting listeners");
@@ -192,6 +196,7 @@ public class NewSky extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new IslandAccessListener(this, config), this);
             getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config), this);
             getServer().getPluginManager().registerEvents(new UuidUpdateListener(this), this);
+            getServer().getPluginManager().registerEvents(new CobblestoneGeneratorListener(this, cobblestoneGeneratorHandler), this);
             info("All listeners loaded");
 
             info("Registering commands");
@@ -269,10 +274,11 @@ public class NewSky extends JavaPlugin {
     }
 
     public void reload() {
-        info("Plugin reloading...");
-        shutdown();
-        initialize();
-        info("Plugin reloaded!");
+        info("Plugin configs reloading...");
+        config.reload();
+        levelHandler.reload();
+        cobblestoneGeneratorHandler.reload();
+        info("Plugin configs reloaded!");
     }
 
     @SuppressWarnings("unused")
