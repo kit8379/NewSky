@@ -4,10 +4,8 @@ import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.Cache;
 
 import java.util.ArrayList;
-import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -15,11 +13,9 @@ import java.util.stream.Collectors;
 public class NewSkyPlaceholderExpansion extends PlaceholderExpansion {
 
     private final NewSky plugin;
-    private final Cache cache;
 
-    public NewSkyPlaceholderExpansion(NewSky plugin, Cache cache) {
+    public NewSkyPlaceholderExpansion(NewSky plugin) {
         this.plugin = plugin;
-        this.cache = cache;
     }
 
     @Override
@@ -49,14 +45,12 @@ public class NewSkyPlaceholderExpansion extends PlaceholderExpansion {
 
     @Override
     public String onPlaceholderRequest(Player player, @NotNull String identifier) {
-        if (player == null) return null;
-
-        Optional<UUID> islandUuidOpt = cache.getIslandUuid(player.getUniqueId());
-        if (islandUuidOpt.isEmpty()) {
+        if (player == null) {
             return null;
         }
 
-        UUID islandUuid = islandUuidOpt.get();
+        UUID islandUuid = plugin.getApi().getIslandUuid(player.getUniqueId());
+
         return resolvePlaceholder(islandUuid, identifier.toLowerCase());
     }
 
@@ -65,30 +59,30 @@ public class NewSkyPlaceholderExpansion extends PlaceholderExpansion {
             case "island_uuid":
                 return islandUuid.toString();
             case "island_lock":
-                return String.valueOf(cache.isIslandLock(islandUuid));
+                return String.valueOf(plugin.getApi().isIslandLock(islandUuid));
             case "island_pvp":
-                return String.valueOf(cache.isIslandPvp(islandUuid));
+                return String.valueOf(plugin.getApi().isIslandPvp(islandUuid));
             case "island_level":
-                return String.valueOf(cache.getIslandLevel(islandUuid));
+                return String.valueOf(plugin.getApi().getIslandLevel(islandUuid));
             case "island_owner":
-                return formatUuid(cache.getIslandOwner(islandUuid));
+                return formatUuid(plugin.getApi().getIslandOwner(islandUuid));
             case "island_members":
-                return formatList(cache.getIslandMembers(islandUuid));
+                return formatList(plugin.getApi().getIslandMembers(islandUuid));
             case "island_players":
-                return formatList(cache.getIslandPlayers(islandUuid));
+                return formatList(plugin.getApi().getIslandPlayers(islandUuid));
             case "island_coops":
-                return formatList(cache.getCoopedPlayers(islandUuid));
+                return formatList(plugin.getApi().getCoopedPlayers(islandUuid));
             case "island_bans":
-                return formatList(cache.getBannedPlayers(islandUuid));
+                return formatList(plugin.getApi().getBannedPlayers(islandUuid));
             default:
                 if (identifier.startsWith("island_member_")) {
-                    return formatIndexed(cache.getIslandMembers(islandUuid), identifier, "island_member_");
+                    return formatIndexed(plugin.getApi().getIslandMembers(islandUuid), identifier, "island_member_");
                 }
                 if (identifier.startsWith("island_coops_")) {
-                    return formatIndexed(cache.getCoopedPlayers(islandUuid), identifier, "island_coops_");
+                    return formatIndexed(plugin.getApi().getCoopedPlayers(islandUuid), identifier, "island_coops_");
                 }
                 if (identifier.startsWith("island_bans_")) {
-                    return formatIndexed(cache.getBannedPlayers(islandUuid), identifier, "island_bans_");
+                    return formatIndexed(plugin.getApi().getBannedPlayers(islandUuid), identifier, "island_bans_");
                 }
                 return null;
         }
@@ -114,7 +108,7 @@ public class NewSkyPlaceholderExpansion extends PlaceholderExpansion {
         if (uuid == null) {
             return null;
         }
-        return cache.getPlayerName(uuid).orElse(uuid.toString());
+        return plugin.getApi().getPlayerName(uuid).orElse(uuid.toString());
     }
 
     private int parseIndex(String identifier, String prefix) {
