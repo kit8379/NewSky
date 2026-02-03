@@ -216,7 +216,7 @@ public class NewSky extends JavaPlugin {
             info("Registering placeholder");
             if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
                 info("PlaceholderAPI found, registering placeholders");
-                new NewSkyPlaceholderExpansion(this, cache).register();
+                new NewSkyPlaceholderExpansion(this).register();
                 info("Placeholder registered");
             } else {
                 info("PlaceholderAPI not found, skipping placeholder registration");
