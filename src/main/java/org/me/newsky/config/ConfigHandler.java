@@ -1331,10 +1331,6 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-delete-home-success")).replace("{player}", player).replace("{home}", home));
     }
 
-    public Component getAdminNoWarpMessage(String player, String warp) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-no-warp")).replace("{player}", player).replace("{warp}", warp));
-    }
-
     public Component getAdminDelWarpSuccessMessage(String player, String warp) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-delete-warp-success")).replace("{player}", player).replace("{warp}", warp));
     }

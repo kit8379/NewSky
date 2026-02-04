@@ -78,11 +78,11 @@ public class NewSkyPlaceholderExpansion extends PlaceholderExpansion {
                 if (identifier.startsWith("island_member_")) {
                     return formatIndexed(plugin.getApi().getIslandMembers(islandUuid), identifier, "island_member_");
                 }
-                if (identifier.startsWith("island_coops_")) {
-                    return formatIndexed(plugin.getApi().getCoopedPlayers(islandUuid), identifier, "island_coops_");
+                if (identifier.startsWith("island_coop_")) {
+                    return formatIndexed(plugin.getApi().getCoopedPlayers(islandUuid), identifier, "island_coop_");
                 }
-                if (identifier.startsWith("island_bans_")) {
-                    return formatIndexed(plugin.getApi().getBannedPlayers(islandUuid), identifier, "island_bans_");
+                if (identifier.startsWith("island_ban_")) {
+                    return formatIndexed(plugin.getApi().getBannedPlayers(islandUuid), identifier, "island_ban_");
                 }
                 return null;
         }
