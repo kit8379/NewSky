@@ -1,28 +1,52 @@
 messages:
-  # General Messages
+
+  # ================================================================================================================
+  # General / Global
+  # ================================================================================================================
+
+  # Plugin / System
   plugin-reloaded: "<green>Plugin reloaded successfully!"
+  unknown-exception: "<red>An unknown error occurred while processing your request. Please try again later or contact the administrator."
+
+  # Permissions / Sender
   only-player-can-run-command: "<red>Only players can run this command!"
   no-permission-command: "<red>You don't have permission to use this command."
+
+  # Player Lookup / Online State
+  player-not-online: "<red>Player <aqua>{player} <red>is not online!"
+  unknown-player: "<red>{player} has never joined the server before!"
+
+  # ================================================================================================================
+  # Island - State / Access / Loading
+  # ================================================================================================================
+
   no-active-server: "<red>No active server found!"
+  no-island: "<red>Player <aqua>{player} <red>does not have an island!"
+  already-has-island: "<red>Player <aqua>{player} <red>already owns an island!"
+
   island-busy: "<red>Island is currently loading the island. Please try again later!"
   island-not-loaded: "<red>The island is not loaded!"
   island-already-loaded: "<red>The island is already loaded!"
+  island-locked: "<red>This island is currently locked!"
+
+  cannot-edit-island: "<red>You cannot edit this island!"
+  not-island-member: "<red>Player <aqua>{player} <red>is not a member of this island!"
+  island-member-exists: "<red>Player <aqua>{player} <red>is already a member of this island!"
+  cannot-remove-owner: "<red>You cannot remove the island owner!"
+
+  # ================================================================================================================
+  # Island - Actions / Teleport / Values
+  # ================================================================================================================
+
   island-level: "<#FFD700>Island Level: <white>{level}"
   island-load-success: "<green>Successfully loaded island for player <aqua>{player}<green>!"
   island-unload-success: "<green>Successfully unloaded island for player <aqua>{player}<green>!"
-  island-locked: "<red>This island is currently locked!"
-  player-banned: "<red>You are banned from this island!"
+
+  # PvP / Rules
   island-pvp-disabled: "<red>PvP is disabled on this island!"
-  island-member-exists: "<red>Player <aqua>{player} <red>is already a member of this island!"
-  not-island-member: "<red>Player <aqua>{player} <red>is not a member of this island!"
-  cannot-edit-island: "<red>You cannot edit this island!"
-  warp-success: "<green>Teleported to warp <aqua>{warp}<green>!"
-  no-warp: "<red>Player <aqua>{player} <red>does not have a warp named <aqua>{warp}<red>!"
-  no-island: "<red>Player <aqua>{player} <red>does not have an island!"
-  player-not-online: "<red>Player <aqua>{player} <red>is not online!"
-  block-value: "<green>Block Value: <white>{value}"
-  no-item-in-hand: "<red>You must be holding an item!"
-  already-has-island: "<red>Player <aqua>{player} <red>already owns an island!"
+
+  # Bans / Coop Notifications (recipient = affected player)
+  player-banned: "<red>You are banned from this island!"
   was-added-to-island: "<green>You were added to the island of <aqua>{owner}<green>!"
   was-removed-from-island: "<green>You were removed from the island of <aqua>{owner}<green>!"
   was-banned-from-island: "<green>You were banned from the island of <aqua>{owner}<green>!"
@@ -30,18 +54,48 @@ messages:
   was-cooped-from-island: "<green>You were set as a co-op member on the island of <aqua>{owner}<green>!"
   was-uncooped-from-island: "<green>You were removed as a co-op member from the island of <aqua>{owner}<green>!"
   new-member-notification: "<green>{player} has joined your island!"
-  cannot-remove-owner: "<red>You cannot remove the island owner!"
-  block-limit-reached: "&cYou island has reached the limit of {limit} for {block}."
-  unknown-player: "<red>{player} has never joined the server before!"
-  unknown-exception: "<red>An unknown error occurred while processing your request. Please try again later or contact the administrator."
 
-  # Player Command Messages
+  # Homes / Warps (generic)
+  warp-success: "<green>Teleported to warp <aqua>{warp}<green>!"
+  no-warp: "<red>Player <aqua>{player} <red>does not have a warp named <aqua>{warp}<red>!"
+
+  # Value / Item
+  block-value: "<green>Block Value: <white>{value}"
+  no-item-in-hand: "<red>You must be holding an item!"
+
+  # Limits
+  block-limit-reached: "&cYou island has reached the limit of {limit} for {block}."
+
+  # ================================================================================================================
+  # Player Commands
+  # ================================================================================================================
+
+  # Command Parsing / Usage
   player-usage-command: "<red>Correct usage: <aqua>/is {command} {syntax}"
   player-unknown-sub-command: "<red>Unknown command. Type <aqua>/is help <red>to view available commands."
+
+  # Help
+  player-help-header: "<aqua>⎯⎯⎯ <#FFD700>Help Page <aqua>⎯⎯⎯"
+  player-help-entry: "<hover:show_text:'<gray>Click to execute'><click:suggest_command:'/is {command} '><#00FFAA>▸ <white>/is {command} <#AAAAAA>{syntax} <#808080>{description}</click></hover>"
+  player-help-footer: "<aqua>⎯⎯⎯ <hover:show_text:'<gray>Previous page'><click:run_command:'/is help {prev}'><#AAAAAA>[«]</click></hover> (Page {page} / {total}) <hover:show_text:'<gray>Next page'><click:run_command:'/is help {next}'><#AAAAAA>[»]</click></hover> ⎯⎯⎯"
+
+  # Island Ownership / Presence
   player-no-island: "<red>You don't have an island yet!"
   player-already-has-island: "<red>You already own an island!"
-  player-must-in-island-set-home: "<red>You must be on your island to set a home!"
-  player-must-in-island-set-warp: "<red>You must be on your island to set a warp!"
+  player-info-not-in-island: "<red>You are not on any island!"
+
+  # Create / Delete
+  player-create-island-success: "<green>Island created successfully!"
+  player-delete-not-owner: "<red>Only the island owner can delete the island!"
+  player-delete-first-warning: "<red>Are you sure you want to delete your island? This action is irreversible!"
+  player-delete-final-warning: |
+    <red>This is your final warning!
+    <gray>Your island, items, and progress will be removed.
+    <gray>This action cannot be undone.
+    <red>Type <aqua>/is delete <red>to permanently delete your island!
+  player-delete-island-success: "<green>Your island has been deleted!"
+
+  # Member / Invite
   player-invite-sent: "<green>Island invitation sent to <aqua>{player}<green>!"
   player-invite-receive: "<yellow>You have received an island invitation from <aqua>{player}</aqua>. <green><click:suggest_command:'/is accept'><hover:show_text:'Click to accept the invitation'>/is accept</hover></click></green><yellow> or <red><click:suggest_command:'/is reject'><hover:show_text:'Click to reject the invitation'>/is reject</hover></click></red><yellow>."
   player-invite-accepted-notify: "<green>{player} has accepted your island invitation!"
@@ -52,99 +106,55 @@ messages:
   player-no-pending-invite: "<red>You have no pending island invitations!"
   player-remove-member-success: "<green>Successfully removed player <aqua>{player} <green>from your island!"
   player-cannot-remove-self: "<red>You cannot remove yourself from your own island!"
-  player-create-island-success: "<green>Island created successfully!"
-  player-delete-first-warning: "<red>Are you sure you want to delete your island? This action is irreversible!"
-  player-delete-final-warning: |
-    <red>This is your final warning!
-    <gray>Your island, items, and progress will be removed.
-    <gray>This action cannot be undone.
-    <red>Type <aqua>/is delete <red>to permanently delete your island!
-  player-delete-island-success: "<green>Your island has been deleted!"
-  player-delete-not-owner: "<red>Only the island owner can delete the island!"
+
+  # Home
+  player-must-in-island-set-home: "<red>You must be on your island to set a home!"
   player-set-home-success: "<green>Home <aqua>{home}<green> set successfully!"
-  player-set-warp-success: "<green>Warp <aqua>{warp}<green> set successfully!"
   player-delete-home-success: "<green>Home <aqua>{home}<green> deleted successfully!"
   player-cannot-delete-default-home: "<red>You can't delete the default home!"
+  player-no-home: "<red>You don't have a home named <aqua>{home}<red>!"
+  player-home-success: "<green>Teleported to home <aqua>{home}<green>!"
+
+  # Warp
+  player-must-in-island-set-warp: "<red>You must be on your island to set a warp!"
+  player-set-warp-success: "<green>Warp <aqua>{warp}<green> set successfully!"
   player-delete-warp-success: "<green>Warp <aqua>{warp}<green> deleted successfully!"
+  player-no-warp: "<red>You don't have a warp named <aqua>{warp}<red>!"
   player-lock-success: "<green>Your island has been locked!"
   player-unlock-success: "<green>Your island has been unlocked!"
+
+  # PvP
   player-pvp-enable-success: "<green>PvP has been enabled on your island!"
   player-pvp-disable-success: "<green>PvP has been disabled on your island!"
-  player-no-home: "<red>You don't have a home named <aqua>{home}<red>!"
-  player-no-warp: "<red>You don't have a warp named <aqua>{warp}<red>!"
-  player-home-success: "<green>Teleported to home <aqua>{home}<green>!"
+
+  # Ownership Transfer / Leave
   player-set-owner-success: "<green>You transferred island ownership to <aqua>{player}<green>!"
   player-already-owner: "<red>You are already the owner of this island!"
   player-cannot-leave-as-owner: "<red>You can't leave the island as its owner!"
   player-leave-success: "<green>You have left your island!"
+
+  # Expel
   player-expel-success: "<green>Successfully expelled <aqua>{player} <green>from your island."
   player-cannot-expel-island-player: "<red>You can't expel an island member or the owner!"
+
+  # Ban / Unban
   player-ban-success: "<green>Successfully banned <aqua>{player}<green>!"
   player-unban-success: "<green>Successfully unbanned <aqua>{player}<green>!"
   player-already-banned: "<red><aqua>{player} <red>is already banned from your island!"
   player-not-banned: "<red><aqua>{player} <red>is not banned from your island!"
   player-cannot-ban-island-player: "<red>You can't ban an island member or the owner!"
+
+  # Coop / Uncoop
   player-coop-success: "<green>Player <aqua>{player} <green>is now a co-op member!"
   player-uncoop-success: "<green>Player <aqua>{player} <green>is no longer a co-op member!"
   player-already-cooped: "<red><aqua>{player} <red>is already a co-op member!"
   player-not-cooped: "<red><aqua>{player} <red>is not a co-op member!"
   player-cannot-coop-island-player: "<red>You can't set an island member as a co-op member!"
-  player-info-not-in-island: "<red>You are not on any island!"
+
+  # Lobby
   player-lobby-success: "<green>You have been teleported to the lobby server!"
 
-  # Admin Command Messages
-  admin-usage-command: "<red>Correct usage: <aqua>/isadmin {command} {syntax}"
-  admin-unknown-sub-command: "<red>Unknown command. Type <aqua>/isadmin help <red>to view available commands."
-  admin-no-island: "<red>Player <aqua>{player} <red>does not have an island!"
-  admin-add-member-success: "<green>Successfully added <aqua>{target} <green>to the island of <aqua>{owner}<green>!"
-  admin-remove-member-success: "<green>Successfully removed <aqua>{target} <green>from the island of <aqua>{owner}<green>!"
-  admin-create-island-success: "<green>Successfully created an island for player <aqua>{player}<green>!"
-  admin-delete-warning: "<red>Are you sure you want to delete player <aqua>{player}'s <red>island? This action is irreversible!"
-  admin-delete-island-success: "<green>Successfully deleted player <aqua>{player}'s <green>island!"
-  admin-cannot-delete-default-home: "<red>Cannot delete default home of player <aqua>{player}<red>!"
-  admin-no-home: "<red>Player <aqua>{player} <red>does not have a home named <aqua>{home}<red>!"
-  admin-home-success: "<green>Teleported to player <aqua>{player}'s <green>home <aqua>{home}<green>!"
-  admin-delete-home-success: "<green>Deleted home <#00FF555>{home} <green>of player <aqua>{player}<green>!"
-  admin-no-warp: "<red>Player <aqua>{player} <red>does not have a warp named <aqua>{warp}<red>!"
-  admin-delete-warp-success: "<green>Deleted warp <aqua>{warp} <green>of player <aqua>{player}<green>!"
-  admin-lock-success: "<green>Successfully locked the island of player <aqua>{player}<green>!"
-  admin-unlock-success: "<green>Successfully unlocked the island of player <aqua>{player}<green>!"
-  admin-must-in-island-set-home: "<red>You must be on the island to set a home!"
-  admin-must-in-island-set-warp: "<red>You must be on the island to set a warp!"
-  admin-set-home-success: "<green>Set home <aqua>{home} <green>for player <aqua>{player}<green>!"
-  admin-set-warp-success: "<green>Set warp <aqua>{warp} <green>for player <aqua>{player}<green>!"
-  admin-pvp-enable-success: "<green>Enabled PvP for the island of player <aqua>{player}<green>!"
-  admin-pvp-disable-success: "<green>Disabled PvP for the island of player <aqua>{player}<green>!"
-  admin-ban-success: "<green>Banned <aqua>{target} <green>from island of <aqua>{owner}<green>."
-  admin-unban-success: "<green>Unbanned <aqua>{target} <green>from island of <aqua>{owner}<green>."
-  admin-coop-success: "<green>Set <aqua>{target} <green>as co-op member of island owned by <aqua>{owner}<green>."
-  admin-uncoop-success: "<green>Removed co-op status of <aqua>{target} <green>from island of <aqua>{owner}<green>."
-  admin-lobby-success: "<green>{player} has been teleported to the lobby server!"
-
-  # Info Messages
-  island-info-header: "<#00BFFF>Island Info:"
-  island-info-uuid: "<#00FFAA>Island UUID: <white>{island_uuid}"
-  island-info-level: "<#00FFAA>Island Level: <white>{level}"
-  island-info-owner: "<#00FFAA>Island Owner: <white>{owner}"
-  island-info-members: "<#00FFAA>Island Members: <white>{members}"
-  island-info-no-members: "<red>No members"
-
-  # Top Islands Messages
-  top-islands-header: "<#FFD700>Top 10 Highest Level Islands:"
-  top-islands-message: "<aqua>{rank}. <white>{owner} <#AAAAAA>({members}) - <#FFD700>{level}"
-  top-islands-no-island: "<red>No islands found."
-
-  # Banned List Players Messages
-  banned-players-header: "<red>Banned Players:"
-  banned-player-message: "<#AAAAAA>- {player}"
-  banned-player-no-banned: "<red>Your island has no banned players."
-
-  # Cooped List Players Messages
-  cooped-players-header: "<green>Co-op Members:"
-  cooped-player-message: "<#AAAAAA>- {player}"
-  cooped-player-no-cooped: "<red>Your island has no co-op members."
-
-  # Player Upgrade
+  # Upgrade
   player-upgrade-invalid-id: "<red>Unknown upgrade id: <white>{upgrade}"
   player-upgrade-details-header: "<#FFD700>Upgrade: <white>{upgrade}"
   player-upgrade-details-current-level: "<gray>Current Level: <white>{level}"
@@ -159,19 +169,92 @@ messages:
   player-upgrade-maxed: "<red><white>{upgrade}<red> is already max level."
   player-upgrade-island-level-too-low: "<red>Your island level is too low to upgrade <white>{upgrade}<red>."
 
-  # Admin Upgrade
+  # ================================================================================================================
+  # Admin Commands
+  # ================================================================================================================
+
+  # Command Parsing / Usage
+  admin-usage-command: "<red>Correct usage: <aqua>/isadmin {command} {syntax}"
+  admin-unknown-sub-command: "<red>Unknown command. Type <aqua>/isadmin help <red>to view available commands."
+
+  # Help
+  admin-help-header: "<aqua>⎯⎯⎯ <#FF69B4>Admin Commands <aqua>⎯⎯⎯"
+  admin-help-entry: "<hover:show_text:'<gray>Click to execute'><click:suggest_command:'/isadmin {command} '><#FF69B4>▸ <white>/isadmin {command} <#AAAAAA>{syntax} <#808080>{description}</click></hover>"
+  admin-help-footer: "<aqua>⎯⎯⎯ <hover:show_text:'<gray>Previous page'><click:run_command:'/isadmin help {prev}'><#AAAAAA>[«]</click></hover> (Page {page} / {total}) <hover:show_text:'<gray>Next page'><click:run_command:'/isadmin help {next}'><#AAAAAA>[»]</click></hover> (Page {page} / {total}) <hover:show_text:'<gray>Next page'><click:run_command:'/isadmin help {next}'><#AAAAAA>[»]</click></hover> ⎯⎯⎯"
+
+  # Island Lookup
+  admin-no-island: "<red>Player <aqua>{player} <red>does not have an island!"
+
+  # Member Management
+  admin-add-member-success: "<green>Successfully added <aqua>{target} <green>to the island of <aqua>{owner}<green>!"
+  admin-remove-member-success: "<green>Successfully removed <aqua>{target} <green>from the island of <aqua>{owner}<green>!"
+
+  # Create / Delete
+  admin-create-island-success: "<green>Successfully created an island for player <aqua>{player}<green>!"
+  admin-delete-warning: "<red>Are you sure you want to delete player <aqua>{player}'s <red>island? This action is irreversible!"
+  admin-delete-island-success: "<green>Successfully deleted player <aqua>{player}'s <green>island!"
+
+  # Home
+  admin-must-in-island-set-home: "<red>You must be on the island to set a home!"
+  admin-set-home-success: "<green>Set home <aqua>{home} <green>for player <aqua>{player}<green>!"
+  admin-cannot-delete-default-home: "<red>Cannot delete default home of player <aqua>{player}<red>!"
+  admin-no-home: "<red>Player <aqua>{player} <red>does not have a home named <aqua>{home}<red>!"
+  admin-home-success: "<green>Teleported to player <aqua>{player}'s <green>home <aqua>{home}<green>!"
+  admin-delete-home-success: "<green>Deleted home <#00FF555>{home} <green>of player <aqua>{player}<green>!"
+
+  # Warp
+  admin-must-in-island-set-warp: "<red>You must be on the island to set a warp!"
+  admin-set-warp-success: "<green>Set warp <aqua>{warp} <green>for player <aqua>{player}<green>!"
+  admin-no-warp: "<red>Player <aqua>{player} <red>does not have a warp named <aqua>{warp}<red>!"
+  admin-delete-warp-success: "<green>Deleted warp <aqua>{warp} <green>of player <aqua>{player}<green>!"
+
+  # Lock / Unlock
+  admin-lock-success: "<green>Successfully locked the island of player <aqua>{player}<green>!"
+  admin-unlock-success: "<green>Successfully unlocked the island of player <aqua>{player}<green>!"
+
+  # PvP
+  admin-pvp-enable-success: "<green>Enabled PvP for the island of player <aqua>{player}<green>!"
+  admin-pvp-disable-success: "<green>Disabled PvP for the island of player <aqua>{player}<green>!"
+
+  # Ban / Unban / Coop
+  admin-ban-success: "<green>Banned <aqua>{target} <green>from island of <aqua>{owner}<green>."
+  admin-unban-success: "<green>Unbanned <aqua>{target} <green>from island of <aqua>{owner}<green>."
+  admin-coop-success: "<green>Set <aqua>{target} <green>as co-op member of island owned by <aqua>{owner}<green>."
+  admin-uncoop-success: "<green>Removed co-op status of <aqua>{target} <green>from island of <aqua>{owner}<green>."
+
+  # Lobby
+  admin-lobby-success: "<green>{player} has been teleported to the lobby server!"
+
+  # Upgrade
   admin-upgrade-details-header: "<#FFD700>Upgrade Details: <white>{player} <gray>- <white>{upgrade}"
   admin-upgrade-details-current-level: "<gray>Current <white>{upgrade}<gray> Level: <white>{level}"
   admin-upgrade-details-current-value: "<gray>Current Value: <white>{value}"
   admin-upgrade-invalid-level: "<red>Invalid level. Please enter a valid number."
   admin-upgrade-set-success: "<#55FF55>Set <white>{upgrade}<#55FF55> to <white>Lv.{level}<#55FF55>."
 
-  # Help Messages
-  player-help-header: "<aqua>⎯⎯⎯ <#FFD700>Help Page <aqua>⎯⎯⎯"
-  player-help-entry: "<hover:show_text:'<gray>Click to execute'><click:suggest_command:'/is {command} '><#00FFAA>▸ <white>/is {command} <#AAAAAA>{syntax} <#808080>{description}</click></hover>"
-  player-help-footer: "<aqua>⎯⎯⎯ <hover:show_text:'<gray>Previous page'><click:run_command:'/is help {prev}'><#AAAAAA>[«]</click></hover> (Page {page} / {total}) <hover:show_text:'<gray>Next page'><click:run_command:'/is help {next}'><#AAAAAA>[»]</click></hover> ⎯⎯⎯"
+  # ================================================================================================================
+  # Info / Lists / Top
+  # ================================================================================================================
 
-  # Admin Help Messages
-  admin-help-header: "<aqua>⎯⎯⎯ <#FF69B4>Admin Commands <aqua>⎯⎯⎯"
-  admin-help-entry: "<hover:show_text:'<gray>Click to execute'><click:suggest_command:'/isadmin {command} '><#FF69B4>▸ <white>/isadmin {command} <#AAAAAA>{syntax} <#808080>{description}</click></hover>"
-  admin-help-footer: "<aqua>⎯⎯⎯ <hover:show_text:'<gray>Previous page'><click:run_command:'/isadmin help {prev}'><#AAAAAA>[«]</click></hover> (Page {page} / {total}) <hover:show_text:'<gray>Next page'><click:run_command:'/isadmin help {next}'><#AAAAAA>[»]</click></hover> ⎯⎯⎯"
+  # Island Info
+  island-info-header: "<#00BFFF>Island Info:"
+  island-info-uuid: "<#00FFAA>Island UUID: <white>{island_uuid}"
+  island-info-level: "<#00FFAA>Island Level: <white>{level}"
+  island-info-owner: "<#00FFAA>Island Owner: <white>{owner}"
+  island-info-members: "<#00FFAA>Island Members: <white>{members}"
+  island-info-no-members: "<red>No members"
+
+  # Top Islands
+  top-islands-header: "<#FFD700>Top 10 Highest Level Islands:"
+  top-islands-message: "<aqua>{rank}. <white>{owner} <#AAAAAA>({members}) - <#FFD700>{level}"
+  top-islands-no-island: "<red>No islands found."
+
+  # Banned Players List
+  banned-players-header: "<red>Banned Players:"
+  banned-player-message: "<#AAAAAA>- {player}"
+  banned-player-no-banned: "<red>Your island has no banned players."
+
+  # Co-op Players List
+  cooped-players-header: "<green>Co-op Members:"
+  cooped-player-message: "<#AAAAAA>- {player}"
+  cooped-player-no-cooped: "<red>Your island has no co-op members."
