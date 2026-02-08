@@ -8,6 +8,7 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandBusyException;
 import org.me.newsky.exceptions.NoActiveServerException;
+import org.me.newsky.island.UpgradeHandler;
 import org.me.newsky.model.Invitation;
 
 import java.util.Optional;
@@ -70,6 +71,13 @@ public class PlayerAcceptInviteCommand implements SubCommand {
         Invitation invite = optionalInvite.get();
         UUID islandUuid = invite.getIslandUuid();
         UUID inviterUuid = invite.getInviterUuid();
+
+        int teamLimitLevel = api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_TEAM_LIMIT);
+        int teamLimit = api.getTeamLimit(teamLimitLevel);
+        if (api.getIslandMembers(islandUuid).size() >= teamLimit) {
+            player.sendMessage(config.getPlayerTeamLimitReachedMessage(teamLimit));
+            return true;
+        }
 
         api.removePendingInvite(playerUuid).thenCompose(v -> {
             return api.addMember(islandUuid, playerUuid, "member");

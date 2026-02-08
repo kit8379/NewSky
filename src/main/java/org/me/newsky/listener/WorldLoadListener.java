@@ -7,9 +7,11 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.island.UpgradeHandler;
 import org.me.newsky.util.IslandUtils;
 
 import java.util.Map;
+import java.util.UUID;
 
 public class WorldLoadListener implements Listener {
 
@@ -85,9 +87,12 @@ public class WorldLoadListener implements Listener {
     }
 
     private void applyWorldBorder(World world) {
+        UUID islandUuid = IslandUtils.nameToUUID(world.getName());
+        int islandSizeLevel = plugin.getApi().getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_ISLAND_SIZE);
+        int islandSize = plugin.getApi().getIslandSize(islandSizeLevel);
         WorldBorder border = world.getWorldBorder();
         border.setCenter(0.0, 0.0);
-        border.setSize(config.getIslandSize());
+        border.setSize(islandSize);
         border.setWarningDistance(0);
         border.setDamageAmount(0.1);
         border.setDamageBuffer(1.0);

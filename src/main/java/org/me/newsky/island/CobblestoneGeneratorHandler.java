@@ -63,23 +63,23 @@ public class CobblestoneGeneratorHandler {
     }
 
     private WeightedTable buildTableForLevel(int level) {
-        Map<String, Integer> raw = upgradeHandler.getGeneratorRates(level);
+        Map<String, Double> raw = upgradeHandler.getGeneratorRates(level);
 
         if (raw.isEmpty()) {
             return (level == 1) ? DEFAULT_TABLE : null;
         }
 
         List<Material> mats = new ArrayList<>();
-        List<Integer> weights = new ArrayList<>();
-        int total = 0;
+        List<Double> weights = new ArrayList<>();
+        double total = 0.0;
 
-        for (Map.Entry<String, Integer> e : raw.entrySet()) {
+        for (Map.Entry<String, Double> e : raw.entrySet()) {
             String key = e.getKey();
-            Integer wObj = e.getValue();
+            Double wObj = e.getValue();
             if (key == null || wObj == null) continue;
 
-            int w = wObj;
-            if (w <= 0) continue;
+            double w = wObj;
+            if (w <= 0.0) continue;
 
             Material m = Material.matchMaterial(key);
             if (m == null) {
@@ -92,16 +92,16 @@ public class CobblestoneGeneratorHandler {
             total += w;
         }
 
-        if (mats.isEmpty() || total <= 0) {
+        if (mats.isEmpty() || total <= 0.0) {
             return (level == 1) ? DEFAULT_TABLE : null;
         }
 
         return new WeightedTable(mats.toArray(new Material[0]), toCumulative(weights), total);
     }
 
-    private static int[] toCumulative(List<Integer> weights) {
-        int[] cum = new int[weights.size()];
-        int running = 0;
+    private static double[] toCumulative(List<Double> weights) {
+        double[] cum = new double[weights.size()];
+        double running = 0.0;
         for (int i = 0; i < weights.size(); i++) {
             running += weights.get(i);
             cum[i] = running;
@@ -111,25 +111,25 @@ public class CobblestoneGeneratorHandler {
 
     private static final class WeightedTable {
         private final Material[] mats;
-        private final int[] cumulative;
-        private final int total;
+        private final double[] cumulative;
+        private final double total;
 
-        private WeightedTable(Material[] mats, int[] cumulative, int total) {
+        private WeightedTable(Material[] mats, double[] cumulative, double total) {
             this.mats = mats;
             this.cumulative = cumulative;
             this.total = total;
         }
 
         static WeightedTable ofSingle() {
-            return new WeightedTable(new Material[]{Material.COBBLESTONE}, new int[]{100}, 100);
+            return new WeightedTable(new Material[]{Material.COBBLESTONE}, new double[]{100.0}, 100.0);
         }
 
         Material roll(Random random) {
-            if (mats.length == 0 || total <= 0) {
+            if (mats.length == 0 || total <= 0.0) {
                 return Material.COBBLESTONE;
             }
 
-            int r = random.nextInt(total);
+            double r = random.nextDouble() * total; // [0, total)
             for (int i = 0; i < cumulative.length; i++) {
                 if (r < cumulative[i]) {
                     return mats[i];

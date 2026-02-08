@@ -589,8 +589,18 @@ public class NewSkyAPI {
      * @return The warps limit for the specified level.
      */
     @SuppressWarnings("unused")
-    public int getWarpsLimit(int level) {
-        return upgradeHandler.getWarpsLimit(level);
+    public int getWarpLimit(int level) {
+        return upgradeHandler.getWarpLimit(level);
+    }
+
+    /**
+     * Gets the home limit for a specific upgrade level.
+     *
+     * @param level The level of the upgrade.
+     * @return The home limit for the specified level.
+     */
+    public int getHomeLimit(int level) {
+        return upgradeHandler.getHomeLimit(level);
     }
 
     /**
@@ -622,7 +632,7 @@ public class NewSkyAPI {
      * @return A map of generator types to their rates for the specified level.
      */
     @SuppressWarnings("unused")
-    public Map<String, Integer> getGeneratorRates(int level) {
+    public Map<String, Double> getGeneratorRates(int level) {
         return upgradeHandler.getGeneratorRates(level);
     }
 

@@ -1,56 +1,66 @@
 upgrades:
   coop-limit:
     '1':
-      coop-limit: 2
+      limit: 2
     '2':
       require-level: 8
-      coop-limit: 3
+      limit: 3
     '3':
       require-level: 25
-      coop-limit: 4
+      limit: 4
 
   team-limit:
     '1':
-      team-limit: 2
+      limit: 5
     '2':
       require-level: 10
-      team-limit: 3
+      limit: 6
     '3':
       require-level: 25
-      team-limit: 4
+      limit: 7
 
-  warps-limit:
+  home-limit:
     '1':
-      warps-limit: 1
+      limit: 1
     '2':
       require-level: 5
-      warps-limit: 2
+      limit: 2
     '3':
       require-level: 20
-      warps-limit: 3
+      limit: 3
+
+  warp-limit:
+    '1':
+      limit: 1
+    '2':
+      require-level: 5
+      limit: 2
+    '3':
+      require-level: 20
+      limit: 3
 
   island-size:
     '1':
-      island-size: 75
+      size: 75
     '2':
       require-level: 10
-      island-size: 100
+      size: 100
     '3':
       require-level: 30
-      island-size: 125
+      size: 125
 
   generator-rates:
     '1':
-      generator-rates:
-        COBBLESTONE: 100
+      rates:
+        COBBLESTONE: 100.0
     '2':
       require-level: 15
-      generator-rates:
-        COBBLESTONE: 80
-        IRON_ORE: 20
+      rates:
+        COBBLESTONE: 95.0
+        IRON_ORE: 5.0
     '3':
       require-level: 35
-      generator-rates:
-        COBBLESTONE: 60
-        IRON_ORE: 30
-        DIAMOND_ORE: 10
+      rates:
+        COBBLESTONE: 89.5
+        IRON_ORE: 5
+        DIAMOND_ORE: 0.5

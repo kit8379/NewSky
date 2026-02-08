@@ -11,6 +11,7 @@ import org.me.newsky.exceptions.InvitedAlreadyException;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
+import org.me.newsky.island.UpgradeHandler;
 
 import java.util.Collections;
 import java.util.List;
@@ -88,6 +89,13 @@ public class PlayerInviteCommand implements SubCommand, TabComplete {
             islandUuid = api.getIslandUuid(playerUuid);
         } catch (IslandDoesNotExistException e) {
             player.sendMessage(config.getPlayerNoIslandMessage());
+            return true;
+        }
+
+        int teamLimitLevel = api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_TEAM_LIMIT);
+        int teamLimit = api.getTeamLimit(teamLimitLevel);
+        if (api.getIslandMembers(islandUuid).size() >= teamLimit) {
+            player.sendMessage(config.getPlayerTeamLimitReachedMessage(teamLimit));
             return true;
         }
 

@@ -10,6 +10,7 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.CannotCoopIslandPlayerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerAlreadyCoopedException;
+import org.me.newsky.island.UpgradeHandler;
 
 import java.util.Collections;
 import java.util.List;
@@ -88,6 +89,13 @@ public class PlayerCoopCommand implements SubCommand, TabComplete {
             islandUuid = api.getIslandUuid(playerUuid);
         } catch (IslandDoesNotExistException ex) {
             player.sendMessage(config.getPlayerNoIslandMessage());
+            return true;
+        }
+
+        int coopLimitLevel = api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_COOP_LIMIT);
+        int coopLimit = api.getCoopLimit(coopLimitLevel);
+        if (api.getCoopedPlayers(islandUuid).size() >= coopLimit) {
+            player.sendMessage(config.getPlayerCoopLimitReachedMessage(coopLimit));
             return true;
         }
 

@@ -22,7 +22,8 @@ public final class UpgradeHandler {
     private final Cache cache;
 
     public static final String UPGRADE_TEAM_LIMIT = "team-limit";
-    public static final String UPGRADE_WARPS_LIMIT = "warps-limit";
+    public static final String UPGRADE_WARP_LIMIT = "warp-limit";
+    public static final String UPGRADE_HOME_LIMIT = "home-limit";
     public static final String UPGRADE_COOP_LIMIT = "coop-limit";
     public static final String UPGRADE_ISLAND_SIZE = "island-size";
     public static final String UPGRADE_GENERATOR_RATES = "generator-rates";
@@ -54,11 +55,7 @@ public final class UpgradeHandler {
             }
         }
 
-        if (next == Integer.MAX_VALUE) {
-            return -1;
-        }
-
-        return next;
+        return (next == Integer.MAX_VALUE) ? -1 : next;
     }
 
     public int getUpgradeRequireIslandLevel(String upgradeId, int level) {
@@ -69,8 +66,12 @@ public final class UpgradeHandler {
         return config.getUpgradeTeamLimit(level);
     }
 
-    public int getWarpsLimit(int level) {
-        return config.getUpgradeWarpsLimit(level);
+    public int getWarpLimit(int level) {
+        return config.getUpgradeWarpLimit(level);
+    }
+
+    public int getHomeLimit(int level) {
+        return config.getUpgradeHomeLimit(level);
     }
 
     public int getCoopLimit(int level) {
@@ -81,7 +82,7 @@ public final class UpgradeHandler {
         return config.getUpgradeIslandSize(level);
     }
 
-    public Map<String, Integer> getGeneratorRates(int level) {
+    public Map<String, Double> getGeneratorRates(int level) {
         return config.getUpgradeGeneratorRates(level);
     }
 
@@ -96,7 +97,6 @@ public final class UpgradeHandler {
             }
 
             int islandLevel = cache.getIslandLevel(islandUuid);
-
             int oldLevel = cache.getIslandUpgradeLevel(islandUuid, upgradeId);
 
             int nextLevel = getNextUpgradeLevel(upgradeId, oldLevel);
@@ -129,7 +129,6 @@ public final class UpgradeHandler {
             cache.updateIslandUpgradeLevel(islandUuid, upgradeId, level);
         }, plugin.getBukkitAsyncExecutor());
     }
-
 
     public int getCurrentUpgradeLevel(UUID islandUuid, String upgradeId) {
         return cache.getIslandUpgradeLevel(islandUuid, upgradeId);

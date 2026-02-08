@@ -150,8 +150,12 @@ public class AdminUpgradeCommand implements SubCommand, TabComplete {
             return String.valueOf(api.getTeamLimit(level));
         }
 
-        if (UpgradeHandler.UPGRADE_WARPS_LIMIT.equals(upgradeId)) {
-            return String.valueOf(api.getWarpsLimit(level));
+        if (UpgradeHandler.UPGRADE_WARP_LIMIT.equals(upgradeId)) {
+            return String.valueOf(api.getWarpLimit(level));
+        }
+
+        if (UpgradeHandler.UPGRADE_HOME_LIMIT.equals(upgradeId)) {
+            return String.valueOf(api.getHomeLimit(level));
         }
 
         if (UpgradeHandler.UPGRADE_COOP_LIMIT.equals(upgradeId)) {
@@ -163,14 +167,14 @@ public class AdminUpgradeCommand implements SubCommand, TabComplete {
         }
 
         if (UpgradeHandler.UPGRADE_GENERATOR_RATES.equals(upgradeId)) {
-            Map<String, Integer> rates = api.getGeneratorRates(level);
+            Map<String, Double> rates = api.getGeneratorRates(level);
             return formatRates(rates);
         }
 
         return "N/A";
     }
 
-    private String formatRates(Map<String, Integer> rates) {
+    private String formatRates(Map<String, Double> rates) {
         if (rates == null || rates.isEmpty()) {
             return "N/A";
         }
@@ -178,9 +182,9 @@ public class AdminUpgradeCommand implements SubCommand, TabComplete {
         StringBuilder sb = new StringBuilder();
         boolean first = true;
 
-        for (Map.Entry<String, Integer> e : rates.entrySet()) {
+        for (Map.Entry<String, Double> e : rates.entrySet()) {
             String key = e.getKey();
-            Integer val = e.getValue();
+            Double val = e.getValue();
             if (key == null || val == null) continue;
 
             if (!first) sb.append(", ");

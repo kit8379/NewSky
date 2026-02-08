@@ -11,6 +11,7 @@ import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
+import org.me.newsky.island.UpgradeHandler;
 
 import java.util.Collections;
 import java.util.List;
@@ -74,6 +75,21 @@ public class PlayerSetWarpCommand implements SubCommand, TabComplete {
         double z = loc.getZ();
         float yaw = loc.getYaw();
         float pitch = loc.getPitch();
+
+        UUID islandUuid;
+        try {
+            islandUuid = api.getIslandUuid(playerUuid);
+        } catch (IslandDoesNotExistException ex) {
+            player.sendMessage(config.getPlayerNoIslandMessage());
+            return true;
+        }
+
+        int warpLimitLevel = api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_WARP_LIMIT);
+        int warpLimit = api.getWarpLimit(warpLimitLevel);
+        if (api.getWarpNames(playerUuid).size() >= warpLimit) {
+            player.sendMessage(config.getPlayerWarpLimitReachedMessage(warpLimit));
+            return true;
+        }
 
         api.setWarp(playerUuid, warpName, worldName, x, y, z, yaw, pitch).thenRun(() -> player.sendMessage(config.getPlayerSetWarpSuccessMessage(warpName))).exceptionally(ex -> {
             Throwable cause = ex.getCause();

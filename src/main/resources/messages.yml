@@ -98,6 +98,7 @@ messages:
   player-home-success: "<green>Teleported to home <aqua>{home}<green>!"
   player-delete-home-success: "<green>Home <aqua>{home}<green> deleted successfully!"
   player-cannot-delete-default-home: "<red>You can't delete the default home!"
+  player-home-limit-reached: "<red>You have reached the home limit of <white>{limit}<red>."
 
   admin-must-in-island-set-home: "<red>You must be on the island to set a home!"
   admin-set-home-success: "<green>Set home <aqua>{home} <green>for player <aqua>{player}<green>!"
@@ -117,6 +118,7 @@ messages:
   player-no-warp: "<red>You don't have a warp named <aqua>{warp}<red>!"
   player-set-warp-success: "<green>Warp <aqua>{warp}<green> set successfully!"
   player-delete-warp-success: "<green>Warp <aqua>{warp}<green> deleted successfully!"
+  player-warp-limit-reached: "<red>You have reached the warp limit of <white>{limit}<red>."
 
   admin-must-in-island-set-warp: "<red>You must be on the island to set a warp!"
   admin-set-warp-success: "<green>Set warp <aqua>{warp} <green>for player <aqua>{player}<green>!"
@@ -164,6 +166,7 @@ messages:
   player-invite-rejected: "<yellow>You have rejected the island invitation."
   player-already-invited: "<red>Player <aqua>{player} <red>already has a pending island invitation!"
   player-no-pending-invite: "<red>You have no pending island invitations!"
+  player-team-limit-reached: "<red>Your island has reached the team member limit of <white>{limit}<red>."
 
   admin-add-member-success: "<green>Successfully added <aqua>{target} <green>to the island of <aqua>{owner}<green>!"
   admin-remove-member-success: "<green>Successfully removed <aqua>{target} <green>from the island of <aqua>{owner}<green>!"
@@ -203,6 +206,7 @@ messages:
   player-uncoop-success: "<green>Player <aqua>{player} <green>is no longer a co-op member!"
   player-already-cooped: "<red><aqua>{player} <red>is already a co-op member!"
   player-not-cooped: "<red><aqua>{player} <red>is not a co-op member!"
+  player-coop-limit-reached: "<red>Your island has reached the co-op member limit of <white>{limit}<red>."
 
   admin-coop-success: "<green>Set <aqua>{target} <green>as co-op member of island owned by <aqua>{owner}<green>."
   admin-uncoop-success: "<green>Removed co-op status of <aqua>{target} <green>from island of <aqua>{owner}<green>."

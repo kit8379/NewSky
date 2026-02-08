@@ -280,34 +280,38 @@ public class ConfigHandler {
     }
 
     public int getUpgradeTeamLimit(int level) {
-        return upgrades.getInt("upgrades.team-limit." + level + ".team-limit", 0);
+        return upgrades.getInt("upgrades.team-limit." + level + ".limit", 0);
     }
 
-    public int getUpgradeWarpsLimit(int level) {
-        return upgrades.getInt("upgrades.warps-limit." + level + ".warps-limit", 0);
+    public int getUpgradeWarpLimit(int level) {
+        return upgrades.getInt("upgrades.warp-limit." + level + ".limit", 0);
+    }
+
+    public int getUpgradeHomeLimit(int level) {
+        return upgrades.getInt("upgrades.home-limit." + level + ".limit", 0);
     }
 
     public int getUpgradeCoopLimit(int level) {
-        return upgrades.getInt("upgrades.coop-limit." + level + ".coop-limit", 0);
+        return upgrades.getInt("upgrades.coop-limit." + level + ".limit", 0);
     }
 
     public int getUpgradeIslandSize(int level) {
-        return upgrades.getInt("upgrades.island-size." + level + ".island-size", 0);
+        return upgrades.getInt("upgrades.island-size." + level + ".size", 0);
     }
 
-    public Map<String, Integer> getUpgradeGeneratorRates(int level) {
-        String path = "upgrades.generator-rates." + level + ".generator-rates";
+    public Map<String, Double> getUpgradeGeneratorRates(int level) {
+        String path = "upgrades.generator-rates." + level + ".rates";
 
         Map<String, Object> values = Objects.requireNonNull(upgrades.getConfigurationSection(path)).getValues(false);
         if (values.isEmpty()) {
             return Collections.emptyMap();
         }
 
-        Map<String, Integer> out = new LinkedHashMap<>();
+        Map<String, Double> out = new LinkedHashMap<>();
         for (Map.Entry<String, Object> e : values.entrySet()) {
             Object v = e.getValue();
             if (v instanceof Number n) {
-                out.put(e.getKey(), n.intValue());
+                out.put(e.getKey(), n.doubleValue());
             }
         }
         return out;
@@ -1739,6 +1743,22 @@ public class ConfigHandler {
 
     public Component getPlayerUpgradeIslandLevelTooLowMessage(String upgradeId) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-island-level-too-low")).replace("{upgrade}", upgradeId));
+    }
+
+    public Component getPlayerTeamLimitReachedMessage(int limit) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-team-limit-reached")).replace("{limit}", String.valueOf(limit)));
+    }
+
+    public Component getPlayerWarpLimitReachedMessage(int limit) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-warp-limit-reached")).replace("{limit}", String.valueOf(limit)));
+    }
+
+    public Component getPlayerHomeLimitReachedMessage(int limit) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-home-limit-reached")).replace("{limit}", String.valueOf(limit)));
+    }
+
+    public Component getPlayerCoopLimitReachedMessage(int limit) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-coop-limit-reached")).replace("{limit}", String.valueOf(limit)));
     }
 
     // Help

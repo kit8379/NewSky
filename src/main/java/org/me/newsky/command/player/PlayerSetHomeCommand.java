@@ -11,6 +11,7 @@ import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
+import org.me.newsky.island.UpgradeHandler;
 
 import java.util.Collections;
 import java.util.List;
@@ -74,6 +75,21 @@ public class PlayerSetHomeCommand implements SubCommand, TabComplete {
         double z = loc.getZ();
         float yaw = loc.getYaw();
         float pitch = loc.getPitch();
+
+        UUID islandUuid;
+        try {
+            islandUuid = api.getIslandUuid(playerUuid);
+        } catch (IslandDoesNotExistException ex) {
+            player.sendMessage(config.getPlayerNoIslandMessage());
+            return true;
+        }
+
+        int homeLimitLevel = api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_HOME_LIMIT);
+        int homeLimit = api.getHomeLimit(homeLimitLevel);
+        if (api.getWarpNames(playerUuid).size() >= homeLimit) {
+            player.sendMessage(config.getPlayerHomeLimitReachedMessage(homeLimit));
+            return true;
+        }
 
         api.setHome(playerUuid, homeName, worldName, x, y, z, yaw, pitch).thenRun(() -> player.sendMessage(config.getPlayerSetHomeSuccessMessage(homeName))).exceptionally(ex -> {
             Throwable cause = ex.getCause();
