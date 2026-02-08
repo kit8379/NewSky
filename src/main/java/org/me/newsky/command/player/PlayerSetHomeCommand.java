@@ -86,7 +86,7 @@ public class PlayerSetHomeCommand implements SubCommand, TabComplete {
 
         int homeLimitLevel = api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_HOME_LIMIT);
         int homeLimit = api.getHomeLimit(homeLimitLevel);
-        if (api.getWarpNames(playerUuid).size() >= homeLimit) {
+        if (api.getHomeNames(playerUuid).size() >= homeLimit) {
             player.sendMessage(config.getPlayerHomeLimitReachedMessage(homeLimit));
             return true;
         }
