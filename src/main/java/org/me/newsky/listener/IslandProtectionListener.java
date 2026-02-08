@@ -20,6 +20,7 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.InventoryHolder;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.island.UpgradeHandler;
 import org.me.newsky.util.IslandUtils;
 
 import java.util.UUID;
@@ -28,18 +29,20 @@ public class IslandProtectionListener implements Listener {
 
     private final NewSky plugin;
     private final ConfigHandler config;
-    private final int islandSize;
 
     public IslandProtectionListener(NewSky plugin, ConfigHandler config) {
         this.plugin = plugin;
         this.config = config;
-        this.islandSize = config.getIslandSize();
     }
 
     private boolean isInsideIslandBoundary(Location location) {
-        if (location.getWorld() == null || !IslandUtils.isIslandWorld(location.getWorld().getName())) {
+        if (location == null || location.getWorld() == null || !IslandUtils.isIslandWorld(location.getWorld().getName())) {
             return true;
         }
+
+        UUID islandUuid = IslandUtils.nameToUUID(location.getWorld().getName());
+        int islandSizeLevel = plugin.getApi().getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_ISLAND_SIZE);
+        int islandSize = plugin.getApi().getIslandSize(islandSizeLevel);
 
         int x = location.getBlockX();
         int z = location.getBlockZ();
@@ -202,7 +205,7 @@ public class IslandProtectionListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onTeleport(PlayerTeleportEvent event) {
-        if ((event.getCause() == PlayerTeleportEvent.TeleportCause.ENDER_PEARL || event.getCause() == PlayerTeleportEvent.TeleportCause.CHORUS_FRUIT) && !canPlayerEdit(event.getPlayer(), event.getTo())) {
+        if (!canPlayerEdit(event.getPlayer(), event.getTo())) {
             event.setCancelled(true);
             deny(event.getPlayer());
             plugin.debug("IslandProtectionListener", "Player " + event.getPlayer().getName() + " tried to teleport to a protected area: " + event.getTo());
