@@ -29,14 +29,12 @@ public final class CobblestoneGeneratorListener implements Listener {
         Block block = event.getBlock();
         World world = block.getWorld();
 
-        // Only in island world(s)
         if (!IslandUtils.isIslandWorld(world.getName())) {
             return;
         }
 
         UUID islandUuid = IslandUtils.nameToUUID(world.getName());
 
-        // Only act on cobblestone generator
         if (event.getNewState().getType() != Material.COBBLESTONE) {
             return;
         }
@@ -44,6 +42,9 @@ public final class CobblestoneGeneratorListener implements Listener {
         int genLevel = plugin.getApi().getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_GENERATOR_RATES);
 
         Material result = generatorHandler.roll(genLevel);
+
+        plugin.debug("CobblestoneGeneratorListener", "Cobblestone generator roll: island=" + islandUuid + ", level=" + genLevel + ", result=" + result + ", location=" + block.getLocation());
+
         event.getNewState().setType(result);
     }
 }

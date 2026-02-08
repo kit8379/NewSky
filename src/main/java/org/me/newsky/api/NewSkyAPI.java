@@ -27,9 +27,10 @@ public class NewSkyAPI {
     private final LobbyHandler lobbyHandler;
     private final PlayerMessageHandler playerMessageHandler;
     private final UpgradeHandler upgradeHandler;
+    private final IslandBorderHandler islandBorderHandler;
     private final UuidHandler uuidHandler;
 
-    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, PlayerMessageHandler playerMessageHandler, UuidHandler uuidHandler, UpgradeHandler upgradeHandler) {
+    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, PlayerMessageHandler playerMessageHandler, UuidHandler uuidHandler, UpgradeHandler upgradeHandler, IslandBorderHandler islandBorderHandler) {
 
         this.plugin = plugin;
         this.islandHandler = islandHandler;
@@ -42,6 +43,7 @@ public class NewSkyAPI {
         this.lobbyHandler = lobbyHandler;
         this.playerMessageHandler = playerMessageHandler;
         this.upgradeHandler = upgradeHandler;
+        this.islandBorderHandler = islandBorderHandler;
         this.uuidHandler = uuidHandler;
     }
 
@@ -646,6 +648,10 @@ public class NewSkyAPI {
     @SuppressWarnings("unused")
     public int getCurrentUpgradeLevel(UUID islandUuid, String upgradeId) {
         return upgradeHandler.getCurrentUpgradeLevel(islandUuid, upgradeId);
+    }
+
+    public void applyBorder(UUID islandUuid) {
+        islandBorderHandler.applyBorder(islandUuid);
     }
 
     /**
