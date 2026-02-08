@@ -136,9 +136,6 @@ public class PlayerUpgradeCommand implements SubCommand, TabComplete {
         }
 
         api.upgradeToNextLevel(islandUuid, upgradeId).thenAccept(result -> {
-            if (args[1].equals(UpgradeHandler.UPGRADE_ISLAND_SIZE)) {
-                api.applyBorder(islandUuid);
-            }
             player.sendMessage(config.getPlayerUpgradeBuySuccessMessage(result.getUpgradeId(), result.getOldLevel(), result.getNewLevel(), result.getRequireIslandLevel()));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();

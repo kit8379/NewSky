@@ -1,7 +1,6 @@
 // IslandBorderHandler.java
 package org.me.newsky.island;
 
-import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.WorldBorder;
 import org.me.newsky.NewSky;
@@ -27,28 +26,6 @@ public final class IslandBorderHandler {
         UUID islandUuid = IslandUtils.nameToUUID(world.getName());
         apply(world, islandUuid);
     }
-
-    /**
-     * Upgrade/runtime path: you only have islandUuid.
-     * Thread-safe: schedules to main thread, applies only if world is loaded.
-     */
-    public void applyBorder(UUID islandUuid) {
-        if (Bukkit.isPrimaryThread()) {
-            World world = Bukkit.getWorld(islandUuid.toString());
-            if (world != null) {
-                apply(world, islandUuid);
-            }
-            return;
-        }
-
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            World world = Bukkit.getWorld(islandUuid.toString());
-            if (world != null) {
-                apply(world, islandUuid);
-            }
-        });
-    }
-
     private void apply(World world, UUID islandUuid) {
         int level = upgradeHandler.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_ISLAND_SIZE);
         int islandSize = upgradeHandler.getIslandSize(level);

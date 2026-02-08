@@ -128,9 +128,6 @@ public class AdminUpgradeCommand implements SubCommand, TabComplete {
         }
 
         api.setUpgradeLevel(islandUuid, upgradeId, level).thenRun(() -> {
-            if (args[2].equalsIgnoreCase(UpgradeHandler.UPGRADE_ISLAND_SIZE)) {
-                api.applyBorder(islandUuid);
-            }
             sender.sendMessage(config.getAdminUpgradeSetSuccessMessage(upgradeId, level));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
