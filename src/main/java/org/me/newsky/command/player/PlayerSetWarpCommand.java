@@ -84,10 +84,13 @@ public class PlayerSetWarpCommand implements SubCommand, TabComplete {
             return true;
         }
 
-        int warpLimitLevel = api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_WARP_LIMIT);
+        Set<String> existingWarps;
+        existingWarps = api.getWarpNames(playerUuid);
+        boolean overwriting = existingWarps.stream().anyMatch(n -> n != null && n.equalsIgnoreCase(warpName));
+        int warpLimitLevel = api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_HOME_LIMIT);
         int warpLimit = api.getWarpLimit(warpLimitLevel);
-        if (api.getWarpNames(playerUuid).size() >= warpLimit) {
-            player.sendMessage(config.getPlayerWarpLimitReachedMessage(warpLimit));
+        if (!overwriting && existingWarps.size() >= warpLimit) {
+            player.sendMessage(config.getPlayerHomeLimitReachedMessage(warpLimit));
             return true;
         }
 

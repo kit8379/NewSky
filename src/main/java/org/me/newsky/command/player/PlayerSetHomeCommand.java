@@ -84,9 +84,12 @@ public class PlayerSetHomeCommand implements SubCommand, TabComplete {
             return true;
         }
 
+        Set<String> existingHomes;
+        existingHomes = api.getHomeNames(playerUuid);
+        boolean overwriting = existingHomes.stream().anyMatch(n -> n != null && n.equalsIgnoreCase(homeName));
         int homeLimitLevel = api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_HOME_LIMIT);
         int homeLimit = api.getHomeLimit(homeLimitLevel);
-        if (api.getHomeNames(playerUuid).size() >= homeLimit) {
+        if (!overwriting && existingHomes.size() >= homeLimit) {
             player.sendMessage(config.getPlayerHomeLimitReachedMessage(homeLimit));
             return true;
         }
@@ -101,7 +104,6 @@ public class PlayerSetHomeCommand implements SubCommand, TabComplete {
                 player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.severe("Error setting home for player " + player.getName(), ex);
             }
-
             return null;
         });
 
@@ -114,7 +116,7 @@ public class PlayerSetHomeCommand implements SubCommand, TabComplete {
             try {
                 Set<String> homes = api.getHomeNames(player.getUniqueId());
                 String prefix = args[1].toLowerCase();
-                return homes.stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+                return homes.stream().filter(name -> name != null && name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
             } catch (Exception e) {
                 return Collections.emptyList();
             }
