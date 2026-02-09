@@ -9,6 +9,7 @@ import org.me.newsky.exceptions.UpgradeIslandLevelTooLowException;
 import org.me.newsky.exceptions.UpgradeLevelDoesNotExistException;
 import org.me.newsky.exceptions.UpgradeMaxedException;
 import org.me.newsky.model.UpgradeResult;
+import org.me.newsky.network.distributor.IslandDistributor;
 
 import java.util.Map;
 import java.util.Set;
@@ -20,6 +21,7 @@ public final class UpgradeHandler {
     private final NewSky plugin;
     private final ConfigHandler config;
     private final Cache cache;
+    private final IslandDistributor islandDistributor;
 
     public static final String UPGRADE_TEAM_LIMIT = "team-limit";
     public static final String UPGRADE_WARP_LIMIT = "warp-limit";
@@ -28,14 +30,15 @@ public final class UpgradeHandler {
     public static final String UPGRADE_ISLAND_SIZE = "island-size";
     public static final String UPGRADE_GENERATOR_RATES = "generator-rates";
 
-    public UpgradeHandler(NewSky plugin, ConfigHandler config, Cache cache) {
+    public UpgradeHandler(NewSky plugin, ConfigHandler config, Cache cache, IslandDistributor islandDistributor) {
         this.plugin = plugin;
         this.config = config;
         this.cache = cache;
+        this.islandDistributor = islandDistributor;
     }
 
     // ================================================================================================================
-    // Config Value getters
+    // Config Value Getters
     // ================================================================================================================
 
     public Set<String> getUpgradeIds() {
@@ -111,6 +114,10 @@ public final class UpgradeHandler {
 
             cache.updateIslandUpgradeLevel(islandUuid, upgradeId, nextLevel);
 
+            if (upgradeId.equals(UPGRADE_ISLAND_SIZE)) {
+                islandDistributor.updateIslandBorder(islandUuid, getIslandSize(nextLevel));
+            }
+
             return new UpgradeResult(upgradeId, oldLevel, nextLevel, requireIslandLevel);
         }, plugin.getBukkitAsyncExecutor());
     }
@@ -127,6 +134,10 @@ public final class UpgradeHandler {
             }
 
             cache.updateIslandUpgradeLevel(islandUuid, upgradeId, level);
+
+            if (upgradeId.equals(UPGRADE_ISLAND_SIZE)) {
+                islandDistributor.updateIslandBorder(islandUuid, getIslandSize(level));
+            }
         }, plugin.getBukkitAsyncExecutor());
     }
 

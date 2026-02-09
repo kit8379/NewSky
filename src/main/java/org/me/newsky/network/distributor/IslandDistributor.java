@@ -350,6 +350,25 @@ public class IslandDistributor {
         }
     }
 
+    public void updateIslandBorder(UUID islandUuid, int size) {
+        String islandServer = getServerByIsland(islandUuid);
+
+        if (islandServer == null) {
+            plugin.debug("IslandDistributor", "updateIslandBorder: island not loaded on any server.");
+            return;
+        }
+
+        plugin.debug("IslandDistributor", "updateIslandBorder: island loaded on server " + islandServer);
+
+        if (islandServer.equals(serverID)) {
+            plugin.debug("IslandDistributor", "updateIslandBorder: updating border locally on " + serverID);
+            islandOperator.updateIslandBorder(islandUuid, size);
+        } else {
+            plugin.debug("IslandDistributor", "updateIslandBorder: sending update border request to remote server " + islandServer);
+            islandBroker.sendRequest(islandServer, "update_border", islandUuid.toString(), String.valueOf(size));
+        }
+    }
+
     // =====================================================================================
     // Internal helpers
     // =====================================================================================
@@ -373,8 +392,6 @@ public class IslandDistributor {
         BukkitTask heartbeat = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
             boolean ok = redisCache.extendIslandOpLock(islandUuid, token, ISLAND_OP_LOCK_TTL_MS);
             if (!ok) {
-                // If extend fails, it likely means token no longer matches (lost lock ownership).
-                // We still allow the operation to continue to finish, but it may no longer be protected.
                 plugin.debug("IslandDistributor", "withIslandOpLock: failed to extend lock (lost ownership?) island=" + islandUuid);
             }
         }, Math.max(1L, ISLAND_OP_LOCK_HEARTBEAT_MS / 50L), Math.max(1L, ISLAND_OP_LOCK_HEARTBEAT_MS / 50L));

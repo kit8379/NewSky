@@ -161,9 +161,8 @@ public class NewSky extends JavaPlugin {
             levelHandler = new LevelHandler(this, config, cache);
             BanHandler banHandler = new BanHandler(this, cache, islandDistributor);
             CoopHandler coopHandler = new CoopHandler(this, cache);
-            UpgradeHandler upgradeHandler = new UpgradeHandler(this, config, cache);
+            UpgradeHandler upgradeHandler = new UpgradeHandler(this, config, cache, islandDistributor);
             cobblestoneGeneratorHandler = new CobblestoneGeneratorHandler(this, upgradeHandler);
-            IslandBorderHandler islandBorderHandler = new IslandBorderHandler(this, upgradeHandler);
             LobbyHandler lobbyHandler = new LobbyHandler(this, config, islandDistributor);
             UuidHandler uuidHandler = new UuidHandler(this, cache);
             WorldActivityHandler worldActivityHandler = new WorldActivityHandler(this);
@@ -184,13 +183,13 @@ public class NewSky extends JavaPlugin {
             info("All schedulers loaded");
 
             info("Starting API");
-            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, playerMessageHandler, uuidHandler, upgradeHandler, islandBorderHandler);
+            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, playerMessageHandler, uuidHandler, upgradeHandler);
             info("API loaded");
 
             info("Starting listeners");
             getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, redisCache, serverID), this);
             getServer().getPluginManager().registerEvents(new WorldInitListener(this), this);
-            getServer().getPluginManager().registerEvents(new WorldLoadListener(this, config, islandBorderHandler), this);
+            getServer().getPluginManager().registerEvents(new WorldLoadListener(this, config), this);
             getServer().getPluginManager().registerEvents(new WorldActivityListener(this, worldActivityHandler), this);
             getServer().getPluginManager().registerEvents(new TeleportRequestListener(this, teleportHandler), this);
             getServer().getPluginManager().registerEvents(new IslandProtectionListener(this, config), this);

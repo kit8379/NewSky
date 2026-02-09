@@ -1,6 +1,5 @@
 package org.me.newsky.network.operator;
 
-import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -115,14 +114,15 @@ public class IslandOperator {
         }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("IslandOperator", "Expelled player " + playerUuid + " from island " + islandName), plugin.getBukkitAsyncExecutor());
     }
 
-    public CompletableFuture<Void> sendMessage(UUID playerUuid, Component message) {
+    public CompletableFuture<Void> updateIslandBorder(UUID islandUuid, int size) {
+        String islandName = IslandUtils.UUIDToName(islandUuid);
+
         return CompletableFuture.runAsync(() -> {
-            Player player = Bukkit.getPlayer(playerUuid);
-            if (player != null) {
-                player.sendMessage(message);
+            World world = Bukkit.getWorld(islandName);
+            if (world != null) {
+                world.getWorldBorder().setSize(size);
+                plugin.debug("IslandOperator", "Updated island border for " + islandName + " to size: " + size);
             }
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> {
-            plugin.debug("IslandOperator", "Sent message to player " + playerUuid + ": " + message);
-        }, plugin.getBukkitAsyncExecutor());
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("IslandOperator", "Updated island border for island " + islandName + " to new size: " + size), plugin.getBukkitAsyncExecutor());
     }
 }

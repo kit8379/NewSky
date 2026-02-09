@@ -1,30 +1,26 @@
 package org.me.newsky.listener;
 
-import org.bukkit.GameRule;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
-import org.bukkit.World;
+import org.bukkit.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.island.IslandBorderHandler;
+import org.me.newsky.island.UpgradeHandler;
 import org.me.newsky.util.IslandUtils;
 
 import java.util.Map;
+import java.util.UUID;
 
 public class WorldLoadListener implements Listener {
 
     private final NewSky plugin;
     private final ConfigHandler config;
-    private final IslandBorderHandler islandBorderHandler;
 
-    public WorldLoadListener(NewSky plugin, ConfigHandler config, IslandBorderHandler islandBorderHandler) {
+    public WorldLoadListener(NewSky plugin, ConfigHandler config) {
         this.plugin = plugin;
         this.config = config;
-        this.islandBorderHandler = islandBorderHandler;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -36,8 +32,10 @@ public class WorldLoadListener implements Listener {
             return;
         }
 
+        UUID islandUuid = IslandUtils.nameToUUID(name);
+
         applyGameRules(world);
-        applyWorldBorder(world);
+        applyWorldBorder(world, islandUuid);
     }
 
     @SuppressWarnings("unchecked")
@@ -90,7 +88,15 @@ public class WorldLoadListener implements Listener {
         }
     }
 
-    private void applyWorldBorder(World world) {
-        islandBorderHandler.applyBorder(world);
+    private void applyWorldBorder(World world, UUID islandUuid) {
+        int level = plugin.getApi().getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_ISLAND_SIZE);
+        int size = plugin.getApi().getIslandSize(level);
+        WorldBorder border = world.getWorldBorder();
+        border.setCenter(0.0, 0.0);
+        border.setSize(size);
+        border.setWarningDistance(0);
+        border.setDamageAmount(0.1);
+        border.setDamageBuffer(1.0);
+        plugin.debug("WorldLoadListener", "Set world border for " + world.getName());
     }
 }

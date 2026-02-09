@@ -5,7 +5,6 @@ import org.json.JSONObject;
 import org.me.newsky.NewSky;
 import org.me.newsky.network.operator.IslandOperator;
 import org.me.newsky.redis.RedisHandler;
-import org.me.newsky.util.ComponentUtils;
 import redis.clients.jedis.JedisPubSub;
 
 import java.util.UUID;
@@ -167,8 +166,8 @@ public class IslandBroker {
                     return islandOperator.lockIsland(UUID.fromString(args[0]));
                 case "expel":
                     return islandOperator.expelPlayer(UUID.fromString(args[0]), UUID.fromString(args[1]));
-                case "message":
-                    return islandOperator.sendMessage(UUID.fromString(args[0]), ComponentUtils.deserialize(args[1]));
+                case "update_border":
+                    return islandOperator.updateIslandBorder(UUID.fromString(args[0]), Integer.parseInt(args[1]));
                 default:
                     return CompletableFuture.failedFuture(new IllegalArgumentException("Unknown request islandOperator: " + operation));
             }
