@@ -9,6 +9,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Objects;
 import java.util.UUID;
 
 public class DatabaseHandler {
@@ -18,8 +19,8 @@ public class DatabaseHandler {
     private final String prefix;
 
     public DatabaseHandler(NewSky plugin, ConfigHandler config) {
-        this.plugin = plugin;
-        this.prefix = config.getMySQLTablePrefix();
+        this.plugin = Objects.requireNonNull(plugin, "plugin");
+        this.prefix = Objects.requireNonNull(config, "config").getMySQLTablePrefix();
 
         String host = config.getMySQLHost();
         int port = config.getMySQLPort();
@@ -33,6 +34,7 @@ public class DatabaseHandler {
         hikariConfig.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + database + "?useSSL=" + useSsl + "&" + properties);
         hikariConfig.setUsername(username);
         hikariConfig.setPassword(password);
+
         hikariConfig.addDataSourceProperty("cachePrepStmts", "true");
         hikariConfig.addDataSourceProperty("prepStmtCacheSize", "250");
         hikariConfig.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
@@ -47,7 +49,6 @@ public class DatabaseHandler {
         this.dataSource = new HikariDataSource(hikariConfig);
     }
 
-
     public void close() {
         dataSource.close();
     }
@@ -55,6 +56,55 @@ public class DatabaseHandler {
     private Connection getConnection() throws SQLException {
         return dataSource.getConnection();
     }
+
+    // ================================================================================================================
+    // Atomicity support (CORE FIX)
+    // ================================================================================================================
+
+    @FunctionalInterface
+    private interface ConnectionConsumer {
+        void use(Connection connection) throws SQLException;
+    }
+
+    private void inTransaction(String name, ConnectionConsumer work) {
+        try (Connection connection = getConnection()) {
+            boolean oldAutoCommit = connection.getAutoCommit();
+            connection.setAutoCommit(false);
+
+            try {
+                work.use(connection);
+                connection.commit();
+            } catch (SQLException e) {
+                try {
+                    connection.rollback();
+                } catch (SQLException rollbackEx) {
+                    plugin.severe("Database rollback failed for tx: " + name, rollbackEx);
+                }
+                plugin.severe("Database transaction failed: " + name, e);
+                throw new RuntimeException(e);
+            } finally {
+                try {
+                    connection.setAutoCommit(oldAutoCommit);
+                } catch (SQLException ignored) {
+                    // ignore
+                }
+            }
+        } catch (SQLException e) {
+            plugin.severe("Database transaction connection failed: " + name, e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void execUpdate(Connection connection, String query, PreparedStatementConsumer consumer) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
+            consumer.use(statement);
+            statement.executeUpdate();
+        }
+    }
+
+    // ================================================================================================================
+    // Existing helpers (kept as-is behavior)
+    // ================================================================================================================
 
     public void executeUpdate(String query, PreparedStatementConsumer consumer) {
         try (Connection connection = getConnection(); PreparedStatement statement = connection.prepareStatement(query)) {
@@ -77,6 +127,10 @@ public class DatabaseHandler {
             throw new RuntimeException(e);
         }
     }
+
+    // ================================================================================================================
+    // Table creation
+    // ================================================================================================================
 
     public void createTables() {
         createIslandDataTable();
@@ -125,6 +179,10 @@ public class DatabaseHandler {
     public void createPlayerUuidTable() {
         executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "player_uuid (" + "uuid VARCHAR(56) PRIMARY KEY, " + "name VARCHAR(64) NOT NULL" + ");", PreparedStatement::execute);
     }
+
+    // ================================================================================================================
+    // Selects
+    // ================================================================================================================
 
     public void selectAllIslandData(ResultProcessor processor) {
         executeQuery("SELECT * FROM " + prefix + "islands", stmt -> {
@@ -207,39 +265,60 @@ public class DatabaseHandler {
         executeQuery("SELECT * FROM " + prefix + "player_uuid WHERE uuid = ?", stmt -> stmt.setString(1, playerUuid.toString()), processor);
     }
 
+    // ================================================================================================================
+    // Writes (transaction-protected where multi-statement)
+    // ================================================================================================================
+
+    /**
+     * Atomic island create:
+     * - insert island row
+     * - upsert owner role
+     * - upsert default home
+     * <p>
+     * If MySQL disconnect happens mid-way, everything rolls back (no partial DB writes).
+     */
     public void addIslandData(UUID islandUuid, UUID ownerUuid, String homePoint) {
-        executeUpdate("INSERT INTO " + prefix + "islands (island_uuid) VALUES (?);", stmt -> stmt.setString(1, islandUuid.toString()));
+        inTransaction("addIslandData island=" + islandUuid, connection -> {
+            execUpdate(connection, "INSERT INTO " + prefix + "islands (island_uuid) VALUES (?);", stmt -> stmt.setString(1, islandUuid.toString()));
 
-        executeUpdate("INSERT INTO " + prefix + "island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?) " + "ON DUPLICATE KEY UPDATE role = ?;", stmt -> {
-            stmt.setString(1, ownerUuid.toString());
-            stmt.setString(2, islandUuid.toString());
-            stmt.setString(3, "owner");
-            stmt.setString(4, "owner");
-        });
+            execUpdate(connection, "INSERT INTO " + prefix + "island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?) " + "ON DUPLICATE KEY UPDATE role = ?;", stmt -> {
+                stmt.setString(1, ownerUuid.toString());
+                stmt.setString(2, islandUuid.toString());
+                stmt.setString(3, "owner");
+                stmt.setString(4, "owner");
+            });
 
-        executeUpdate("INSERT INTO " + prefix + "island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) " + "ON DUPLICATE KEY UPDATE home_location = ?;", stmt -> {
-            stmt.setString(1, ownerUuid.toString());
-            stmt.setString(2, islandUuid.toString());
-            stmt.setString(3, "default");
-            stmt.setString(4, homePoint);
-            stmt.setString(5, homePoint);
+            execUpdate(connection, "INSERT INTO " + prefix + "island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) " + "ON DUPLICATE KEY UPDATE home_location = ?;", stmt -> {
+                stmt.setString(1, ownerUuid.toString());
+                stmt.setString(2, islandUuid.toString());
+                stmt.setString(3, "default");
+                stmt.setString(4, homePoint);
+                stmt.setString(5, homePoint);
+            });
         });
     }
 
+    /**
+     * Atomic add player:
+     * - upsert role
+     * - upsert default home
+     */
     public void addIslandPlayer(UUID islandUuid, UUID playerUuid, String role, String homePoint) {
-        executeUpdate("INSERT INTO " + prefix + "island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?) " + "ON DUPLICATE KEY UPDATE role = ?;", stmt -> {
-            stmt.setString(1, playerUuid.toString());
-            stmt.setString(2, islandUuid.toString());
-            stmt.setString(3, role);
-            stmt.setString(4, role);
-        });
+        inTransaction("addIslandPlayer island=" + islandUuid + " player=" + playerUuid, connection -> {
+            execUpdate(connection, "INSERT INTO " + prefix + "island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?) " + "ON DUPLICATE KEY UPDATE role = ?;", stmt -> {
+                stmt.setString(1, playerUuid.toString());
+                stmt.setString(2, islandUuid.toString());
+                stmt.setString(3, role);
+                stmt.setString(4, role);
+            });
 
-        executeUpdate("INSERT INTO " + prefix + "island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) " + "ON DUPLICATE KEY UPDATE home_location = ?;", stmt -> {
-            stmt.setString(1, playerUuid.toString());
-            stmt.setString(2, islandUuid.toString());
-            stmt.setString(3, "default");
-            stmt.setString(4, homePoint);
-            stmt.setString(5, homePoint);
+            execUpdate(connection, "INSERT INTO " + prefix + "island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) " + "ON DUPLICATE KEY UPDATE home_location = ?;", stmt -> {
+                stmt.setString(1, playerUuid.toString());
+                stmt.setString(2, islandUuid.toString());
+                stmt.setString(3, "default");
+                stmt.setString(4, homePoint);
+                stmt.setString(5, homePoint);
+            });
         });
     }
 
@@ -277,17 +356,22 @@ public class DatabaseHandler {
         });
     }
 
+    /**
+     * Atomic owner update: must change both rows together.
+     */
     public void updateIslandOwner(UUID islandUuid, UUID oldOwnerUuid, UUID newOwnerUuid) {
-        executeUpdate("UPDATE " + prefix + "island_players SET role = ? WHERE player_uuid = ? AND island_uuid = ?;", stmt -> {
-            stmt.setString(1, "member");
-            stmt.setString(2, oldOwnerUuid.toString());
-            stmt.setString(3, islandUuid.toString());
-        });
+        inTransaction("updateIslandOwner island=" + islandUuid, connection -> {
+            execUpdate(connection, "UPDATE " + prefix + "island_players SET role = ? WHERE player_uuid = ? AND island_uuid = ?;", stmt -> {
+                stmt.setString(1, "member");
+                stmt.setString(2, oldOwnerUuid.toString());
+                stmt.setString(3, islandUuid.toString());
+            });
 
-        executeUpdate("UPDATE " + prefix + "island_players SET role = ? WHERE player_uuid = ? AND island_uuid = ?;", stmt -> {
-            stmt.setString(1, "owner");
-            stmt.setString(2, newOwnerUuid.toString());
-            stmt.setString(3, islandUuid.toString());
+            execUpdate(connection, "UPDATE " + prefix + "island_players SET role = ? WHERE player_uuid = ? AND island_uuid = ?;", stmt -> {
+                stmt.setString(1, "owner");
+                stmt.setString(2, newOwnerUuid.toString());
+                stmt.setString(3, islandUuid.toString());
+            });
         });
     }
 
@@ -330,23 +414,40 @@ public class DatabaseHandler {
         });
     }
 
+    /**
+     * Atomic island delete: all related tables must delete together.
+     */
     public void deleteIsland(UUID islandUuid) {
-        executeUpdate("DELETE FROM " + prefix + "island_upgrades WHERE island_uuid = ?;", stmt -> stmt.setString(1, islandUuid.toString()));
-        executeUpdate("DELETE FROM " + prefix + "island_levels WHERE island_uuid = ?;", stmt -> stmt.setString(1, islandUuid.toString()));
-        executeUpdate("DELETE FROM " + prefix + "island_coops WHERE island_uuid = ?;", stmt -> stmt.setString(1, islandUuid.toString()));
-        executeUpdate("DELETE FROM " + prefix + "island_bans WHERE island_uuid = ?;", stmt -> stmt.setString(1, islandUuid.toString()));
-        executeUpdate("DELETE FROM " + prefix + "island_warps WHERE island_uuid = ?;", stmt -> stmt.setString(1, islandUuid.toString()));
-        executeUpdate("DELETE FROM " + prefix + "island_homes WHERE island_uuid = ?;", stmt -> stmt.setString(1, islandUuid.toString()));
-        executeUpdate("DELETE FROM " + prefix + "island_players WHERE island_uuid = ?;", stmt -> stmt.setString(1, islandUuid.toString()));
-        executeUpdate("DELETE FROM " + prefix + "islands WHERE island_uuid = ?;", stmt -> stmt.setString(1, islandUuid.toString()));
+        inTransaction("deleteIsland island=" + islandUuid, connection -> {
+            String id = islandUuid.toString();
+
+            execUpdate(connection, "DELETE FROM " + prefix + "island_upgrades WHERE island_uuid = ?;", stmt -> stmt.setString(1, id));
+            execUpdate(connection, "DELETE FROM " + prefix + "island_levels WHERE island_uuid = ?;", stmt -> stmt.setString(1, id));
+            execUpdate(connection, "DELETE FROM " + prefix + "island_coops WHERE island_uuid = ?;", stmt -> stmt.setString(1, id));
+            execUpdate(connection, "DELETE FROM " + prefix + "island_bans WHERE island_uuid = ?;", stmt -> stmt.setString(1, id));
+            execUpdate(connection, "DELETE FROM " + prefix + "island_warps WHERE island_uuid = ?;", stmt -> stmt.setString(1, id));
+            execUpdate(connection, "DELETE FROM " + prefix + "island_homes WHERE island_uuid = ?;", stmt -> stmt.setString(1, id));
+            execUpdate(connection, "DELETE FROM " + prefix + "island_players WHERE island_uuid = ?;", stmt -> stmt.setString(1, id));
+            execUpdate(connection, "DELETE FROM " + prefix + "islands WHERE island_uuid = ?;", stmt -> stmt.setString(1, id));
+        });
     }
 
+    /**
+     * Atomic remove player from island (keeps your original semantics):
+     * - deletes ALL warps for the player
+     * - deletes ALL homes for the player
+     * - deletes the island_players row for (player, island)
+     */
     public void deleteIslandPlayer(UUID islandUuid, UUID playerUuid) {
-        executeUpdate("DELETE FROM " + prefix + "island_warps WHERE player_uuid = ?;", stmt -> stmt.setString(1, playerUuid.toString()));
-        executeUpdate("DELETE FROM " + prefix + "island_homes WHERE player_uuid = ?;", stmt -> stmt.setString(1, playerUuid.toString()));
-        executeUpdate("DELETE FROM " + prefix + "island_players WHERE player_uuid = ? AND island_uuid = ?;", stmt -> {
-            stmt.setString(1, playerUuid.toString());
-            stmt.setString(2, islandUuid.toString());
+        inTransaction("deleteIslandPlayer island=" + islandUuid + " player=" + playerUuid, connection -> {
+            String player = playerUuid.toString();
+
+            execUpdate(connection, "DELETE FROM " + prefix + "island_warps WHERE player_uuid = ?;", stmt -> stmt.setString(1, player));
+            execUpdate(connection, "DELETE FROM " + prefix + "island_homes WHERE player_uuid = ?;", stmt -> stmt.setString(1, player));
+            execUpdate(connection, "DELETE FROM " + prefix + "island_players WHERE player_uuid = ? AND island_uuid = ?;", stmt -> {
+                stmt.setString(1, player);
+                stmt.setString(2, islandUuid.toString());
+            });
         });
     }
 
@@ -391,6 +492,10 @@ public class DatabaseHandler {
         });
     }
 
+    // ================================================================================================================
+    // Functional interfaces
+    // ================================================================================================================
+
     @FunctionalInterface
     public interface ResultProcessor {
         void process(ResultSet resultSet) throws SQLException;
@@ -401,3 +506,4 @@ public class DatabaseHandler {
         void use(PreparedStatement statement) throws SQLException;
     }
 }
+
