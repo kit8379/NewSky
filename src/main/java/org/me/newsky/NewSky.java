@@ -18,6 +18,7 @@ import org.me.newsky.island.*;
 import org.me.newsky.listener.*;
 import org.me.newsky.message.PlayerMessageHandler;
 import org.me.newsky.network.distributor.IslandDistributor;
+import org.me.newsky.network.lock.IslandOpLockManager;
 import org.me.newsky.network.operator.IslandOperator;
 import org.me.newsky.placeholder.NewSkyPlaceholderExpansion;
 import org.me.newsky.redis.RedisCache;
@@ -136,8 +137,9 @@ public class NewSky extends JavaPlugin {
 
 
             info("Starting handlers for island remote requests");
+            IslandOpLockManager islandOpLockManager = new IslandOpLockManager(this, redisCache, serverID);
             IslandOperator islandOperator = new IslandOperator(this, redisCache, worldHandler, teleportHandler, serverID);
-            IslandDistributor islandDistributor = new IslandDistributor(this, redisCache, islandOperator, serverSelector, serverID);
+            IslandDistributor islandDistributor = new IslandDistributor(this, redisCache, islandOperator, serverSelector, islandOpLockManager, serverID);
             info("All handlers for remote requests loaded");
 
             info("Starting player message handler");
@@ -173,7 +175,7 @@ public class NewSky extends JavaPlugin {
             info("Plugin messaging loaded");
 
             info("Starting all schedulers for the plugin");
-            islandUnloadScheduler = new IslandUnloadScheduler(this, config, redisCache, worldHandler, worldActivityHandler);
+            islandUnloadScheduler = new IslandUnloadScheduler(this, config, redisCache, worldHandler, worldActivityHandler, islandOpLockManager);
             if (serverSelector instanceof MSPTServerSelector) {
                 info("MSPT server selector detected, creating MSPT update scheduler");
                 msptUpdateScheduler = new MSPTUpdateScheduler(this, config, redisCache, serverID);

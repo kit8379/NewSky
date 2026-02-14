@@ -43,4 +43,10 @@ public class WorldActivityHandler {
         }
         return result;
     }
+
+    public void clearWorld(String worldName) {
+        playerCounts.remove(worldName);
+        lastEmptyTimestamps.remove(worldName);
+        plugin.debug("WorldActivityHandler", "Cleared activity tracking for world: " + worldName);
+    }
 }

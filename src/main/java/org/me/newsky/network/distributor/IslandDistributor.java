@@ -1,13 +1,13 @@
+// MODIFIED FILE: IslandDistributor.java
 package org.me.newsky.network.distributor;
 
-import org.bukkit.Bukkit;
-import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
 import org.me.newsky.broker.IslandBroker;
 import org.me.newsky.exceptions.IslandAlreadyLoadedException;
 import org.me.newsky.exceptions.IslandBusyException;
 import org.me.newsky.exceptions.IslandNotLoadedException;
 import org.me.newsky.exceptions.NoActiveServerException;
+import org.me.newsky.network.lock.IslandOpLockManager;
 import org.me.newsky.network.operator.IslandOperator;
 import org.me.newsky.redis.RedisCache;
 import org.me.newsky.routing.ServerSelector;
@@ -15,10 +15,8 @@ import org.me.newsky.util.ServerUtil;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -48,39 +46,21 @@ import java.util.stream.Collectors;
  */
 public class IslandDistributor {
 
-    // =====================================================================================
-    // Lock configuration
-    // =====================================================================================
-
-    /**
-     * Default lock TTL. Must be long enough to cover worst-case island load/unload/delete.
-     * Extended periodically by heartbeat while the operation is running.
-     */
-    private static final long ISLAND_OP_LOCK_TTL_MS = TimeUnit.MINUTES.toMillis(5);
-
-    /**
-     * How often to extend the lock TTL while a sensitive operation is running.
-     * Keep it comfortably below TTL to avoid expiry during pauses.
-     */
-    private static final long ISLAND_OP_LOCK_HEARTBEAT_MS = TimeUnit.MINUTES.toMillis(1);
-
-    // =====================================================================================
-    // Dependencies
-    // =====================================================================================
-
     private final NewSky plugin;
     private final RedisCache redisCache;
     private final IslandOperator islandOperator;
     private final ServerSelector serverSelector;
+    private final IslandOpLockManager islandOpLock;
     private final String serverID;
 
     private IslandBroker islandBroker;
 
-    public IslandDistributor(NewSky plugin, RedisCache redisCache, IslandOperator islandOperator, ServerSelector serverSelector, String serverID) {
+    public IslandDistributor(NewSky plugin, RedisCache redisCache, IslandOperator islandOperator, ServerSelector serverSelector, IslandOpLockManager islandOpLock, String serverID) {
         this.plugin = plugin;
         this.redisCache = redisCache;
         this.islandOperator = islandOperator;
         this.serverSelector = serverSelector;
+        this.islandOpLock = islandOpLock;
         this.serverID = serverID;
     }
 
@@ -92,24 +72,11 @@ public class IslandDistributor {
     // High-level Reusable Primitive
     // =====================================================================================
 
-    /**
-     * Ensure the island is loaded on SOME server and return which server is hosting it.
-     *
-     * <p>This method is the reusable building block used by teleport logic.
-     * It applies the distributed lock ONLY while the island is being loaded.
-     *
-     * <p>Behavior:
-     * <ul>
-     *   <li>If already loaded -> completes immediately with that server id.</li>
-     *   <li>If not loaded -> acquires lock, selects best server, performs load (local or remote),
-     *       then releases lock and completes with the resulting server id.</li>
-     * </ul>
-     */
     private CompletableFuture<String> ensureIslandLoaded(UUID islandUuid) {
         // Fast-path: if already loaded, return immediately without lock.
         String already = getServerByIsland(islandUuid);
         if (already != null) {
-            if (redisCache.isIslandOpLocked(islandUuid)) {
+            if (islandOpLock.isLocked(islandUuid)) {
                 return CompletableFuture.failedFuture(new IslandBusyException());
             }
             return CompletableFuture.completedFuture(already);
@@ -117,7 +84,6 @@ public class IslandDistributor {
 
         // Not loaded: acquire lock only for the load phase.
         return withIslandOpLock(islandUuid, () -> {
-            // Re-check after lock acquired: someone else might have loaded it just before we got the lock.
             String recheck = getServerByIsland(islandUuid);
             if (recheck != null) {
                 return CompletableFuture.completedFuture(recheck);
@@ -142,11 +108,9 @@ public class IslandDistributor {
                 loadFuture = islandBroker.sendRequest(targetServer, "load", islandUuid.toString());
             }
 
-            // After load completes, IslandOperator should have set island_server in Redis.
             return loadFuture.thenApply(v -> {
                 String loadedOn = getServerByIsland(islandUuid);
                 if (loadedOn == null) {
-                    // If this happens, it indicates Redis isn't updated as expected. It's safer to fail hard.
                     throw new IllegalStateException("Island load completed but island_server not set for " + islandUuid);
                 }
                 return loadedOn;
@@ -158,9 +122,6 @@ public class IslandDistributor {
     // Sensitive operations : load/unload/delete
     // =====================================================================================
 
-    /**
-     * Create island is not locked (not requested), but still distributed by selecting best server.
-     */
     public CompletableFuture<Void> createIsland(UUID islandUuid) {
         String targetServer = selectServer(redisCache.getActiveGameServers());
         if (targetServer == null) {
@@ -179,15 +140,8 @@ public class IslandDistributor {
         }
     }
 
-    /**
-     * Load island explicitly. This is a "strict" command-level method:
-     * if island already loaded anywhere -> throws {@link IslandAlreadyLoadedException}.
-     *
-     * <p>Uses distributed lock to prevent concurrent load/unload/delete on the same island.
-     */
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
         return withIslandOpLock(islandUuid, () -> {
-            // Re-check after lock acquired
             String islandServer = getServerByIsland(islandUuid);
             if (islandServer != null) {
                 plugin.debug("IslandDistributor", "loadIsland: island already loaded on server " + islandServer);
@@ -214,14 +168,8 @@ public class IslandDistributor {
         });
     }
 
-    /**
-     * Unload island explicitly.
-     *
-     * <p>Uses distributed lock to prevent concurrent load/unload/delete on the same island.
-     */
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
         return withIslandOpLock(islandUuid, () -> {
-            // Re-check after lock acquired
             String islandServer = getServerByIsland(islandUuid);
             if (islandServer == null) {
                 plugin.debug("IslandDistributor", "unloadIsland: island not loaded anywhere, cannot unload " + islandUuid);
@@ -240,16 +188,10 @@ public class IslandDistributor {
         });
     }
 
-    /**
-     * Delete island explicitly.
-     *
-     * <p>Uses distributed lock to prevent concurrent load/unload/delete on the same island.
-     */
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
         return withIslandOpLock(islandUuid, () -> {
             String islandServer = getServerByIsland(islandUuid);
 
-            // If not loaded anywhere, delete locally. (Your original behavior)
             if (islandServer == null) {
                 plugin.debug("IslandDistributor", "deleteIsland: island not loaded anywhere, deleting locally " + islandUuid);
                 return islandOperator.deleteIsland(islandUuid);
@@ -271,12 +213,6 @@ public class IslandDistributor {
     // Teleport operations
     // =====================================================================================
 
-    /**
-     * Teleport player to island home.
-     *
-     * <p>If island isn't loaded, it calls {@link #ensureIslandLoaded(UUID)} which locks only
-     * during the loading phase. Once loaded, teleport proceeds without holding the lock.
-     */
     public CompletableFuture<Void> teleportIsland(UUID islandUuid, UUID playerUuid, String teleportWorld, String teleportLocation) {
         return ensureIslandLoaded(islandUuid).thenCompose(loadedServer -> {
             if (loadedServer.equals(serverID)) {
@@ -373,42 +309,8 @@ public class IslandDistributor {
     // Internal helpers
     // =====================================================================================
 
-    /**
-     * Lock wrapper for sensitive island operations.
-     *
-     * <p>Acquires distributed Redis lock for this island. If already locked, throws {@link IslandBusyException}.
-     * Maintains lock TTL via heartbeat until the returned future completes, then releases lock.
-     */
     private <T> CompletableFuture<T> withIslandOpLock(UUID islandUuid, Supplier<CompletableFuture<T>> action) {
-        String token = serverID + ":" + UUID.randomUUID();
-
-        Optional<String> acquired = redisCache.tryAcquireIslandOpLock(islandUuid, token, ISLAND_OP_LOCK_TTL_MS);
-        if (acquired.isEmpty()) {
-            long pttl = redisCache.getIslandOpLockTtlMillis(islandUuid);
-            plugin.debug("IslandDistributor", "withIslandOpLock: busy lock for " + islandUuid + " (pttl=" + pttl + "ms)");
-            return CompletableFuture.failedFuture(new IslandBusyException());
-        }
-
-        BukkitTask heartbeat = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-            boolean ok = redisCache.extendIslandOpLock(islandUuid, token, ISLAND_OP_LOCK_TTL_MS);
-            if (!ok) {
-                plugin.debug("IslandDistributor", "withIslandOpLock: failed to extend lock (lost ownership?) island=" + islandUuid);
-            }
-        }, Math.max(1L, ISLAND_OP_LOCK_HEARTBEAT_MS / 50L), Math.max(1L, ISLAND_OP_LOCK_HEARTBEAT_MS / 50L));
-
-        CompletableFuture<T> future;
-        try {
-            future = action.get();
-        } catch (Throwable t) {
-            heartbeat.cancel();
-            redisCache.releaseIslandOpLock(islandUuid, token);
-            return CompletableFuture.failedFuture(t);
-        }
-
-        return future.whenComplete((res, err) -> {
-            heartbeat.cancel();
-            redisCache.releaseIslandOpLock(islandUuid, token);
-        });
+        return islandOpLock.withLock(islandUuid, action);
     }
 
     private String selectServer(Map<String, String> servers) {
