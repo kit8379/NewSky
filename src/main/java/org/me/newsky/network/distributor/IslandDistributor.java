@@ -7,7 +7,7 @@ import org.me.newsky.exceptions.IslandAlreadyLoadedException;
 import org.me.newsky.exceptions.IslandBusyException;
 import org.me.newsky.exceptions.IslandNotLoadedException;
 import org.me.newsky.exceptions.NoActiveServerException;
-import org.me.newsky.network.lock.IslandOpLockManager;
+import org.me.newsky.network.lock.IslandOpLock;
 import org.me.newsky.network.operator.IslandOperator;
 import org.me.newsky.redis.RedisCache;
 import org.me.newsky.routing.ServerSelector;
@@ -50,12 +50,12 @@ public class IslandDistributor {
     private final RedisCache redisCache;
     private final IslandOperator islandOperator;
     private final ServerSelector serverSelector;
-    private final IslandOpLockManager islandOpLock;
+    private final IslandOpLock islandOpLock;
     private final String serverID;
 
     private IslandBroker islandBroker;
 
-    public IslandDistributor(NewSky plugin, RedisCache redisCache, IslandOperator islandOperator, ServerSelector serverSelector, IslandOpLockManager islandOpLock, String serverID) {
+    public IslandDistributor(NewSky plugin, RedisCache redisCache, IslandOperator islandOperator, ServerSelector serverSelector, IslandOpLock islandOpLock, String serverID) {
         this.plugin = plugin;
         this.redisCache = redisCache;
         this.islandOperator = islandOperator;

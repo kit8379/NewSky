@@ -5,7 +5,7 @@ import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandBusyException;
-import org.me.newsky.network.lock.IslandOpLockManager;
+import org.me.newsky.network.lock.IslandOpLock;
 import org.me.newsky.redis.RedisCache;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.world.WorldActivityHandler;
@@ -19,13 +19,13 @@ public class IslandUnloadScheduler {
     private final RedisCache redisCache;
     private final WorldHandler worldHandler;
     private final WorldActivityHandler worldActivityHandler;
-    private final IslandOpLockManager islandOpLock;
+    private final IslandOpLock islandOpLock;
 
     private final long unloadInterval;
 
     private BukkitTask task;
 
-    public IslandUnloadScheduler(NewSky plugin, ConfigHandler config, RedisCache redisCache, WorldHandler worldHandler, WorldActivityHandler worldActivityHandler, IslandOpLockManager islandOpLock) {
+    public IslandUnloadScheduler(NewSky plugin, ConfigHandler config, RedisCache redisCache, WorldHandler worldHandler, WorldActivityHandler worldActivityHandler, IslandOpLock islandOpLock) {
         this.plugin = plugin;
         this.redisCache = redisCache;
         this.worldHandler = worldHandler;

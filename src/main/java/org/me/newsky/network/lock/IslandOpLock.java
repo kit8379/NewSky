@@ -1,4 +1,4 @@
-// NEW FILE: IslandOpLockManager.java
+// NEW FILE: IslandOpLock.java
 package org.me.newsky.network.lock;
 
 import org.bukkit.Bukkit;
@@ -19,7 +19,7 @@ import java.util.function.Supplier;
  * <p>Uses Redis lock keys (via RedisCache) and maintains TTL using a heartbeat until the
  * provided action future completes, then releases the lock.
  */
-public final class IslandOpLockManager {
+public final class IslandOpLock {
 
     /**
      * Default lock TTL. Must be long enough to cover worst-case island load/unload/delete.
@@ -39,11 +39,11 @@ public final class IslandOpLockManager {
     private final long lockTtlMs;
     private final long heartbeatMs;
 
-    public IslandOpLockManager(NewSky plugin, RedisCache redisCache, String serverID) {
+    public IslandOpLock(NewSky plugin, RedisCache redisCache, String serverID) {
         this(plugin, redisCache, serverID, DEFAULT_LOCK_TTL_MS, DEFAULT_HEARTBEAT_MS);
     }
 
-    public IslandOpLockManager(NewSky plugin, RedisCache redisCache, String serverID, long lockTtlMs, long heartbeatMs) {
+    public IslandOpLock(NewSky plugin, RedisCache redisCache, String serverID, long lockTtlMs, long heartbeatMs) {
         this.plugin = plugin;
         this.redisCache = redisCache;
         this.serverID = serverID;
@@ -67,7 +67,7 @@ public final class IslandOpLockManager {
         Optional<String> acquired = redisCache.tryAcquireIslandOpLock(islandUuid, token, lockTtlMs);
         if (acquired.isEmpty()) {
             long pttl = redisCache.getIslandOpLockTtlMillis(islandUuid);
-            plugin.debug("IslandOpLockManager", "withLock: busy lock for " + islandUuid + " (pttl=" + pttl + "ms)");
+            plugin.debug("IslandOpLock", "withLock: busy lock for " + islandUuid + " (pttl=" + pttl + "ms)");
             return CompletableFuture.failedFuture(new IslandBusyException());
         }
 
@@ -76,7 +76,7 @@ public final class IslandOpLockManager {
         BukkitTask heartbeat = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
             boolean ok = redisCache.extendIslandOpLock(islandUuid, token, lockTtlMs);
             if (!ok) {
-                plugin.debug("IslandOpLockManager", "withLock: failed to extend lock (lost ownership?) island=" + islandUuid);
+                plugin.debug("IslandOpLock", "withLock: failed to extend lock (lost ownership?) island=" + islandUuid);
             }
         }, periodTicks, periodTicks);
 
