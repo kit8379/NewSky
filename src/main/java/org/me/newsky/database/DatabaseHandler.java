@@ -57,15 +57,6 @@ public class DatabaseHandler {
         return dataSource.getConnection();
     }
 
-    // ================================================================================================================
-    // Atomicity support (CORE FIX)
-    // ================================================================================================================
-
-    @FunctionalInterface
-    private interface ConnectionConsumer {
-        void use(Connection connection) throws SQLException;
-    }
-
     private void inTransaction(String name, ConnectionConsumer work) {
         try (Connection connection = getConnection()) {
             boolean oldAutoCommit = connection.getAutoCommit();
@@ -95,33 +86,34 @@ public class DatabaseHandler {
         }
     }
 
-    private void execUpdate(Connection connection, String query, PreparedStatementConsumer consumer) throws SQLException {
+    private void executeUpdate(Connection connection, String query, PreparedStatementConsumer consumer) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement(query)) {
             consumer.use(statement);
             statement.executeUpdate();
         }
     }
 
-    // ================================================================================================================
-    // Existing helpers (kept as-is behavior)
-    // ================================================================================================================
-
     public void executeUpdate(String query, PreparedStatementConsumer consumer) {
-        try (Connection connection = getConnection(); PreparedStatement statement = connection.prepareStatement(query)) {
-            consumer.use(statement);
-            statement.executeUpdate();
+        try (Connection connection = getConnection()) {
+            executeUpdate(connection, query, consumer);
         } catch (SQLException e) {
             plugin.severe("Database Update failed: " + query, e);
             throw new RuntimeException(e);
         }
     }
 
-    public void executeQuery(String query, PreparedStatementConsumer consumer, ResultProcessor processor) {
-        try (Connection connection = getConnection(); PreparedStatement statement = connection.prepareStatement(query)) {
+    private void executeQuery(Connection connection, String query, PreparedStatementConsumer consumer, ResultProcessor processor) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
             consumer.use(statement);
             try (ResultSet resultSet = statement.executeQuery()) {
                 processor.process(resultSet);
             }
+        }
+    }
+
+    public void executeQuery(String query, PreparedStatementConsumer consumer, ResultProcessor processor) {
+        try (Connection connection = getConnection()) {
+            executeQuery(connection, query, consumer, processor);
         } catch (SQLException e) {
             plugin.severe("Database Query failed: " + query, e);
             throw new RuntimeException(e);
@@ -145,39 +137,48 @@ public class DatabaseHandler {
     }
 
     private void createIslandDataTable() {
-        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "islands (island_uuid VARCHAR(56) PRIMARY KEY, `lock` BOOLEAN NOT NULL DEFAULT FALSE, pvp BOOLEAN NOT NULL DEFAULT FALSE);", PreparedStatement::execute);
+        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "islands (" + "island_uuid CHAR(36) NOT NULL," + "`lock` BOOLEAN NOT NULL DEFAULT FALSE," + "pvp BOOLEAN NOT NULL DEFAULT FALSE," + "PRIMARY KEY (island_uuid)" + ") ENGINE=InnoDB;", stmt -> {
+        });
     }
 
     private void createIslandPlayersTable() {
-        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_players (player_uuid VARCHAR(56), island_uuid VARCHAR(56) NOT NULL, role VARCHAR(56) NOT NULL, FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid), PRIMARY KEY (player_uuid, island_uuid));", PreparedStatement::execute);
+        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_players (" + "player_uuid CHAR(36) NOT NULL," + "island_uuid CHAR(36) NOT NULL," + "role VARCHAR(56) NOT NULL," + "PRIMARY KEY (player_uuid, island_uuid)," + "CONSTRAINT fk_island_players_island " + "FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid) " + "ON DELETE CASCADE" + ") ENGINE=InnoDB;", stmt -> {
+        });
     }
 
     private void createIslandHomesTable() {
-        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_homes (player_uuid VARCHAR(56), home_name VARCHAR(56), home_location VARCHAR(256), island_uuid VARCHAR(56), PRIMARY KEY (player_uuid, home_name), FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid));", PreparedStatement::execute);
+        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_homes (" + "player_uuid CHAR(36) NOT NULL," + "home_name VARCHAR(56) NOT NULL," + "home_location VARCHAR(256)," + "island_uuid CHAR(36) NOT NULL," + "PRIMARY KEY (player_uuid, home_name)," + "KEY idx_island_homes_island (island_uuid)," + "CONSTRAINT fk_island_homes_island " + "FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid) " + "ON DELETE CASCADE," + "CONSTRAINT fk_island_homes_player_membership " + "FOREIGN KEY (player_uuid, island_uuid) REFERENCES " + prefix + "island_players(player_uuid, island_uuid) " + "ON DELETE CASCADE" + ") ENGINE=InnoDB;", stmt -> {
+        });
     }
 
     private void createIslandWarpsTable() {
-        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_warps (player_uuid VARCHAR(56), warp_name VARCHAR(56), warp_location VARCHAR(256), island_uuid VARCHAR(56), PRIMARY KEY (player_uuid, warp_name), FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid));", PreparedStatement::execute);
+        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_warps (" + "player_uuid CHAR(36) NOT NULL," + "warp_name VARCHAR(56) NOT NULL," + "warp_location VARCHAR(256)," + "island_uuid CHAR(36) NOT NULL," + "PRIMARY KEY (player_uuid, warp_name)," + "KEY idx_island_warps_island (island_uuid)," + "CONSTRAINT fk_island_warps_island " + "FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid) " + "ON DELETE CASCADE," + "CONSTRAINT fk_island_warps_player_membership " + "FOREIGN KEY (player_uuid, island_uuid) REFERENCES " + prefix + "island_players(player_uuid, island_uuid) " + "ON DELETE CASCADE" + ") ENGINE=InnoDB;", stmt -> {
+        });
     }
 
     private void createIslandBanTable() {
-        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_bans (island_uuid VARCHAR(56), banned_player VARCHAR(56), PRIMARY KEY (island_uuid, banned_player), FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid));", PreparedStatement::execute);
+        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_bans (" + "island_uuid CHAR(36) NOT NULL," + "banned_player CHAR(36) NOT NULL," + "PRIMARY KEY (island_uuid, banned_player)," + "CONSTRAINT fk_island_bans_island " + "FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid) " + "ON DELETE CASCADE" + ") ENGINE=InnoDB;", stmt -> {
+        });
     }
 
     private void createIslandCoopTable() {
-        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_coops (" + "island_uuid VARCHAR(56) NOT NULL, " + "cooped_player VARCHAR(56) NOT NULL, " + "PRIMARY KEY (island_uuid, cooped_player), " + "FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid)" + ");", PreparedStatement::execute);
+        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_coops (" + "island_uuid CHAR(36) NOT NULL," + "cooped_player CHAR(36) NOT NULL," + "PRIMARY KEY (island_uuid, cooped_player)," + "CONSTRAINT fk_island_coops_island " + "FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid) " + "ON DELETE CASCADE" + ") ENGINE=InnoDB;", stmt -> {
+        });
     }
 
     public void createIslandLevelsTable() {
-        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_levels (" + "island_uuid VARCHAR(56) PRIMARY KEY, " + "level INT NOT NULL" + ");", PreparedStatement::execute);
+        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_levels (" + "island_uuid CHAR(36) NOT NULL," + "level INT NOT NULL," + "PRIMARY KEY (island_uuid)," + "CONSTRAINT fk_island_levels_island " + "FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid) " + "ON DELETE CASCADE" + ") ENGINE=InnoDB;", stmt -> {
+        });
     }
 
     private void createIslandUpgradesTable() {
-        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_upgrades (" + "island_uuid VARCHAR(56) NOT NULL, " + "upgrade_id VARCHAR(64) NOT NULL, " + "level INT NOT NULL, " + "PRIMARY KEY (island_uuid, upgrade_id), " + "FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid)" + ");", PreparedStatement::execute);
+        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_upgrades (" + "island_uuid CHAR(36) NOT NULL," + "upgrade_id VARCHAR(64) NOT NULL," + "level INT NOT NULL," + "PRIMARY KEY (island_uuid, upgrade_id)," + "CONSTRAINT fk_island_upgrades_island " + "FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid) " + "ON DELETE CASCADE" + ") ENGINE=InnoDB;", stmt -> {
+        });
     }
 
     public void createPlayerUuidTable() {
-        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "player_uuid (" + "uuid VARCHAR(56) PRIMARY KEY, " + "name VARCHAR(64) NOT NULL" + ");", PreparedStatement::execute);
+        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "player_uuid (" + "uuid CHAR(36) NOT NULL," + "name VARCHAR(16) NOT NULL," + "PRIMARY KEY (uuid)," + "KEY idx_player_uuid_name (name)" + ") ENGINE=InnoDB;", stmt -> {
+        });
     }
 
     // ================================================================================================================
@@ -269,26 +270,18 @@ public class DatabaseHandler {
     // Writes (transaction-protected where multi-statement)
     // ================================================================================================================
 
-    /**
-     * Atomic island create:
-     * - insert island row
-     * - upsert owner role
-     * - upsert default home
-     * <p>
-     * If MySQL disconnect happens mid-way, everything rolls back (no partial DB writes).
-     */
     public void addIslandData(UUID islandUuid, UUID ownerUuid, String homePoint) {
         inTransaction("addIslandData island=" + islandUuid, connection -> {
-            execUpdate(connection, "INSERT INTO " + prefix + "islands (island_uuid) VALUES (?);", stmt -> stmt.setString(1, islandUuid.toString()));
+            executeUpdate(connection, "INSERT INTO " + prefix + "islands (island_uuid) VALUES (?);", stmt -> stmt.setString(1, islandUuid.toString()));
 
-            execUpdate(connection, "INSERT INTO " + prefix + "island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?) " + "ON DUPLICATE KEY UPDATE role = ?;", stmt -> {
+            executeUpdate(connection, "INSERT INTO " + prefix + "island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?) " + "ON DUPLICATE KEY UPDATE role = ?;", stmt -> {
                 stmt.setString(1, ownerUuid.toString());
                 stmt.setString(2, islandUuid.toString());
                 stmt.setString(3, "owner");
                 stmt.setString(4, "owner");
             });
 
-            execUpdate(connection, "INSERT INTO " + prefix + "island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) " + "ON DUPLICATE KEY UPDATE home_location = ?;", stmt -> {
+            executeUpdate(connection, "INSERT INTO " + prefix + "island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) " + "ON DUPLICATE KEY UPDATE home_location = ?;", stmt -> {
                 stmt.setString(1, ownerUuid.toString());
                 stmt.setString(2, islandUuid.toString());
                 stmt.setString(3, "default");
@@ -298,21 +291,16 @@ public class DatabaseHandler {
         });
     }
 
-    /**
-     * Atomic add player:
-     * - upsert role
-     * - upsert default home
-     */
     public void addIslandPlayer(UUID islandUuid, UUID playerUuid, String role, String homePoint) {
         inTransaction("addIslandPlayer island=" + islandUuid + " player=" + playerUuid, connection -> {
-            execUpdate(connection, "INSERT INTO " + prefix + "island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?) " + "ON DUPLICATE KEY UPDATE role = ?;", stmt -> {
+            executeUpdate(connection, "INSERT INTO " + prefix + "island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?) " + "ON DUPLICATE KEY UPDATE role = ?;", stmt -> {
                 stmt.setString(1, playerUuid.toString());
                 stmt.setString(2, islandUuid.toString());
                 stmt.setString(3, role);
                 stmt.setString(4, role);
             });
 
-            execUpdate(connection, "INSERT INTO " + prefix + "island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) " + "ON DUPLICATE KEY UPDATE home_location = ?;", stmt -> {
+            executeUpdate(connection, "INSERT INTO " + prefix + "island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) " + "ON DUPLICATE KEY UPDATE home_location = ?;", stmt -> {
                 stmt.setString(1, playerUuid.toString());
                 stmt.setString(2, islandUuid.toString());
                 stmt.setString(3, "default");
@@ -356,18 +344,15 @@ public class DatabaseHandler {
         });
     }
 
-    /**
-     * Atomic owner update: must change both rows together.
-     */
     public void updateIslandOwner(UUID islandUuid, UUID oldOwnerUuid, UUID newOwnerUuid) {
         inTransaction("updateIslandOwner island=" + islandUuid, connection -> {
-            execUpdate(connection, "UPDATE " + prefix + "island_players SET role = ? WHERE player_uuid = ? AND island_uuid = ?;", stmt -> {
+            executeUpdate(connection, "UPDATE " + prefix + "island_players SET role = ? WHERE player_uuid = ? AND island_uuid = ?;", stmt -> {
                 stmt.setString(1, "member");
                 stmt.setString(2, oldOwnerUuid.toString());
                 stmt.setString(3, islandUuid.toString());
             });
 
-            execUpdate(connection, "UPDATE " + prefix + "island_players SET role = ? WHERE player_uuid = ? AND island_uuid = ?;", stmt -> {
+            executeUpdate(connection, "UPDATE " + prefix + "island_players SET role = ? WHERE player_uuid = ? AND island_uuid = ?;", stmt -> {
                 stmt.setString(1, "owner");
                 stmt.setString(2, newOwnerUuid.toString());
                 stmt.setString(3, islandUuid.toString());
@@ -414,40 +399,14 @@ public class DatabaseHandler {
         });
     }
 
-    /**
-     * Atomic island delete: all related tables must delete together.
-     */
     public void deleteIsland(UUID islandUuid) {
-        inTransaction("deleteIsland island=" + islandUuid, connection -> {
-            String id = islandUuid.toString();
-
-            execUpdate(connection, "DELETE FROM " + prefix + "island_upgrades WHERE island_uuid = ?;", stmt -> stmt.setString(1, id));
-            execUpdate(connection, "DELETE FROM " + prefix + "island_levels WHERE island_uuid = ?;", stmt -> stmt.setString(1, id));
-            execUpdate(connection, "DELETE FROM " + prefix + "island_coops WHERE island_uuid = ?;", stmt -> stmt.setString(1, id));
-            execUpdate(connection, "DELETE FROM " + prefix + "island_bans WHERE island_uuid = ?;", stmt -> stmt.setString(1, id));
-            execUpdate(connection, "DELETE FROM " + prefix + "island_warps WHERE island_uuid = ?;", stmt -> stmt.setString(1, id));
-            execUpdate(connection, "DELETE FROM " + prefix + "island_homes WHERE island_uuid = ?;", stmt -> stmt.setString(1, id));
-            execUpdate(connection, "DELETE FROM " + prefix + "island_players WHERE island_uuid = ?;", stmt -> stmt.setString(1, id));
-            execUpdate(connection, "DELETE FROM " + prefix + "islands WHERE island_uuid = ?;", stmt -> stmt.setString(1, id));
-        });
+        executeUpdate("DELETE FROM " + prefix + "islands WHERE island_uuid = ?;", stmt -> stmt.setString(1, islandUuid.toString()));
     }
 
-    /**
-     * Atomic remove player from island (keeps your original semantics):
-     * - deletes ALL warps for the player
-     * - deletes ALL homes for the player
-     * - deletes the island_players row for (player, island)
-     */
     public void deleteIslandPlayer(UUID islandUuid, UUID playerUuid) {
-        inTransaction("deleteIslandPlayer island=" + islandUuid + " player=" + playerUuid, connection -> {
-            String player = playerUuid.toString();
-
-            execUpdate(connection, "DELETE FROM " + prefix + "island_warps WHERE player_uuid = ?;", stmt -> stmt.setString(1, player));
-            execUpdate(connection, "DELETE FROM " + prefix + "island_homes WHERE player_uuid = ?;", stmt -> stmt.setString(1, player));
-            execUpdate(connection, "DELETE FROM " + prefix + "island_players WHERE player_uuid = ? AND island_uuid = ?;", stmt -> {
-                stmt.setString(1, player);
-                stmt.setString(2, islandUuid.toString());
-            });
+        executeUpdate("DELETE FROM " + prefix + "island_players WHERE player_uuid = ? AND island_uuid = ?;", stmt -> {
+            stmt.setString(1, playerUuid.toString());
+            stmt.setString(2, islandUuid.toString());
         });
     }
 
@@ -505,5 +464,9 @@ public class DatabaseHandler {
     public interface PreparedStatementConsumer {
         void use(PreparedStatement statement) throws SQLException;
     }
-}
 
+    @FunctionalInterface
+    private interface ConnectionConsumer {
+        void use(Connection connection) throws SQLException;
+    }
+}
