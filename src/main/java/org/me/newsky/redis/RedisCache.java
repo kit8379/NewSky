@@ -106,7 +106,9 @@ public class RedisCache {
         try (Jedis jedis = redisHandler.getJedis()) {
             String timestamp = String.valueOf(System.currentTimeMillis());
             jedis.hset("server_heartbeats", serverName, timestamp);
-            if (!lobby) {
+            if (lobby) {
+                jedis.hdel("active_game_servers", serverName);
+            } else {
                 jedis.hset("active_game_servers", serverName, timestamp);
             }
         } catch (Exception e) {
