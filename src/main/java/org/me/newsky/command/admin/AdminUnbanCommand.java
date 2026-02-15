@@ -102,8 +102,8 @@ public class AdminUnbanCommand implements SubCommand, TabComplete {
     @Override
     public List<String> tabComplete(CommandSender sender, String label, String[] args) {
         if (args.length == 2) {
-            String prefix = args[1].toLowerCase();
-            return api.getOnlinePlayersNames().stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+            String prefix = args[1].toLowerCase(Locale.ROOT);
+            return api.getOnlinePlayersNames().stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
         }
 
         if (args.length == 3) {
@@ -113,8 +113,8 @@ public class AdminUnbanCommand implements SubCommand, TabComplete {
             try {
                 UUID islandUuid = api.getIslandUuid(ownerUuidOpt.get());
                 Set<UUID> banned = api.getBannedPlayers(islandUuid);
-                String prefix = args[2].toLowerCase();
-                return banned.stream().map(uuid -> api.getPlayerName(uuid).orElse(uuid.toString())).filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+                String prefix = args[2].toLowerCase(Locale.ROOT);
+                return banned.stream().map(uuid -> api.getPlayerName(uuid).orElse(uuid.toString())).filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
             } catch (Exception e) {
                 return Collections.emptyList();
             }

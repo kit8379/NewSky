@@ -37,6 +37,7 @@ import org.me.newsky.world.WorldHandler;
 
 import java.lang.reflect.Constructor;
 import java.util.Collections;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -119,7 +120,7 @@ public class NewSky extends JavaPlugin {
 
             info("Starting server selector");
             ServerSelector serverSelector;
-            switch (config.getServerSelector().toLowerCase()) {
+            switch (config.getServerSelector().toLowerCase(Locale.ROOT)) {
                 case "round-robin":
                     serverSelector = new RoundRobinServerSelector(redisCache);
                     info("Using Round Robin server selector");

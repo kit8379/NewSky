@@ -88,7 +88,7 @@ public class AdminUpgradeCommand implements SubCommand, TabComplete {
         // /isadmin upgrade <player> <upgradeId>
         // Show specific upgrade details
         if (args.length == 3) {
-            String upgradeId = args[2].toLowerCase();
+            String upgradeId = args[2].toLowerCase(Locale.ROOT);
 
             try {
                 if (!api.getUpgradeIds().contains(upgradeId)) {
@@ -117,7 +117,7 @@ public class AdminUpgradeCommand implements SubCommand, TabComplete {
             return false;
         }
 
-        String upgradeId = args[2].toLowerCase();
+        String upgradeId = args[2].toLowerCase(Locale.ROOT);
         int level;
 
         try {
@@ -199,8 +199,8 @@ public class AdminUpgradeCommand implements SubCommand, TabComplete {
     public List<String> tabComplete(CommandSender sender, String label, String[] args) {
         // /isadmin upgrade <player>
         if (args.length == 2) {
-            String prefix = args[1].toLowerCase();
-            return api.getOnlinePlayersNames().stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+            String prefix = args[1].toLowerCase(Locale.ROOT);
+            return api.getOnlinePlayersNames().stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
         }
 
         // /isadmin upgrade <player> <upgradeId>
@@ -212,13 +212,13 @@ public class AdminUpgradeCommand implements SubCommand, TabComplete {
                 return Collections.emptyList();
             }
 
-            String prefix = args[2].toLowerCase();
-            return ids.stream().filter(id -> id.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+            String prefix = args[2].toLowerCase(Locale.ROOT);
+            return ids.stream().filter(id -> id.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
         }
 
         // /isadmin upgrade <player> <upgradeId> set
         if (args.length == 4) {
-            String prefix = args[3].toLowerCase();
+            String prefix = args[3].toLowerCase(Locale.ROOT);
             if ("set".startsWith(prefix)) {
                 return Collections.singletonList("set");
             }

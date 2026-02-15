@@ -104,8 +104,8 @@ public class PlayerUnbanCommand implements SubCommand, TabComplete {
             try {
                 UUID islandUuid = api.getIslandUuid(player.getUniqueId());
                 Set<UUID> banned = api.getBannedPlayers(islandUuid);
-                String prefix = args[1].toLowerCase();
-                return banned.stream().map(uuid -> api.getPlayerName(uuid).orElse(uuid.toString())).filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+                String prefix = args[1].toLowerCase(Locale.ROOT);
+                return banned.stream().map(uuid -> api.getPlayerName(uuid).orElse(uuid.toString())).filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
             } catch (Exception e) {
                 return Collections.emptyList();
             }

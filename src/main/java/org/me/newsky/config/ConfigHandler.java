@@ -1230,6 +1230,14 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.cannot-edit-island"));
     }
 
+    public Component getHomeNameNotLegalMessage() {
+        return ColorUtils.colorize(messages.getString("messages.home-name-not-legal"));
+    }
+
+    public Component getWarpNameNotLegalMessage() {
+        return ColorUtils.colorize(messages.getString("messages.warp-name-not-legal"));
+    }
+
     public Component getWarpSuccessMessage(String warp) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.warp-success")).replace("{warp}", warp));
     }

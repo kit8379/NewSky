@@ -6,6 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import org.me.newsky.NewSky;
 
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -25,7 +26,7 @@ public class NewSkyPlaceholderExpansion extends PlaceholderExpansion {
 
     @Override
     public @NotNull String getIdentifier() {
-        return plugin.getName().toLowerCase();
+        return plugin.getName().toLowerCase(Locale.ROOT);
     }
 
     @Override
@@ -51,7 +52,7 @@ public class NewSkyPlaceholderExpansion extends PlaceholderExpansion {
 
         UUID islandUuid = plugin.getApi().getIslandUuid(player.getUniqueId());
 
-        return resolvePlaceholder(islandUuid, identifier.toLowerCase());
+        return resolvePlaceholder(islandUuid, identifier.toLowerCase(Locale.ROOT));
     }
 
     private String resolvePlaceholder(UUID islandUuid, String identifier) {

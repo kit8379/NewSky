@@ -9,14 +9,12 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.HomeNameNotLegalException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
 import org.me.newsky.island.UpgradeHandler;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -100,6 +98,8 @@ public class PlayerSetHomeCommand implements SubCommand, TabComplete {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else if (cause instanceof LocationNotInIslandException) {
                 player.sendMessage(config.getPlayerMustInIslandSetHomeMessage());
+            } else if (cause instanceof HomeNameNotLegalException) {
+                player.sendMessage(config.getHomeNameNotLegalMessage());
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.severe("Error setting home for player " + player.getName(), ex);
@@ -115,8 +115,8 @@ public class PlayerSetHomeCommand implements SubCommand, TabComplete {
         if (args.length == 2 && sender instanceof Player player) {
             try {
                 Set<String> homes = api.getHomeNames(player.getUniqueId());
-                String prefix = args[1].toLowerCase();
-                return homes.stream().filter(name -> name != null && name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+                String prefix = args[1].toLowerCase(Locale.ROOT);
+                return homes.stream().filter(name -> name != null && name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
             } catch (Exception e) {
                 return Collections.emptyList();
             }

@@ -141,7 +141,7 @@ public class Cache {
                 UUID uuid = UUID.fromString(rs.getString("uuid"));
                 String name = rs.getString("name");
                 playerUuidToName.put(uuid, name);
-                playerNameToUuid.put(name.toLowerCase(), uuid);
+                playerNameToUuid.put(name.toLowerCase(Locale.ROOT), uuid);
             }
         });
     }
@@ -272,7 +272,7 @@ public class Cache {
             if (rs.next()) {
                 String name = rs.getString("name");
                 playerUuidToName.put(playerUuid, name);
-                playerNameToUuid.put(name.toLowerCase(), playerUuid);
+                playerNameToUuid.put(name.toLowerCase(Locale.ROOT), playerUuid);
             } else {
                 playerUuidToName.remove(playerUuid);
                 playerNameToUuid.values().removeIf(existing -> existing.equals(playerUuid));
@@ -686,7 +686,7 @@ public class Cache {
     // =================================================================================================================
     public void updatePlayerUuid(UUID uuid, String name) {
         playerUuidToName.put(uuid, name);
-        playerNameToUuid.put(name.toLowerCase(), uuid);
+        playerNameToUuid.put(name.toLowerCase(Locale.ROOT), uuid);
         databaseHandler.updatePlayerName(uuid, name);
         if (cacheBroker != null) {
             cacheBroker.publishUpdate("player_uuid", uuid);
@@ -698,6 +698,6 @@ public class Cache {
     }
 
     public Optional<UUID> getPlayerUuid(String name) {
-        return Optional.ofNullable(playerNameToUuid.get(name.toLowerCase()));
+        return Optional.ofNullable(playerNameToUuid.get(name.toLowerCase(Locale.ROOT)));
     }
 }

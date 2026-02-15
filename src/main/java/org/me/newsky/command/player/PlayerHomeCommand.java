@@ -14,6 +14,7 @@ import org.me.newsky.exceptions.NoActiveServerException;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -93,8 +94,8 @@ public class PlayerHomeCommand implements SubCommand, TabComplete {
     public List<String> tabComplete(CommandSender sender, String label, String[] args) {
         if (args.length == 2 && sender instanceof Player player) {
             try {
-                String prefix = args[1].toLowerCase();
-                return api.getHomeNames(player.getUniqueId()).stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+                String prefix = args[1].toLowerCase(Locale.ROOT);
+                return api.getHomeNames(player.getUniqueId()).stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
             } catch (Exception e) {
                 return Collections.emptyList();
             }

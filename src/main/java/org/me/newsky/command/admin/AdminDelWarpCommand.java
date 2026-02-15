@@ -9,10 +9,7 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.WarpDoesNotExistException;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -91,9 +88,9 @@ public class AdminDelWarpCommand implements SubCommand, TabComplete {
     @Override
     public List<String> tabComplete(CommandSender sender, String label, String[] args) {
         if (args.length == 2) {
-            String prefix = args[1].toLowerCase();
+            String prefix = args[1].toLowerCase(Locale.ROOT);
             return api.getOnlinePlayersNames().stream()
-                    .filter(name -> name.toLowerCase().startsWith(prefix))
+                    .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix))
                     .collect(Collectors.toList());
         }
 
@@ -101,7 +98,7 @@ public class AdminDelWarpCommand implements SubCommand, TabComplete {
             Optional<UUID> uuidOpt = api.getPlayerUuid(args[1]);
             if (uuidOpt.isPresent()) {
                 return api.getWarpNames(uuidOpt.get()).stream()
-                        .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
+                        .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(args[2].toLowerCase(Locale.ROOT)))
                         .collect(Collectors.toList());
             }
         }

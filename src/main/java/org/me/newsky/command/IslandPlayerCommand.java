@@ -63,9 +63,9 @@ public class IslandPlayerCommand implements CommandExecutor, TabExecutor {
     }
 
     private void registerSubCommand(SubCommand cmd) {
-        subCommandMap.put(cmd.getName().toLowerCase(), cmd);
+        subCommandMap.put(cmd.getName().toLowerCase(Locale.ROOT), cmd);
         for (String alias : cmd.getAliases()) {
-            subCommandMap.put(alias.toLowerCase(), cmd);
+            subCommandMap.put(alias.toLowerCase(Locale.ROOT), cmd);
         }
     }
 
@@ -113,7 +113,7 @@ public class IslandPlayerCommand implements CommandExecutor, TabExecutor {
             }
         }
 
-        String subName = args[0].toLowerCase();
+        String subName = args[0].toLowerCase(Locale.ROOT);
         SubCommand target = subCommandMap.get(subName);
         if (target == null) {
             sender.sendMessage(config.getPlayerUnknownSubCommandMessage());
@@ -140,11 +140,11 @@ public class IslandPlayerCommand implements CommandExecutor, TabExecutor {
             for (SubCommand cmd : subCommands) {
                 String perm = cmd.getPermission();
                 if (perm == null || perm.isEmpty() || sender.hasPermission(perm)) {
-                    if (cmd.getName().startsWith(args[0].toLowerCase())) {
+                    if (cmd.getName().startsWith(args[0].toLowerCase(Locale.ROOT))) {
                         suggestions.add(cmd.getName());
                     }
                     for (String alias : cmd.getAliases()) {
-                        if (alias.startsWith(args[0].toLowerCase())) {
+                        if (alias.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                             suggestions.add(alias);
                         }
                     }
@@ -153,7 +153,7 @@ public class IslandPlayerCommand implements CommandExecutor, TabExecutor {
             return suggestions;
         }
 
-        SubCommand target = subCommandMap.get(args[0].toLowerCase());
+        SubCommand target = subCommandMap.get(args[0].toLowerCase(Locale.ROOT));
         if (target instanceof TabComplete) {
             return ((TabComplete) target).tabComplete(sender, label, args);
         }

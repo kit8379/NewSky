@@ -111,8 +111,8 @@ public class AdminWarpCommand implements SubCommand, TabComplete {
     @Override
     public List<String> tabComplete(CommandSender sender, String label, String[] args) {
         if (args.length == 2) {
-            String prefix = args[1].toLowerCase();
-            return api.getOnlinePlayersNames().stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+            String prefix = args[1].toLowerCase(Locale.ROOT);
+            return api.getOnlinePlayersNames().stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
         }
 
         if (args.length == 3) {
@@ -120,16 +120,16 @@ public class AdminWarpCommand implements SubCommand, TabComplete {
             if (ownerUuidOpt.isEmpty()) return Collections.emptyList();
             try {
                 Set<String> warps = api.getWarpNames(ownerUuidOpt.get());
-                String prefix = args[2].toLowerCase();
-                return warps.stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+                String prefix = args[2].toLowerCase(Locale.ROOT);
+                return warps.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
             } catch (Exception e) {
                 return Collections.emptyList();
             }
         }
 
         if (args.length == 4) {
-            String prefix = args[3].toLowerCase();
-            return api.getOnlinePlayersNames().stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+            String prefix = args[3].toLowerCase(Locale.ROOT);
+            return api.getOnlinePlayersNames().stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
         }
 
         return Collections.emptyList();

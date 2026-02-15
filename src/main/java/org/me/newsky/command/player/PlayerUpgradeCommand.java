@@ -80,7 +80,7 @@ public class PlayerUpgradeCommand implements SubCommand, TabComplete {
             return true;
         }
 
-        String upgradeId = args[1].toLowerCase();
+        String upgradeId = args[1].toLowerCase(Locale.ROOT);
 
         // /is upgrade <upgradeId>
         // Show specific upgrade details
@@ -220,13 +220,13 @@ public class PlayerUpgradeCommand implements SubCommand, TabComplete {
                 return Collections.emptyList();
             }
 
-            String prefix = args[1].toLowerCase();
-            return ids.stream().filter(id -> id.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+            String prefix = args[1].toLowerCase(Locale.ROOT);
+            return ids.stream().filter(id -> id.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
         }
 
         // /is upgrade <upgradeId> buy
         if (args.length == 3) {
-            String prefix = args[2].toLowerCase();
+            String prefix = args[2].toLowerCase(Locale.ROOT);
             if ("buy".startsWith(prefix)) {
                 return Collections.singletonList("buy");
             }

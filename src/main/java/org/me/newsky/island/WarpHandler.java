@@ -25,6 +25,7 @@ public class WarpHandler {
     }
 
     public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
+
         return CompletableFuture.supplyAsync(() -> cache.getIslandUuid(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
@@ -32,16 +33,31 @@ public class WarpHandler {
 
             UUID islandUuid = islandUuidOpt.get();
 
-            if (worldName == null || !worldName.equals("island-" + islandUuid)) {
+            if (!worldName.equals(IslandUtils.UUIDToName(islandUuid))) {
                 throw new LocationNotInIslandException();
+            }
+
+            String normalizedWarpName = warpName.toLowerCase(java.util.Locale.ROOT);
+
+            if (normalizedWarpName.isEmpty() || normalizedWarpName.length() > 32) {
+                throw new WarpNameNotLegalException();
+            }
+
+            for (int i = 0; i < normalizedWarpName.length(); i++) {
+                char c = normalizedWarpName.charAt(i);
+                if (!(c >= 'a' && c <= 'z') && !(c >= '0' && c <= '9') && c != '_' && c != '-') {
+                    throw new WarpNameNotLegalException();
+                }
             }
 
             String warpLocation = x + "," + y + "," + z + "," + yaw + "," + pitch;
 
-            cache.updateWarpPoint(islandUuid, playerUuid, warpName, warpLocation);
+            cache.updateWarpPoint(islandUuid, playerUuid, normalizedWarpName, warpLocation);
+
             return CompletableFuture.completedFuture(null);
         });
     }
+
 
     public CompletableFuture<Void> delWarp(UUID playerUuid, String warpName) {
         return CompletableFuture.supplyAsync(() -> cache.getIslandUuid(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {

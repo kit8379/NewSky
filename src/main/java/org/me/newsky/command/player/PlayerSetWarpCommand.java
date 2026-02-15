@@ -11,12 +11,10 @@ import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
+import org.me.newsky.exceptions.WarpNameNotLegalException;
 import org.me.newsky.island.UpgradeHandler;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -87,10 +85,10 @@ public class PlayerSetWarpCommand implements SubCommand, TabComplete {
         Set<String> existingWarps;
         existingWarps = api.getWarpNames(playerUuid);
         boolean overwriting = existingWarps.stream().anyMatch(n -> n != null && n.equalsIgnoreCase(warpName));
-        int warpLimitLevel = api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_HOME_LIMIT);
+        int warpLimitLevel = api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_WARP_LIMIT);
         int warpLimit = api.getWarpLimit(warpLimitLevel);
         if (!overwriting && existingWarps.size() >= warpLimit) {
-            player.sendMessage(config.getPlayerHomeLimitReachedMessage(warpLimit));
+            player.sendMessage(config.getPlayerWarpLimitReachedMessage(warpLimit));
             return true;
         }
 
@@ -100,6 +98,8 @@ public class PlayerSetWarpCommand implements SubCommand, TabComplete {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else if (cause instanceof LocationNotInIslandException) {
                 player.sendMessage(config.getPlayerMustInIslandSetWarpMessage());
+            } else if (cause instanceof WarpNameNotLegalException) {
+                player.sendMessage(config.getWarpNameNotLegalMessage());
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.severe("Error setting warp for player " + player.getName(), ex);
@@ -116,8 +116,8 @@ public class PlayerSetWarpCommand implements SubCommand, TabComplete {
         if (args.length == 2 && sender instanceof Player player) {
             try {
                 Set<String> warps = api.getWarpNames(player.getUniqueId());
-                String prefix = args[1].toLowerCase();
-                return warps.stream().filter(name -> name.toLowerCase().startsWith(prefix)).collect(Collectors.toList());
+                String prefix = args[1].toLowerCase(Locale.ROOT);
+                return warps.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
             } catch (Exception e) {
                 return Collections.emptyList();
             }

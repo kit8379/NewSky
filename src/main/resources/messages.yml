@@ -91,6 +91,7 @@ messages:
   # ================================================================================================================
   # Island - Teleport: Home
   # ================================================================================================================
+  home-name-not-legal: "&cInvalid home name. &7Allowed characters: &f[a-z0-9_-]&7, length: &f1-32&7 characters."
 
   player-must-in-island-set-home: "<red>You must be on your island to set a home!"
   player-set-home-success: "<green>Home <aqua>{home}<green> set successfully!"
@@ -110,7 +111,7 @@ messages:
   # ================================================================================================================
   # Island - Teleport: Warp
   # ================================================================================================================
-
+  warp-name-not-legal: "&cInvalid warp name. &7Allowed characters: &f[a-z0-9_-]&7, length: &f1-32&7 characters."
   warp-success: "<green>Teleported to warp <aqua>{warp}<green>!"
   no-warp: "<red>Player <aqua>{player} <red>does not have a warp named <aqua>{warp}<red>!"
 
