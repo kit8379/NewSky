@@ -9,7 +9,6 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Objects;
 import java.util.UUID;
 
 public class DatabaseHandler {
@@ -19,8 +18,8 @@ public class DatabaseHandler {
     private final String prefix;
 
     public DatabaseHandler(NewSky plugin, ConfigHandler config) {
-        this.plugin = Objects.requireNonNull(plugin, "plugin");
-        this.prefix = Objects.requireNonNull(config, "config").getMySQLTablePrefix();
+        this.plugin = plugin;
+        this.prefix = config.getMySQLTablePrefix();
 
         String host = config.getMySQLHost();
         int port = config.getMySQLPort();

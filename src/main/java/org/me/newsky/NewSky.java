@@ -144,7 +144,7 @@ public class NewSky extends JavaPlugin {
             info("All handlers for remote requests loaded");
 
             info("Starting player message handler");
-            PlayerMessageHandler playerMessageHandler = new PlayerMessageHandler(redisCache);
+            PlayerMessageHandler playerMessageHandler = new PlayerMessageHandler(this, redisCache);
             info("Player message handler loaded");
 
             info("Starting all brokers for the plugin");

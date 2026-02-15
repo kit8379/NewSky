@@ -44,7 +44,7 @@ public class PlayerMessageBroker {
                         return;
                     }
 
-                    handlePlayerMessage(UUID.fromString(uuid), component);
+                    handlePlayerMessage(UUID.fromString(uuid), ComponentUtils.deserialize(component));
                 } catch (Exception e) {
                     plugin.severe("PlayerMessageBroker failed to process message: " + message, e);
                 }
@@ -64,32 +64,8 @@ public class PlayerMessageBroker {
 
     public void sendPlayerMessage(String playerServer, UUID playerUuid, Component component) {
         if (serverID.equals(playerServer)) {
-            // Local: Bukkit API must be on main thread. Avoid scheduling if already on main.
-            if (Bukkit.isPrimaryThread()) {
-                try {
-                    Player player = Bukkit.getPlayer(playerUuid);
-                    if (player != null) {
-                        player.sendMessage(component);
-                        plugin.debug("PlayerMessageBroker", "Delivered message to player " + playerUuid);
-                    }
-                } catch (Exception e) {
-                    plugin.severe("PlayerMessageBroker failed to deliver message to player " + playerUuid, e);
-                }
-            } else {
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    try {
-                        Player player = Bukkit.getPlayer(playerUuid);
-                        if (player != null) {
-                            player.sendMessage(component);
-                            plugin.debug("PlayerMessageBroker", "Delivered message to player " + playerUuid);
-                        }
-                    } catch (Exception e) {
-                        plugin.severe("PlayerMessageBroker failed to deliver message to player " + playerUuid, e);
-                    }
-                });
-            }
+            handlePlayerMessage(playerUuid, component);
         } else {
-            // Remote: publish to target server only.
             try {
                 JSONObject json = new JSONObject();
                 json.put("server", playerServer);
@@ -105,12 +81,12 @@ public class PlayerMessageBroker {
 
     }
 
-    private void handlePlayerMessage(UUID playerUuid, String serializedComponent) {
+    private void handlePlayerMessage(UUID playerUuid, Component component) {
         Bukkit.getScheduler().runTask(plugin, () -> {
             try {
                 Player player = Bukkit.getPlayer(playerUuid);
                 if (player != null) {
-                    player.sendMessage(ComponentUtils.deserialize(serializedComponent));
+                    player.sendMessage(component);
                     plugin.debug("PlayerMessageBroker", "Delivered message to player " + playerUuid);
                 }
             } catch (Exception e) {

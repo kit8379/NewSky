@@ -8,6 +8,8 @@
 package org.me.newsky.message;
 
 import net.kyori.adventure.text.Component;
+import org.bukkit.Bukkit;
+import org.me.newsky.NewSky;
 import org.me.newsky.broker.PlayerMessageBroker;
 import org.me.newsky.redis.RedisCache;
 
@@ -15,10 +17,12 @@ import java.util.UUID;
 
 public class PlayerMessageHandler {
 
+    private final NewSky plugin;
     private final RedisCache redisCache;
     private PlayerMessageBroker playerMessageBroker;
 
-    public PlayerMessageHandler(RedisCache redisCache) {
+    public PlayerMessageHandler(NewSky plugin, RedisCache redisCache) {
+        this.plugin = plugin;
         this.redisCache = redisCache;
     }
 
@@ -27,6 +31,10 @@ public class PlayerMessageHandler {
     }
 
     public void sendPlayerMessage(UUID playerUuid, Component message) {
-        redisCache.getPlayerOnlineServer(playerUuid).ifPresent(playerServer -> playerMessageBroker.sendPlayerMessage(playerServer, playerUuid, message));
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            redisCache.getPlayerOnlineServer(playerUuid).ifPresent(playerServer -> {
+                playerMessageBroker.sendPlayerMessage(playerServer, playerUuid, message);
+            });
+        });
     }
 }
