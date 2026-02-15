@@ -6,264 +6,264 @@ commands:
   player:
     create:
       aliases: []
-      permission: island.player.create
+      permission: newsky.island.player.create
       syntax: ''
       description: Create a new island
     delete:
       aliases: []
-      permission: island.player.delete
+      permission: newsky.island.player.delete
       syntax: ''
       description: Delete your island
     setowner:
       aliases: []
-      permission: island.player.setowner
+      permission: newsky.island.player.setowner
       syntax: <player>
       description: Set a new owner for your island
     leave:
       aliases: []
-      permission: island.player.leave
+      permission: newsky.island.player.leave
       syntax: ''
       description: Leave your island
     invite:
       aliases: []
-      permission: island.player.invite
+      permission: newsky.island.player.invite
       syntax: <player>
       description: Invite a player to join your island
     accept:
       aliases: []
-      permission: island.player.accept
+      permission: newsky.island.player.accept
       syntax: ''
       description: Accept a pending island invitation
     reject:
       aliases: []
-      permission: island.player.reject
+      permission: newsky.island.player.reject
       syntax: ''
       description: Reject a pending island invitation
     removemember:
       aliases: []
-      permission: island.player.removemember
+      permission: newsky.island.player.removemember
       syntax: <player>
       description: Remove a member from your island
     expel:
       aliases: []
-      permission: island.player.expel
+      permission: newsky.island.player.expel
       syntax: <player>
       description: Expel a player from your island
     coop:
       aliases: []
-      permission: island.player.coop
+      permission: newsky.island.player.coop
       syntax: <player>
       description: Set a player as your island co-op partner
     uncoop:
       aliases: []
-      permission: island.player.uncoop
+      permission: newsky.island.player.uncoop
       syntax: <player>
       description: Remove a co-op partner from your island
     cooplist:
       aliases: []
-      permission: island.player.cooplist
+      permission: newsky.island.player.cooplist
       syntax: ''
       description: Show the list of your island’s co-op members
     ban:
       aliases: []
-      permission: island.player.ban
+      permission: newsky.island.player.ban
       syntax: <player>
       description: Ban a player from your island
     unban:
       aliases: []
-      permission: island.player.unban
+      permission: newsky.island.player.unban
       syntax: <player>
       description: Unban a player from your island
     banlist:
       aliases: []
-      permission: island.player.banlist
+      permission: newsky.island.player.banlist
       syntax: ''
       description: Show the list of players banned from your island
     lock:
       aliases: []
-      permission: island.player.lock
+      permission: newsky.island.player.lock
       syntax: ''
       description: Toggle your island lock state
     pvp:
       aliases: []
-      permission: island.player.pvp
+      permission: newsky.island.player.pvp
       syntax: ''
       description: Toggle PvP state on your island
     sethome:
       aliases: []
-      permission: island.player.sethome
+      permission: newsky.island.player.sethome
       syntax: '[homeName]'
       description: Set a new home for your island
     delhome:
       aliases: []
-      permission: island.player.delhome
+      permission: newsky.island.player.delhome
       syntax: <homeName>
       description: Delete an existing home on your island
     home:
       aliases:
         - go
-      permission: island.player.home
+      permission: newsky.island.player.home
       syntax: '[homeName]'
       description: Teleport to your island home
     setwarp:
       aliases: []
-      permission: island.player.setwarp
+      permission: newsky.island.player.setwarp
       syntax: '[warpName]'
       description: Set a new warp for your island
     delwarp:
       aliases: []
-      permission: island.player.delwarp
+      permission: newsky.island.player.delwarp
       syntax: <warpName>
       description: Delete an existing warp on your island
     warp:
       aliases: []
-      permission: island.player.warp
+      permission: newsky.island.player.warp
       syntax: <player> [warpName]
       description: Teleport to another player's island warp
     info:
       aliases: []
-      permission: island.player.info
+      permission: newsky.island.player.info
       syntax: '[player]'
       description: Show island information
     level:
       aliases: []
-      permission: island.player.level
+      permission: newsky.island.player.level
       syntax: ''
       description: Show your island level
     top:
       aliases: []
-      permission: island.player.top
+      permission: newsky.island.player.top
       syntax: ''
       description: Show top islands ranked by level
     value:
       aliases: []
-      permission: island.player.value
+      permission: newsky.island.player.value
       syntax: ''
       description: Show the value of the block in your hand
     upgrade:
       aliases: []
-      permission: island.player.upgrade
+      permission: newsky.island.player.upgrade
       syntax: "<upgradeId> [buy]"
       description: View or buy an island upgrade
     lobby:
       aliases: []
-      permission: island.player.lobby
+      permission: newsky.island.player.lobby
       syntax: ''
       description: Teleport to the lobby
     help:
       aliases: []
-      permission: island.player.help
+      permission: newsky.island.player.help
       syntax: '[page]'
       description: Show available island commands
   admin:
     create:
       aliases: []
-      permission: newsky.admin.create
+      permission: newsky.island.admin.create
       syntax: <player>
       description: Create an island for a player
     delete:
       aliases: []
-      permission: newsky.admin.delete
+      permission: newsky.island.admin.delete
       syntax: <player>
       description: Delete a player's island
     load:
       aliases: []
-      permission: newsky.admin.load
+      permission: newsky.island.admin.load
       syntax: <player>
       description: Load another player's island
     unload:
       aliases: []
-      permission: newsky.admin.unload
+      permission: newsky.island.admin.unload
       syntax: <player>
       description: Unload another player's island
     addmember:
       aliases: []
-      permission: newsky.admin.addmember
+      permission: newsky.island.admin.addmember
       syntax: <member> <owner>
       description: Force-add a member to another player's island
     removemember:
       aliases: []
-      permission: newsky.admin.removemember
+      permission: newsky.island.admin.removemember
       syntax: <member> <owner>
       description: Force-remove a member from another player's island
     coop:
       aliases: []
-      permission: newsky.admin.coop
+      permission: newsky.island.admin.coop
       syntax: <owner> <player>
       description: Add a co-op partner to another player's island
     uncoop:
       aliases: []
-      permission: newsky.admin.uncoop
+      permission: newsky.island.admin.uncoop
       syntax: <owner> <player>
       description: Remove a co-op partner from another player's island
     ban:
       aliases: []
-      permission: newsky.admin.ban
+      permission: newsky.island.admin.ban
       syntax: <owner> <player>
       description: Ban a player from another player's island
     unban:
       aliases: []
-      permission: newsky.admin.unban
+      permission: newsky.island.admin.unban
       syntax: <owner> <player>
       description: Unban a player from another player's island
     lock:
       aliases: []
-      permission: newsky.admin.lock
+      permission: newsky.island.admin.lock
       syntax: <player>
       description: Toggle lock state of another player's island
     pvp:
       aliases: []
-      permission: newsky.admin.pvp
+      permission: newsky.island.admin.pvp
       syntax: <player>
       description: Toggle PvP state of another player's island
     sethome:
       aliases: []
-      permission: newsky.admin.sethome
+      permission: newsky.island.admin.sethome
       syntax: <player> <home>
       description: Set a home on another player's island at your location
     delhome:
       aliases: []
-      permission: newsky.admin.delhome
+      permission: newsky.island.admin.delhome
       syntax: <player> <home>
       description: Delete a home from another player's island
     home:
       aliases:
         - go
-      permission: newsky.admin.home
+      permission: newsky.island.admin.home
       syntax: <player> [home] [target]
       description: Teleport a player to another player's home
     setwarp:
       aliases: []
-      permission: newsky.admin.setwarp
+      permission: newsky.island.admin.setwarp
       syntax: <player> <warp>
       description: Set a warp on another player's island at your location
     delwarp:
       aliases: []
-      permission: newsky.admin.delwarp
+      permission: newsky.island.admin.delwarp
       syntax: <player> <warp>
       description: Delete a warp from another player's island
     warp:
       aliases: []
-      permission: newsky.admin.warp
+      permission: newsky.island.admin.warp
       syntax: <player> [warp] [target]
       description: Teleport a player to another player's warp
     upgrade:
       aliases: []
-      permission: newsky.admin.upgrade
+      permission: newsky.island.admin.upgrade
       syntax: "<player> <upgradeId> [set <level>]"
       description: View or set a player's island upgrade level
     lobby:
       aliases: []
-      permission: newsky.admin.lobby
+      permission: newsky.island.admin.lobby
       syntax: <player>
       description: Teleport a player to the lobby
     reload:
       aliases: []
-      permission: newsky.admin.reload
+      permission: newsky.island.admin.reload
       syntax: ''
       description: Reload plugin configuration files
     help:
       aliases: []
-      permission: newsky.admin.help
+      permission: newsky.island.admin.help
       syntax: '[page]'
       description: Show available admin commands
