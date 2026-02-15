@@ -35,7 +35,7 @@ public class HeartBeatHandler {
             plugin.debug("HeartBeatHandler", "Sent heartbeat for server: " + serverID);
 
             long now = System.currentTimeMillis();
-            long threshold = now - (heartbeatInterval * 1000L * 2);
+            long threshold = now - (heartbeatInterval * 1000L * 5);
 
             Map<String, String> servers = redisCache.getActiveServers();
             plugin.debug("HeartBeatHandler", "Active servers list retrieved: " + servers.keySet());
