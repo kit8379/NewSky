@@ -35,6 +35,11 @@ public class IslandUnloadScheduler {
     }
 
     public void start() {
+        if (task != null) {
+            plugin.debug("IslandUnloadScheduler", "Unload scheduler is already running.");
+            return;
+        }
+
         plugin.debug("IslandUnloadScheduler", "Starting unload scheduler with interval: " + unloadInterval + " seconds.");
         this.task = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::checkInactiveWorlds, 0, unloadInterval * 20L);
         plugin.debug("IslandUnloadScheduler", "Unload scheduler started successfully.");

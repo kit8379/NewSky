@@ -2,12 +2,12 @@ package org.me.newsky.listener;
 
 import org.bukkit.*;
 import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.UpgradeHandler;
+import org.me.newsky.scheduler.LevelUpdateScheduler;
 import org.me.newsky.util.IslandUtils;
 
 import java.util.Map;
@@ -17,13 +17,15 @@ public class WorldLoadListener implements Listener {
 
     private final NewSky plugin;
     private final ConfigHandler config;
+    private final LevelUpdateScheduler levelUpdateScheduler;
 
-    public WorldLoadListener(NewSky plugin, ConfigHandler config) {
+    public WorldLoadListener(NewSky plugin, ConfigHandler config, LevelUpdateScheduler levelUpdateScheduler) {
         this.plugin = plugin;
         this.config = config;
+        this.levelUpdateScheduler = levelUpdateScheduler;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(ignoreCancelled = true)
     public void onWorldLoad(WorldLoadEvent event) {
         World world = event.getWorld();
         String name = world.getName();
@@ -36,6 +38,7 @@ public class WorldLoadListener implements Listener {
 
         applyGameRules(world);
         applyWorldBorder(world, islandUuid);
+        registerLevelUpdate(islandUuid);
     }
 
     @SuppressWarnings("unchecked")
@@ -98,5 +101,10 @@ public class WorldLoadListener implements Listener {
         border.setDamageAmount(0.1);
         border.setDamageBuffer(1.0);
         plugin.debug("WorldLoadListener", "Set world border for " + world.getName());
+    }
+
+    private void registerLevelUpdate(UUID islandUuid) {
+        levelUpdateScheduler.registerIsland(islandUuid);
+        plugin.debug("WorldLoadListener", "Registered level update scheduler for island " + IslandUtils.UUIDToName(islandUuid));
     }
 }

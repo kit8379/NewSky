@@ -3,8 +3,8 @@ package org.me.newsky.scheduler;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
-import org.me.newsky.redis.RedisCache;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.redis.RedisCache;
 
 public class MSPTUpdateScheduler {
 
@@ -24,6 +24,11 @@ public class MSPTUpdateScheduler {
     }
 
     public void start() {
+        if (task != null) {
+            plugin.debug("MSPTUpdateScheduler", "MSPT update scheduler is already running. No action taken.");
+            return;
+        }
+
         plugin.debug("MSPTUpdateScheduler", "Starting MSPT update scheduler with interval: " + updateInterval + " seconds.");
         task = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, this::updateMspt, 0, updateInterval * 20L);
         plugin.debug("MSPTUpdateScheduler", "MSPT update task scheduled successfully.");

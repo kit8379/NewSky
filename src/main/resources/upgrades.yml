@@ -1,13 +1,13 @@
 upgrades:
   coop-limit:
     '1':
-      limit: 2
+      limit: 1
     '2':
       require-level: 8
-      limit: 3
+      limit: 2
     '3':
       require-level: 25
-      limit: 4
+      limit: 3
 
   team-limit:
     '1':

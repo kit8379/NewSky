@@ -28,6 +28,7 @@ import org.me.newsky.routing.RandomServerSelector;
 import org.me.newsky.routing.RoundRobinServerSelector;
 import org.me.newsky.routing.ServerSelector;
 import org.me.newsky.scheduler.IslandUnloadScheduler;
+import org.me.newsky.scheduler.LevelUpdateScheduler;
 import org.me.newsky.scheduler.MSPTUpdateScheduler;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.thread.BukkitAsyncExecutor;
@@ -52,6 +53,7 @@ public class NewSky extends JavaPlugin {
     private TeleportHandler teleportHandler;
     private HeartBeatHandler heartBeatHandler;
     private IslandUnloadScheduler islandUnloadScheduler;
+    private LevelUpdateScheduler levelupdateScheduler;
     private MSPTUpdateScheduler msptUpdateScheduler;
     private CacheBroker cacheBroker;
     private IslandBroker islandBroker;
@@ -177,6 +179,7 @@ public class NewSky extends JavaPlugin {
 
             info("Starting all schedulers for the plugin");
             islandUnloadScheduler = new IslandUnloadScheduler(this, config, redisCache, worldHandler, worldActivityHandler, islandOpLock);
+            levelupdateScheduler = new LevelUpdateScheduler(this, levelHandler);
             if (serverSelector instanceof MSPTServerSelector) {
                 info("MSPT server selector detected, creating MSPT update scheduler");
                 msptUpdateScheduler = new MSPTUpdateScheduler(this, config, redisCache, serverID);
@@ -192,7 +195,8 @@ public class NewSky extends JavaPlugin {
             info("Starting listeners");
             getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, redisCache, serverID), this);
             getServer().getPluginManager().registerEvents(new WorldInitListener(this), this);
-            getServer().getPluginManager().registerEvents(new WorldLoadListener(this, config), this);
+            getServer().getPluginManager().registerEvents(new WorldLoadListener(this, config, levelupdateScheduler), this);
+            getServer().getPluginManager().registerEvents(new WorldUnloadListener(this, levelupdateScheduler), this);
             getServer().getPluginManager().registerEvents(new WorldActivityListener(this, worldActivityHandler), this);
             getServer().getPluginManager().registerEvents(new TeleportRequestListener(this, teleportHandler), this);
             getServer().getPluginManager().registerEvents(new IslandProtectionListener(this, config), this);
@@ -232,6 +236,7 @@ public class NewSky extends JavaPlugin {
             cache.cacheAllData();
             heartBeatHandler.start();
             islandUnloadScheduler.start();
+            levelupdateScheduler.start();
 
             if (msptUpdateScheduler != null) {
                 msptUpdateScheduler.start();
@@ -266,6 +271,7 @@ public class NewSky extends JavaPlugin {
         if (msptUpdateScheduler != null) {
             msptUpdateScheduler.stop();
         }
+        levelupdateScheduler.stop();
         islandUnloadScheduler.stop();
         worldHandler.unloadAllWorldsOnShutdown();
         heartBeatHandler.stop();
