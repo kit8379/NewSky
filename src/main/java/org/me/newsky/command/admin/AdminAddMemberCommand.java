@@ -3,20 +3,24 @@ package org.me.newsky.command.admin;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
  * /isadmin addmember <member> <owner>
  */
-public class AdminAddMemberCommand implements SubCommand, TabComplete {
+public class AdminAddMemberCommand implements SubCommand, AsyncTabComplete {
     private final NewSky plugin;
     private final NewSkyAPI api;
     private final ConfigHandler config;
@@ -61,35 +65,33 @@ public class AdminAddMemberCommand implements SubCommand, TabComplete {
         String targetMemberName = args[1];
         String islandOwnerName = args[2];
 
-        Optional<UUID> targetMemberUuidOpt = api.getPlayerUuid(targetMemberName);
-        if (targetMemberUuidOpt.isEmpty()) {
-            sender.sendMessage(config.getUnknownPlayerMessage(targetMemberName));
-            return true;
-        }
+        api.getPlayerUuid(targetMemberName).thenCompose(targetMemberUuidOpt -> {
+            if (targetMemberUuidOpt.isEmpty()) {
+                sender.sendMessage(config.getUnknownPlayerMessage(targetMemberName));
+                return CompletableFuture.completedFuture(null);
+            }
 
-        Optional<UUID> islandOwnerUuidOpt = api.getPlayerUuid(islandOwnerName);
-        if (islandOwnerUuidOpt.isEmpty()) {
-            sender.sendMessage(config.getUnknownPlayerMessage(islandOwnerName));
-            return true;
-        }
+            return api.getPlayerUuid(islandOwnerName).thenCompose(islandOwnerUuidOpt -> {
+                if (islandOwnerUuidOpt.isEmpty()) {
+                    sender.sendMessage(config.getUnknownPlayerMessage(islandOwnerName));
+                    return CompletableFuture.completedFuture(null);
+                }
 
-        UUID targetMemberUuid = targetMemberUuidOpt.get();
-        UUID islandOwnerUuid = islandOwnerUuidOpt.get();
+                UUID targetMemberUuid = targetMemberUuidOpt.get();
+                UUID islandOwnerUuid = islandOwnerUuidOpt.get();
 
-        UUID islandUuid;
-        try {
-            islandUuid = api.getIslandUuid(islandOwnerUuid);
-        } catch (IslandDoesNotExistException e) {
-            sender.sendMessage(config.getAdminNoIslandMessage(islandOwnerName));
-            return true;
-        }
-
-        api.addMember(islandUuid, targetMemberUuid, "member").thenRun(() -> {
-            sender.sendMessage(config.getAdminAddMemberSuccessMessage(targetMemberName, islandOwnerName));
-            api.sendPlayerMessage(targetMemberUuid, config.getWasAddedToIslandMessage(islandOwnerName));
+                return api.getIslandUuid(islandOwnerUuid).thenCompose(islandUuid -> {
+                    return api.addMember(islandUuid, targetMemberUuid, "member");
+                }).thenRun(() -> {
+                    sender.sendMessage(config.getAdminAddMemberSuccessMessage(targetMemberName, islandOwnerName));
+                    api.sendPlayerMessage(targetMemberUuid, config.getWasAddedToIslandMessage(islandOwnerName));
+                });
+            });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
-            if (cause instanceof IslandAlreadyExistException) {
+            if (cause instanceof IslandDoesNotExistException) {
+                sender.sendMessage(config.getAdminNoIslandMessage(islandOwnerName));
+            } else if (cause instanceof IslandAlreadyExistException) {
                 sender.sendMessage(config.getAlreadyHasIslandMessage(targetMemberName));
             } else if (cause instanceof IslandPlayerAlreadyExistsException) {
                 sender.sendMessage(config.getIslandMemberExistsMessage(targetMemberName));
@@ -104,17 +106,17 @@ public class AdminAddMemberCommand implements SubCommand, TabComplete {
     }
 
     @Override
-    public List<String> tabComplete(CommandSender sender, String label, String[] args) {
+    public CompletableFuture<List<String>> tabCompleteAsync(CommandSender sender, String label, String[] args) {
         if (args.length == 2) {
             String prefix = args[1].toLowerCase(Locale.ROOT);
-            return api.getOnlinePlayersNames().stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
+            return api.getOnlinePlayersNames().thenApply(names -> names.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())).exceptionally(ex -> Collections.emptyList());
         }
 
         if (args.length == 3) {
             String prefix = args[2].toLowerCase(Locale.ROOT);
-            return api.getOnlinePlayersNames().stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
+            return api.getOnlinePlayersNames().thenApply(names -> names.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())).exceptionally(ex -> Collections.emptyList());
         }
 
-        return Collections.emptyList();
+        return CompletableFuture.completedFuture(Collections.emptyList());
     }
 }

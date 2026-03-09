@@ -1,4 +1,3 @@
-// AdminSetHomeCommand.java
 package org.me.newsky.command.admin;
 
 import org.bukkit.Location;
@@ -6,19 +5,22 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
  * /isadmin sethome <player> <home>
  */
-public class AdminSetHomeCommand implements SubCommand, TabComplete {
+public class AdminSetHomeCommand implements SubCommand, AsyncTabComplete {
     private final NewSky plugin;
     private final NewSkyAPI api;
     private final ConfigHandler config;
@@ -68,14 +70,6 @@ public class AdminSetHomeCommand implements SubCommand, TabComplete {
         String homePlayerName = args[1];
         String homeName = args[2];
 
-        Optional<UUID> targetUuidOpt = api.getPlayerUuid(homePlayerName);
-        if (targetUuidOpt.isEmpty()) {
-            sender.sendMessage(config.getUnknownPlayerMessage(homePlayerName));
-            return true;
-        }
-
-        UUID targetUuid = targetUuidOpt.get();
-
         Location loc = player.getLocation();
         String worldName = loc.getWorld().getName();
         double x = loc.getX();
@@ -84,7 +78,14 @@ public class AdminSetHomeCommand implements SubCommand, TabComplete {
         float yaw = loc.getYaw();
         float pitch = loc.getPitch();
 
-        api.setHome(targetUuid, homeName, worldName, x, y, z, yaw, pitch).thenRun(() -> sender.sendMessage(config.getAdminSetHomeSuccessMessage(homePlayerName, homeName))).exceptionally(ex -> {
+        api.getPlayerUuid(homePlayerName).thenCompose(targetUuidOpt -> {
+            if (targetUuidOpt.isEmpty()) {
+                sender.sendMessage(config.getUnknownPlayerMessage(homePlayerName));
+                return CompletableFuture.completedFuture(null);
+            }
+
+            return api.setHome(targetUuidOpt.get(), homeName, worldName, x, y, z, yaw, pitch).thenRun(() -> sender.sendMessage(config.getAdminSetHomeSuccessMessage(homePlayerName, homeName)));
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 sender.sendMessage(config.getAdminNoIslandMessage(homePlayerName));
@@ -94,7 +95,6 @@ public class AdminSetHomeCommand implements SubCommand, TabComplete {
                 sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.severe("Error setting home " + homeName + " for " + homePlayerName, ex);
             }
-
             return null;
         });
 
@@ -102,21 +102,23 @@ public class AdminSetHomeCommand implements SubCommand, TabComplete {
     }
 
     @Override
-    public List<String> tabComplete(CommandSender sender, String label, String[] args) {
+    public CompletableFuture<List<String>> tabCompleteAsync(CommandSender sender, String label, String[] args) {
         if (args.length == 2) {
             String prefix = args[1].toLowerCase(Locale.ROOT);
-            return api.getOnlinePlayersNames().stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
+            return api.getOnlinePlayersNames().thenApply(names -> names.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())).exceptionally(ex -> Collections.emptyList());
         }
 
         if (args.length == 3) {
-            Optional<UUID> uuidOpt = api.getPlayerUuid(args[1]);
-            if (uuidOpt.isEmpty()) return Collections.emptyList();
-
-            Set<String> homes = api.getHomeNames(uuidOpt.get());
             String prefix = args[2].toLowerCase(Locale.ROOT);
-            return homes.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
+            return api.getPlayerUuid(args[1]).thenCompose(uuidOpt -> {
+                if (uuidOpt.isEmpty()) {
+                    return CompletableFuture.completedFuture(Collections.<String>emptyList());
+                }
+
+                return api.getHomeNames(uuidOpt.get()).thenApply(homes -> homes.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()));
+            }).exceptionally(ex -> Collections.emptyList());
         }
 
-        return Collections.emptyList();
+        return CompletableFuture.completedFuture(Collections.emptyList());
     }
 }

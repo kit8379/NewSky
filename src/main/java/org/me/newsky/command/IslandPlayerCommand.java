@@ -3,7 +3,6 @@ package org.me.newsky.command;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 import org.me.newsky.NewSky;
@@ -13,11 +12,12 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * /is
  */
-public class IslandPlayerCommand implements CommandExecutor, TabExecutor {
+public class IslandPlayerCommand implements CommandExecutor, AsyncCommandTabRouter {
     private final ConfigHandler config;
     private final NewSkyAPI api;
     private final Map<String, SubCommand> subCommandMap = new HashMap<>();
@@ -26,6 +26,7 @@ public class IslandPlayerCommand implements CommandExecutor, TabExecutor {
     public IslandPlayerCommand(NewSky plugin, NewSkyAPI api, ConfigHandler config) {
         this.config = config;
         this.api = api;
+
         subCommands.add(new PlayerCreateIslandCommand(plugin, api, config));
         subCommands.add(new PlayerDeleteIslandCommand(plugin, api, config));
         subCommands.add(new PlayerInviteCommand(plugin, api, config));
@@ -69,9 +70,61 @@ public class IslandPlayerCommand implements CommandExecutor, TabExecutor {
         }
     }
 
+    private List<String> getRootSuggestions(CommandSender sender, String arg0) {
+        String prefix = arg0.toLowerCase(Locale.ROOT);
+        List<String> suggestions = new ArrayList<>();
+
+        for (SubCommand cmd : subCommands) {
+            String perm = cmd.getPermission();
+            if (perm != null && !perm.isEmpty() && !sender.hasPermission(perm)) {
+                continue;
+            }
+
+            String name = cmd.getName();
+            if (name.toLowerCase(Locale.ROOT).startsWith(prefix)) {
+                suggestions.add(name);
+            }
+
+            for (String alias : cmd.getAliases()) {
+                if (alias.toLowerCase(Locale.ROOT).startsWith(prefix)) {
+                    suggestions.add(alias);
+                }
+            }
+        }
+
+        return suggestions;
+    }
+
+    @Override
+    public CompletableFuture<List<String>> completeAsync(CommandSender sender, String label, String[] args) {
+        if (args.length == 0) {
+            return CompletableFuture.completedFuture(Collections.emptyList());
+        }
+
+        if (args.length == 1) {
+            return CompletableFuture.completedFuture(getRootSuggestions(sender, args[0]));
+        }
+
+        SubCommand target = subCommandMap.get(args[0].toLowerCase(Locale.ROOT));
+        if (target == null) {
+            return CompletableFuture.completedFuture(Collections.emptyList());
+        }
+
+        String perm = target.getPermission();
+        if (perm != null && !perm.isEmpty() && !sender.hasPermission(perm)) {
+            return CompletableFuture.completedFuture(Collections.emptyList());
+        }
+
+        if (target instanceof AsyncTabComplete asyncTabComplete) {
+            return asyncTabComplete.tabCompleteAsync(sender, label, args).thenApply(list -> list == null ? Collections.<String>emptyList() : list).exceptionally(ex -> Collections.emptyList());
+        }
+
+        return CompletableFuture.completedFuture(Collections.emptyList());
+    }
+
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String @NotNull [] args) {
-        if (!sender.hasPermission("newsky.island")) {
+        if (!sender.hasPermission("newsky.island.player")) {
             sender.sendMessage(config.getNoPermissionCommandMessage());
             return true;
         }
@@ -83,9 +136,10 @@ public class IslandPlayerCommand implements CommandExecutor, TabExecutor {
                     sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
                     return true;
                 }
+
                 try {
                     api.getIslandUuid(player.getUniqueId());
-                    // Has island → teleport home
+
                     SubCommand homeCmd = subCommandMap.get("home");
                     if (homeCmd != null) {
                         return homeCmd.execute(player, new String[]{"home"});
@@ -94,7 +148,6 @@ public class IslandPlayerCommand implements CommandExecutor, TabExecutor {
                         return true;
                     }
                 } catch (IslandDoesNotExistException e) {
-                    // No island → create island
                     SubCommand createCmd = subCommandMap.get("create");
                     if (createCmd != null) {
                         return createCmd.execute(player, new String[]{"create"});
@@ -104,7 +157,6 @@ public class IslandPlayerCommand implements CommandExecutor, TabExecutor {
                     }
                 }
             } else {
-                // Default to help mode
                 SubCommand helpCmd = subCommandMap.get("help");
                 if (helpCmd != null) {
                     return helpCmd.execute(sender, new String[]{"help"});
@@ -131,32 +183,5 @@ public class IslandPlayerCommand implements CommandExecutor, TabExecutor {
             sender.sendMessage(config.getPlayerCommandUsageMessage(target.getName(), target.getSyntax()));
         }
         return true;
-    }
-
-    @Override
-    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
-        if (args.length == 1) {
-            List<String> suggestions = new ArrayList<>();
-            for (SubCommand cmd : subCommands) {
-                String perm = cmd.getPermission();
-                if (perm == null || perm.isEmpty() || sender.hasPermission(perm)) {
-                    if (cmd.getName().startsWith(args[0].toLowerCase(Locale.ROOT))) {
-                        suggestions.add(cmd.getName());
-                    }
-                    for (String alias : cmd.getAliases()) {
-                        if (alias.startsWith(args[0].toLowerCase(Locale.ROOT))) {
-                            suggestions.add(alias);
-                        }
-                    }
-                }
-            }
-            return suggestions;
-        }
-
-        SubCommand target = subCommandMap.get(args[0].toLowerCase(Locale.ROOT));
-        if (target instanceof TabComplete) {
-            return ((TabComplete) target).tabComplete(sender, label, args);
-        }
-        return Collections.emptyList();
     }
 }

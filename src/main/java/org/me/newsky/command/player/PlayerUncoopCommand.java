@@ -4,19 +4,20 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerNotCoopedException;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
  * /is uncoop <player>
  */
-public class PlayerUncoopCommand implements SubCommand, TabComplete {
+public class PlayerUncoopCommand implements SubCommand, AsyncTabComplete {
     private final NewSky plugin;
     private final NewSkyAPI api;
     private final ConfigHandler config;
@@ -66,27 +67,23 @@ public class PlayerUncoopCommand implements SubCommand, TabComplete {
         String targetPlayerName = args[1];
         UUID playerUuid = player.getUniqueId();
 
-        Optional<UUID> targetUuidOpt = api.getPlayerUuid(targetPlayerName);
-        if (targetUuidOpt.isEmpty()) {
-            player.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
-            return true;
-        }
-        UUID targetPlayerUuid = targetUuidOpt.get();
+        api.getPlayerUuid(targetPlayerName).thenCompose(targetUuidOpt -> {
+            if (targetUuidOpt.isEmpty()) {
+                player.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
+                return CompletableFuture.completedFuture(null);
+            }
 
-        UUID islandUuid;
-        try {
-            islandUuid = api.getIslandUuid(playerUuid);
-        } catch (IslandDoesNotExistException e) {
-            player.sendMessage(config.getPlayerNoIslandMessage());
-            return true;
-        }
+            UUID targetPlayerUuid = targetUuidOpt.get();
 
-        api.removeCoop(islandUuid, targetPlayerUuid).thenRun(() -> {
-            player.sendMessage(config.getPlayerUncoopSuccessMessage(targetPlayerName));
-            api.sendPlayerMessage(targetPlayerUuid, config.getWasUncoopedFromIslandMessage(player.getName()));
+            return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.removeCoop(islandUuid, targetPlayerUuid).thenRun(() -> {
+                player.sendMessage(config.getPlayerUncoopSuccessMessage(targetPlayerName));
+                api.sendPlayerMessage(targetPlayerUuid, config.getWasUncoopedFromIslandMessage(player.getName()));
+            }));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
-            if (cause instanceof PlayerNotCoopedException) {
+            if (cause instanceof IslandDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoIslandMessage());
+            } else if (cause instanceof PlayerNotCoopedException) {
                 player.sendMessage(config.getPlayerNotCoopedMessage(targetPlayerName));
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());
@@ -99,17 +96,23 @@ public class PlayerUncoopCommand implements SubCommand, TabComplete {
     }
 
     @Override
-    public List<String> tabComplete(CommandSender sender, String label, String[] args) {
-        if (args.length == 2 && sender instanceof Player player) {
-            try {
-                UUID islandUuid = api.getIslandUuid(player.getUniqueId());
-                Set<UUID> coops = api.getCoopedPlayers(islandUuid);
-                String prefix = args[1].toLowerCase(Locale.ROOT);
-                return coops.stream().map(uuid -> api.getPlayerName(uuid).orElse(uuid.toString())).filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
-            } catch (Exception e) {
-                return Collections.emptyList();
-            }
+    public CompletableFuture<List<String>> tabCompleteAsync(CommandSender sender, String label, String[] args) {
+        if (args.length != 2 || !(sender instanceof Player player)) {
+            return CompletableFuture.completedFuture(Collections.emptyList());
         }
-        return Collections.emptyList();
+
+        String prefix = args[1].toLowerCase(Locale.ROOT);
+        UUID playerUuid = player.getUniqueId();
+
+        return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getCoopedPlayers(islandUuid).thenCompose(coopedPlayers -> {
+            List<CompletableFuture<String>> nameFutures = new ArrayList<>(coopedPlayers.size());
+            for (UUID coopedPlayerUuid : coopedPlayers) {
+                nameFutures.add(api.getPlayerName(coopedPlayerUuid).thenApply(nameOpt -> nameOpt.orElse(coopedPlayerUuid.toString())));
+            }
+
+            CompletableFuture<Void> all = CompletableFuture.allOf(nameFutures.toArray(new CompletableFuture[0]));
+
+            return all.thenApply(v -> nameFutures.stream().map(CompletableFuture::join).filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()));
+        })).exceptionally(ex -> Collections.emptyList());
     }
 }

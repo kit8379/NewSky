@@ -3,23 +3,25 @@ package org.me.newsky.command.admin;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.NoActiveServerException;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
  * /isadmin delete <player>
  */
-public class AdminDeleteIslandCommand implements SubCommand, TabComplete {
+public class AdminDeleteIslandCommand implements SubCommand, AsyncTabComplete {
     private final NewSky plugin;
     private final NewSkyAPI api;
     private final ConfigHandler config;
-    private final Map<UUID, Long> confirmationTimes = new HashMap<>();
+    private final Map<UUID, Long> confirmationTimes = new ConcurrentHashMap<>();
 
     public AdminDeleteIslandCommand(NewSky plugin, NewSkyAPI api, ConfigHandler config) {
         this.plugin = plugin;
@@ -60,32 +62,30 @@ public class AdminDeleteIslandCommand implements SubCommand, TabComplete {
 
         String targetPlayerName = args[1];
 
-        Optional<UUID> targetUuidOpt = api.getPlayerUuid(targetPlayerName);
-        if (targetUuidOpt.isEmpty()) {
-            sender.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
-            return true;
-        }
+        api.getPlayerUuid(targetPlayerName).thenCompose(targetUuidOpt -> {
+            if (targetUuidOpt.isEmpty()) {
+                sender.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
+                return CompletableFuture.completedFuture(null);
+            }
 
-        UUID targetUuid = targetUuidOpt.get();
+            UUID targetUuid = targetUuidOpt.get();
+            long now = System.currentTimeMillis();
+            Long lastConfirmationTime = confirmationTimes.get(targetUuid);
 
-        if (!confirmationTimes.containsKey(targetUuid) || System.currentTimeMillis() - confirmationTimes.get(targetUuid) >= 15000) {
-            confirmationTimes.put(targetUuid, System.currentTimeMillis());
-            sender.sendMessage(config.getAdminDeleteWarningMessage(targetPlayerName));
-            return true;
-        }
-        confirmationTimes.remove(targetUuid);
+            if (lastConfirmationTime == null || now - lastConfirmationTime >= 15000L) {
+                confirmationTimes.put(targetUuid, now);
+                sender.sendMessage(config.getAdminDeleteWarningMessage(targetPlayerName));
+                return CompletableFuture.completedFuture(null);
+            }
 
-        UUID islandUuid;
-        try {
-            islandUuid = api.getIslandUuid(targetUuid);
-        } catch (IslandDoesNotExistException e) {
-            sender.sendMessage(config.getAdminNoIslandMessage(targetPlayerName));
-            return true;
-        }
+            confirmationTimes.remove(targetUuid);
 
-        api.deleteIsland(islandUuid).thenRun(() -> sender.sendMessage(config.getAdminDeleteSuccessMessage(targetPlayerName))).exceptionally(ex -> {
+            return api.getIslandUuid(targetUuid).thenCompose(api::deleteIsland).thenRun(() -> sender.sendMessage(config.getAdminDeleteSuccessMessage(targetPlayerName)));
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
-            if (cause instanceof NoActiveServerException) {
+            if (cause instanceof IslandDoesNotExistException) {
+                sender.sendMessage(config.getAdminNoIslandMessage(targetPlayerName));
+            } else if (cause instanceof NoActiveServerException) {
                 sender.sendMessage(config.getNoActiveServerMessage());
             } else {
                 sender.sendMessage(config.getUnknownExceptionMessage());
@@ -98,11 +98,12 @@ public class AdminDeleteIslandCommand implements SubCommand, TabComplete {
     }
 
     @Override
-    public List<String> tabComplete(CommandSender sender, String label, String[] args) {
+    public CompletableFuture<List<String>> tabCompleteAsync(CommandSender sender, String label, String[] args) {
         if (args.length == 2) {
             String prefix = args[1].toLowerCase(Locale.ROOT);
-            return api.getOnlinePlayersNames().stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
+            return api.getOnlinePlayersNames().thenApply(names -> names.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())).exceptionally(ex -> Collections.emptyList());
         }
-        return Collections.emptyList();
+
+        return CompletableFuture.completedFuture(Collections.emptyList());
     }
 }

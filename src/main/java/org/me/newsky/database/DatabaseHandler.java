@@ -56,7 +56,7 @@ public class DatabaseHandler {
         return dataSource.getConnection();
     }
 
-    private void inTransaction(String name, ConnectionConsumer work) {
+    private void inTransaction(ConnectionConsumer work) {
         try (Connection connection = getConnection()) {
             boolean oldAutoCommit = connection.getAutoCommit();
             connection.setAutoCommit(false);
@@ -68,9 +68,9 @@ public class DatabaseHandler {
                 try {
                     connection.rollback();
                 } catch (SQLException rollbackEx) {
-                    plugin.severe("Database rollback failed for tx: " + name, rollbackEx);
+                    plugin.severe("Database rollback failed for tx.", rollbackEx);
                 }
-                plugin.severe("Database transaction failed: " + name, e);
+                plugin.severe("Database transaction failed.", e);
                 throw new RuntimeException(e);
             } finally {
                 try {
@@ -80,7 +80,7 @@ public class DatabaseHandler {
                 }
             }
         } catch (SQLException e) {
-            plugin.severe("Database transaction connection failed: " + name, e);
+            plugin.severe("Database transaction connection failed.", e);
             throw new RuntimeException(e);
         }
     }
@@ -229,48 +229,12 @@ public class DatabaseHandler {
         }, processor);
     }
 
-    public void selectIslandData(UUID islandUuid, ResultProcessor processor) {
-        executeQuery("SELECT * FROM " + prefix + "islands WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), processor);
-    }
-
-    public void selectIslandPlayers(UUID islandUuid, ResultProcessor processor) {
-        executeQuery("SELECT * FROM " + prefix + "island_players WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), processor);
-    }
-
-    public void selectIslandHomes(UUID islandUuid, ResultProcessor processor) {
-        executeQuery("SELECT * FROM " + prefix + "island_homes WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), processor);
-    }
-
-    public void selectIslandWarps(UUID islandUuid, ResultProcessor processor) {
-        executeQuery("SELECT * FROM " + prefix + "island_warps WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), processor);
-    }
-
-    public void selectIslandBans(UUID islandUuid, ResultProcessor processor) {
-        executeQuery("SELECT * FROM " + prefix + "island_bans WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), processor);
-    }
-
-    public void selectIslandCoops(UUID islandUuid, ResultProcessor processor) {
-        executeQuery("SELECT * FROM " + prefix + "island_coops WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), processor);
-    }
-
-    public void selectIslandLevel(UUID islandUuid, ResultProcessor processor) {
-        executeQuery("SELECT * FROM " + prefix + "island_levels WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), processor);
-    }
-
-    public void selectIslandUpgrades(UUID islandUuid, ResultProcessor processor) {
-        executeQuery("SELECT * FROM " + prefix + "island_upgrades WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString()), processor);
-    }
-
-    public void selectPlayerUuid(UUID playerUuid, ResultProcessor processor) {
-        executeQuery("SELECT * FROM " + prefix + "player_uuid WHERE uuid = ?", stmt -> stmt.setString(1, playerUuid.toString()), processor);
-    }
-
     // ================================================================================================================
     // Writes (transaction-protected where multi-statement)
     // ================================================================================================================
 
     public void addIslandData(UUID islandUuid, UUID ownerUuid, String homePoint) {
-        inTransaction("addIslandData island=" + islandUuid, connection -> {
+        inTransaction(connection -> {
             executeUpdate(connection, "INSERT INTO " + prefix + "islands (island_uuid) VALUES (?);", stmt -> stmt.setString(1, islandUuid.toString()));
 
             executeUpdate(connection, "INSERT INTO " + prefix + "island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?) " + "ON DUPLICATE KEY UPDATE role = ?;", stmt -> {
@@ -291,7 +255,7 @@ public class DatabaseHandler {
     }
 
     public void addIslandPlayer(UUID islandUuid, UUID playerUuid, String role, String homePoint) {
-        inTransaction("addIslandPlayer island=" + islandUuid + " player=" + playerUuid, connection -> {
+        inTransaction(connection -> {
             executeUpdate(connection, "INSERT INTO " + prefix + "island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?) " + "ON DUPLICATE KEY UPDATE role = ?;", stmt -> {
                 stmt.setString(1, playerUuid.toString());
                 stmt.setString(2, islandUuid.toString());
@@ -344,7 +308,7 @@ public class DatabaseHandler {
     }
 
     public void updateIslandOwner(UUID islandUuid, UUID oldOwnerUuid, UUID newOwnerUuid) {
-        inTransaction("updateIslandOwner island=" + islandUuid, connection -> {
+        inTransaction(connection -> {
             executeUpdate(connection, "UPDATE " + prefix + "island_players SET role = ? WHERE player_uuid = ? AND island_uuid = ?;", stmt -> {
                 stmt.setString(1, "member");
                 stmt.setString(2, oldOwnerUuid.toString());

@@ -4,19 +4,20 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerNotBannedException;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
  * /is unban <player>
  */
-public class PlayerUnbanCommand implements SubCommand, TabComplete {
+public class PlayerUnbanCommand implements SubCommand, AsyncTabComplete {
     private final NewSky plugin;
     private final NewSkyAPI api;
     private final ConfigHandler config;
@@ -66,27 +67,23 @@ public class PlayerUnbanCommand implements SubCommand, TabComplete {
         String targetPlayerName = args[1];
         UUID playerUuid = player.getUniqueId();
 
-        Optional<UUID> targetUuidOpt = api.getPlayerUuid(targetPlayerName);
-        if (targetUuidOpt.isEmpty()) {
-            player.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
-            return true;
-        }
-        UUID targetPlayerUuid = targetUuidOpt.get();
+        api.getPlayerUuid(targetPlayerName).thenCompose(targetUuidOpt -> {
+            if (targetUuidOpt.isEmpty()) {
+                player.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
+                return CompletableFuture.completedFuture(null);
+            }
 
-        UUID islandUuid;
-        try {
-            islandUuid = api.getIslandUuid(playerUuid);
-        } catch (IslandDoesNotExistException e) {
-            player.sendMessage(config.getPlayerNoIslandMessage());
-            return true;
-        }
+            UUID targetPlayerUuid = targetUuidOpt.get();
 
-        api.unbanPlayer(islandUuid, targetPlayerUuid).thenRun(() -> {
-            player.sendMessage(config.getPlayerUnbanSuccessMessage(targetPlayerName));
-            api.sendPlayerMessage(targetPlayerUuid, config.getWasUnbannedFromIslandMessage(player.getName()));
+            return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.unbanPlayer(islandUuid, targetPlayerUuid).thenRun(() -> {
+                player.sendMessage(config.getPlayerUnbanSuccessMessage(targetPlayerName));
+                api.sendPlayerMessage(targetPlayerUuid, config.getWasUnbannedFromIslandMessage(player.getName()));
+            }));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
-            if (cause instanceof PlayerNotBannedException) {
+            if (cause instanceof IslandDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoIslandMessage());
+            } else if (cause instanceof PlayerNotBannedException) {
                 player.sendMessage(config.getPlayerNotBannedMessage(targetPlayerName));
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());
@@ -99,17 +96,23 @@ public class PlayerUnbanCommand implements SubCommand, TabComplete {
     }
 
     @Override
-    public List<String> tabComplete(CommandSender sender, String label, String[] args) {
-        if (args.length == 2 && sender instanceof Player player) {
-            try {
-                UUID islandUuid = api.getIslandUuid(player.getUniqueId());
-                Set<UUID> banned = api.getBannedPlayers(islandUuid);
-                String prefix = args[1].toLowerCase(Locale.ROOT);
-                return banned.stream().map(uuid -> api.getPlayerName(uuid).orElse(uuid.toString())).filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
-            } catch (Exception e) {
-                return Collections.emptyList();
-            }
+    public CompletableFuture<List<String>> tabCompleteAsync(CommandSender sender, String label, String[] args) {
+        if (args.length != 2 || !(sender instanceof Player player)) {
+            return CompletableFuture.completedFuture(Collections.emptyList());
         }
-        return Collections.emptyList();
+
+        String prefix = args[1].toLowerCase(Locale.ROOT);
+        UUID playerUuid = player.getUniqueId();
+
+        return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getBannedPlayers(islandUuid).thenCompose(bannedPlayers -> {
+            List<CompletableFuture<String>> nameFutures = new ArrayList<>(bannedPlayers.size());
+            for (UUID bannedPlayerUuid : bannedPlayers) {
+                nameFutures.add(api.getPlayerName(bannedPlayerUuid).thenApply(nameOpt -> nameOpt.orElse(bannedPlayerUuid.toString())));
+            }
+
+            CompletableFuture<Void> all = CompletableFuture.allOf(nameFutures.toArray(new CompletableFuture[0]));
+
+            return all.thenApply(v -> nameFutures.stream().map(CompletableFuture::join).filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()));
+        })).exceptionally(ex -> Collections.emptyList());
     }
 }

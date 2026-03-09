@@ -60,19 +60,15 @@ public class PlayerLeaveCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        UUID islandUuid;
-        try {
-            islandUuid = api.getIslandUuid(playerUuid);
-        } catch (IslandDoesNotExistException e) {
-            player.sendMessage(config.getPlayerNoIslandMessage());
-            return true;
-        }
-
-        api.removeMember(islandUuid, playerUuid).thenRun(() -> {
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> {
+            return api.removeMember(islandUuid, playerUuid);
+        }).thenRun(() -> {
             api.sendPlayerMessage(playerUuid, config.getPlayerLeaveSuccessMessage());
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
-            if (cause instanceof CannotRemoveOwnerException) {
+            if (cause instanceof IslandDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoIslandMessage());
+            } else if (cause instanceof CannotRemoveOwnerException) {
                 player.sendMessage(config.getPlayerCannotLeaveAsOwnerMessage());
             } else if (cause instanceof IslandPlayerDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());

@@ -8,8 +8,8 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.model.Invitation;
 
-import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * /is reject
@@ -58,19 +58,20 @@ public class PlayerRejectInviteCommand implements SubCommand {
         }
 
         UUID playerUuid = player.getUniqueId();
-        Optional<Invitation> optionalInvite = api.getPendingInvite(playerUuid);
 
-        if (optionalInvite.isEmpty()) {
-            player.sendMessage(config.getPlayerNoPendingInviteMessage());
-            return true;
-        }
+        api.getPendingInvite(playerUuid).thenCompose(optionalInvite -> {
+            if (optionalInvite.isEmpty()) {
+                player.sendMessage(config.getPlayerNoPendingInviteMessage());
+                return CompletableFuture.completedFuture(null);
+            }
 
-        Invitation invite = optionalInvite.get();
-        UUID inviterUuid = invite.getInviterUuid();
+            Invitation invite = optionalInvite.get();
+            UUID inviterUuid = invite.getInviterUuid();
 
-        api.removePendingInvite(playerUuid).thenRun(() -> {
-            player.sendMessage(config.getPlayerInviteRejectedMessage());
-            api.sendPlayerMessage(inviterUuid, config.getPlayerInviteRejectedNotifyMessage(player.getName()));
+            return api.removePendingInvite(playerUuid).thenRun(() -> {
+                player.sendMessage(config.getPlayerInviteRejectedMessage());
+                api.sendPlayerMessage(inviterUuid, config.getPlayerInviteRejectedNotifyMessage(player.getName()));
+            });
         }).exceptionally(ex -> {
             player.sendMessage(config.getUnknownExceptionMessage());
             plugin.severe("Error rejecting invite for player " + player.getName(), ex);

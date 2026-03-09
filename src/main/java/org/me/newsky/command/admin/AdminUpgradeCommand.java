@@ -1,11 +1,10 @@
-// AdminUpgradeCommand.java
 package org.me.newsky.command.admin;
 
 import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.UpgradeDoesNotExistException;
@@ -13,14 +12,14 @@ import org.me.newsky.exceptions.UpgradeLevelDoesNotExistException;
 import org.me.newsky.island.UpgradeHandler;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
- * /isadmin upgrade
  * /isadmin upgrade <player> <upgradeId>
  * /isadmin upgrade <player> <upgradeId> set <level>
  */
-public class AdminUpgradeCommand implements SubCommand, TabComplete {
+public class AdminUpgradeCommand implements SubCommand, AsyncTabComplete {
 
     private final NewSky plugin;
     private final NewSkyAPI api;
@@ -59,86 +58,77 @@ public class AdminUpgradeCommand implements SubCommand, TabComplete {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        if (args.length < 3 || args.length == 4) {
+        if (args.length != 3 && args.length != 5) {
             return false;
         }
 
         String targetPlayerName = args[1];
 
-        Optional<UUID> targetUuidOpt = api.getPlayerUuid(targetPlayerName);
-        if (targetUuidOpt.isEmpty()) {
-            sender.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
-            return true;
-        }
-
-        UUID targetPlayerUuid = targetUuidOpt.get();
-
-        UUID islandUuid;
-        try {
-            islandUuid = api.getIslandUuid(targetPlayerUuid);
-        } catch (IslandDoesNotExistException e) {
-            sender.sendMessage(config.getAdminNoIslandMessage(targetPlayerName));
-            return true;
-        } catch (Exception e) {
-            sender.sendMessage(config.getUnknownExceptionMessage());
-            plugin.severe("Error resolving islandUuid for admin upgrade target=" + targetPlayerName, e);
-            return true;
-        }
-
-        // /isadmin upgrade <player> <upgradeId>
-        // Show specific upgrade details
-        if (args.length == 3) {
-            String upgradeId = args[2].toLowerCase(Locale.ROOT);
-
-            try {
-                if (!api.getUpgradeIds().contains(upgradeId)) {
-                    sender.sendMessage(config.getPlayerUpgradeInvalidIdMessage(upgradeId));
-                    return true;
-                }
-
-                int currentLevel = api.getCurrentUpgradeLevel(islandUuid, upgradeId);
-
-                String currentValue = formatUpgradeValue(upgradeId, currentLevel);
-
-                sender.sendMessage(config.getAdminUpgradeDetailsHeaderMessage(targetPlayerName, upgradeId));
-                sender.sendMessage(config.getAdminUpgradeDetailsCurrentLevelMessage(upgradeId, currentLevel));
-                sender.sendMessage(config.getAdminUpgradeDetailsCurrentValueMessage(currentValue));
-
-            } catch (Exception e) {
-                sender.sendMessage(config.getUnknownExceptionMessage());
-                plugin.severe("Error showing admin upgrade details target=" + targetPlayerName + " upgradeId=" + upgradeId, e);
+        api.getPlayerUuid(targetPlayerName).thenCompose(targetUuidOpt -> {
+            if (targetUuidOpt.isEmpty()) {
+                sender.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
+                return CompletableFuture.completedFuture(null);
             }
 
-            return true;
-        }
+            UUID targetPlayerUuid = targetUuidOpt.get();
 
-        // /isadmin upgrade <player> <upgradeId> set <level>
-        if (!args[3].equalsIgnoreCase("set")) {
-            return false;
-        }
+            return api.getIslandUuid(targetPlayerUuid).thenCompose(islandUuid -> {
+                // /isadmin upgrade <player> <upgradeId>
+                if (args.length == 3) {
+                    String upgradeId = args[2].toLowerCase(Locale.ROOT);
 
-        String upgradeId = args[2].toLowerCase(Locale.ROOT);
-        int level;
+                    if (!api.getUpgradeIds().contains(upgradeId)) {
+                        sender.sendMessage(config.getPlayerUpgradeInvalidIdMessage(upgradeId));
+                        return CompletableFuture.completedFuture(null);
+                    }
 
-        try {
-            level = Integer.parseInt(args[4]);
-        } catch (NumberFormatException e) {
-            sender.sendMessage(config.getAdminUpgradeInvalidLevelMessage());
-            return true;
-        }
+                    return api.getCurrentUpgradeLevel(islandUuid, upgradeId).thenAccept(currentLevel -> {
+                        String currentValue = formatUpgradeValue(upgradeId, currentLevel);
 
-        api.setUpgradeLevel(islandUuid, upgradeId, level).thenRun(() -> {
-            sender.sendMessage(config.getAdminUpgradeSetSuccessMessage(upgradeId, level));
+                        sender.sendMessage(config.getAdminUpgradeDetailsHeaderMessage(targetPlayerName, upgradeId));
+                        sender.sendMessage(config.getAdminUpgradeDetailsCurrentLevelMessage(upgradeId, currentLevel));
+                        sender.sendMessage(config.getAdminUpgradeDetailsCurrentValueMessage(currentValue));
+                    });
+                }
+
+                // /isadmin upgrade <player> <upgradeId> set <level>
+                if (!args[3].equalsIgnoreCase("set")) {
+                    return CompletableFuture.completedFuture(null);
+                }
+
+                String upgradeId = args[2].toLowerCase(Locale.ROOT);
+                int level;
+
+                try {
+                    level = Integer.parseInt(args[4]);
+                } catch (NumberFormatException e) {
+                    sender.sendMessage(config.getAdminUpgradeInvalidLevelMessage());
+                    return CompletableFuture.completedFuture(null);
+                }
+
+                return api.setUpgradeLevel(islandUuid, upgradeId, level).thenRun(() -> sender.sendMessage(config.getAdminUpgradeSetSuccessMessage(upgradeId, level)));
+            });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
-            if (cause instanceof UpgradeDoesNotExistException) {
+            if (cause instanceof IslandDoesNotExistException) {
+                sender.sendMessage(config.getAdminNoIslandMessage(targetPlayerName));
+            } else if (cause instanceof UpgradeDoesNotExistException) {
+                String upgradeId = args[2].toLowerCase(Locale.ROOT);
                 sender.sendMessage(config.getPlayerUpgradeInvalidIdMessage(upgradeId));
             } else if (cause instanceof UpgradeLevelDoesNotExistException) {
                 sender.sendMessage(config.getAdminUpgradeInvalidLevelMessage());
             } else {
                 sender.sendMessage(config.getUnknownExceptionMessage());
-                plugin.severe("Error setting upgrade level target=" + targetPlayerName + " upgradeId=" + upgradeId + " level=" + level, ex);
+
+                String upgradeId = args[2].toLowerCase(Locale.ROOT);
+                if (args.length == 3) {
+                    plugin.severe("Error showing admin upgrade details target=" + targetPlayerName + " upgradeId=" + upgradeId, ex);
+                } else {
+                    String levelText = args[4];
+                    plugin.severe("Error setting upgrade level target=" + targetPlayerName + " upgradeId=" + upgradeId + " level=" + levelText, ex);
+                }
             }
+
             return null;
         });
 
@@ -182,49 +172,52 @@ public class AdminUpgradeCommand implements SubCommand, TabComplete {
         StringBuilder sb = new StringBuilder();
         boolean first = true;
 
-        for (Map.Entry<String, Double> e : rates.entrySet()) {
-            String key = e.getKey();
-            Double val = e.getValue();
-            if (key == null || val == null) continue;
+        for (Map.Entry<String, Double> entry : rates.entrySet()) {
+            String key = entry.getKey();
+            Double value = entry.getValue();
 
-            if (!first) sb.append(", ");
+            if (key == null || value == null) {
+                continue;
+            }
+
+            if (!first) {
+                sb.append(", ");
+            }
+
             first = false;
-            sb.append(key).append(": ").append(val);
+            sb.append(key).append(": ").append(value);
         }
 
         return sb.toString();
     }
 
     @Override
-    public List<String> tabComplete(CommandSender sender, String label, String[] args) {
+    public CompletableFuture<List<String>> tabCompleteAsync(CommandSender sender, String label, String[] args) {
         // /isadmin upgrade <player>
         if (args.length == 2) {
             String prefix = args[1].toLowerCase(Locale.ROOT);
-            return api.getOnlinePlayersNames().stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
+            return api.getOnlinePlayersNames().thenApply(names -> names.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())).exceptionally(ex -> Collections.emptyList());
         }
 
         // /isadmin upgrade <player> <upgradeId>
         if (args.length == 3) {
-            Set<String> ids;
-            try {
-                ids = api.getUpgradeIds();
-            } catch (Exception e) {
-                return Collections.emptyList();
-            }
-
             String prefix = args[2].toLowerCase(Locale.ROOT);
-            return ids.stream().filter(id -> id.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
+            Set<String> ids = api.getUpgradeIds();
+
+            List<String> result = ids.stream().filter(id -> id.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList());
+
+            return CompletableFuture.completedFuture(result);
         }
 
         // /isadmin upgrade <player> <upgradeId> set
         if (args.length == 4) {
             String prefix = args[3].toLowerCase(Locale.ROOT);
             if ("set".startsWith(prefix)) {
-                return Collections.singletonList("set");
+                return CompletableFuture.completedFuture(Collections.singletonList("set"));
             }
-            return Collections.emptyList();
+            return CompletableFuture.completedFuture(Collections.emptyList());
         }
 
-        return Collections.emptyList();
+        return CompletableFuture.completedFuture(Collections.emptyList());
     }
 }

@@ -1,4 +1,3 @@
-// PlayerSetHomeCommand.java
 package org.me.newsky.command.player;
 
 import org.bukkit.Location;
@@ -6,21 +5,25 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.HomeNameNotLegalException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
 import org.me.newsky.island.UpgradeHandler;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
  * /is sethome [homeName]
  */
-public class PlayerSetHomeCommand implements SubCommand, TabComplete {
+public class PlayerSetHomeCommand implements SubCommand, AsyncTabComplete {
     private final NewSky plugin;
     private final NewSkyAPI api;
     private final ConfigHandler config;
@@ -74,25 +77,22 @@ public class PlayerSetHomeCommand implements SubCommand, TabComplete {
         float yaw = loc.getYaw();
         float pitch = loc.getPitch();
 
-        UUID islandUuid;
-        try {
-            islandUuid = api.getIslandUuid(playerUuid);
-        } catch (IslandDoesNotExistException ex) {
-            player.sendMessage(config.getPlayerNoIslandMessage());
-            return true;
-        }
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getHomeNames(playerUuid).thenCompose(existingHomes -> {
+            boolean overwriting = existingHomes.stream().anyMatch(n -> n.equalsIgnoreCase(homeName));
 
-        Set<String> existingHomes;
-        existingHomes = api.getHomeNames(playerUuid);
-        boolean overwriting = existingHomes.stream().anyMatch(n -> n != null && n.equalsIgnoreCase(homeName));
-        int homeLimitLevel = api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_HOME_LIMIT);
-        int homeLimit = api.getHomeLimit(homeLimitLevel);
-        if (!overwriting && existingHomes.size() >= homeLimit) {
-            player.sendMessage(config.getPlayerHomeLimitReachedMessage(homeLimit));
-            return true;
-        }
+            return api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_HOME_LIMIT).thenCompose(homeLimitLevel -> {
+                int homeLimit = api.getHomeLimit(homeLimitLevel);
 
-        api.setHome(playerUuid, homeName, worldName, x, y, z, yaw, pitch).thenRun(() -> player.sendMessage(config.getPlayerSetHomeSuccessMessage(homeName))).exceptionally(ex -> {
+                if (!overwriting && existingHomes.size() >= homeLimit) {
+                    player.sendMessage(config.getPlayerHomeLimitReachedMessage(homeLimit));
+                    return CompletableFuture.completedFuture(null);
+                }
+
+                return api.setHome(playerUuid, homeName, worldName, x, y, z, yaw, pitch).thenRun(() -> {
+                    player.sendMessage(config.getPlayerSetHomeSuccessMessage(homeName));
+                });
+            });
+        })).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
@@ -111,16 +111,13 @@ public class PlayerSetHomeCommand implements SubCommand, TabComplete {
     }
 
     @Override
-    public List<String> tabComplete(CommandSender sender, String label, String[] args) {
-        if (args.length == 2 && sender instanceof Player player) {
-            try {
-                Set<String> homes = api.getHomeNames(player.getUniqueId());
-                String prefix = args[1].toLowerCase(Locale.ROOT);
-                return homes.stream().filter(name -> name != null && name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
-            } catch (Exception e) {
-                return Collections.emptyList();
-            }
+    public CompletableFuture<List<String>> tabCompleteAsync(CommandSender sender, String label, String[] args) {
+        if (args.length != 2 || !(sender instanceof Player player)) {
+            return CompletableFuture.completedFuture(Collections.emptyList());
         }
-        return Collections.emptyList();
+
+        String prefix = args[1].toLowerCase(Locale.ROOT);
+
+        return api.getHomeNames(player.getUniqueId()).thenApply(homes -> homes.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())).exceptionally(ex -> Collections.emptyList());
     }
 }

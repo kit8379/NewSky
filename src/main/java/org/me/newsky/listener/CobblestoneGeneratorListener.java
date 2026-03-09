@@ -8,19 +8,24 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockFormEvent;
 import org.me.newsky.NewSky;
+import snapshot.IslandLoadedSnapshot;
 import org.me.newsky.island.CobblestoneGeneratorHandler;
 import org.me.newsky.island.UpgradeHandler;
+import org.me.newsky.model.Island;
 import org.me.newsky.util.IslandUtils;
 
+import java.util.Map;
 import java.util.UUID;
 
 public final class CobblestoneGeneratorListener implements Listener {
 
     private final NewSky plugin;
+    private final IslandLoadedSnapshot islandLoadedSnapshot;
     private final CobblestoneGeneratorHandler generatorHandler;
 
-    public CobblestoneGeneratorListener(NewSky plugin, CobblestoneGeneratorHandler generatorHandler) {
+    public CobblestoneGeneratorListener(NewSky plugin, IslandLoadedSnapshot islandLoadedSnapshot, CobblestoneGeneratorHandler generatorHandler) {
         this.plugin = plugin;
+        this.islandLoadedSnapshot = islandLoadedSnapshot;
         this.generatorHandler = generatorHandler;
     }
 
@@ -33,18 +38,21 @@ public final class CobblestoneGeneratorListener implements Listener {
             return;
         }
 
-        UUID islandUuid = IslandUtils.nameToUUID(world.getName());
-
         if (event.getNewState().getType() != Material.COBBLESTONE) {
             return;
         }
 
-        int genLevel = plugin.getApi().getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_GENERATOR_RATES);
+        UUID islandUuid = IslandUtils.nameToUUID(world.getName());
+
+        Island island = islandLoadedSnapshot.get(islandUuid);
+
+        Map<String, Integer> upgrades = island.getUpgrades();
+        int genLevel = upgrades.getOrDefault(UpgradeHandler.UPGRADE_GENERATOR_RATES, 1);
 
         Material result = generatorHandler.roll(genLevel);
 
-        plugin.debug("CobblestoneGeneratorListener", "Cobblestone generator roll: island=" + islandUuid + ", level=" + genLevel + ", result=" + result + ", location=" + block.getLocation());
-
         event.getNewState().setType(result);
+
+        plugin.debug("CobblestoneGeneratorListener", "Cobblestone generator roll: island=" + islandUuid + ", level=" + genLevel + ", result=" + result + ", location=" + block.getLocation());
     }
 }

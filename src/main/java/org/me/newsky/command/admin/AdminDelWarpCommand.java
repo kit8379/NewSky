@@ -3,19 +3,22 @@ package org.me.newsky.command.admin;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.WarpDoesNotExistException;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
  * /isadmin delwarp <player> <warp>
  */
-public class AdminDelWarpCommand implements SubCommand, TabComplete {
+public class AdminDelWarpCommand implements SubCommand, AsyncTabComplete {
     private final NewSky plugin;
     private final NewSkyAPI api;
     private final ConfigHandler config;
@@ -60,16 +63,14 @@ public class AdminDelWarpCommand implements SubCommand, TabComplete {
         String warpPlayerName = args[1];
         String warpName = args[2];
 
-        Optional<UUID> targetUuidOpt = api.getPlayerUuid(warpPlayerName);
-        if (targetUuidOpt.isEmpty()) {
-            sender.sendMessage(config.getUnknownPlayerMessage(warpPlayerName));
-            return true;
-        }
-        UUID targetUuid = targetUuidOpt.get();
+        api.getPlayerUuid(warpPlayerName).thenCompose(targetUuidOpt -> {
+            if (targetUuidOpt.isEmpty()) {
+                sender.sendMessage(config.getUnknownPlayerMessage(warpPlayerName));
+                return CompletableFuture.completedFuture(null);
+            }
 
-        api.delWarp(targetUuid, warpName).thenRun(() ->
-                sender.sendMessage(config.getAdminDelWarpSuccessMessage(warpPlayerName, warpName))
-        ).exceptionally(ex -> {
+            return api.delWarp(targetUuidOpt.get(), warpName).thenRun(() -> sender.sendMessage(config.getAdminDelWarpSuccessMessage(warpPlayerName, warpName)));
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 sender.sendMessage(config.getAdminNoIslandMessage(warpPlayerName));
@@ -86,23 +87,23 @@ public class AdminDelWarpCommand implements SubCommand, TabComplete {
     }
 
     @Override
-    public List<String> tabComplete(CommandSender sender, String label, String[] args) {
+    public CompletableFuture<List<String>> tabCompleteAsync(CommandSender sender, String label, String[] args) {
         if (args.length == 2) {
             String prefix = args[1].toLowerCase(Locale.ROOT);
-            return api.getOnlinePlayersNames().stream()
-                    .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix))
-                    .collect(Collectors.toList());
+            return api.getOnlinePlayersNames().thenApply(names -> names.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())).exceptionally(ex -> Collections.emptyList());
         }
 
         if (args.length == 3) {
-            Optional<UUID> uuidOpt = api.getPlayerUuid(args[1]);
-            if (uuidOpt.isPresent()) {
-                return api.getWarpNames(uuidOpt.get()).stream()
-                        .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(args[2].toLowerCase(Locale.ROOT)))
-                        .collect(Collectors.toList());
-            }
+            String prefix = args[2].toLowerCase(Locale.ROOT);
+            return api.getPlayerUuid(args[1]).thenCompose(uuidOpt -> {
+                if (uuidOpt.isEmpty()) {
+                    return CompletableFuture.completedFuture(Collections.<String>emptyList());
+                }
+
+                return api.getWarpNames(uuidOpt.get()).thenApply(names -> names.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()));
+            }).exceptionally(ex -> Collections.emptyList());
         }
 
-        return Collections.emptyList();
+        return CompletableFuture.completedFuture(Collections.emptyList());
     }
 }

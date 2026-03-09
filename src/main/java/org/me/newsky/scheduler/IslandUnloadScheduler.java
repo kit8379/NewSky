@@ -3,10 +3,10 @@ package org.me.newsky.scheduler;
 
 import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
+import org.me.newsky.cache.RuntimeCache;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandBusyException;
 import org.me.newsky.network.lock.IslandOpLock;
-import org.me.newsky.redis.RedisCache;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.world.WorldActivityHandler;
 import org.me.newsky.world.WorldHandler;
@@ -16,7 +16,7 @@ import java.util.UUID;
 public class IslandUnloadScheduler {
 
     private final NewSky plugin;
-    private final RedisCache redisCache;
+    private final RuntimeCache runtimeCache;
     private final WorldHandler worldHandler;
     private final WorldActivityHandler worldActivityHandler;
     private final IslandOpLock islandOpLock;
@@ -25,9 +25,9 @@ public class IslandUnloadScheduler {
 
     private BukkitTask task;
 
-    public IslandUnloadScheduler(NewSky plugin, ConfigHandler config, RedisCache redisCache, WorldHandler worldHandler, WorldActivityHandler worldActivityHandler, IslandOpLock islandOpLock) {
+    public IslandUnloadScheduler(NewSky plugin, ConfigHandler config, RuntimeCache runtimeCache, WorldHandler worldHandler, WorldActivityHandler worldActivityHandler, IslandOpLock islandOpLock) {
         this.plugin = plugin;
-        this.redisCache = redisCache;
+        this.runtimeCache = runtimeCache;
         this.worldHandler = worldHandler;
         this.worldActivityHandler = worldActivityHandler;
         this.islandOpLock = islandOpLock;
@@ -66,7 +66,7 @@ public class IslandUnloadScheduler {
 
                 return worldHandler.unloadWorld(worldName).thenRun(() -> {
                     worldActivityHandler.clearWorld(worldName);
-                    redisCache.removeIslandLoadedServer(islandUuid);
+                    runtimeCache.removeIslandLoadedServer(islandUuid);
                     plugin.debug("IslandUnloadScheduler", "Unloaded world: " + worldName);
                 });
             }).exceptionally(ex -> {

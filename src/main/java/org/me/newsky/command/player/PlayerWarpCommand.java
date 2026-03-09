@@ -4,18 +4,22 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.*;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
  * /is warp <player> [warpName]
  */
-public class PlayerWarpCommand implements SubCommand, TabComplete {
+public class PlayerWarpCommand implements SubCommand, AsyncTabComplete {
     private final NewSky plugin;
     private final NewSkyAPI api;
     private final ConfigHandler config;
@@ -63,18 +67,20 @@ public class PlayerWarpCommand implements SubCommand, TabComplete {
         }
 
         String targetName = args[1];
-        String warpName = (args.length >= 3) ? args[2] : "default";
+        String warpName = args.length >= 3 ? args[2] : "default";
 
         UUID playerUuid = player.getUniqueId();
 
-        Optional<UUID> targetUuidOpt = api.getPlayerUuid(targetName);
-        if (targetUuidOpt.isEmpty()) {
-            player.sendMessage(config.getUnknownPlayerMessage(targetName));
-            return true;
-        }
-        UUID targetUuid = targetUuidOpt.get();
+        api.getPlayerUuid(targetName).thenCompose(targetUuidOpt -> {
+            if (targetUuidOpt.isEmpty()) {
+                player.sendMessage(config.getUnknownPlayerMessage(targetName));
+                return CompletableFuture.completedFuture(null);
+            }
 
-        api.warp(targetUuid, warpName, playerUuid).thenRun(() -> api.sendPlayerMessage(playerUuid, config.getWarpSuccessMessage(warpName))).exceptionally(ex -> {
+            UUID targetUuid = targetUuidOpt.get();
+
+            return api.warp(targetUuid, warpName, playerUuid).thenRun(() -> api.sendPlayerMessage(playerUuid, config.getWarpSuccessMessage(warpName)));
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getNoIslandMessage(targetName));
@@ -99,25 +105,25 @@ public class PlayerWarpCommand implements SubCommand, TabComplete {
     }
 
     @Override
-    public List<String> tabComplete(CommandSender sender, String label, String[] args) {
+    public CompletableFuture<List<String>> tabCompleteAsync(CommandSender sender, String label, String[] args) {
         if (args.length == 2) {
             String prefix = args[1].toLowerCase(Locale.ROOT);
-            return api.getOnlinePlayersNames().stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
+
+            return api.getOnlinePlayersNames().thenApply(names -> names.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())).exceptionally(ex -> Collections.emptyList());
         }
 
         if (args.length == 3) {
-            Optional<UUID> targetUuidOpt = api.getPlayerUuid(args[1]);
-            if (targetUuidOpt.isEmpty()) return Collections.emptyList();
+            String prefix = args[2].toLowerCase(Locale.ROOT);
 
-            try {
-                Set<String> warps = api.getWarpNames(targetUuidOpt.get());
-                String prefix = args[2].toLowerCase(Locale.ROOT);
-                return warps.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
-            } catch (Exception e) {
-                return Collections.emptyList();
-            }
+            return api.getPlayerUuid(args[1]).thenCompose(targetUuidOpt -> {
+                if (targetUuidOpt.isEmpty()) {
+                    return CompletableFuture.completedFuture(Collections.<String>emptyList());
+                }
+
+                return api.getWarpNames(targetUuidOpt.get()).thenApply(warps -> warps.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()));
+            }).exceptionally(ex -> Collections.emptyList());
         }
 
-        return Collections.emptyList();
+        return CompletableFuture.completedFuture(Collections.emptyList());
     }
 }

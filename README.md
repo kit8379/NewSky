@@ -155,7 +155,7 @@ redis:
 
    # Pub/Sub channels (should be identical on all servers in the same network).
    channel:
-      cache: "newsky-cache-channel-0"
+      dataCache: "newsky-dataCache-channel-0"
       island: "newsky-island-channel-0"
 
 

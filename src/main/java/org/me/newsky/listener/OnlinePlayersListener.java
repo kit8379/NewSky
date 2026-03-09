@@ -6,24 +6,24 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.me.newsky.NewSky;
-import org.me.newsky.redis.RedisCache;
+import org.me.newsky.cache.RuntimeCache;
 
 public class OnlinePlayersListener implements Listener {
 
     private final NewSky plugin;
-    private final RedisCache redisCache;
+    private final RuntimeCache runtimeCache;
     private final String serverID;
 
-    public OnlinePlayersListener(NewSky plugin, RedisCache redisCache, String serverID) {
+    public OnlinePlayersListener(NewSky plugin, RuntimeCache runtimeCache, String serverID) {
         this.plugin = plugin;
-        this.redisCache = redisCache;
+        this.runtimeCache = runtimeCache;
         this.serverID = serverID;
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
     private void onPlayerJoin(PlayerJoinEvent event) {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            redisCache.addOnlinePlayer(event.getPlayer().getUniqueId(), event.getPlayer().getName(), serverID);
+            runtimeCache.addOnlinePlayer(event.getPlayer().getUniqueId(), event.getPlayer().getName(), serverID);
             plugin.debug("OnlinePlayersListener", "Player " + event.getPlayer().getName() + " joined on server " + serverID);
         });
     }
@@ -31,7 +31,7 @@ public class OnlinePlayersListener implements Listener {
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onPlayerQuit(PlayerQuitEvent event) {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            redisCache.removeOnlinePlayer(event.getPlayer().getUniqueId());
+            runtimeCache.removeOnlinePlayer(event.getPlayer().getUniqueId());
             plugin.debug("OnlinePlayersListener", "Player " + event.getPlayer().getName() + " quit from server " + serverID);
         });
     }

@@ -8,6 +8,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.me.newsky.NewSky;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 public class IslandCoopListener implements Listener {
 
@@ -21,13 +22,22 @@ public class IslandCoopListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         UUID playerUuid = player.getUniqueId();
+        String playerName = player.getName();
 
-        // Delay to allow proxy switch to complete if applicable
         plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> {
-            if (!plugin.getApi().getOnlinePlayersUUIDs().contains(playerUuid)) {
-                plugin.getApi().removeAllCoopOfPlayer(playerUuid);
-                plugin.debug("IslandCoopListener", "Removed all coop entries for player " + player.getName() + " on quit.");
-            }
+            plugin.getApi().getOnlinePlayersUUIDs().thenCompose(onlinePlayers -> {
+                if (onlinePlayers.contains(playerUuid)) {
+                    plugin.debug("IslandCoopListener", "Skipped coop cleanup for player " + playerName + " because they are still online.");
+                    return CompletableFuture.completedFuture(null);
+                }
+
+                return plugin.getApi().removeAllCoopOfPlayer(playerUuid).thenRun(() -> {
+                    plugin.debug("IslandCoopListener", "Removed all coop entries for player " + playerName + " on quit.");
+                });
+            }).exceptionally(ex -> {
+                plugin.severe("Error removing coop entries for player " + playerName + " on quit.", ex);
+                return null;
+            });
         }, 60L);
     }
 }

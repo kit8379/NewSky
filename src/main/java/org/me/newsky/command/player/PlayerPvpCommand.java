@@ -58,23 +58,20 @@ public class PlayerPvpCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        UUID islandUuid;
-        try {
-            islandUuid = api.getIslandUuid(playerUuid);
-        } catch (IslandDoesNotExistException e) {
-            player.sendMessage(config.getPlayerNoIslandMessage());
-            return true;
-        }
-
-        api.toggleIslandPvp(islandUuid).thenAccept(isPvpEnabled -> {
+        api.getIslandUuid(playerUuid).thenCompose(api::toggleIslandPvp).thenAccept(isPvpEnabled -> {
             if (isPvpEnabled) {
                 player.sendMessage(config.getPlayerPvpEnableSuccessMessage());
             } else {
                 player.sendMessage(config.getPlayerPvpDisableSuccessMessage());
             }
         }).exceptionally(ex -> {
-            player.sendMessage(config.getUnknownExceptionMessage());
-            plugin.severe("Error toggling PvP status for player " + player.getName(), ex);
+            Throwable cause = ex.getCause();
+            if (cause instanceof IslandDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoIslandMessage());
+            } else {
+                player.sendMessage(config.getUnknownExceptionMessage());
+                plugin.severe("Error toggling PvP status for player " + player.getName(), ex);
+            }
             return null;
         });
 

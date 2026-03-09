@@ -2,58 +2,46 @@ package org.me.newsky.heartbeat;
 
 import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
+import org.me.newsky.cache.RuntimeCache;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.redis.RedisCache;
-
-import java.util.Map;
 
 public class HeartBeatHandler {
 
     private final NewSky plugin;
     private final ConfigHandler config;
-    private final RedisCache redisCache;
+    private final RuntimeCache runtimeCache;
     private final String serverID;
     private final int heartbeatInterval;
+    private final int heartbeatTtlSeconds;
+
     private BukkitTask heartbeatTask;
 
-    public HeartBeatHandler(NewSky plugin, ConfigHandler config, RedisCache redisCache, String serverID) {
+    public HeartBeatHandler(NewSky plugin, ConfigHandler config, RuntimeCache runtimeCache, String serverID) {
         this.plugin = plugin;
         this.config = config;
-        this.redisCache = redisCache;
+        this.runtimeCache = runtimeCache;
         this.serverID = serverID;
         this.heartbeatInterval = config.getHeartbeatInterval();
+        this.heartbeatTtlSeconds = Math.max(heartbeatInterval * 3, heartbeatInterval + 5);
     }
 
     public void start() {
+        if (heartbeatTask != null) {
+            plugin.debug("HeartBeatHandler", "Heartbeat task is already running. No action taken.");
+            return;
+        }
+
         plugin.debug("HeartBeatHandler", "Performing startup cleanup for server: " + serverID);
-        redisCache.removeActiveServer(serverID);
-        plugin.debug("HeartBeatHandler", "Cleanup complete.");
+        runtimeCache.removeActiveServer(serverID);
+        plugin.debug("HeartBeatHandler", "Startup cleanup complete.");
 
-        plugin.debug("HeartBeatHandler", "Starting heartbeat task with interval: " + heartbeatInterval + " seconds.");
+        plugin.debug("HeartBeatHandler", "Starting heartbeat task with interval: " + heartbeatInterval + " seconds, ttl: " + heartbeatTtlSeconds + " seconds.");
+
         heartbeatTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-            redisCache.updateActiveServer(serverID, config.isLobbyOnly());
+            runtimeCache.updateActiveServer(serverID, config.isLobbyOnly(), heartbeatTtlSeconds);
             plugin.debug("HeartBeatHandler", "Sent heartbeat for server: " + serverID);
+        }, 0L, heartbeatInterval * 20L);
 
-            long now = System.currentTimeMillis();
-            long threshold = now - (heartbeatInterval * 1000L * 2);
-
-            Map<String, String> servers = redisCache.getActiveServers();
-            plugin.debug("HeartBeatHandler", "Active servers list retrieved: " + servers.keySet());
-
-            servers.forEach((server, lastHeartbeat) -> {
-                try {
-                    long lastSeen = Long.parseLong(lastHeartbeat);
-                    if (lastSeen < threshold) {
-                        plugin.debug("HeartBeatHandler", "Detected dead server: " + server);
-                        redisCache.removeActiveServer(server);
-                        plugin.debug("HeartBeatHandler", "Removed active server entry for server: " + server);
-                    }
-                } catch (NumberFormatException e) {
-                    plugin.severe("Invalid heartbeat timestamp for server: " + server, e);
-                    redisCache.removeActiveServer(server);
-                }
-            });
-        }, 0, heartbeatInterval * 20L);
         plugin.debug("HeartBeatHandler", "Heartbeat task started successfully.");
     }
 
@@ -65,7 +53,7 @@ public class HeartBeatHandler {
         }
 
         plugin.debug("HeartBeatHandler", "Performing shutdown cleanup for server: " + serverID);
-        redisCache.removeActiveServer(serverID);
-        plugin.debug("HeartBeatHandler", "Cleanup complete.");
+        runtimeCache.removeActiveServer(serverID);
+        plugin.debug("HeartBeatHandler", "Shutdown cleanup complete.");
     }
 }

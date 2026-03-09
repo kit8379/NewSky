@@ -3,13 +3,13 @@ package org.me.newsky.network.distributor;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.broker.IslandBroker;
+import org.me.newsky.cache.RuntimeCache;
 import org.me.newsky.exceptions.IslandAlreadyLoadedException;
 import org.me.newsky.exceptions.IslandBusyException;
 import org.me.newsky.exceptions.IslandNotLoadedException;
 import org.me.newsky.exceptions.NoActiveServerException;
 import org.me.newsky.network.lock.IslandOpLock;
 import org.me.newsky.network.operator.IslandOperator;
-import org.me.newsky.redis.RedisCache;
 import org.me.newsky.routing.ServerSelector;
 import org.me.newsky.util.ServerUtil;
 
@@ -38,7 +38,7 @@ import java.util.stream.Collectors;
  *       which locks only during the load stage, then releases immediately.</li>
  * </ul>
  *
- * <p>Redis keys involved (via {@link RedisCache}):
+ * <p>Redis keys involved (via {@link RuntimeCache}):
  * <ul>
  *   <li>island_server (hash): islandUuid -> serverId</li>
  *   <li>island_op_lock:* (string): lock for sensitive island operations</li>
@@ -47,7 +47,7 @@ import java.util.stream.Collectors;
 public class IslandDistributor {
 
     private final NewSky plugin;
-    private final RedisCache redisCache;
+    private final RuntimeCache runtimeCache;
     private final IslandOperator islandOperator;
     private final ServerSelector serverSelector;
     private final IslandOpLock islandOpLock;
@@ -55,9 +55,9 @@ public class IslandDistributor {
 
     private IslandBroker islandBroker;
 
-    public IslandDistributor(NewSky plugin, RedisCache redisCache, IslandOperator islandOperator, ServerSelector serverSelector, IslandOpLock islandOpLock, String serverID) {
+    public IslandDistributor(NewSky plugin, RuntimeCache runtimeCache, IslandOperator islandOperator, ServerSelector serverSelector, IslandOpLock islandOpLock, String serverID) {
         this.plugin = plugin;
-        this.redisCache = redisCache;
+        this.runtimeCache = runtimeCache;
         this.islandOperator = islandOperator;
         this.serverSelector = serverSelector;
         this.islandOpLock = islandOpLock;
@@ -91,7 +91,7 @@ public class IslandDistributor {
 
             plugin.debug("IslandDistributor", "ensureIslandLoaded: island not loaded. Selecting server to load " + islandUuid);
 
-            String targetServer = selectServer(redisCache.getActiveGameServers());
+            String targetServer = selectServer(runtimeCache.getActiveGameServers());
             if (targetServer == null) {
                 plugin.debug("IslandDistributor", "ensureIslandLoaded: no active server available to load island " + islandUuid);
                 return CompletableFuture.failedFuture(new NoActiveServerException());
@@ -123,7 +123,7 @@ public class IslandDistributor {
     // =====================================================================================
 
     public CompletableFuture<Void> createIsland(UUID islandUuid) {
-        String targetServer = selectServer(redisCache.getActiveGameServers());
+        String targetServer = selectServer(runtimeCache.getActiveGameServers());
         if (targetServer == null) {
             plugin.debug("IslandDistributor", "createIsland: No active server available.");
             return CompletableFuture.failedFuture(new NoActiveServerException());
@@ -150,7 +150,7 @@ public class IslandDistributor {
 
             plugin.debug("IslandDistributor", "loadIsland: island not loaded. Selecting server to load " + islandUuid);
 
-            String targetServer = selectServer(redisCache.getActiveGameServers());
+            String targetServer = selectServer(runtimeCache.getActiveGameServers());
             if (targetServer == null) {
                 plugin.debug("IslandDistributor", "loadIsland: no active server available.");
                 return CompletableFuture.failedFuture(new NoActiveServerException());
@@ -226,7 +226,7 @@ public class IslandDistributor {
     }
 
     public CompletableFuture<Void> teleportLobby(UUID playerUuid, List<String> lobbyServers, String lobbyWorld, String lobbyLocation) {
-        String targetLobbyServer = selectServer(redisCache.getActiveServers().entrySet().stream().filter(entry -> lobbyServers.contains(entry.getKey())).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+        String targetLobbyServer = selectServer(runtimeCache.getActiveServers().entrySet().stream().filter(entry -> lobbyServers.contains(entry.getKey())).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
 
         if (targetLobbyServer == null) {
             plugin.debug("IslandDistributor", "teleportLobby: No active lobby server available.");
@@ -305,6 +305,26 @@ public class IslandDistributor {
         }
     }
 
+    public void reloadSnapshot(UUID islandUuid) {
+        String islandServer = getServerByIsland(islandUuid);
+
+        if (islandServer == null) {
+            plugin.debug("IslandDistributor", "reloadSnapshot: island not loaded on any server.");
+            CompletableFuture.completedFuture(null);
+            return;
+        }
+
+        plugin.debug("IslandDistributor", "reloadSnapshot: island loaded on server " + islandServer);
+
+        if (islandServer.equals(serverID)) {
+            plugin.debug("IslandDistributor", "reloadSnapshot: reloading snapshot locally on " + serverID);
+            islandOperator.reloadSnapshot(islandUuid);
+        } else {
+            plugin.debug("IslandDistributor", "reloadSnapshot: sending reload snapshot request to remote server " + islandServer);
+            islandBroker.sendRequest(islandServer, "reload_snapshot", islandUuid.toString());
+        }
+    }
+
     // =====================================================================================
     // Internal helpers
     // =====================================================================================
@@ -318,6 +338,6 @@ public class IslandDistributor {
     }
 
     private String getServerByIsland(UUID islandUuid) {
-        return redisCache.getIslandLoadedServer(islandUuid).orElse(null);
+        return runtimeCache.getIslandLoadedServer(islandUuid).orElse(null);
     }
 }

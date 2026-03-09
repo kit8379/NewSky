@@ -4,20 +4,21 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.CannotRemoveOwnerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
  * /is removemember <player>
  */
-public class PlayerRemoveMemberCommand implements SubCommand, TabComplete {
+public class PlayerRemoveMemberCommand implements SubCommand, AsyncTabComplete {
     private final NewSky plugin;
     private final NewSkyAPI api;
     private final ConfigHandler config;
@@ -67,32 +68,28 @@ public class PlayerRemoveMemberCommand implements SubCommand, TabComplete {
         String targetPlayerName = args[1];
         UUID playerUuid = player.getUniqueId();
 
-        Optional<UUID> targetUuidOpt = api.getPlayerUuid(targetPlayerName);
-        if (targetUuidOpt.isEmpty()) {
-            player.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
-            return true;
-        }
-        UUID targetPlayerUuid = targetUuidOpt.get();
+        api.getPlayerUuid(targetPlayerName).thenCompose(targetUuidOpt -> {
+            if (targetUuidOpt.isEmpty()) {
+                player.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
+                return CompletableFuture.completedFuture(null);
+            }
 
-        if (playerUuid.equals(targetPlayerUuid)) {
-            player.sendMessage(config.getPlayerCannotRemoveSelfMessage());
-            return true;
-        }
+            UUID targetPlayerUuid = targetUuidOpt.get();
 
-        UUID islandUuid;
-        try {
-            islandUuid = api.getIslandUuid(playerUuid);
-        } catch (IslandDoesNotExistException e) {
-            player.sendMessage(config.getPlayerNoIslandMessage());
-            return true;
-        }
+            if (playerUuid.equals(targetPlayerUuid)) {
+                player.sendMessage(config.getPlayerCannotRemoveSelfMessage());
+                return CompletableFuture.completedFuture(null);
+            }
 
-        api.removeMember(islandUuid, targetPlayerUuid).thenRun(() -> {
-            player.sendMessage(config.getPlayerRemoveMemberSuccessMessage(targetPlayerName));
-            api.sendPlayerMessage(targetPlayerUuid, config.getWasRemovedFromIslandMessage(player.getName()));
+            return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.removeMember(islandUuid, targetPlayerUuid).thenRun(() -> {
+                player.sendMessage(config.getPlayerRemoveMemberSuccessMessage(targetPlayerName));
+                api.sendPlayerMessage(targetPlayerUuid, config.getWasRemovedFromIslandMessage(player.getName()));
+            }));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
-            if (cause instanceof CannotRemoveOwnerException) {
+            if (cause instanceof IslandDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoIslandMessage());
+            } else if (cause instanceof CannotRemoveOwnerException) {
                 player.sendMessage(config.getCannotRemoveOwnerMessage());
             } else if (cause instanceof IslandPlayerDoesNotExistException) {
                 player.sendMessage(config.getIslandMemberNotExistsMessage(targetPlayerName));
@@ -107,17 +104,23 @@ public class PlayerRemoveMemberCommand implements SubCommand, TabComplete {
     }
 
     @Override
-    public List<String> tabComplete(CommandSender sender, String label, String[] args) {
-        if (args.length == 2 && sender instanceof Player player) {
-            try {
-                UUID islandUuid = api.getIslandUuid(player.getUniqueId());
-                Set<UUID> members = api.getIslandMembers(islandUuid);
-                String prefix = args[1].toLowerCase(Locale.ROOT);
-                return members.stream().map(uuid -> api.getPlayerName(uuid).orElse(uuid.toString())).filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
-            } catch (Exception e) {
-                return Collections.emptyList();
-            }
+    public CompletableFuture<List<String>> tabCompleteAsync(CommandSender sender, String label, String[] args) {
+        if (args.length != 2 || !(sender instanceof Player player)) {
+            return CompletableFuture.completedFuture(Collections.emptyList());
         }
-        return Collections.emptyList();
+
+        String prefix = args[1].toLowerCase(Locale.ROOT);
+        UUID playerUuid = player.getUniqueId();
+
+        return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getIslandMembers(islandUuid).thenCompose(members -> {
+            List<CompletableFuture<String>> nameFutures = new ArrayList<>(members.size());
+            for (UUID memberUuid : members) {
+                nameFutures.add(api.getPlayerName(memberUuid).thenApply(nameOpt -> nameOpt.orElse(memberUuid.toString())));
+            }
+
+            CompletableFuture<Void> all = CompletableFuture.allOf(nameFutures.toArray(new CompletableFuture[0]));
+
+            return all.thenApply(v -> nameFutures.stream().map(CompletableFuture::join).filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()));
+        })).exceptionally(ex -> Collections.emptyList());
     }
 }

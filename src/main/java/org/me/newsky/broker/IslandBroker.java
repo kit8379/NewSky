@@ -168,6 +168,8 @@ public class IslandBroker {
                     return islandOperator.expelPlayer(UUID.fromString(args[0]), UUID.fromString(args[1]));
                 case "update_border":
                     return islandOperator.updateIslandBorder(UUID.fromString(args[0]), Integer.parseInt(args[1]));
+                case "reload_snapshot":
+                    return islandOperator.reloadSnapshot(UUID.fromString(args[0]));
                 default:
                     return CompletableFuture.failedFuture(new IllegalArgumentException("Unknown request islandOperator: " + operation));
             }

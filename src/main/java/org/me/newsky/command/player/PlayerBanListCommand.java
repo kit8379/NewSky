@@ -10,8 +10,10 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * /is banlist
@@ -61,31 +63,41 @@ public class PlayerBanListCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        try {
-            UUID islandUuid = api.getIslandUuid(playerUuid);
-            Set<UUID> bannedPlayers = api.getBannedPlayers(islandUuid);
-
+        api.getIslandUuid(playerUuid).thenCompose(api::getBannedPlayers).thenCompose(bannedPlayers -> {
             if (bannedPlayers.isEmpty()) {
                 player.sendMessage(config.getNoBannedPlayersMessage());
-                return true;
+                return CompletableFuture.completedFuture(null);
             }
 
-            TextComponent.Builder bannedList = Component.text().append(config.getBannedPlayersHeaderMessage());
-
-            for (UUID bannedUuid : bannedPlayers) {
-                String name = api.getPlayerName(bannedUuid).orElse(bannedUuid.toString());
-                bannedList.append(Component.text("\n"));
-                bannedList.append(config.getBannedPlayerMessage(name));
+            List<CompletableFuture<String>> nameFutures = new ArrayList<>(bannedPlayers.size());
+            for (UUID bannedPlayerUuid : bannedPlayers) {
+                nameFutures.add(api.getPlayerName(bannedPlayerUuid).thenApply(nameOpt -> nameOpt.orElse(bannedPlayerUuid.toString())));
             }
 
-            player.sendMessage(bannedList.build());
+            CompletableFuture<Void> all = CompletableFuture.allOf(nameFutures.toArray(new CompletableFuture[0]));
 
-        } catch (IslandDoesNotExistException ex) {
-            player.sendMessage(config.getPlayerNoIslandMessage());
-        } catch (Exception ex) {
-            player.sendMessage(config.getUnknownExceptionMessage());
-            plugin.severe("Error retrieving ban list for " + player.getName(), ex);
-        }
+            return all.thenAccept(v -> {
+                List<String> playerNames = nameFutures.stream().map(CompletableFuture::join).sorted(String.CASE_INSENSITIVE_ORDER).toList();
+
+                TextComponent.Builder bannedList = Component.text().append(config.getBannedPlayersHeaderMessage());
+
+                for (String playerName : playerNames) {
+                    bannedList.append(Component.text("\n"));
+                    bannedList.append(config.getBannedPlayerMessage(playerName));
+                }
+
+                player.sendMessage(bannedList.build());
+            });
+        }).exceptionally(ex -> {
+            Throwable cause = ex.getCause();
+            if (cause instanceof IslandDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoIslandMessage());
+            } else {
+                player.sendMessage(config.getUnknownExceptionMessage());
+                plugin.severe("Error retrieving ban list for " + player.getName(), ex);
+            }
+            return null;
+        });
 
         return true;
     }

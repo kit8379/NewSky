@@ -10,9 +10,10 @@ import org.me.newsky.exceptions.IslandBusyException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.NoActiveServerException;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class PlayerDeleteIslandCommand implements SubCommand {
 
@@ -22,8 +23,8 @@ public class PlayerDeleteIslandCommand implements SubCommand {
     private final NewSkyAPI api;
     private final ConfigHandler config;
 
-    private final Map<UUID, Integer> confirmStage = new HashMap<>();
-    private final Map<UUID, Long> lastConfirmTime = new HashMap<>();
+    private final Map<UUID, Integer> confirmStage = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> lastConfirmTime = new ConcurrentHashMap<>();
 
     public PlayerDeleteIslandCommand(NewSky plugin, NewSkyAPI api, ConfigHandler config) {
         this.plugin = plugin;
@@ -66,73 +67,60 @@ public class PlayerDeleteIslandCommand implements SubCommand {
         UUID playerUuid = player.getUniqueId();
         long now = System.currentTimeMillis();
 
-        // Timeout reset
         Long last = lastConfirmTime.get(playerUuid);
         if (last != null && now - last > CONFIRM_TIMEOUT_MS) {
             reset(playerUuid);
         }
 
-        UUID islandUuid;
-        try {
-            islandUuid = api.getIslandUuid(playerUuid);
-        } catch (IslandDoesNotExistException e) {
-            player.sendMessage(config.getPlayerNoIslandMessage());
-            reset(playerUuid);
-            return true;
-        }
-
-        UUID ownerUuid = api.getIslandOwner(islandUuid);
-        if (ownerUuid == null || !ownerUuid.equals(playerUuid)) {
-            player.sendMessage(config.getPlayerDeleteNotOwnerMessage());
-            reset(playerUuid);
-            return true;
-        }
-
-        int stage = confirmStage.getOrDefault(playerUuid, 0);
-
-        // -------------------------
-        // Stage 0 → First warning
-        // -------------------------
-        if (stage == 0) {
-            confirmStage.put(playerUuid, 1);
-            lastConfirmTime.put(playerUuid, now);
-            player.sendMessage(config.getPlayerDeleteFirstWarningMessage());
-            return true;
-        }
-
-        // -------------------------
-        // Stage 1 → Final warning (tell them type /is delete again)
-        // -------------------------
-        if (stage == 1) {
-            confirmStage.put(playerUuid, 2);
-            lastConfirmTime.put(playerUuid, now);
-            player.sendMessage(config.getPlayerDeleteFinalWarningMessage());
-            return true;
-        }
-
-        // -------------------------
-        // Stage 2 → Delete now (3rd time)
-        // -------------------------
-        if (stage == 2) {
-            reset(playerUuid);
-
-            api.deleteIsland(islandUuid).thenRun(() -> {
-                api.sendPlayerMessage(playerUuid, config.getPlayerDeleteSuccessMessage());
-            }).exceptionally(ex -> {
-                Throwable cause = ex.getCause();
-                if (cause instanceof IslandBusyException) {
-                    player.sendMessage(config.getIslandBusyMessage());
-                } else if (cause instanceof NoActiveServerException) {
-                    player.sendMessage(config.getNoActiveServerMessage());
-                } else {
-                    player.sendMessage(config.getUnknownExceptionMessage());
-                    plugin.severe("Error deleting island for player " + player.getName(), ex);
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> {
+            return api.getIslandOwner(islandUuid).thenCompose(ownerUuid -> {
+                if (!ownerUuid.equals(playerUuid)) {
+                    player.sendMessage(config.getPlayerDeleteNotOwnerMessage());
+                    reset(playerUuid);
+                    return CompletableFuture.completedFuture(null);
                 }
-                return null;
-            });
 
-            return true;
-        }
+                int stage = confirmStage.getOrDefault(playerUuid, 0);
+
+                if (stage == 0) {
+                    confirmStage.put(playerUuid, 1);
+                    lastConfirmTime.put(playerUuid, now);
+                    player.sendMessage(config.getPlayerDeleteFirstWarningMessage());
+                    return CompletableFuture.completedFuture(null);
+                }
+
+                if (stage == 1) {
+                    confirmStage.put(playerUuid, 2);
+                    lastConfirmTime.put(playerUuid, now);
+                    player.sendMessage(config.getPlayerDeleteFinalWarningMessage());
+                    return CompletableFuture.completedFuture(null);
+                }
+
+                if (stage == 2) {
+                    reset(playerUuid);
+
+                    return api.deleteIsland(islandUuid).thenRun(() -> {
+                        api.sendPlayerMessage(playerUuid, config.getPlayerDeleteSuccessMessage());
+                    });
+                }
+
+                return CompletableFuture.completedFuture(null);
+            });
+        }).exceptionally(ex -> {
+            Throwable cause = ex.getCause();
+            if (cause instanceof IslandDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoIslandMessage());
+                reset(playerUuid);
+            } else if (cause instanceof IslandBusyException) {
+                player.sendMessage(config.getIslandBusyMessage());
+            } else if (cause instanceof NoActiveServerException) {
+                player.sendMessage(config.getNoActiveServerMessage());
+            } else {
+                player.sendMessage(config.getUnknownExceptionMessage());
+                plugin.severe("Error deleting island for player " + player.getName(), ex);
+            }
+            return null;
+        });
 
         return true;
     }

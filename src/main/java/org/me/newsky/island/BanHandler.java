@@ -1,7 +1,7 @@
 package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.Cache;
+import org.me.newsky.cache.DataCache;
 import org.me.newsky.exceptions.CannotBanIslandPlayerException;
 import org.me.newsky.exceptions.PlayerAlreadyBannedException;
 import org.me.newsky.exceptions.PlayerNotBannedException;
@@ -14,45 +14,45 @@ import java.util.concurrent.CompletableFuture;
 public class BanHandler {
 
     private final NewSky plugin;
-    private final Cache cache;
+    private final DataCache dataCache;
     private final IslandDistributor islandDistributor;
 
-    public BanHandler(NewSky plugin, Cache cache, IslandDistributor islandDistributor) {
+    public BanHandler(NewSky plugin, DataCache dataCache, IslandDistributor islandDistributor) {
         this.plugin = plugin;
-        this.cache = cache;
+        this.dataCache = dataCache;
         this.islandDistributor = islandDistributor;
     }
 
     public CompletableFuture<Void> banPlayer(UUID islandUuid, UUID playerUuid) {
         return CompletableFuture.runAsync(() -> {
-            if (cache.isPlayerBanned(islandUuid, playerUuid)) {
+            if (dataCache.isPlayerBanned(islandUuid, playerUuid)) {
                 throw new PlayerAlreadyBannedException();
             }
 
-            if (cache.getIslandPlayers(islandUuid).contains(playerUuid)) {
+            if (dataCache.getIslandPlayers(islandUuid).contains(playerUuid)) {
                 throw new CannotBanIslandPlayerException();
             }
 
             islandDistributor.expelPlayer(islandUuid, playerUuid);
-            cache.updateBanPlayer(islandUuid, playerUuid);
+            dataCache.updateBanPlayer(islandUuid, playerUuid);
         }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> unbanPlayer(UUID islandUuid, UUID playerUuid) {
         return CompletableFuture.runAsync(() -> {
-            if (!cache.isPlayerBanned(islandUuid, playerUuid)) {
+            if (!dataCache.isPlayerBanned(islandUuid, playerUuid)) {
                 throw new PlayerNotBannedException();
             }
 
-            cache.deleteBanPlayer(islandUuid, playerUuid);
+            dataCache.deleteBanPlayer(islandUuid, playerUuid);
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    public boolean isPlayerBanned(UUID islandUuid, UUID playerUuid) {
-        return cache.isPlayerBanned(islandUuid, playerUuid);
+    public CompletableFuture<Boolean> isPlayerBanned(UUID islandUuid, UUID playerUuid) {
+        return CompletableFuture.supplyAsync(() -> dataCache.isPlayerBanned(islandUuid, playerUuid), plugin.getBukkitAsyncExecutor());
     }
 
-    public Set<UUID> getBannedPlayers(UUID islandUuid) {
-        return cache.getBannedPlayers(islandUuid);
+    public CompletableFuture<Set<UUID>> getBannedPlayers(UUID islandUuid) {
+        return CompletableFuture.supplyAsync(() -> dataCache.getBannedPlayers(islandUuid), plugin.getBukkitAsyncExecutor());
     }
 }

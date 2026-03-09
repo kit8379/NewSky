@@ -2,7 +2,7 @@
 package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.Cache;
+import org.me.newsky.cache.DataCache;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.UpgradeDoesNotExistException;
 import org.me.newsky.exceptions.UpgradeIslandLevelTooLowException;
@@ -20,7 +20,7 @@ public final class UpgradeHandler {
 
     private final NewSky plugin;
     private final ConfigHandler config;
-    private final Cache cache;
+    private final DataCache dataCache;
     private final IslandDistributor islandDistributor;
 
     public static final String UPGRADE_TEAM_LIMIT = "team-limit";
@@ -30,10 +30,10 @@ public final class UpgradeHandler {
     public static final String UPGRADE_ISLAND_SIZE = "island-size";
     public static final String UPGRADE_GENERATOR_RATES = "generator-rates";
 
-    public UpgradeHandler(NewSky plugin, ConfigHandler config, Cache cache, IslandDistributor islandDistributor) {
+    public UpgradeHandler(NewSky plugin, ConfigHandler config, DataCache dataCache, IslandDistributor islandDistributor) {
         this.plugin = plugin;
         this.config = config;
-        this.cache = cache;
+        this.dataCache = dataCache;
         this.islandDistributor = islandDistributor;
     }
 
@@ -99,8 +99,8 @@ public final class UpgradeHandler {
                 throw new UpgradeDoesNotExistException();
             }
 
-            int islandLevel = cache.getIslandLevel(islandUuid);
-            int oldLevel = cache.getIslandUpgradeLevel(islandUuid, upgradeId);
+            int islandLevel = dataCache.getIslandLevel(islandUuid);
+            int oldLevel = dataCache.getIslandUpgradeLevel(islandUuid, upgradeId);
 
             int nextLevel = getNextUpgradeLevel(upgradeId, oldLevel);
             if (nextLevel == -1) {
@@ -112,11 +112,12 @@ public final class UpgradeHandler {
                 throw new UpgradeIslandLevelTooLowException();
             }
 
-            cache.updateIslandUpgradeLevel(islandUuid, upgradeId, nextLevel);
+            dataCache.updateIslandUpgradeLevel(islandUuid, upgradeId, nextLevel);
 
             if (upgradeId.equals(UPGRADE_ISLAND_SIZE)) {
                 islandDistributor.updateIslandBorder(islandUuid, getIslandSize(nextLevel));
             }
+            islandDistributor.reloadSnapshot(islandUuid);
 
             return new UpgradeResult(upgradeId, oldLevel, nextLevel, requireIslandLevel);
         }, plugin.getBukkitAsyncExecutor());
@@ -133,15 +134,17 @@ public final class UpgradeHandler {
                 throw new UpgradeLevelDoesNotExistException();
             }
 
-            cache.updateIslandUpgradeLevel(islandUuid, upgradeId, level);
+            dataCache.updateIslandUpgradeLevel(islandUuid, upgradeId, level);
 
             if (upgradeId.equals(UPGRADE_ISLAND_SIZE)) {
                 islandDistributor.updateIslandBorder(islandUuid, getIslandSize(level));
             }
+            islandDistributor.reloadSnapshot(islandUuid);
+
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    public int getCurrentUpgradeLevel(UUID islandUuid, String upgradeId) {
-        return cache.getIslandUpgradeLevel(islandUuid, upgradeId);
+    public CompletableFuture<Integer> getCurrentUpgradeLevel(UUID islandUuid, String upgradeId) {
+        return CompletableFuture.supplyAsync(() -> dataCache.getIslandUpgradeLevel(islandUuid, upgradeId), plugin.getBukkitAsyncExecutor());
     }
 }

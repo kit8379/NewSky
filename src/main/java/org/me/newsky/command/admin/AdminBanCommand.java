@@ -3,20 +3,23 @@ package org.me.newsky.command.admin;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.CannotBanIslandPlayerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerAlreadyBannedException;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
  * /isadmin ban <owner> <player>
  */
-public class AdminBanCommand implements SubCommand, TabComplete {
+public class AdminBanCommand implements SubCommand, AsyncTabComplete {
     private final NewSky plugin;
     private final NewSkyAPI api;
     private final ConfigHandler config;
@@ -61,35 +64,30 @@ public class AdminBanCommand implements SubCommand, TabComplete {
         String islandOwnerName = args[1];
         String banPlayerName = args[2];
 
-        Optional<UUID> islandOwnerUuidOpt = api.getPlayerUuid(islandOwnerName);
-        if (islandOwnerUuidOpt.isEmpty()) {
-            sender.sendMessage(config.getUnknownPlayerMessage(islandOwnerName));
-            return true;
-        }
+        api.getPlayerUuid(islandOwnerName).thenCompose(islandOwnerUuidOpt -> {
+            if (islandOwnerUuidOpt.isEmpty()) {
+                sender.sendMessage(config.getUnknownPlayerMessage(islandOwnerName));
+                return CompletableFuture.completedFuture(null);
+            }
 
-        Optional<UUID> targetPlayerUuidOpt = api.getPlayerUuid(banPlayerName);
-        if (targetPlayerUuidOpt.isEmpty()) {
-            sender.sendMessage(config.getUnknownPlayerMessage(banPlayerName));
-            return true;
-        }
+            return api.getPlayerUuid(banPlayerName).thenCompose(targetPlayerUuidOpt -> {
+                if (targetPlayerUuidOpt.isEmpty()) {
+                    sender.sendMessage(config.getUnknownPlayerMessage(banPlayerName));
+                    return CompletableFuture.completedFuture(null);
+                }
 
-        UUID islandOwnerUuid = islandOwnerUuidOpt.get();
-        UUID targetPlayerUuid = targetPlayerUuidOpt.get();
-
-        UUID islandUuid;
-        try {
-            islandUuid = api.getIslandUuid(islandOwnerUuid);
-        } catch (IslandDoesNotExistException e) {
-            sender.sendMessage(config.getAdminNoIslandMessage(islandOwnerName));
-            return true;
-        }
-
-        api.banPlayer(islandUuid, targetPlayerUuid).thenRun(() -> {
-            sender.sendMessage(config.getAdminBanSuccessMessage(islandOwnerName, banPlayerName));
-            api.sendPlayerMessage(targetPlayerUuid, config.getWasBannedFromIslandMessage(islandOwnerName));
+                return api.getIslandUuid(islandOwnerUuidOpt.get()).thenCompose(islandUuid -> {
+                    return api.banPlayer(islandUuid, targetPlayerUuidOpt.get());
+                }).thenRun(() -> {
+                    sender.sendMessage(config.getAdminBanSuccessMessage(islandOwnerName, banPlayerName));
+                    api.sendPlayerMessage(targetPlayerUuidOpt.get(), config.getWasBannedFromIslandMessage(islandOwnerName));
+                });
+            });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
-            if (cause instanceof PlayerAlreadyBannedException) {
+            if (cause instanceof IslandDoesNotExistException) {
+                sender.sendMessage(config.getAdminNoIslandMessage(islandOwnerName));
+            } else if (cause instanceof PlayerAlreadyBannedException) {
                 sender.sendMessage(config.getPlayerAlreadyBannedMessage(banPlayerName));
             } else if (cause instanceof CannotBanIslandPlayerException) {
                 sender.sendMessage(config.getPlayerCannotBanIslandPlayerMessage());
@@ -104,21 +102,17 @@ public class AdminBanCommand implements SubCommand, TabComplete {
     }
 
     @Override
-    public List<String> tabComplete(CommandSender sender, String label, String[] args) {
+    public CompletableFuture<List<String>> tabCompleteAsync(CommandSender sender, String label, String[] args) {
         if (args.length == 2) {
             String prefix = args[1].toLowerCase(Locale.ROOT);
-            return api.getOnlinePlayersNames().stream()
-                    .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix))
-                    .collect(Collectors.toList());
+            return api.getOnlinePlayersNames().thenApply(names -> names.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())).exceptionally(ex -> Collections.emptyList());
         }
 
         if (args.length == 3) {
             String prefix = args[2].toLowerCase(Locale.ROOT);
-            return api.getOnlinePlayersNames().stream()
-                    .filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix))
-                    .collect(Collectors.toList());
+            return api.getOnlinePlayersNames().thenApply(names -> names.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())).exceptionally(ex -> Collections.emptyList());
         }
 
-        return Collections.emptyList();
+        return CompletableFuture.completedFuture(Collections.emptyList());
     }
 }

@@ -29,6 +29,7 @@ public final class LevelUpdateScheduler {
 
     public void start() {
         if (task != null) {
+            plugin.debug("LevelUpdateScheduler", "Scheduler is already running.");
             return;
         }
 
@@ -108,7 +109,6 @@ public final class LevelUpdateScheduler {
 
         CompletableFuture<Integer> fut;
         try {
-            // Must be main thread (LevelHandler enforces this).
             fut = levelHandler.calIslandLevel(e.islandUuid);
         } catch (Throwable t) {
             plugin.severe("LevelUpdateScheduler: Failed to start calculate for " + e.islandUuid, t);

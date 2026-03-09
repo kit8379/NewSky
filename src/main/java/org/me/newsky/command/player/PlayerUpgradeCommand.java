@@ -1,12 +1,11 @@
-// PlayerUpgradeCommand.java
 package org.me.newsky.command.player;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.UpgradeDoesNotExistException;
@@ -15,6 +14,7 @@ import org.me.newsky.exceptions.UpgradeMaxedException;
 import org.me.newsky.island.UpgradeHandler;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
  * /is upgrade <upgradeId>
  * /is upgrade <upgradeId> buy
  */
-public class PlayerUpgradeCommand implements SubCommand, TabComplete {
+public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
 
     private final NewSky plugin;
     private final NewSkyAPI api;
@@ -71,75 +71,62 @@ public class PlayerUpgradeCommand implements SubCommand, TabComplete {
         }
 
         UUID playerUuid = player.getUniqueId();
-
-        UUID islandUuid;
-        try {
-            islandUuid = api.getIslandUuid(playerUuid);
-        } catch (IslandDoesNotExistException e) {
-            player.sendMessage(config.getPlayerNoIslandMessage());
-            return true;
-        }
-
         String upgradeId = args[1].toLowerCase(Locale.ROOT);
 
-        // /is upgrade <upgradeId>
-        // Show specific upgrade details
-        if (args.length == 2) {
-            try {
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> {
+            // /is upgrade <upgradeId>
+            // Show specific upgrade details
+            if (args.length == 2) {
                 if (!api.getUpgradeIds().contains(upgradeId)) {
                     player.sendMessage(config.getPlayerUpgradeInvalidIdMessage(upgradeId));
-                    return true;
+                    return CompletableFuture.completedFuture(null);
                 }
 
-                int currentLevel = api.getCurrentUpgradeLevel(islandUuid, upgradeId);
+                return api.getCurrentUpgradeLevel(islandUuid, upgradeId).thenCompose(currentLevel -> {
+                    String currentValue = formatUpgradeValue(upgradeId, currentLevel);
 
-                String currentValue = formatUpgradeValue(upgradeId, currentLevel);
+                    int nextLevel = api.getNextUpgradeLevel(upgradeId, currentLevel);
+                    boolean maxed = nextLevel == -1;
 
-                int nextLevel = api.getNextUpgradeLevel(upgradeId, currentLevel);
-                boolean maxed = (nextLevel == -1);
+                    player.sendMessage(config.getPlayerUpgradeDetailsHeaderMessage(upgradeId));
+                    player.sendMessage(config.getPlayerUpgradeDetailsCurrentLevelMessage(currentLevel));
+                    player.sendMessage(config.getPlayerUpgradeDetailsCurrentValueMessage(currentValue));
 
-                player.sendMessage(config.getPlayerUpgradeDetailsHeaderMessage(upgradeId));
-                player.sendMessage(config.getPlayerUpgradeDetailsCurrentLevelMessage(currentLevel));
-                player.sendMessage(config.getPlayerUpgradeDetailsCurrentValueMessage(currentValue));
+                    if (maxed) {
+                        return CompletableFuture.completedFuture(null);
+                    }
 
-                if (maxed) {
-                    return true;
-                }
+                    String nextValue = formatUpgradeValue(upgradeId, nextLevel);
+                    int requireIslandLevel = api.getUpgradeRequireIslandLevel(upgradeId, nextLevel);
 
-                String nextValue = formatUpgradeValue(upgradeId, nextLevel);
+                    return api.getIslandLevel(islandUuid).thenAccept(islandLevel -> {
+                        player.sendMessage(config.getPlayerUpgradeDetailsNextLevelMessage(String.valueOf(nextLevel)));
+                        player.sendMessage(config.getPlayerUpgradeDetailsNextValueMessage(nextValue));
+                        player.sendMessage(config.getPlayerUpgradeDetailsRequireIslandLevelMessage(requireIslandLevel));
+                        player.sendMessage(config.getPlayerUpgradeDetailsYourIslandLevelMessage(islandLevel));
 
-                int requireIslandLevel = api.getUpgradeRequireIslandLevel(upgradeId, nextLevel);
-                int islandLevel = api.getIslandLevel(islandUuid);
-
-                player.sendMessage(config.getPlayerUpgradeDetailsNextLevelMessage(String.valueOf(nextLevel)));
-                player.sendMessage(config.getPlayerUpgradeDetailsNextValueMessage(nextValue));
-                player.sendMessage(config.getPlayerUpgradeDetailsRequireIslandLevelMessage(requireIslandLevel));
-                player.sendMessage(config.getPlayerUpgradeDetailsYourIslandLevelMessage(islandLevel));
-
-                if (islandLevel < requireIslandLevel) {
-                    player.sendMessage(config.getPlayerUpgradeDetailsStatusLockedMessage());
-                } else {
-                    player.sendMessage(config.getPlayerUpgradeDetailsStatusAvailableMessage());
-                }
-
-            } catch (Exception e) {
-                player.sendMessage(config.getUnknownExceptionMessage());
-                plugin.severe("Error showing specific upgrade details for player " + player.getName() + " upgradeId=" + upgradeId, e);
+                        if (islandLevel < requireIslandLevel) {
+                            player.sendMessage(config.getPlayerUpgradeDetailsStatusLockedMessage());
+                        } else {
+                            player.sendMessage(config.getPlayerUpgradeDetailsStatusAvailableMessage());
+                        }
+                    });
+                });
             }
 
-            return true;
-        }
+            // /is upgrade <upgradeId> buy
+            if (args.length != 3 || !args[2].equalsIgnoreCase("buy")) {
+                return CompletableFuture.completedFuture(null);
+            }
 
-        // /is upgrade <upgradeId> buy
-        if (!args[2].equalsIgnoreCase("buy")) {
-            return false;
-        }
-
-        api.upgradeToNextLevel(islandUuid, upgradeId).thenAccept(result -> {
-            player.sendMessage(config.getPlayerUpgradeBuySuccessMessage(result.getUpgradeId(), result.getOldLevel(), result.getNewLevel(), result.getRequireIslandLevel()));
+            return api.upgradeToNextLevel(islandUuid, upgradeId).thenAccept(result -> {
+                player.sendMessage(config.getPlayerUpgradeBuySuccessMessage(result.getUpgradeId(), result.getOldLevel(), result.getNewLevel(), result.getRequireIslandLevel()));
+            });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
-            if (cause instanceof UpgradeDoesNotExistException) {
+            if (cause instanceof IslandDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoIslandMessage());
+            } else if (cause instanceof UpgradeDoesNotExistException) {
                 player.sendMessage(config.getPlayerUpgradeInvalidIdMessage(upgradeId));
             } else if (cause instanceof UpgradeMaxedException) {
                 player.sendMessage(config.getPlayerUpgradeMaxedMessage(upgradeId));
@@ -147,7 +134,7 @@ public class PlayerUpgradeCommand implements SubCommand, TabComplete {
                 player.sendMessage(config.getPlayerUpgradeIslandLevelTooLowMessage(upgradeId));
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());
-                plugin.severe("Error buying upgrade for player " + player.getName() + " upgradeId=" + upgradeId, ex);
+                plugin.severe("Error handling upgrade command for player " + player.getName() + " upgradeId=" + upgradeId, ex);
             }
             return null;
         });
@@ -195,9 +182,13 @@ public class PlayerUpgradeCommand implements SubCommand, TabComplete {
         for (Map.Entry<String, Double> e : rates.entrySet()) {
             String key = e.getKey();
             Double val = e.getValue();
-            if (key == null || val == null) continue;
+            if (key == null || val == null) {
+                continue;
+            }
 
-            if (!first) sb.append(", ");
+            if (!first) {
+                sb.append(", ");
+            }
             first = false;
             sb.append(key).append(": ").append(val);
         }
@@ -206,33 +197,28 @@ public class PlayerUpgradeCommand implements SubCommand, TabComplete {
     }
 
     @Override
-    public List<String> tabComplete(CommandSender sender, String label, String[] args) {
+    public CompletableFuture<List<String>> tabCompleteAsync(CommandSender sender, String label, String[] args) {
         if (!(sender instanceof Player)) {
-            return Collections.emptyList();
+            return CompletableFuture.completedFuture(Collections.emptyList());
         }
 
         // /is upgrade <upgradeId>
         if (args.length == 2) {
-            Set<String> ids;
-            try {
-                ids = api.getUpgradeIds();
-            } catch (Exception e) {
-                return Collections.emptyList();
-            }
-
+            Set<String> ids = api.getUpgradeIds();
             String prefix = args[1].toLowerCase(Locale.ROOT);
-            return ids.stream().filter(id -> id.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
+
+            return CompletableFuture.completedFuture(ids.stream().filter(id -> id.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()));
         }
 
         // /is upgrade <upgradeId> buy
         if (args.length == 3) {
             String prefix = args[2].toLowerCase(Locale.ROOT);
             if ("buy".startsWith(prefix)) {
-                return Collections.singletonList("buy");
+                return CompletableFuture.completedFuture(Collections.singletonList("buy"));
             }
-            return Collections.emptyList();
+            return CompletableFuture.completedFuture(Collections.emptyList());
         }
 
-        return Collections.emptyList();
+        return CompletableFuture.completedFuture(Collections.emptyList());
     }
 }

@@ -3,7 +3,6 @@ package org.me.newsky.command;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
-import org.bukkit.command.TabExecutor;
 import org.jetbrains.annotations.NotNull;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
@@ -11,17 +10,19 @@ import org.me.newsky.command.admin.*;
 import org.me.newsky.config.ConfigHandler;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * /isadmin
  */
-public class IslandAdminCommand implements CommandExecutor, TabExecutor {
+public class IslandAdminCommand implements CommandExecutor, AsyncCommandTabRouter {
     private final ConfigHandler config;
     private final Map<String, SubCommand> subCommandMap = new HashMap<>();
     private final Set<SubCommand> subCommands = new HashSet<>();
 
     public IslandAdminCommand(NewSky plugin, NewSkyAPI api, ConfigHandler config) {
         this.config = config;
+
         subCommands.add(new AdminReloadCommand(plugin, config));
         subCommands.add(new AdminCreateIslandCommand(plugin, api, config));
         subCommands.add(new AdminDeleteIslandCommand(plugin, api, config));
@@ -57,18 +58,71 @@ public class IslandAdminCommand implements CommandExecutor, TabExecutor {
         }
     }
 
+    private List<String> getRootSuggestions(CommandSender sender, String arg0) {
+        String prefix = arg0.toLowerCase(Locale.ROOT);
+        List<String> suggestions = new ArrayList<>();
+
+        for (SubCommand cmd : subCommands) {
+            String perm = cmd.getPermission();
+            if (perm != null && !perm.isEmpty() && !sender.hasPermission(perm)) {
+                continue;
+            }
+
+            String name = cmd.getName();
+            if (name.toLowerCase(Locale.ROOT).startsWith(prefix)) {
+                suggestions.add(name);
+            }
+
+            for (String alias : cmd.getAliases()) {
+                if (alias.toLowerCase(Locale.ROOT).startsWith(prefix)) {
+                    suggestions.add(alias);
+                }
+            }
+        }
+
+        return suggestions;
+    }
+
+    @Override
+    public CompletableFuture<List<String>> completeAsync(CommandSender sender, String label, String[] args) {
+        if (args.length == 0) {
+            return CompletableFuture.completedFuture(Collections.emptyList());
+        }
+
+        if (args.length == 1) {
+            return CompletableFuture.completedFuture(getRootSuggestions(sender, args[0]));
+        }
+
+        SubCommand target = subCommandMap.get(args[0].toLowerCase(Locale.ROOT));
+        if (target == null) {
+            return CompletableFuture.completedFuture(Collections.emptyList());
+        }
+
+        String perm = target.getPermission();
+        if (perm != null && !perm.isEmpty() && !sender.hasPermission(perm)) {
+            return CompletableFuture.completedFuture(Collections.emptyList());
+        }
+
+        if (target instanceof AsyncTabComplete asyncTabComplete) {
+            return asyncTabComplete.tabCompleteAsync(sender, label, args).thenApply(list -> list == null ? Collections.<String>emptyList() : list).exceptionally(ex -> Collections.emptyList());
+        }
+
+        return CompletableFuture.completedFuture(Collections.emptyList());
+    }
+
     @Override
     public boolean onCommand(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String @NotNull [] args) {
-        // Check permission for the main command
         if (!sender.hasPermission("newsky.island.admin")) {
             sender.sendMessage(config.getNoPermissionCommandMessage());
             return true;
         }
 
-        // If no arguments are provided, show help
         if (args.length == 0) {
             SubCommand helpCmd = subCommandMap.get("help");
-            return helpCmd.execute(sender, new String[]{"help"});
+            if (helpCmd != null) {
+                return helpCmd.execute(sender, new String[]{"help"});
+            }
+            return true;
         }
 
         String subName = args[0].toLowerCase(Locale.ROOT);
@@ -89,32 +143,5 @@ public class IslandAdminCommand implements CommandExecutor, TabExecutor {
             sender.sendMessage(config.getAdminCommandUsageMessage(target.getName(), target.getSyntax()));
         }
         return true;
-    }
-
-    @Override
-    public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, String[] args) {
-        if (args.length == 1) {
-            List<String> suggestions = new ArrayList<>();
-            for (SubCommand cmd : subCommands) {
-                String perm = cmd.getPermission();
-                if (perm == null || perm.isEmpty() || sender.hasPermission(perm)) {
-                    if (cmd.getName().startsWith(args[0].toLowerCase(Locale.ROOT))) {
-                        suggestions.add(cmd.getName());
-                    }
-                    for (String alias : cmd.getAliases()) {
-                        if (alias.startsWith(args[0].toLowerCase(Locale.ROOT))) {
-                            suggestions.add(alias);
-                        }
-                    }
-                }
-            }
-            return suggestions;
-        }
-
-        SubCommand target = subCommandMap.get(args[0].toLowerCase(Locale.ROOT));
-        if (target instanceof TabComplete) {
-            return ((TabComplete) target).tabComplete(sender, label, args);
-        }
-        return Collections.emptyList();
     }
 }

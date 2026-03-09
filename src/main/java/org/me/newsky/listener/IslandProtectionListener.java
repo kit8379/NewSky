@@ -20,20 +20,25 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.InventoryHolder;
 import org.me.newsky.NewSky;
+import snapshot.IslandLoadedSnapshot;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.UpgradeHandler;
+import org.me.newsky.model.Island;
 import org.me.newsky.util.IslandUtils;
 
+import java.util.Map;
 import java.util.UUID;
 
 public class IslandProtectionListener implements Listener {
 
     private final NewSky plugin;
     private final ConfigHandler config;
+    private final IslandLoadedSnapshot islandLoadedSnapshot;
 
-    public IslandProtectionListener(NewSky plugin, ConfigHandler config) {
+    public IslandProtectionListener(NewSky plugin, ConfigHandler config, IslandLoadedSnapshot islandLoadedSnapshot) {
         this.plugin = plugin;
         this.config = config;
+        this.islandLoadedSnapshot = islandLoadedSnapshot;
     }
 
     private UUID getIslandUuidIfIslandWorld(Location location) {
@@ -55,7 +60,10 @@ public class IslandProtectionListener implements Listener {
     }
 
     private boolean isInsideIslandBoundary(UUID islandUuid, Location location) {
-        int islandSizeLevel = plugin.getApi().getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_ISLAND_SIZE);
+        Island island = islandLoadedSnapshot.get(islandUuid);
+
+        Map<String, Integer> upgrades = island.getUpgrades();
+        int islandSizeLevel = upgrades.getOrDefault(UpgradeHandler.UPGRADE_ISLAND_SIZE, 1);
         int islandSize = plugin.getApi().getIslandSize(islandSizeLevel);
 
         int x = location.getBlockX();
@@ -83,8 +91,10 @@ public class IslandProtectionListener implements Listener {
             return true;
         }
 
+        Island island = islandLoadedSnapshot.get(islandUuid);
+
         UUID playerUuid = player.getUniqueId();
-        return plugin.getApi().getIslandPlayers(islandUuid).contains(playerUuid) || plugin.getApi().isPlayerCooped(islandUuid, playerUuid);
+        return island.getOwner().equals(playerUuid) || island.getMembers().contains(playerUuid) || island.getCoops().contains(playerUuid);
     }
 
     private boolean isAllowedByBoundary(Location location) {
@@ -224,7 +234,6 @@ public class IslandProtectionListener implements Listener {
             return;
         }
 
-        // You intentionally allow damaging players and monsters
         if (event.getEntity() instanceof Player || event.getEntity() instanceof Monster) {
             return;
         }

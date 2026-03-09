@@ -1,4 +1,3 @@
-// PlayerSetWarpCommand.java
 package org.me.newsky.command.player;
 
 import org.bukkit.Location;
@@ -6,21 +5,25 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
 import org.me.newsky.exceptions.WarpNameNotLegalException;
 import org.me.newsky.island.UpgradeHandler;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
  * /is setwarp [warpName]
  */
-public class PlayerSetWarpCommand implements SubCommand, TabComplete {
+public class PlayerSetWarpCommand implements SubCommand, AsyncTabComplete {
     private final NewSky plugin;
     private final NewSkyAPI api;
     private final ConfigHandler config;
@@ -74,25 +77,20 @@ public class PlayerSetWarpCommand implements SubCommand, TabComplete {
         float yaw = loc.getYaw();
         float pitch = loc.getPitch();
 
-        UUID islandUuid;
-        try {
-            islandUuid = api.getIslandUuid(playerUuid);
-        } catch (IslandDoesNotExistException ex) {
-            player.sendMessage(config.getPlayerNoIslandMessage());
-            return true;
-        }
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getWarpNames(playerUuid).thenCompose(existingWarps -> {
+            boolean overwriting = existingWarps.stream().anyMatch(n -> n.equalsIgnoreCase(warpName));
 
-        Set<String> existingWarps;
-        existingWarps = api.getWarpNames(playerUuid);
-        boolean overwriting = existingWarps.stream().anyMatch(n -> n != null && n.equalsIgnoreCase(warpName));
-        int warpLimitLevel = api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_WARP_LIMIT);
-        int warpLimit = api.getWarpLimit(warpLimitLevel);
-        if (!overwriting && existingWarps.size() >= warpLimit) {
-            player.sendMessage(config.getPlayerWarpLimitReachedMessage(warpLimit));
-            return true;
-        }
+            return api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_WARP_LIMIT).thenCompose(warpLimitLevel -> {
+                int warpLimit = api.getWarpLimit(warpLimitLevel);
 
-        api.setWarp(playerUuid, warpName, worldName, x, y, z, yaw, pitch).thenRun(() -> player.sendMessage(config.getPlayerSetWarpSuccessMessage(warpName))).exceptionally(ex -> {
+                if (!overwriting && existingWarps.size() >= warpLimit) {
+                    player.sendMessage(config.getPlayerWarpLimitReachedMessage(warpLimit));
+                    return CompletableFuture.completedFuture(null);
+                }
+
+                return api.setWarp(playerUuid, warpName, worldName, x, y, z, yaw, pitch).thenRun(() -> player.sendMessage(config.getPlayerSetWarpSuccessMessage(warpName)));
+            });
+        })).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
@@ -112,16 +110,13 @@ public class PlayerSetWarpCommand implements SubCommand, TabComplete {
     }
 
     @Override
-    public List<String> tabComplete(CommandSender sender, String label, String[] args) {
-        if (args.length == 2 && sender instanceof Player player) {
-            try {
-                Set<String> warps = api.getWarpNames(player.getUniqueId());
-                String prefix = args[1].toLowerCase(Locale.ROOT);
-                return warps.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
-            } catch (Exception e) {
-                return Collections.emptyList();
-            }
+    public CompletableFuture<List<String>> tabCompleteAsync(CommandSender sender, String label, String[] args) {
+        if (args.length != 2 || !(sender instanceof Player player)) {
+            return CompletableFuture.completedFuture(Collections.emptyList());
         }
-        return Collections.emptyList();
+
+        String prefix = args[1].toLowerCase(Locale.ROOT);
+
+        return api.getWarpNames(player.getUniqueId()).thenApply(warps -> warps.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())).exceptionally(ex -> Collections.emptyList());
     }
 }

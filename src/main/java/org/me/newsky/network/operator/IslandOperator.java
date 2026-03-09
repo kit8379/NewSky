@@ -5,29 +5,31 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
-import org.me.newsky.redis.RedisCache;
+import org.me.newsky.cache.RuntimeCache;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.util.LocationUtils;
 import org.me.newsky.world.WorldHandler;
+import snapshot.IslandLoadedSnapshot;
 
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public class IslandOperator {
 
     private final NewSky plugin;
-    private final RedisCache redisCache;
+    private final RuntimeCache runtimeCache;
     private final WorldHandler worldHandler;
     private final TeleportHandler teleportHandler;
+    private final IslandLoadedSnapshot islandLoadedSnapshot;
     private final String serverID;
 
-    public IslandOperator(NewSky plugin, RedisCache redisCache, WorldHandler worldHandler, TeleportHandler teleportHandler, String serverID) {
+    public IslandOperator(NewSky plugin, RuntimeCache runtimeCache, WorldHandler worldHandler, TeleportHandler teleportHandler, IslandLoadedSnapshot islandLoadedSnapshot, String serverID) {
         this.plugin = plugin;
-        this.redisCache = redisCache;
+        this.runtimeCache = runtimeCache;
         this.worldHandler = worldHandler;
         this.teleportHandler = teleportHandler;
+        this.islandLoadedSnapshot = islandLoadedSnapshot;
         this.serverID = serverID;
     }
 
@@ -35,7 +37,7 @@ public class IslandOperator {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         return worldHandler.createWorld(islandName).thenRun(() -> {
-            redisCache.updateIslandLoadedServer(islandUuid, serverID);
+            runtimeCache.updateIslandLoadedServer(islandUuid, serverID);
             plugin.debug("IslandOperator", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
         });
     }
@@ -44,7 +46,7 @@ public class IslandOperator {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         return worldHandler.deleteWorld(islandName).thenRun(() -> {
-            redisCache.removeIslandLoadedServer(islandUuid);
+            runtimeCache.removeIslandLoadedServer(islandUuid);
             plugin.debug("IslandOperator", "Removed island loaded server for UUID: " + islandUuid);
         });
     }
@@ -53,7 +55,7 @@ public class IslandOperator {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         return worldHandler.loadWorld(islandName).thenRun(() -> {
-            redisCache.updateIslandLoadedServer(islandUuid, serverID);
+            runtimeCache.updateIslandLoadedServer(islandUuid, serverID);
             plugin.debug("IslandOperator", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
         });
     }
@@ -62,7 +64,7 @@ public class IslandOperator {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         return worldHandler.unloadWorld(islandName).thenRun(() -> {
-            redisCache.removeIslandLoadedServer(islandUuid);
+            runtimeCache.removeIslandLoadedServer(islandUuid);
             plugin.debug("IslandOperator", "Removed island loaded server for UUID: " + islandUuid);
         });
     }
@@ -84,19 +86,20 @@ public class IslandOperator {
     public CompletableFuture<Void> lockIsland(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        return CompletableFuture.runAsync(() -> {
-            World world = Bukkit.getWorld(islandName);
-            if (world != null) {
-                Set<UUID> islandPlayers = plugin.getApi().getIslandPlayers(islandUuid);
-                for (Player player : world.getPlayers()) {
-                    UUID playerUuid = player.getUniqueId();
-                    if (!islandPlayers.contains(playerUuid)) {
-                        player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
-                        plugin.getApi().lobby(playerUuid);
+        return plugin.getApi().getIslandPlayers(islandUuid).thenCompose(islandPlayers -> {
+            return CompletableFuture.runAsync(() -> {
+                World world = Bukkit.getWorld(islandName);
+                if (world != null) {
+                    for (Player player : world.getPlayers()) {
+                        UUID playerUuid = player.getUniqueId();
+                        if (!islandPlayers.contains(playerUuid)) {
+                            player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
+                            plugin.getApi().lobby(playerUuid);
+                        }
                     }
                 }
-            }
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("IslandOperator", "Locked island " + islandName + " and removed all foreign players."), plugin.getBukkitAsyncExecutor());
+            }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
+        }).thenRunAsync(() -> plugin.debug("IslandOperator", "Locked island " + islandName + " and removed all foreign players."), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
@@ -124,5 +127,9 @@ public class IslandOperator {
                 plugin.debug("IslandOperator", "Updated island border for " + islandName + " to size: " + size);
             }
         }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("IslandOperator", "Updated island border for island " + islandName + " to new size: " + size), plugin.getBukkitAsyncExecutor());
+    }
+
+    public CompletableFuture<Void> reloadSnapshot(UUID islandUuid) {
+        return islandLoadedSnapshot.reload(islandUuid);
     }
 }

@@ -57,20 +57,17 @@ public class PlayerLevelCommand implements SubCommand {
         }
 
         UUID playerUuid = player.getUniqueId();
-        UUID islandUuid;
 
-        try {
-            islandUuid = api.getIslandUuid(playerUuid);
-        } catch (IslandDoesNotExistException ex) {
-            player.sendMessage(config.getPlayerNoIslandMessage());
-            return true;
-        }
-
-        api.calIslandLevel(islandUuid).thenAccept(level -> {
+        api.getIslandUuid(playerUuid).thenCompose(api::calIslandLevel).thenAccept(level -> {
             player.sendMessage(config.getIslandLevelMessage(level));
         }).exceptionally(ex -> {
-            plugin.severe("Error calculating island level for player " + player.getName(), ex);
-            player.sendMessage(config.getUnknownExceptionMessage());
+            Throwable cause = ex.getCause();
+            if (cause instanceof IslandDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoIslandMessage());
+            } else {
+                plugin.severe("Error calculating island level for player " + player.getName(), ex);
+                player.sendMessage(config.getUnknownExceptionMessage());
+            }
             return null;
         });
 

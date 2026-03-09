@@ -4,20 +4,24 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.HomeDoesNotExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.NoActiveServerException;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
  * /isadmin home <player> [home] [target]
  */
-public class AdminHomeCommand implements SubCommand, TabComplete {
+public class AdminHomeCommand implements SubCommand, AsyncTabComplete {
     private final NewSky plugin;
     private final NewSkyAPI api;
     private final ConfigHandler config;
@@ -60,34 +64,40 @@ public class AdminHomeCommand implements SubCommand, TabComplete {
         }
 
         String homePlayerName = args[1];
-        String homeName = (args.length >= 3) ? args[2] : "default";
-        String teleportPlayerName = (args.length >= 4) ? args[3] : null;
+        String homeName = args.length >= 3 ? args[2] : "default";
+        String teleportPlayerName = args.length >= 4 ? args[3] : null;
 
-        Optional<UUID> homePlayerUuidOpt = api.getPlayerUuid(homePlayerName);
-        if (homePlayerUuidOpt.isEmpty()) {
-            sender.sendMessage(config.getUnknownPlayerMessage(homePlayerName));
+        if (teleportPlayerName == null && !(sender instanceof Player)) {
+            sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
             return true;
         }
-        UUID homePlayerUuid = homePlayerUuidOpt.get();
 
-        UUID teleportPlayerUuid;
-        if (teleportPlayerName == null) {
-            if (!(sender instanceof Player player)) {
-                sender.sendMessage(config.getOnlyPlayerCanRunCommandMessage());
-                return true;
+        api.getPlayerUuid(homePlayerName).thenCompose(homePlayerUuidOpt -> {
+            if (homePlayerUuidOpt.isEmpty()) {
+                sender.sendMessage(config.getUnknownPlayerMessage(homePlayerName));
+                return CompletableFuture.completedFuture(null);
             }
-            teleportPlayerUuid = player.getUniqueId();
-        } else {
-            Optional<UUID> teleportPlayerUuidOpt = api.getPlayerUuid(teleportPlayerName);
-            if (teleportPlayerUuidOpt.isEmpty()) {
-                sender.sendMessage(config.getUnknownPlayerMessage(teleportPlayerName));
-                return true;
-            }
-            teleportPlayerUuid = teleportPlayerUuidOpt.get();
-        }
 
-        api.home(homePlayerUuid, homeName, teleportPlayerUuid).thenRun(() -> {
-            api.sendPlayerMessage(teleportPlayerUuid, config.getAdminHomeSuccessMessage(homePlayerName, homeName));
+            CompletableFuture<UUID> teleportPlayerUuidFuture;
+            if (teleportPlayerName == null) {
+                teleportPlayerUuidFuture = CompletableFuture.completedFuture(((Player) sender).getUniqueId());
+            } else {
+                teleportPlayerUuidFuture = api.getPlayerUuid(teleportPlayerName).thenCompose(teleportPlayerUuidOpt -> {
+                    if (teleportPlayerUuidOpt.isEmpty()) {
+                        sender.sendMessage(config.getUnknownPlayerMessage(teleportPlayerName));
+                        return CompletableFuture.completedFuture(null);
+                    }
+                    return CompletableFuture.completedFuture(teleportPlayerUuidOpt.get());
+                });
+            }
+
+            return teleportPlayerUuidFuture.thenCompose(teleportPlayerUuid -> {
+                if (teleportPlayerUuid == null) {
+                    return CompletableFuture.completedFuture(null);
+                }
+
+                return api.home(homePlayerUuidOpt.get(), homeName, teleportPlayerUuid).thenRun(() -> api.sendPlayerMessage(teleportPlayerUuid, config.getAdminHomeSuccessMessage(homePlayerName, homeName)));
+            });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
@@ -107,26 +117,28 @@ public class AdminHomeCommand implements SubCommand, TabComplete {
     }
 
     @Override
-    public List<String> tabComplete(CommandSender sender, String label, String[] args) {
+    public CompletableFuture<List<String>> tabCompleteAsync(CommandSender sender, String label, String[] args) {
         if (args.length == 2) {
             String prefix = args[1].toLowerCase(Locale.ROOT);
-            return api.getOnlinePlayersNames().stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
+            return api.getOnlinePlayersNames().thenApply(names -> names.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())).exceptionally(ex -> Collections.emptyList());
         }
 
         if (args.length == 3) {
-            Optional<UUID> uuidOpt = api.getPlayerUuid(args[1]);
-            if (uuidOpt.isPresent()) {
-                Set<String> homes = api.getHomeNames(uuidOpt.get());
-                String prefix = args[2].toLowerCase(Locale.ROOT);
-                return homes.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
-            }
+            String prefix = args[2].toLowerCase(Locale.ROOT);
+            return api.getPlayerUuid(args[1]).thenCompose(uuidOpt -> {
+                if (uuidOpt.isEmpty()) {
+                    return CompletableFuture.completedFuture(Collections.<String>emptyList());
+                }
+
+                return api.getHomeNames(uuidOpt.get()).thenApply(homes -> homes.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()));
+            }).exceptionally(ex -> Collections.emptyList());
         }
 
         if (args.length == 4) {
             String prefix = args[3].toLowerCase(Locale.ROOT);
-            return api.getOnlinePlayersNames().stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
+            return api.getOnlinePlayersNames().thenApply(names -> names.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())).exceptionally(ex -> Collections.emptyList());
         }
 
-        return Collections.emptyList();
+        return CompletableFuture.completedFuture(Collections.emptyList());
     }
 }

@@ -5,10 +5,11 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.me.newsky.api.NewSkyAPI;
-import org.me.newsky.broker.CacheBroker;
 import org.me.newsky.broker.IslandBroker;
 import org.me.newsky.broker.PlayerMessageBroker;
-import org.me.newsky.cache.Cache;
+import org.me.newsky.cache.DataCache;
+import org.me.newsky.cache.RuntimeCache;
+import org.me.newsky.command.AsyncTabCompleteListener;
 import org.me.newsky.command.IslandAdminCommand;
 import org.me.newsky.command.IslandPlayerCommand;
 import org.me.newsky.config.ConfigHandler;
@@ -21,7 +22,6 @@ import org.me.newsky.network.distributor.IslandDistributor;
 import org.me.newsky.network.lock.IslandOpLock;
 import org.me.newsky.network.operator.IslandOperator;
 import org.me.newsky.placeholder.NewSkyPlaceholderExpansion;
-import org.me.newsky.redis.RedisCache;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.routing.MSPTServerSelector;
 import org.me.newsky.routing.RandomServerSelector;
@@ -35,12 +35,14 @@ import org.me.newsky.thread.BukkitAsyncExecutor;
 import org.me.newsky.uuid.UuidHandler;
 import org.me.newsky.world.WorldActivityHandler;
 import org.me.newsky.world.WorldHandler;
+import snapshot.IslandLoadedSnapshot;
 
 import java.lang.reflect.Constructor;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
 public class NewSky extends JavaPlugin {
@@ -49,13 +51,12 @@ public class NewSky extends JavaPlugin {
     private WorldHandler worldHandler;
     private RedisHandler redisHandler;
     private DatabaseHandler databaseHandler;
-    private RedisCache redisCache;
+    private RuntimeCache runtimeCache;
     private TeleportHandler teleportHandler;
     private HeartBeatHandler heartBeatHandler;
     private IslandUnloadScheduler islandUnloadScheduler;
     private LevelUpdateScheduler levelupdateScheduler;
     private MSPTUpdateScheduler msptUpdateScheduler;
-    private CacheBroker cacheBroker;
     private IslandBroker islandBroker;
     private PlayerMessageBroker playerMessageBroker;
     private LevelHandler levelHandler;
@@ -104,31 +105,35 @@ public class NewSky extends JavaPlugin {
             databaseHandler = new DatabaseHandler(this, config);
             info("Database connection success!");
 
-            info("Starting cache handler");
-            Cache cache = new Cache(config, databaseHandler);
-            info("Cache handler loaded");
+            info("Starting dataCache handler");
+            DataCache dataCache = new DataCache(this, redisHandler, databaseHandler);
+            info("DataCache handler loaded");
 
-            info("Starting Redis cache");
-            redisCache = new RedisCache(this, redisHandler);
-            info("Redis cache loaded");
+            info("Loading island loaded dataCache");
+            IslandLoadedSnapshot islandLoadedSnapshot = new IslandLoadedSnapshot(this, dataCache);
+            info("Island loaded snapshot loaded");
+
+            info("Starting Redis dataCache");
+            runtimeCache = new RuntimeCache(this, redisHandler);
+            info("Redis dataCache loaded");
 
             info("Starting teleport handler");
             teleportHandler = new TeleportHandler();
             info("Teleport handler loaded");
 
             info("Start connecting to Heart Beat system now...");
-            heartBeatHandler = new HeartBeatHandler(this, config, redisCache, serverID);
+            heartBeatHandler = new HeartBeatHandler(this, config, runtimeCache, serverID);
             info("Heart Beat started!");
 
             info("Starting server selector");
             ServerSelector serverSelector;
             switch (config.getServerSelector().toLowerCase(Locale.ROOT)) {
                 case "round-robin":
-                    serverSelector = new RoundRobinServerSelector(redisCache);
+                    serverSelector = new RoundRobinServerSelector(runtimeCache);
                     info("Using Round Robin server selector");
                     break;
                 case "mspt":
-                    serverSelector = new MSPTServerSelector(redisCache);
+                    serverSelector = new MSPTServerSelector(runtimeCache);
                     info("Using MSPT server selector");
                     break;
                 case "random":
@@ -140,18 +145,16 @@ public class NewSky extends JavaPlugin {
 
 
             info("Starting handlers for island remote requests");
-            IslandOpLock islandOpLock = new IslandOpLock(this, redisCache, serverID);
-            IslandOperator islandOperator = new IslandOperator(this, redisCache, worldHandler, teleportHandler, serverID);
-            IslandDistributor islandDistributor = new IslandDistributor(this, redisCache, islandOperator, serverSelector, islandOpLock, serverID);
+            IslandOpLock islandOpLock = new IslandOpLock(this, runtimeCache, serverID);
+            IslandOperator islandOperator = new IslandOperator(this, runtimeCache, worldHandler, teleportHandler, islandLoadedSnapshot, serverID);
+            IslandDistributor islandDistributor = new IslandDistributor(this, runtimeCache, islandOperator, serverSelector, islandOpLock, serverID);
             info("All handlers for remote requests loaded");
 
             info("Starting player message handler");
-            PlayerMessageHandler playerMessageHandler = new PlayerMessageHandler(this, redisCache);
+            PlayerMessageHandler playerMessageHandler = new PlayerMessageHandler(this, runtimeCache);
             info("Player message handler loaded");
 
             info("Starting all brokers for the plugin");
-            cacheBroker = new CacheBroker(this, redisHandler, cache, serverID, config.getRedisCacheChannel());
-            cache.setCacheBroker(cacheBroker);
             islandBroker = new IslandBroker(this, redisHandler, islandOperator, serverID, config.getRedisIslandChannel());
             islandDistributor.setIslandBroker(islandBroker);
             playerMessageBroker = new PlayerMessageBroker(this, redisHandler, serverID, config.getRedisPlayerMessageChannel());
@@ -159,17 +162,17 @@ public class NewSky extends JavaPlugin {
             info("All brokers loaded");
 
             info("Starting main handlers for the plugin");
-            IslandHandler islandHandler = new IslandHandler(this, cache, islandDistributor);
-            PlayerHandler playerHandler = new PlayerHandler(this, cache, redisCache, islandDistributor);
-            HomeHandler homeHandler = new HomeHandler(this, cache, islandDistributor);
-            WarpHandler warpHandler = new WarpHandler(this, cache, islandDistributor);
-            levelHandler = new LevelHandler(this, config, cache);
-            BanHandler banHandler = new BanHandler(this, cache, islandDistributor);
-            CoopHandler coopHandler = new CoopHandler(this, cache);
-            UpgradeHandler upgradeHandler = new UpgradeHandler(this, config, cache, islandDistributor);
+            IslandHandler islandHandler = new IslandHandler(this, config, dataCache, islandDistributor);
+            PlayerHandler playerHandler = new PlayerHandler(this, config, dataCache, runtimeCache, islandDistributor);
+            HomeHandler homeHandler = new HomeHandler(this, dataCache, islandDistributor);
+            WarpHandler warpHandler = new WarpHandler(this, dataCache, islandDistributor);
+            levelHandler = new LevelHandler(this, config, dataCache);
+            BanHandler banHandler = new BanHandler(this, dataCache, islandDistributor);
+            CoopHandler coopHandler = new CoopHandler(this, dataCache);
+            UpgradeHandler upgradeHandler = new UpgradeHandler(this, config, dataCache, islandDistributor);
             cobblestoneGeneratorHandler = new CobblestoneGeneratorHandler(this, upgradeHandler);
             LobbyHandler lobbyHandler = new LobbyHandler(this, config, islandDistributor);
-            UuidHandler uuidHandler = new UuidHandler(this, cache);
+            UuidHandler uuidHandler = new UuidHandler(this, dataCache);
             WorldActivityHandler worldActivityHandler = new WorldActivityHandler(this);
             info("All main handlers loaded");
 
@@ -178,11 +181,11 @@ public class NewSky extends JavaPlugin {
             info("Plugin messaging loaded");
 
             info("Starting all schedulers for the plugin");
-            islandUnloadScheduler = new IslandUnloadScheduler(this, config, redisCache, worldHandler, worldActivityHandler, islandOpLock);
+            islandUnloadScheduler = new IslandUnloadScheduler(this, config, runtimeCache, worldHandler, worldActivityHandler, islandOpLock);
             levelupdateScheduler = new LevelUpdateScheduler(this, levelHandler);
             if (serverSelector instanceof MSPTServerSelector) {
                 info("MSPT server selector detected, creating MSPT update scheduler");
-                msptUpdateScheduler = new MSPTUpdateScheduler(this, config, redisCache, serverID);
+                msptUpdateScheduler = new MSPTUpdateScheduler(this, config, runtimeCache, serverID);
             } else {
                 msptUpdateScheduler = null;
             }
@@ -193,31 +196,39 @@ public class NewSky extends JavaPlugin {
             info("API loaded");
 
             info("Starting listeners");
-            getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, redisCache, serverID), this);
+            getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, runtimeCache, serverID), this);
             getServer().getPluginManager().registerEvents(new WorldInitListener(this), this);
             getServer().getPluginManager().registerEvents(new WorldLoadListener(this, config, levelupdateScheduler), this);
             getServer().getPluginManager().registerEvents(new WorldUnloadListener(this, levelupdateScheduler), this);
             getServer().getPluginManager().registerEvents(new WorldActivityListener(this, worldActivityHandler), this);
             getServer().getPluginManager().registerEvents(new TeleportRequestListener(this, teleportHandler), this);
-            getServer().getPluginManager().registerEvents(new IslandProtectionListener(this, config), this);
-            getServer().getPluginManager().registerEvents(new IslandAccessListener(this, config), this);
-            getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config), this);
+            getServer().getPluginManager().registerEvents(new IslandProtectionListener(this, config, islandLoadedSnapshot), this);
+            getServer().getPluginManager().registerEvents(new IslandAccessListener(this, config, islandLoadedSnapshot), this);
+            getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config, islandLoadedSnapshot), this);
             getServer().getPluginManager().registerEvents(new UuidUpdateListener(this), this);
-            getServer().getPluginManager().registerEvents(new CobblestoneGeneratorListener(this, cobblestoneGeneratorHandler), this);
+            getServer().getPluginManager().registerEvents(new CobblestoneGeneratorListener(this, islandLoadedSnapshot, cobblestoneGeneratorHandler), this);
             info("All listeners loaded");
 
             info("Registering commands");
-            PluginCommand islandCommand = createCommand("island");
-            islandCommand.setAliases(Collections.singletonList("is"));
-            islandCommand.setExecutor(new IslandPlayerCommand(this, api, config));
-            islandCommand.setTabCompleter(new IslandPlayerCommand(this, api, config));
-            Bukkit.getCommandMap().register("island", islandCommand);
+            PluginCommand playerCommand = createCommand("island");
+            playerCommand.setAliases(Collections.singletonList("is"));
+            IslandPlayerCommand islandPlayerCommand = new IslandPlayerCommand(this, api, config);
+            playerCommand.setExecutor(islandPlayerCommand);
+            Bukkit.getCommandMap().register("island", playerCommand);
 
             PluginCommand adminCommand = createCommand("islandadmin");
             adminCommand.setAliases(Collections.singletonList("isadmin"));
-            adminCommand.setExecutor(new IslandAdminCommand(this, api, config));
-            adminCommand.setTabCompleter(new IslandAdminCommand(this, api, config));
+            IslandAdminCommand islandAdminCommand = new IslandAdminCommand(this, api, config);
+            adminCommand.setExecutor(islandAdminCommand);
             Bukkit.getCommandMap().register("islandadmin", adminCommand);
+
+            AsyncTabCompleteListener asyncTabCompleteListener = new AsyncTabCompleteListener(this);
+            asyncTabCompleteListener.registerRoot("island", islandPlayerCommand);
+            asyncTabCompleteListener.registerRoot("is", islandPlayerCommand);
+            asyncTabCompleteListener.registerRoot("islandadmin", islandAdminCommand);
+            asyncTabCompleteListener.registerRoot("isadmin", islandAdminCommand);
+
+            getServer().getPluginManager().registerEvents(asyncTabCompleteListener, this);
             info("All commands registered");
 
             info("Registering placeholder");
@@ -230,10 +241,8 @@ public class NewSky extends JavaPlugin {
             }
 
             databaseHandler.createTables();
-            cacheBroker.subscribe();
             islandBroker.subscribe();
             playerMessageBroker.subscribe();
-            cache.cacheAllData();
             heartBeatHandler.start();
             islandUnloadScheduler.start();
             levelupdateScheduler.start();
@@ -277,7 +286,6 @@ public class NewSky extends JavaPlugin {
         heartBeatHandler.stop();
         playerMessageBroker.unsubscribe();
         islandBroker.unsubscribe();
-        cacheBroker.unsubscribe();
         redisHandler.disconnect();
         databaseHandler.close();
     }
@@ -291,13 +299,13 @@ public class NewSky extends JavaPlugin {
     }
 
     @SuppressWarnings("unused")
-    public Set<UUID> getOnlinePlayersUUIDs() {
-        return redisCache.getOnlinePlayersUUIDs();
+    public CompletableFuture<Set<UUID>> getOnlinePlayersUUIDs() {
+        return CompletableFuture.supplyAsync(() -> runtimeCache.getOnlinePlayersUUIDs(), getBukkitAsyncExecutor());
     }
 
     @SuppressWarnings("unused")
-    public Set<String> getOnlinePlayersNames() {
-        return redisCache.getOnlinePlayersNames();
+    public CompletableFuture<Set<String>> getOnlinePlayersNames() {
+        return CompletableFuture.supplyAsync(() -> runtimeCache.getOnlinePlayersNames(), getBukkitAsyncExecutor());
     }
 
     @SuppressWarnings("unused")

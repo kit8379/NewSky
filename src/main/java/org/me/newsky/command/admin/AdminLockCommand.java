@@ -3,18 +3,21 @@ package org.me.newsky.command.admin;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
  * /isadmin lock <player>
  */
-public class AdminLockCommand implements SubCommand, TabComplete {
+public class AdminLockCommand implements SubCommand, AsyncTabComplete {
     private final NewSky plugin;
     private final NewSkyAPI api;
     private final ConfigHandler config;
@@ -58,30 +61,27 @@ public class AdminLockCommand implements SubCommand, TabComplete {
 
         String targetPlayerName = args[1];
 
-        Optional<UUID> targetUuidOpt = api.getPlayerUuid(targetPlayerName);
-        if (targetUuidOpt.isEmpty()) {
-            sender.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
-            return true;
-        }
-        UUID targetUuid = targetUuidOpt.get();
-
-        UUID islandUuid;
-        try {
-            islandUuid = api.getIslandUuid(targetUuid);
-        } catch (IslandDoesNotExistException e) {
-            sender.sendMessage(config.getAdminNoIslandMessage(targetPlayerName));
-            return true;
-        }
-
-        api.toggleIslandLock(islandUuid).thenAccept(isLocked -> {
-            if (isLocked) {
-                sender.sendMessage(config.getAdminLockSuccessMessage(targetPlayerName));
-            } else {
-                sender.sendMessage(config.getAdminUnLockSuccessMessage(targetPlayerName));
+        api.getPlayerUuid(targetPlayerName).thenCompose(targetUuidOpt -> {
+            if (targetUuidOpt.isEmpty()) {
+                sender.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
+                return CompletableFuture.completedFuture(null);
             }
+
+            return api.getIslandUuid(targetUuidOpt.get()).thenCompose(api::toggleIslandLock).thenAccept(isLocked -> {
+                if (isLocked) {
+                    sender.sendMessage(config.getAdminLockSuccessMessage(targetPlayerName));
+                } else {
+                    sender.sendMessage(config.getAdminUnLockSuccessMessage(targetPlayerName));
+                }
+            });
         }).exceptionally(ex -> {
-            sender.sendMessage(config.getUnknownExceptionMessage());
-            plugin.severe("Error toggling island lock for " + targetPlayerName, ex);
+            Throwable cause = ex.getCause();
+            if (cause instanceof IslandDoesNotExistException) {
+                sender.sendMessage(config.getAdminNoIslandMessage(targetPlayerName));
+            } else {
+                sender.sendMessage(config.getUnknownExceptionMessage());
+                plugin.severe("Error toggling island lock for " + targetPlayerName, ex);
+            }
             return null;
         });
 
@@ -89,11 +89,12 @@ public class AdminLockCommand implements SubCommand, TabComplete {
     }
 
     @Override
-    public List<String> tabComplete(CommandSender sender, String label, String[] args) {
+    public CompletableFuture<List<String>> tabCompleteAsync(CommandSender sender, String label, String[] args) {
         if (args.length == 2) {
             String prefix = args[1].toLowerCase(Locale.ROOT);
-            return api.getOnlinePlayersNames().stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
+            return api.getOnlinePlayersNames().thenApply(names -> names.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())).exceptionally(ex -> Collections.emptyList());
         }
-        return Collections.emptyList();
+
+        return CompletableFuture.completedFuture(Collections.emptyList());
     }
 }

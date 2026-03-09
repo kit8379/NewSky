@@ -1,12 +1,14 @@
 package org.me.newsky.listener;
 
-import org.bukkit.*;
+import org.bukkit.GameRule;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
+import org.bukkit.World;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.island.UpgradeHandler;
 import org.me.newsky.scheduler.LevelUpdateScheduler;
 import org.me.newsky.util.IslandUtils;
 
@@ -37,7 +39,6 @@ public class WorldLoadListener implements Listener {
         UUID islandUuid = IslandUtils.nameToUUID(name);
 
         applyGameRules(world);
-        applyWorldBorder(world, islandUuid);
         registerLevelUpdate(islandUuid);
     }
 
@@ -89,18 +90,6 @@ public class WorldLoadListener implements Listener {
                 plugin.warning("Failed to set gamerule " + keyString + ": " + ex.getMessage());
             }
         }
-    }
-
-    private void applyWorldBorder(World world, UUID islandUuid) {
-        int level = plugin.getApi().getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_ISLAND_SIZE);
-        int size = plugin.getApi().getIslandSize(level);
-        WorldBorder border = world.getWorldBorder();
-        border.setCenter(0.0, 0.0);
-        border.setSize(size);
-        border.setWarningDistance(0);
-        border.setDamageAmount(0.1);
-        border.setDamageBuffer(1.0);
-        plugin.debug("WorldLoadListener", "Set world border for " + world.getName());
     }
 
     private void registerLevelUpdate(UUID islandUuid) {

@@ -10,9 +10,10 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 
-import java.util.Optional;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * /is cooplist
@@ -62,33 +63,41 @@ public class PlayerCoopListCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        try {
-            UUID islandUuid = api.getIslandUuid(playerUuid);
-            Set<UUID> coopedPlayers = api.getCoopedPlayers(islandUuid);
-
+        api.getIslandUuid(playerUuid).thenCompose(api::getCoopedPlayers).thenCompose(coopedPlayers -> {
             if (coopedPlayers.isEmpty()) {
                 player.sendMessage(config.getNoCoopedPlayersMessage());
-                return true;
+                return CompletableFuture.completedFuture(null);
             }
 
-            TextComponent.Builder coopedList = Component.text().append(config.getCoopedPlayersHeaderMessage());
-
+            List<CompletableFuture<String>> nameFutures = new ArrayList<>(coopedPlayers.size());
             for (UUID coopedPlayerUuid : coopedPlayers) {
-                Optional<String> nameOpt = api.getPlayerName(coopedPlayerUuid);
-                String playerName = nameOpt.orElse(coopedPlayerUuid.toString());
-
-                coopedList.append(Component.text("\n"));
-                coopedList.append(config.getCoopedPlayerMessage(playerName));
+                nameFutures.add(api.getPlayerName(coopedPlayerUuid).thenApply(nameOpt -> nameOpt.orElse(coopedPlayerUuid.toString())));
             }
 
-            player.sendMessage(coopedList.build());
+            CompletableFuture<Void> all = CompletableFuture.allOf(nameFutures.toArray(new CompletableFuture[0]));
 
-        } catch (IslandDoesNotExistException ex) {
-            player.sendMessage(config.getPlayerNoIslandMessage());
-        } catch (Exception ex) {
-            player.sendMessage(config.getUnknownExceptionMessage());
-            plugin.severe("Error retrieving coop list for " + player.getName(), ex);
-        }
+            return all.thenAccept(v -> {
+                List<String> playerNames = nameFutures.stream().map(CompletableFuture::join).sorted(String.CASE_INSENSITIVE_ORDER).toList();
+
+                TextComponent.Builder coopedList = Component.text().append(config.getCoopedPlayersHeaderMessage());
+
+                for (String playerName : playerNames) {
+                    coopedList.append(Component.text("\n"));
+                    coopedList.append(config.getCoopedPlayerMessage(playerName));
+                }
+
+                player.sendMessage(coopedList.build());
+            });
+        }).exceptionally(ex -> {
+            Throwable cause = ex.getCause();
+            if (cause instanceof IslandDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoIslandMessage());
+            } else {
+                player.sendMessage(config.getUnknownExceptionMessage());
+                plugin.severe("Error retrieving coop list for " + player.getName(), ex);
+            }
+            return null;
+        });
 
         return true;
     }

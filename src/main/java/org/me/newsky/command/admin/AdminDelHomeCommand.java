@@ -3,19 +3,22 @@ package org.me.newsky.command.admin;
 import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.command.TabComplete;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.HomeDoesNotExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
  * /isadmin delhome <player> <home>
  */
-public class AdminDelHomeCommand implements SubCommand, TabComplete {
+public class AdminDelHomeCommand implements SubCommand, AsyncTabComplete {
     private final NewSky plugin;
     private final NewSkyAPI api;
     private final ConfigHandler config;
@@ -60,20 +63,21 @@ public class AdminDelHomeCommand implements SubCommand, TabComplete {
         String homePlayerName = args[1];
         String homeName = args[2];
 
-        Optional<UUID> targetUuidOpt = api.getPlayerUuid(homePlayerName);
-        if (targetUuidOpt.isEmpty()) {
-            sender.sendMessage(config.getUnknownPlayerMessage(homePlayerName));
-            return true;
-        }
-        UUID targetUuid = targetUuidOpt.get();
-
         if ("default".equalsIgnoreCase(homeName)) {
             sender.sendMessage(config.getAdminCannotDeleteDefaultHomeMessage(homePlayerName));
             return true;
         }
 
-        api.delHome(targetUuid, homeName).thenRun(() -> sender.sendMessage(config.getAdminDelHomeSuccessMessage(homePlayerName, homeName))).exceptionally(ex -> {
+        api.getPlayerUuid(homePlayerName).thenCompose(targetUuidOpt -> {
+            if (targetUuidOpt.isEmpty()) {
+                sender.sendMessage(config.getUnknownPlayerMessage(homePlayerName));
+                return CompletableFuture.completedFuture(null);
+            }
+
+            return api.delHome(targetUuidOpt.get(), homeName).thenRun(() -> sender.sendMessage(config.getAdminDelHomeSuccessMessage(homePlayerName, homeName)));
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
+
             if (cause instanceof IslandDoesNotExistException) {
                 sender.sendMessage(config.getAdminNoIslandMessage(homePlayerName));
             } else if (cause instanceof HomeDoesNotExistException) {
@@ -89,19 +93,18 @@ public class AdminDelHomeCommand implements SubCommand, TabComplete {
     }
 
     @Override
-    public List<String> tabComplete(CommandSender sender, String label, String[] args) {
-        if (args.length == 2) {
-            String prefix = args[1].toLowerCase(Locale.ROOT);
-            return api.getOnlinePlayersNames().stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).collect(Collectors.toList());
+    public CompletableFuture<List<String>> tabCompleteAsync(CommandSender sender, String label, String[] args) {
+        if (args.length != 3) {
+            return CompletableFuture.completedFuture(Collections.emptyList());
         }
 
-        if (args.length == 3) {
-            Optional<UUID> uuidOpt = api.getPlayerUuid(args[1]);
-            if (uuidOpt.isPresent()) {
-                return api.getHomeNames(uuidOpt.get()).stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(args[2].toLowerCase(Locale.ROOT))).collect(Collectors.toList());
+        return api.getPlayerUuid(args[1]).thenCompose(uuidOpt -> {
+            if (uuidOpt.isEmpty()) {
+                return CompletableFuture.completedFuture(Collections.<String>emptyList());
             }
-        }
 
-        return Collections.emptyList();
+            String prefix = args[2].toLowerCase(Locale.ROOT);
+            return api.getHomeNames(uuidOpt.get()).thenApply(names -> names.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()));
+        }).exceptionally(ex -> Collections.emptyList());
     }
 }

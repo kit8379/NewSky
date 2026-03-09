@@ -4,8 +4,8 @@ package org.me.newsky.network.lock;
 import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
+import org.me.newsky.cache.RuntimeCache;
 import org.me.newsky.exceptions.IslandBusyException;
-import org.me.newsky.redis.RedisCache;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -16,7 +16,7 @@ import java.util.function.Supplier;
 /**
  * Shared distributed lock wrapper for sensitive island operations (load/unload/delete).
  *
- * <p>Uses Redis lock keys (via RedisCache) and maintains TTL using a heartbeat until the
+ * <p>Uses Redis lock keys (via RuntimeCache) and maintains TTL using a heartbeat until the
  * provided action future completes, then releases the lock.
  */
 public final class IslandOpLock {
@@ -34,25 +34,25 @@ public final class IslandOpLock {
     public static final long DEFAULT_HEARTBEAT_MS = TimeUnit.MINUTES.toMillis(1);
 
     private final NewSky plugin;
-    private final RedisCache redisCache;
+    private final RuntimeCache runtimeCache;
     private final String serverID;
     private final long lockTtlMs;
     private final long heartbeatMs;
 
-    public IslandOpLock(NewSky plugin, RedisCache redisCache, String serverID) {
-        this(plugin, redisCache, serverID, DEFAULT_LOCK_TTL_MS, DEFAULT_HEARTBEAT_MS);
+    public IslandOpLock(NewSky plugin, RuntimeCache runtimeCache, String serverID) {
+        this(plugin, runtimeCache, serverID, DEFAULT_LOCK_TTL_MS, DEFAULT_HEARTBEAT_MS);
     }
 
-    public IslandOpLock(NewSky plugin, RedisCache redisCache, String serverID, long lockTtlMs, long heartbeatMs) {
+    public IslandOpLock(NewSky plugin, RuntimeCache runtimeCache, String serverID, long lockTtlMs, long heartbeatMs) {
         this.plugin = plugin;
-        this.redisCache = redisCache;
+        this.runtimeCache = runtimeCache;
         this.serverID = serverID;
         this.lockTtlMs = lockTtlMs;
         this.heartbeatMs = heartbeatMs;
     }
 
     public boolean isLocked(UUID islandUuid) {
-        return redisCache.isIslandOpLocked(islandUuid);
+        return runtimeCache.isIslandOpLocked(islandUuid);
     }
 
     /**
@@ -64,9 +64,9 @@ public final class IslandOpLock {
     public <T> CompletableFuture<T> withLock(UUID islandUuid, Supplier<CompletableFuture<T>> action) {
         String token = serverID + ":" + UUID.randomUUID();
 
-        Optional<String> acquired = redisCache.tryAcquireIslandOpLock(islandUuid, token, lockTtlMs);
+        Optional<String> acquired = runtimeCache.tryAcquireIslandOpLock(islandUuid, token, lockTtlMs);
         if (acquired.isEmpty()) {
-            long pttl = redisCache.getIslandOpLockTtlMillis(islandUuid);
+            long pttl = runtimeCache.getIslandOpLockTtlMillis(islandUuid);
             plugin.debug("IslandOpLock", "withLock: busy lock for " + islandUuid + " (pttl=" + pttl + "ms)");
             return CompletableFuture.failedFuture(new IslandBusyException());
         }
@@ -74,7 +74,7 @@ public final class IslandOpLock {
         long periodTicks = Math.max(1L, heartbeatMs / 50L);
 
         BukkitTask heartbeat = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-            boolean ok = redisCache.extendIslandOpLock(islandUuid, token, lockTtlMs);
+            boolean ok = runtimeCache.extendIslandOpLock(islandUuid, token, lockTtlMs);
             if (!ok) {
                 plugin.debug("IslandOpLock", "withLock: failed to extend lock (lost ownership?) island=" + islandUuid);
             }
@@ -85,13 +85,13 @@ public final class IslandOpLock {
             future = action.get();
         } catch (Throwable t) {
             heartbeat.cancel();
-            redisCache.releaseIslandOpLock(islandUuid, token);
+            runtimeCache.releaseIslandOpLock(islandUuid, token);
             return CompletableFuture.failedFuture(t);
         }
 
         return future.whenComplete((res, err) -> {
             heartbeat.cancel();
-            redisCache.releaseIslandOpLock(islandUuid, token);
+            runtimeCache.releaseIslandOpLock(islandUuid, token);
         });
     }
 }
