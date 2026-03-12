@@ -41,10 +41,9 @@ public class IslandLoadedSnapshot {
         islands.remove(islandUuid);
     }
 
-    public CompletableFuture<Void> reload(UUID islandUuid) {
+    public void reload(UUID islandUuid) {
         if (islands.containsKey(islandUuid)) {
-            return load(islandUuid);
+            load(islandUuid);
         }
-        return CompletableFuture.completedFuture(null);
     }
 }

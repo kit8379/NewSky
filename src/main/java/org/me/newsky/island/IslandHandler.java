@@ -57,15 +57,12 @@ public class IslandHandler {
             return dataCache.isIslandLock(islandUuid);
         }, plugin.getBukkitAsyncExecutor()).thenCompose(isLocked -> {
             if (isLocked) {
-                return CompletableFuture.runAsync(() -> {
-                    dataCache.updateIslandLock(islandUuid, false);
-                    islandDistributor.reloadSnapshot(islandUuid);
-                }, plugin.getBukkitAsyncExecutor()).thenApply(v -> false);
+                dataCache.updateIslandLock(islandUuid, false);
+                islandDistributor.reloadSnapshot(islandUuid);
             } else {
-                return islandDistributor.lockIsland(islandUuid).thenRunAsync(() -> {
-                    dataCache.updateIslandLock(islandUuid, true);
-                    islandDistributor.reloadSnapshot(islandUuid);
-                }, plugin.getBukkitAsyncExecutor()).thenApply(v -> true);
+                islandDistributor.lockIsland(islandUuid);
+                dataCache.updateIslandLock(islandUuid, true);
+                islandDistributor.reloadSnapshot(islandUuid);
             }
         });
     }

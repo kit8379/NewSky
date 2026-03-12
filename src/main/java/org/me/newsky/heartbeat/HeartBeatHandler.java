@@ -36,12 +36,10 @@ public class HeartBeatHandler {
         plugin.debug("HeartBeatHandler", "Startup cleanup complete.");
 
         plugin.debug("HeartBeatHandler", "Starting heartbeat task with interval: " + heartbeatInterval + " seconds, ttl: " + heartbeatTtlSeconds + " seconds.");
-
         heartbeatTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
             runtimeCache.updateActiveServer(serverID, config.isLobbyOnly(), heartbeatTtlSeconds);
             plugin.debug("HeartBeatHandler", "Sent heartbeat for server: " + serverID);
         }, 0L, heartbeatInterval * 20L);
-
         plugin.debug("HeartBeatHandler", "Heartbeat task started successfully.");
     }
 

@@ -33,6 +33,10 @@ public class IslandOperator {
         this.serverID = serverID;
     }
 
+    // =====================================================================================
+    // Request-response operations
+    // =====================================================================================
+
     public CompletableFuture<Void> createIsland(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
@@ -69,67 +73,93 @@ public class IslandOperator {
         });
     }
 
-
     public CompletableFuture<Void> teleport(UUID playerUuid, String teleportWorld, String teleportLocation) {
         return CompletableFuture.runAsync(() -> {
             Location location = LocationUtils.stringToLocation(teleportWorld, teleportLocation);
             Player player = Bukkit.getPlayer(playerUuid);
             if (player != null) {
-                player.teleportAsync(location);
+                player.teleport(location);
             } else {
                 teleportHandler.addPendingTeleport(playerUuid, location);
             }
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("IslandOperator", "Teleported player " + playerUuid + " to location: " + teleportLocation + " in world: " + teleportWorld), plugin.getBukkitAsyncExecutor());
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> {
+            plugin.debug("IslandOperator", "Teleported player " + playerUuid + " to location: " + teleportLocation + " in world: " + teleportWorld);
+        }, plugin.getBukkitAsyncExecutor());
     }
 
+    // =====================================================================================
+    // Fire-and-forget operations
+    // =====================================================================================
 
-    public CompletableFuture<Void> lockIsland(UUID islandUuid) {
+    public void lockIsland(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        return plugin.getApi().getIslandPlayers(islandUuid).thenCompose(islandPlayers -> {
-            return CompletableFuture.runAsync(() -> {
-                World world = Bukkit.getWorld(islandName);
-                if (world != null) {
-                    for (Player player : world.getPlayers()) {
-                        UUID playerUuid = player.getUniqueId();
-                        if (!islandPlayers.contains(playerUuid)) {
-                            player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
-                            plugin.getApi().lobby(playerUuid);
+        plugin.getApi().getIslandPlayers(islandUuid).thenAccept(islandPlayers -> {
+            Bukkit.getScheduler().getMainThreadExecutor(plugin).execute(() -> {
+                try {
+                    World world = Bukkit.getWorld(islandName);
+                    if (world != null) {
+                        Location fallback = Bukkit.getServer().getWorlds().getFirst().getSpawnLocation();
+
+                        for (Player player : world.getPlayers()) {
+                            UUID playerUuid = player.getUniqueId();
+                            if (!islandPlayers.contains(playerUuid)) {
+                                player.teleportAsync(fallback);
+                                plugin.getApi().lobby(playerUuid);
+                            }
                         }
                     }
+
+                    plugin.debug("IslandOperator", "Locked island " + islandName + " and issued removal for all foreign players.");
+                } catch (Exception e) {
+                    plugin.severe("Failed to apply lock event for island " + islandUuid, e);
                 }
-            }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
-        }).thenRunAsync(() -> plugin.debug("IslandOperator", "Locked island " + islandName + " and removed all foreign players."), plugin.getBukkitAsyncExecutor());
+            });
+        }).exceptionally(ex -> {
+            plugin.severe("Failed to fetch island players for lock event: " + islandUuid, ex);
+            return null;
+        });
     }
 
-    public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
+    public void expelPlayer(UUID islandUuid, UUID playerUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        return CompletableFuture.runAsync(() -> {
-            World world = Bukkit.getWorld(islandName);
-            if (world != null) {
-                Player player = Bukkit.getPlayer(playerUuid);
-                if (player != null && player.getWorld().equals(world)) {
-                    player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
-                    plugin.getApi().lobby(playerUuid);
+        Bukkit.getScheduler().getMainThreadExecutor(plugin).execute(() -> {
+            try {
+                World world = Bukkit.getWorld(islandName);
+                if (world != null) {
+                    Player player = Bukkit.getPlayer(playerUuid);
+                    if (player != null && player.getWorld().equals(world)) {
+                        player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
+                        plugin.getApi().lobby(playerUuid);
+                    }
                 }
+
+                plugin.debug("IslandOperator", "Expelled player " + playerUuid + " from island " + islandName);
+            } catch (Exception e) {
+                plugin.severe("Failed to expel player " + playerUuid + " from island " + islandUuid, e);
             }
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("IslandOperator", "Expelled player " + playerUuid + " from island " + islandName), plugin.getBukkitAsyncExecutor());
+        });
     }
 
-    public CompletableFuture<Void> updateIslandBorder(UUID islandUuid, int size) {
+    public void updateBorder(UUID islandUuid, int size) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        return CompletableFuture.runAsync(() -> {
-            World world = Bukkit.getWorld(islandName);
-            if (world != null) {
-                world.getWorldBorder().setSize(size);
-                plugin.debug("IslandOperator", "Updated island border for " + islandName + " to size: " + size);
+        Bukkit.getScheduler().getMainThreadExecutor(plugin).execute(() -> {
+            try {
+                World world = Bukkit.getWorld(islandName);
+                if (world != null) {
+                    world.getWorldBorder().setSize(size);
+                }
+
+                plugin.debug("IslandOperator", "Updated border for " + islandName + " to size: " + size);
+            } catch (Exception e) {
+                plugin.severe("Failed to update border for island " + islandUuid + " to size " + size, e);
             }
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("IslandOperator", "Updated island border for island " + islandName + " to new size: " + size), plugin.getBukkitAsyncExecutor());
+        });
     }
 
-    public CompletableFuture<Void> reloadSnapshot(UUID islandUuid) {
-        return islandLoadedSnapshot.reload(islandUuid);
+    public void reloadSnapshot(UUID islandUuid) {
+        islandLoadedSnapshot.reload(islandUuid);
     }
 }

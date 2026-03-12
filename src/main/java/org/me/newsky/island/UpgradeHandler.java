@@ -115,7 +115,7 @@ public final class UpgradeHandler {
             dataCache.updateIslandUpgradeLevel(islandUuid, upgradeId, nextLevel);
 
             if (upgradeId.equals(UPGRADE_ISLAND_SIZE)) {
-                islandDistributor.updateIslandBorder(islandUuid, getIslandSize(nextLevel));
+                islandDistributor.updateBorder(islandUuid, getIslandSize(nextLevel));
             }
             islandDistributor.reloadSnapshot(islandUuid);
 
@@ -137,7 +137,7 @@ public final class UpgradeHandler {
             dataCache.updateIslandUpgradeLevel(islandUuid, upgradeId, level);
 
             if (upgradeId.equals(UPGRADE_ISLAND_SIZE)) {
-                islandDistributor.updateIslandBorder(islandUuid, getIslandSize(level));
+                islandDistributor.updateBorder(islandUuid, getIslandSize(level));
             }
             islandDistributor.reloadSnapshot(islandUuid);
 
