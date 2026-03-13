@@ -78,7 +78,7 @@ public class IslandOperator {
             Location location = LocationUtils.stringToLocation(teleportWorld, teleportLocation);
             Player player = Bukkit.getPlayer(playerUuid);
             if (player != null) {
-                player.teleport(location);
+                player.teleportAsync(location);
             } else {
                 teleportHandler.addPendingTeleport(playerUuid, location);
             }

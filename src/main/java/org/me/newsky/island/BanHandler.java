@@ -35,6 +35,7 @@ public class BanHandler {
 
             islandDistributor.expelPlayer(islandUuid, playerUuid);
             dataCache.updateBanPlayer(islandUuid, playerUuid);
+            islandDistributor.reloadSnapshot(islandUuid);
         }, plugin.getBukkitAsyncExecutor());
     }
 
@@ -45,6 +46,7 @@ public class BanHandler {
             }
 
             dataCache.deleteBanPlayer(islandUuid, playerUuid);
+            islandDistributor.reloadSnapshot(islandUuid);
         }, plugin.getBukkitAsyncExecutor());
     }
 

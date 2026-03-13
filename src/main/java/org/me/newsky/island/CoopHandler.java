@@ -5,6 +5,7 @@ import org.me.newsky.cache.DataCache;
 import org.me.newsky.exceptions.CannotCoopIslandPlayerException;
 import org.me.newsky.exceptions.PlayerAlreadyCoopedException;
 import org.me.newsky.exceptions.PlayerNotCoopedException;
+import org.me.newsky.network.distributor.IslandDistributor;
 
 import java.util.Set;
 import java.util.UUID;
@@ -14,10 +15,12 @@ public class CoopHandler {
 
     private final NewSky plugin;
     private final DataCache dataCache;
+    private final IslandDistributor islandDistributor;
 
-    public CoopHandler(NewSky plugin, DataCache dataCache) {
+    public CoopHandler(NewSky plugin, DataCache dataCache, IslandDistributor islandDistributor) {
         this.plugin = plugin;
         this.dataCache = dataCache;
+        this.islandDistributor = islandDistributor;
     }
 
     public CompletableFuture<Void> coopPlayer(UUID islandUuid, UUID playerUuid) {
@@ -31,6 +34,7 @@ public class CoopHandler {
             }
 
             dataCache.updateCoopPlayer(islandUuid, playerUuid);
+            islandDistributor.reloadSnapshot(islandUuid);
         }, plugin.getBukkitAsyncExecutor());
     }
 
@@ -41,11 +45,17 @@ public class CoopHandler {
             }
 
             dataCache.deleteCoopPlayer(islandUuid, playerUuid);
+            islandDistributor.reloadSnapshot(islandUuid);
         }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> deleteAllCoopOfPlayer(UUID playerUuid) {
-        return CompletableFuture.runAsync(() -> dataCache.deleteAllCoopOfPlayer(playerUuid), plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.runAsync(() -> {
+            Set<UUID> touchedIslands = dataCache.deleteAllCoopOfPlayer(playerUuid);
+            for (UUID islandUuid : touchedIslands) {
+                islandDistributor.reloadSnapshot(islandUuid);
+            }
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Boolean> isPlayerCooped(UUID islandUuid, UUID playerUuid) {

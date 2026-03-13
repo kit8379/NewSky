@@ -168,7 +168,7 @@ public class NewSky extends JavaPlugin {
             WarpHandler warpHandler = new WarpHandler(this, dataCache, islandDistributor);
             levelHandler = new LevelHandler(this, config, dataCache);
             BanHandler banHandler = new BanHandler(this, dataCache, islandDistributor);
-            CoopHandler coopHandler = new CoopHandler(this, dataCache);
+            CoopHandler coopHandler = new CoopHandler(this, dataCache, islandDistributor);
             UpgradeHandler upgradeHandler = new UpgradeHandler(this, config, dataCache, islandDistributor);
             cobblestoneGeneratorHandler = new CobblestoneGeneratorHandler(this, upgradeHandler);
             LobbyHandler lobbyHandler = new LobbyHandler(this, config, islandDistributor);

@@ -52,7 +52,6 @@ public class WarpHandler {
             String warpLocation = x + "," + y + "," + z + "," + yaw + "," + pitch;
 
             dataCache.updateWarpPoint(islandUuid, playerUuid, normalizedWarpName, warpLocation);
-            islandDistributor.reloadSnapshot(islandUuid);
 
             return CompletableFuture.completedFuture(null);
         });
@@ -72,7 +71,6 @@ public class WarpHandler {
             }
 
             dataCache.deleteWarpPoint(islandUuid, playerUuid, warpName);
-            islandDistributor.reloadSnapshot(islandUuid);
 
             return CompletableFuture.completedFuture(null);
         });

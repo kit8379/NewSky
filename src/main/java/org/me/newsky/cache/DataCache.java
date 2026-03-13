@@ -21,7 +21,7 @@ public final class DataCache {
     private static final String PLAYER_UUID_KEY = DATA_PREFIX + "player:uuid";
 
     private static final String LUA_UPDATE_ISLAND_OWNER = "local playersKey = KEYS[1] " + "local coreKey = KEYS[2] " + "local playerIslandKey = KEYS[3] " + "local islandUuid = ARGV[1] " + "local oldOwnerUuid = ARGV[2] " + "local newOwnerUuid = ARGV[3] " + "local currentOwner = redis.call('HGET', coreKey, 'owner') " + "if currentOwner ~= oldOwnerUuid then " + "    return 0 " + "end " + "local newOwnerRole = redis.call('HGET', playersKey, newOwnerUuid) " + "if not newOwnerRole then " + "    return -1 " + "end " + "redis.call('HSET', playersKey, oldOwnerUuid, 'member') " + "redis.call('HSET', playersKey, newOwnerUuid, 'owner') " + "redis.call('HSET', coreKey, 'owner', newOwnerUuid) " + "redis.call('HSET', playerIslandKey, newOwnerUuid, islandUuid) " + "return 1";
-    private static final String LUA_DELETE_ALL_COOP_OF_PLAYER = "local reverseKey = KEYS[1] " + "local dataPrefix = ARGV[1] " + "local playerUuid = ARGV[2] " + "local islands = redis.call('SMEMBERS', reverseKey) " + "for i = 1, #islands do " + "    local coopKey = dataPrefix .. 'island:' .. islands[i] .. ':coops' " + "    redis.call('SREM', coopKey, playerUuid) " + "end " + "redis.call('DEL', reverseKey) " + "return #islands";
+    private static final String LUA_DELETE_ALL_COOP_OF_PLAYER = "local reverseKey = KEYS[1] " + "local dataPrefix = ARGV[1] " + "local playerUuid = ARGV[2] " + "local islands = redis.call('SMEMBERS', reverseKey) " + "for i = 1, #islands do " + "    local coopKey = dataPrefix .. 'island:' .. islands[i] .. ':coops' " + "    redis.call('SREM', coopKey, playerUuid) " + "end " + "redis.call('DEL', reverseKey) " + "return islands";
 
     private final NewSky plugin;
     private final RedisHandler redisHandler;
@@ -771,17 +771,27 @@ public final class DataCache {
         }
     }
 
-    public void deleteAllCoopOfPlayer(UUID playerUuid) {
+    public Set<UUID> deleteAllCoopOfPlayer(UUID playerUuid) {
         database.deleteAllCoopOfPlayer(playerUuid);
 
         try (Jedis jedis = redisHandler.getJedis()) {
             Object result = jedis.eval(LUA_DELETE_ALL_COOP_OF_PLAYER, 1, playerCoopedIslandsKey(playerUuid), DATA_PREFIX, playerUuid.toString());
 
-            if (!(result instanceof Long)) {
+            if (!(result instanceof List<?> rawList)) {
                 throw new IllegalStateException("Unexpected Lua result while deleting all coop of player: " + playerUuid + ", result=" + result);
             }
+
+            Set<UUID> touchedIslands = new HashSet<>();
+            for (Object raw : rawList) {
+                if (raw != null) {
+                    parseUuid(String.valueOf(raw)).ifPresent(touchedIslands::add);
+                }
+            }
+
+            return touchedIslands;
         } catch (Exception e) {
             failRedisSync("deleteAllCoopOfPlayer:" + playerUuid, e);
+            return Set.of();
         }
     }
 

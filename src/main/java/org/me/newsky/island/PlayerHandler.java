@@ -90,9 +90,9 @@ public class PlayerHandler {
             if (players.contains(playerUuid)) {
                 throw new CannotExpelIslandPlayerException();
             }
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> {
-            return islandDistributor.expelPlayer(islandUuid, playerUuid);
-        });
+
+            islandDistributor.expelPlayer(islandUuid, playerUuid);
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> addPendingInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {

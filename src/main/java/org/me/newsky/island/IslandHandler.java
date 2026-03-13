@@ -53,18 +53,18 @@ public class IslandHandler {
     }
 
     public CompletableFuture<Boolean> toggleIslandLock(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> {
-            return dataCache.isIslandLock(islandUuid);
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(isLocked -> {
+        return CompletableFuture.supplyAsync(() -> dataCache.isIslandLock(islandUuid), plugin.getBukkitAsyncExecutor()).thenApplyAsync(isLocked -> {
             if (isLocked) {
                 dataCache.updateIslandLock(islandUuid, false);
                 islandDistributor.reloadSnapshot(islandUuid);
+                return false;
             } else {
                 islandDistributor.lockIsland(islandUuid);
                 dataCache.updateIslandLock(islandUuid, true);
                 islandDistributor.reloadSnapshot(islandUuid);
+                return true;
             }
-        });
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Boolean> toggleIslandPvp(UUID islandUuid) {

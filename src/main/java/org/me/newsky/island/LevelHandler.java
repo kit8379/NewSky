@@ -122,6 +122,8 @@ public class LevelHandler {
     }
 
     public CompletableFuture<Integer> getIslandLevel(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> dataCache.getIslandLevel(islandUuid), plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> {
+            return dataCache.getIslandLevel(islandUuid);
+        }, plugin.getBukkitAsyncExecutor());
     }
 }

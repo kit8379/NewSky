@@ -56,7 +56,6 @@ public class HomeHandler {
             String homeLocation = x + "," + y + "," + z + "," + yaw + "," + pitch;
 
             dataCache.updateHomePoint(islandUuid, playerUuid, normalizedHomeName, homeLocation);
-            islandDistributor.reloadSnapshot(islandUuid);
 
             return CompletableFuture.completedFuture(null);
         });
@@ -74,7 +73,6 @@ public class HomeHandler {
             }
 
             dataCache.deleteHomePoint(islandUuid, playerUuid, homeName);
-            islandDistributor.reloadSnapshot(islandUuid);
 
             return CompletableFuture.completedFuture(null);
         });
