@@ -12,7 +12,6 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.teleport.TeleportHandler;
 
 import java.io.File;
 import java.sql.SQLException;
@@ -23,15 +22,13 @@ public class WorldHandler {
 
     public final NewSky plugin;
     public final ConfigHandler config;
-    public final TeleportHandler teleportHandler;
     private final SlimeLoader slimeLoader;
     private final SlimePropertyMap properties;
     private final AdvancedSlimePaperAPI asp = AdvancedSlimePaperAPI.instance();
 
-    public WorldHandler(NewSky plugin, ConfigHandler config, TeleportHandler teleportHandler) {
+    public WorldHandler(NewSky plugin, ConfigHandler config) {
         this.plugin = plugin;
         this.config = config;
-        this.teleportHandler = teleportHandler;
 
         try {
             this.slimeLoader = new MysqlLoader("jdbc:mysql://{host}:{port}/{database}?useSSL={usessl}&" + config.getMySQLProperties(), config.getMySQLHost(), config.getMySQLPort(), config.getMySQLDB(), config.getMySQLUseSSL(), config.getMySQLUsername(), config.getMySQLPassword());

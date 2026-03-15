@@ -96,21 +96,23 @@ public class IslandDistributor {
     // =====================================================================================
 
     public CompletableFuture<Void> createIsland(UUID islandUuid) {
-        String targetServer = selectServer(runtimeCache.getActiveGameServers());
-        if (targetServer == null) {
-            plugin.debug("IslandDistributor", "createIsland: no active server available.");
-            return CompletableFuture.failedFuture(new NoActiveServerException());
-        }
+        return withIslandOpLock(islandUuid, () -> {
+            String targetServer = selectServer(runtimeCache.getActiveGameServers());
+            if (targetServer == null) {
+                plugin.debug("IslandDistributor", "createIsland: no active server available.");
+                return CompletableFuture.failedFuture(new NoActiveServerException());
+            }
 
-        plugin.debug("IslandDistributor", "createIsland: selected server " + targetServer + " to create island " + islandUuid);
+            plugin.debug("IslandDistributor", "createIsland: selected server " + targetServer + " to create island " + islandUuid);
 
-        if (targetServer.equals(serverID)) {
-            plugin.debug("IslandDistributor", "createIsland: creating island on local server " + serverID);
-            return islandOperator.createIsland(islandUuid);
-        } else {
-            plugin.debug("IslandDistributor", "createIsland: sending create request to remote server " + targetServer);
-            return islandBroker.sendRequest(targetServer, "create", islandUuid.toString());
-        }
+            if (targetServer.equals(serverID)) {
+                plugin.debug("IslandDistributor", "createIsland: creating island on local server " + serverID);
+                return islandOperator.createIsland(islandUuid);
+            } else {
+                plugin.debug("IslandDistributor", "createIsland: sending create request to remote server " + targetServer);
+                return islandBroker.sendRequest(targetServer, "create", islandUuid.toString());
+            }
+        });
     }
 
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
@@ -218,7 +220,7 @@ public class IslandDistributor {
     }
 
     // =====================================================================================
-    // Fire-and-forget operations
+    // Other operations
     // =====================================================================================
 
     public void lockIsland(UUID islandUuid) {

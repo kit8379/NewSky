@@ -29,11 +29,7 @@ public class IslandLoadedSnapshot {
         return CompletableFuture.supplyAsync(() -> {
             return dataCache.getIslandSnapshot(islandUuid);
         }, plugin.getBukkitAsyncExecutor()).thenAccept(island -> {
-            if (island == null) {
-                islands.remove(islandUuid);
-            } else {
-                islands.put(islandUuid, island);
-            }
+            islands.put(islandUuid, island);
         });
     }
 

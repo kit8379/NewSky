@@ -46,6 +46,8 @@ public class DatabaseHandler {
         hikariConfig.addDataSourceProperty("maintainTimeStats", "false");
 
         this.dataSource = new HikariDataSource(hikariConfig);
+
+        createTables();
     }
 
     public void close() {

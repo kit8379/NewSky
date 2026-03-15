@@ -21,16 +21,21 @@ public final class DataCache {
     private static final String PLAYER_UUID_KEY = DATA_PREFIX + "player:uuid";
 
     private static final String LUA_UPDATE_ISLAND_OWNER = "local playersKey = KEYS[1] " + "local coreKey = KEYS[2] " + "local playerIslandKey = KEYS[3] " + "local islandUuid = ARGV[1] " + "local oldOwnerUuid = ARGV[2] " + "local newOwnerUuid = ARGV[3] " + "local currentOwner = redis.call('HGET', coreKey, 'owner') " + "if currentOwner ~= oldOwnerUuid then " + "    return 0 " + "end " + "local newOwnerRole = redis.call('HGET', playersKey, newOwnerUuid) " + "if not newOwnerRole then " + "    return -1 " + "end " + "redis.call('HSET', playersKey, oldOwnerUuid, 'member') " + "redis.call('HSET', playersKey, newOwnerUuid, 'owner') " + "redis.call('HSET', coreKey, 'owner', newOwnerUuid) " + "redis.call('HSET', playerIslandKey, newOwnerUuid, islandUuid) " + "return 1";
+
     private static final String LUA_DELETE_ALL_COOP_OF_PLAYER = "local reverseKey = KEYS[1] " + "local dataPrefix = ARGV[1] " + "local playerUuid = ARGV[2] " + "local islands = redis.call('SMEMBERS', reverseKey) " + "for i = 1, #islands do " + "    local coopKey = dataPrefix .. 'island:' .. islands[i] .. ':coops' " + "    redis.call('SREM', coopKey, playerUuid) " + "end " + "redis.call('DEL', reverseKey) " + "return islands";
 
     private final NewSky plugin;
     private final RedisHandler redisHandler;
     private final DatabaseHandler database;
+    private final RuntimeCache runtimeCache;
 
-    public DataCache(NewSky plugin, RedisHandler redisHandler, DatabaseHandler database) {
+    public DataCache(NewSky plugin, RedisHandler redisHandler, DatabaseHandler database, RuntimeCache runtimeCache) {
         this.plugin = plugin;
         this.redisHandler = redisHandler;
         this.database = database;
+        this.runtimeCache = runtimeCache;
+
+        cacheAll();
     }
 
     // =================================================================================================================
@@ -100,17 +105,16 @@ public final class DataCache {
         }
     }
 
-    private void failRedisSync(String action, Exception e) {
-        plugin.severe("Database write succeeded but Redis sync failed for action: " + action, e);
-        throw new RuntimeException(e);
-    }
-
     // =================================================================================================================
     // Full bootstrap
     // =================================================================================================================
 
     public void cacheAll() {
-        plugin.debug("DataCache", "Starting Redis data cache rebuild from MySQL...");
+        plugin.debug("DataCache", "Starting Redis data cache from MySQL...");
+
+        if (!runtimeCache.getActiveServers().isEmpty()) {
+            plugin.severe("Active servers detected in runtime cache during data cache. Skip rebuild. Active servers: " + runtimeCache.getActiveServers());
+        }
 
         flushData();
         cacheIslandCore();
@@ -123,7 +127,7 @@ public final class DataCache {
         cacheIslandUpgrades();
         cachePlayerUuid();
 
-        plugin.debug("DataCache", "Redis data cache rebuild finished.");
+        plugin.debug("DataCache", "Redis data cache finished.");
     }
 
     private void flushData() {
@@ -362,7 +366,8 @@ public final class DataCache {
 
             p.sync();
         } catch (Exception e) {
-            failRedisSync("createIsland:" + islandUuid, e);
+            plugin.severe("Database insert succeeded but Redis sync failed while creating island: island=" + islandUuid + ", owner=" + ownerUuid, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -395,7 +400,8 @@ public final class DataCache {
 
             p.sync();
         } catch (Exception e) {
-            failRedisSync("deleteIsland:" + islandUuid, e);
+            plugin.severe("Database delete succeeded but Redis sync failed while deleting island: island=" + islandUuid, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -436,7 +442,8 @@ public final class DataCache {
 
             p.sync();
         } catch (Exception e) {
-            failRedisSync("updatePlayerUuid:" + uuid, e);
+            plugin.severe("Database update succeeded but Redis sync failed while updating player name mapping: uuid=" + uuid + ", name=" + name, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -469,7 +476,8 @@ public final class DataCache {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset(islandCoreKey(islandUuid), "lock", asBool(lock));
         } catch (Exception e) {
-            failRedisSync("updateIslandLock:" + islandUuid, e);
+            plugin.severe("Database update succeeded but Redis sync failed while updating island lock: island=" + islandUuid + ", lock=" + lock, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -488,7 +496,8 @@ public final class DataCache {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset(islandCoreKey(islandUuid), "pvp", asBool(pvp));
         } catch (Exception e) {
-            failRedisSync("updateIslandPvp:" + islandUuid, e);
+            plugin.severe("Database update succeeded but Redis sync failed while updating island pvp: island=" + islandUuid + ", pvp=" + pvp, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -507,7 +516,8 @@ public final class DataCache {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset(islandCoreKey(islandUuid), "level", String.valueOf(level));
         } catch (Exception e) {
-            failRedisSync("updateIslandLevel:" + islandUuid, e);
+            plugin.severe("Database update succeeded but Redis sync failed while updating island level: island=" + islandUuid + ", level=" + level, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -534,7 +544,8 @@ public final class DataCache {
             p.hset(islandHomesKey(islandUuid, playerUuid), "default", homeLocation);
             p.sync();
         } catch (Exception e) {
-            failRedisSync("updateIslandPlayer:" + islandUuid + ":" + playerUuid, e);
+            plugin.severe("Database insert succeeded but Redis sync failed while adding island player: island=" + islandUuid + ", player=" + playerUuid + ", role=" + role, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -549,7 +560,8 @@ public final class DataCache {
             p.del(islandWarpsKey(islandUuid, playerUuid));
             p.sync();
         } catch (Exception e) {
-            failRedisSync("deleteIslandPlayer:" + islandUuid + ":" + playerUuid, e);
+            plugin.severe("Database delete succeeded but Redis sync failed while deleting island player: island=" + islandUuid + ", player=" + playerUuid, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -573,7 +585,8 @@ public final class DataCache {
 
             throw new IllegalStateException("Unexpected Lua result while updating island owner: " + code);
         } catch (Exception e) {
-            failRedisSync("updateIslandOwner:" + islandUuid, e);
+            plugin.severe("Database update succeeded but Redis sync failed while updating island owner: island=" + islandUuid + ", oldOwner=" + oldOwnerUuid + ", newOwner=" + newOwnerUuid, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -625,7 +638,8 @@ public final class DataCache {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset(islandHomesKey(islandUuid, playerUuid), homeName, homeLocation);
         } catch (Exception e) {
-            failRedisSync("updateHomePoint:" + islandUuid + ":" + playerUuid + ":" + homeName, e);
+            plugin.severe("Database update succeeded but Redis sync failed while updating home point: island=" + islandUuid + ", player=" + playerUuid + ", home=" + homeName, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -635,7 +649,8 @@ public final class DataCache {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hdel(islandHomesKey(islandUuid, playerUuid), homeName);
         } catch (Exception e) {
-            failRedisSync("deleteHomePoint:" + islandUuid + ":" + playerUuid + ":" + homeName, e);
+            plugin.severe("Database delete succeeded but Redis sync failed while deleting home point: island=" + islandUuid + ", player=" + playerUuid + ", home=" + homeName, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -667,7 +682,8 @@ public final class DataCache {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset(islandWarpsKey(islandUuid, playerUuid), warpName, warpLocation);
         } catch (Exception e) {
-            failRedisSync("updateWarpPoint:" + islandUuid + ":" + playerUuid + ":" + warpName, e);
+            plugin.severe("Database update succeeded but Redis sync failed while updating warp point: island=" + islandUuid + ", player=" + playerUuid + ", warp=" + warpName, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -677,7 +693,8 @@ public final class DataCache {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hdel(islandWarpsKey(islandUuid, playerUuid), warpName);
         } catch (Exception e) {
-            failRedisSync("deleteWarpPoint:" + islandUuid + ":" + playerUuid + ":" + warpName, e);
+            plugin.severe("Database delete succeeded but Redis sync failed while deleting warp point: island=" + islandUuid + ", player=" + playerUuid + ", warp=" + warpName, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -709,7 +726,8 @@ public final class DataCache {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.sadd(islandBansKey(islandUuid), playerUuid.toString());
         } catch (Exception e) {
-            failRedisSync("updateBanPlayer:" + islandUuid + ":" + playerUuid, e);
+            plugin.severe("Database update succeeded but Redis sync failed while adding banned player: island=" + islandUuid + ", player=" + playerUuid, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -719,7 +737,8 @@ public final class DataCache {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.srem(islandBansKey(islandUuid), playerUuid.toString());
         } catch (Exception e) {
-            failRedisSync("deleteBanPlayer:" + islandUuid + ":" + playerUuid, e);
+            plugin.severe("Database delete succeeded but Redis sync failed while deleting banned player: island=" + islandUuid + ", player=" + playerUuid, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -754,7 +773,8 @@ public final class DataCache {
             p.sadd(playerCoopedIslandsKey(playerUuid), islandUuid.toString());
             p.sync();
         } catch (Exception e) {
-            failRedisSync("updateCoopPlayer:" + islandUuid + ":" + playerUuid, e);
+            plugin.severe("Database update succeeded but Redis sync failed while adding coop player: island=" + islandUuid + ", player=" + playerUuid, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -767,7 +787,8 @@ public final class DataCache {
             p.srem(playerCoopedIslandsKey(playerUuid), islandUuid.toString());
             p.sync();
         } catch (Exception e) {
-            failRedisSync("deleteCoopPlayer:" + islandUuid + ":" + playerUuid, e);
+            plugin.severe("Database delete succeeded but Redis sync failed while deleting coop player: island=" + islandUuid + ", player=" + playerUuid, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -790,8 +811,8 @@ public final class DataCache {
 
             return touchedIslands;
         } catch (Exception e) {
-            failRedisSync("deleteAllCoopOfPlayer:" + playerUuid, e);
-            return Set.of();
+            plugin.severe("Database delete succeeded but Redis sync failed while deleting all coop of player: player=" + playerUuid, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -831,7 +852,8 @@ public final class DataCache {
                 jedis.hset(islandUpgradesKey(islandUuid), upgradeId, String.valueOf(level));
             }
         } catch (Exception e) {
-            failRedisSync("updateIslandUpgradeLevel:" + islandUuid + ":" + upgradeId, e);
+            plugin.severe("Database update succeeded but Redis sync failed while updating island upgrade level: island=" + islandUuid + ", upgrade=" + upgradeId + ", level=" + level, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -845,7 +867,7 @@ public final class DataCache {
     }
 
     // =================================================================================================================
-    // Island Snapshot Getter
+    // Island Snapshot
     // =================================================================================================================
 
     public Island getIslandSnapshot(UUID islandUuid) {

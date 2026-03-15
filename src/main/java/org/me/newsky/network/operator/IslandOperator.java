@@ -40,25 +40,16 @@ public class IslandOperator {
     public CompletableFuture<Void> createIsland(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        return worldHandler.createWorld(islandName).thenRun(() -> {
+        return islandLoadedSnapshot.load(islandUuid).thenCompose(v -> worldHandler.createWorld(islandName)).thenRun(() -> {
             runtimeCache.updateIslandLoadedServer(islandUuid, serverID);
             plugin.debug("IslandOperator", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
-        });
-    }
-
-    public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
-        String islandName = IslandUtils.UUIDToName(islandUuid);
-
-        return worldHandler.deleteWorld(islandName).thenRun(() -> {
-            runtimeCache.removeIslandLoadedServer(islandUuid);
-            plugin.debug("IslandOperator", "Removed island loaded server for UUID: " + islandUuid);
         });
     }
 
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        return worldHandler.loadWorld(islandName).thenRun(() -> {
+        return islandLoadedSnapshot.load(islandUuid).thenCompose(v -> worldHandler.loadWorld(islandName)).thenRun(() -> {
             runtimeCache.updateIslandLoadedServer(islandUuid, serverID);
             plugin.debug("IslandOperator", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
         });
@@ -68,6 +59,15 @@ public class IslandOperator {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         return worldHandler.unloadWorld(islandName).thenRun(() -> {
+            runtimeCache.removeIslandLoadedServer(islandUuid);
+            plugin.debug("IslandOperator", "Removed island loaded server for UUID: " + islandUuid);
+        });
+    }
+
+    public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
+        String islandName = IslandUtils.UUIDToName(islandUuid);
+
+        return worldHandler.deleteWorld(islandName).thenRun(() -> {
             runtimeCache.removeIslandLoadedServer(islandUuid);
             plugin.debug("IslandOperator", "Removed island loaded server for UUID: " + islandUuid);
         });
