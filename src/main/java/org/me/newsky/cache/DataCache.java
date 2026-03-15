@@ -155,9 +155,13 @@ public final class DataCache {
             plugin.severe("Failed to flush Redis data cache.", e);
             throw new RuntimeException(e);
         }
+
+        plugin.debug("DataCache", "Redis data cache flush completed.");
     }
 
     private void cacheIslandCore() {
+        plugin.debug("DataCache", "Caching island core data...");
+
         try (Jedis jedis = redisHandler.getJedis()) {
             database.selectAllIslandData(rs -> {
                 Pipeline p = jedis.pipelined();
@@ -174,9 +178,13 @@ public final class DataCache {
             plugin.severe("Failed to load island core cache.", e);
             throw new RuntimeException(e);
         }
+
+        plugin.debug("DataCache", "Island core data cache completed.");
     }
 
     private void cacheIslandPlayers() {
+        plugin.debug("DataCache", "Caching island players data...");
+
         try (Jedis jedis = redisHandler.getJedis()) {
             database.selectAllIslandPlayers(rs -> {
                 Pipeline p = jedis.pipelined();
@@ -200,9 +208,13 @@ public final class DataCache {
             plugin.severe("Failed to load island players cache.", e);
             throw new RuntimeException(e);
         }
+
+        plugin.debug("DataCache", "Island players data cache completed.");
     }
 
     private void cacheIslandHomes() {
+        plugin.debug("DataCache", "Caching island homes data...");
+
         try (Jedis jedis = redisHandler.getJedis()) {
             database.selectAllIslandHomes(rs -> {
                 Pipeline p = jedis.pipelined();
@@ -220,9 +232,13 @@ public final class DataCache {
             plugin.severe("Failed to load island homes cache.", e);
             throw new RuntimeException(e);
         }
+
+        plugin.debug("DataCache", "Island homes data cache completed.");
     }
 
     private void cacheIslandWarps() {
+        plugin.debug("DataCache", "Caching island warps data...");
+
         try (Jedis jedis = redisHandler.getJedis()) {
             database.selectAllIslandWarps(rs -> {
                 Pipeline p = jedis.pipelined();
@@ -240,9 +256,13 @@ public final class DataCache {
             plugin.severe("Failed to load island warps cache.", e);
             throw new RuntimeException(e);
         }
+
+        plugin.debug("DataCache", "Island warps data cache completed.");
     }
 
     private void cacheIslandBans() {
+        plugin.debug("DataCache", "Caching island bans data...");
+
         try (Jedis jedis = redisHandler.getJedis()) {
             database.selectAllIslandBans(rs -> {
                 Pipeline p = jedis.pipelined();
@@ -258,9 +278,13 @@ public final class DataCache {
             plugin.severe("Failed to load island bans cache.", e);
             throw new RuntimeException(e);
         }
+
+        plugin.debug("DataCache", "Island bans data cache completed.");
     }
 
     private void cacheIslandCoops() {
+        plugin.debug("DataCache", "Caching island coops data...");
+
         try (Jedis jedis = redisHandler.getJedis()) {
             database.selectAllIslandCoops(rs -> {
                 Pipeline p = jedis.pipelined();
@@ -279,9 +303,13 @@ public final class DataCache {
             plugin.severe("Failed to load island coops cache.", e);
             throw new RuntimeException(e);
         }
+
+        plugin.debug("DataCache", "Island coops data cache completed.");
     }
 
     private void cacheIslandLevels() {
+        plugin.debug("DataCache", "Caching island levels data...");
+
         try (Jedis jedis = redisHandler.getJedis()) {
             database.selectAllIslandLevels(rs -> {
                 Pipeline p = jedis.pipelined();
@@ -297,9 +325,13 @@ public final class DataCache {
             plugin.severe("Failed to load island level cache.", e);
             throw new RuntimeException(e);
         }
+
+        plugin.debug("DataCache", "Island levels data cache completed.");
     }
 
     private void cacheIslandUpgrades() {
+        plugin.debug("DataCache", "Caching island upgrades data...");
+
         try (Jedis jedis = redisHandler.getJedis()) {
             database.selectAllIslandUpgrades(rs -> {
                 Pipeline p = jedis.pipelined();
@@ -320,9 +352,13 @@ public final class DataCache {
             plugin.severe("Failed to load island upgrades cache.", e);
             throw new RuntimeException(e);
         }
+
+        plugin.debug("DataCache", "Island upgrades data cache completed.");
     }
 
     private void cachePlayerUuid() {
+        plugin.debug("DataCache", "Caching player UUID <-> name mapping...");
+
         try (Jedis jedis = redisHandler.getJedis()) {
             database.selectAllPlayerUuid(rs -> {
                 Pipeline p = jedis.pipelined();
@@ -341,6 +377,8 @@ public final class DataCache {
             plugin.severe("Failed to load player uuid cache.", e);
             throw new RuntimeException(e);
         }
+
+        plugin.debug("DataCache", "Player UUID <-> name mapping cache completed.");
     }
 
     // =================================================================================================================

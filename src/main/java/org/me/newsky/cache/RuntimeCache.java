@@ -199,19 +199,15 @@ public class RuntimeCache {
      */
 
     public void updateActiveServer(String serverName, boolean lobby, int ttlSeconds) {
+        String timestamp = String.valueOf(System.currentTimeMillis());
         try (Jedis jedis = redisHandler.getJedis()) {
-            String timestamp = String.valueOf(System.currentTimeMillis());
-            Pipeline pipeline = jedis.pipelined();
-
-            pipeline.setex(serverHeartbeatKey(serverName), ttlSeconds, timestamp);
+            jedis.setex(serverHeartbeatKey(serverName), ttlSeconds, timestamp);
 
             if (lobby) {
-                pipeline.del(gameServerHeartbeatKey(serverName));
+                jedis.del(gameServerHeartbeatKey(serverName));
             } else {
-                pipeline.setex(gameServerHeartbeatKey(serverName), ttlSeconds, timestamp);
+                jedis.setex(gameServerHeartbeatKey(serverName), ttlSeconds, timestamp);
             }
-
-            pipeline.sync();
         } catch (Exception e) {
             plugin.severe("Failed to update active server for: " + serverName, e);
         }

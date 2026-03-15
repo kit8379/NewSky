@@ -37,12 +37,10 @@ public class RedisHandler {
 
     // Publish a message to a channel
     public void publish(String channel, String message) {
-        CompletableFuture.runAsync(() -> {
-            try (Jedis jedis = getJedis()) {
-                jedis.publish(channel, message);
-                plugin.debug("RedisHandler", "Published message to channel: " + channel);
-            }
-        }, plugin.getBukkitAsyncExecutor());
+        try (Jedis jedis = getJedis()) {
+            jedis.publish(channel, message);
+            plugin.debug("RedisHandler", "Published message to channel: " + channel);
+        }
     }
 
     // Subscribe to a channel
