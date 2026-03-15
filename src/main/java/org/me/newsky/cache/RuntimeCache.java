@@ -122,7 +122,7 @@ public class RuntimeCache {
      * - island load
      * - island unload
      * - island delete
-     * - any operation that must not run concurrently for the same island
+     * - any operation tha t must not run concurrently for the same island
      * ====================================================================================================
      */
 
