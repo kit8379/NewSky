@@ -8,7 +8,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.me.newsky.NewSky;
-import snapshot.IslandLoadedSnapshot;
+import snapshot.IslandSnapshot;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.model.Island;
 import org.me.newsky.util.IslandUtils;
@@ -19,12 +19,12 @@ public class IslandAccessListener implements Listener {
 
     private final NewSky plugin;
     private final ConfigHandler config;
-    private final IslandLoadedSnapshot islandLoadedSnapshot;
+    private final IslandSnapshot islandSnapshot;
 
-    public IslandAccessListener(NewSky plugin, ConfigHandler config, IslandLoadedSnapshot islandLoadedSnapshot) {
+    public IslandAccessListener(NewSky plugin, ConfigHandler config, IslandSnapshot islandSnapshot) {
         this.plugin = plugin;
         this.config = config;
-        this.islandLoadedSnapshot = islandLoadedSnapshot;
+        this.islandSnapshot = islandSnapshot;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -49,7 +49,7 @@ public class IslandAccessListener implements Listener {
         UUID islandUuid = IslandUtils.nameToUUID(player.getWorld().getName());
         UUID playerUuid = player.getUniqueId();
 
-        Island island = islandLoadedSnapshot.get(islandUuid);
+        Island island = islandSnapshot.get(islandUuid);
 
         boolean banned = island.getBans().contains(playerUuid);
         boolean locked = island.isLock() && !island.getOwner().equals(playerUuid) && !island.getMembers().contains(playerUuid) && !island.getCoops().contains(playerUuid);

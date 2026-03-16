@@ -39,7 +39,7 @@ public class LevelHandler {
 
     public CompletableFuture<Integer> calIslandLevel(UUID islandUuid) {
         if (!Bukkit.isPrimaryThread()) {
-            throw new IllegalStateException("calIslandLevel must be called from the main server thread");
+            return CompletableFuture.completedFuture(null).thenComposeAsync(v -> calIslandLevel(islandUuid), Bukkit.getScheduler().getMainThreadExecutor(plugin));
         }
 
         String islandName = IslandUtils.UUIDToName(islandUuid);
@@ -52,6 +52,7 @@ public class LevelHandler {
         int maxChunkZ = Math.floorDiv(halfSize, 16);
 
         World world = plugin.getServer().getWorld(islandName);
+
         if (world == null) {
             return getIslandLevel(islandUuid).thenApply(cachedLevel -> {
                 plugin.debug("LevelHandler", "World not loaded for island " + islandName + ", returning cached level: " + cachedLevel);
@@ -60,6 +61,7 @@ public class LevelHandler {
         }
 
         List<CompletableFuture<Chunk>> chunkFutures = new ArrayList<>();
+
         for (int cx = minChunkX; cx <= maxChunkX; cx++) {
             for (int cz = minChunkZ; cz <= maxChunkZ; cz++) {
                 chunkFutures.add(world.getChunkAtAsync(cx, cz, true));
@@ -68,52 +70,59 @@ public class LevelHandler {
 
         CompletableFuture<Void> allLoaded = CompletableFuture.allOf(chunkFutures.toArray(new CompletableFuture[0]));
 
-        CompletableFuture<List<ChunkSnapshot>> snapshotsFuture = allLoaded.thenCompose(v -> {
-            CompletableFuture<List<ChunkSnapshot>> result = new CompletableFuture<>();
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                try {
-                    List<ChunkSnapshot> snapshots = new ArrayList<>(chunkFutures.size());
-                    for (CompletableFuture<Chunk> f : chunkFutures) {
-                        Chunk chunk = f.join();
-                        if (chunk == null) {
-                            continue;
-                        }
-                        snapshots.add(chunk.getChunkSnapshot());
-                    }
-                    result.complete(snapshots);
-                } catch (Throwable t) {
-                    result.completeExceptionally(t);
+        CompletableFuture<List<ChunkSnapshot>> snapshotsFuture = allLoaded.thenApply(chunks -> {
+
+            List<ChunkSnapshot> snapshots = new ArrayList<>(chunkFutures.size());
+
+            for (CompletableFuture<Chunk> f : chunkFutures) {
+                Chunk chunk = f.join();
+                if (chunk == null) {
+                    continue;
                 }
-            });
-            return result;
+
+                snapshots.add(chunk.getChunkSnapshot());
+            }
+
+            return snapshots;
         });
 
         return snapshotsFuture.thenApplyAsync(snapshots -> {
-            int minY = world.getMinHeight();
-            int maxY = world.getMaxHeight();
-            int[] table = this.pointsByMaterialOrdinal;
 
-            long totalPoints = 0;
-            for (ChunkSnapshot snapshot : snapshots) {
-                totalPoints += calculateSnapshotPoints(snapshot, minY, maxY, table);
-            }
+                    int minY = world.getMinHeight();
+                    int maxY = world.getMaxHeight();
+                    int[] table = this.pointsByMaterialOrdinal;
 
-            return (int) Math.round((double) totalPoints / 100.0);
-        }, plugin.getBukkitAsyncExecutor()).thenApply(totalLevel -> {
-            dataCache.updateIslandLevel(islandUuid, totalLevel);
-            plugin.debug("LevelHandler", "Calculated level for island " + islandUuid + ": " + totalLevel);
-            return totalLevel;
-        });
+                    long totalPoints = 0;
+
+                    for (ChunkSnapshot snapshot : snapshots) {
+                        totalPoints += calculateSnapshotPoints(snapshot, minY, maxY, table);
+                    }
+
+                    return (int) Math.round((double) totalPoints / 100.0);
+
+                }, plugin.getBukkitAsyncExecutor())
+
+                .thenApply(totalLevel -> {
+
+                    dataCache.updateIslandLevel(islandUuid, totalLevel);
+
+                    plugin.debug("LevelHandler", "Calculated level for island " + islandUuid + ": " + totalLevel);
+
+                    return totalLevel;
+                });
     }
 
     private static long calculateSnapshotPoints(ChunkSnapshot snapshot, int minY, int maxY, int[] table) {
+
         long points = 0;
 
         for (int y = minY; y < maxY; y++) {
             for (int z = 0; z < 16; z++) {
                 for (int x = 0; x < 16; x++) {
+
                     Material mat = snapshot.getBlockType(x, y, z);
                     points += table[mat.ordinal()];
+
                 }
             }
         }

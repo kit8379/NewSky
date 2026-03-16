@@ -10,7 +10,7 @@ import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.util.LocationUtils;
 import org.me.newsky.world.WorldHandler;
-import snapshot.IslandLoadedSnapshot;
+import snapshot.IslandSnapshot;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -21,15 +21,15 @@ public class IslandOperator {
     private final RuntimeCache runtimeCache;
     private final WorldHandler worldHandler;
     private final TeleportHandler teleportHandler;
-    private final IslandLoadedSnapshot islandLoadedSnapshot;
+    private final IslandSnapshot islandSnapshot;
     private final String serverID;
 
-    public IslandOperator(NewSky plugin, RuntimeCache runtimeCache, WorldHandler worldHandler, TeleportHandler teleportHandler, IslandLoadedSnapshot islandLoadedSnapshot, String serverID) {
+    public IslandOperator(NewSky plugin, RuntimeCache runtimeCache, WorldHandler worldHandler, TeleportHandler teleportHandler, IslandSnapshot islandSnapshot, String serverID) {
         this.plugin = plugin;
         this.runtimeCache = runtimeCache;
         this.worldHandler = worldHandler;
         this.teleportHandler = teleportHandler;
-        this.islandLoadedSnapshot = islandLoadedSnapshot;
+        this.islandSnapshot = islandSnapshot;
         this.serverID = serverID;
     }
 
@@ -40,7 +40,7 @@ public class IslandOperator {
     public CompletableFuture<Void> createIsland(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        return islandLoadedSnapshot.load(islandUuid).thenCompose(v -> worldHandler.createWorld(islandName)).thenRun(() -> {
+        return islandSnapshot.load(islandUuid).thenCompose(v -> worldHandler.createWorld(islandName)).thenRun(() -> {
             runtimeCache.updateIslandLoadedServer(islandUuid, serverID);
             plugin.debug("IslandOperator", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
         });
@@ -49,7 +49,7 @@ public class IslandOperator {
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        return islandLoadedSnapshot.load(islandUuid).thenCompose(v -> worldHandler.loadWorld(islandName)).thenRun(() -> {
+        return islandSnapshot.load(islandUuid).thenCompose(v -> worldHandler.loadWorld(islandName)).thenRun(() -> {
             runtimeCache.updateIslandLoadedServer(islandUuid, serverID);
             plugin.debug("IslandOperator", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
         });
@@ -160,6 +160,6 @@ public class IslandOperator {
     }
 
     public void reloadSnapshot(UUID islandUuid) {
-        islandLoadedSnapshot.reload(islandUuid);
+        islandSnapshot.reload(islandUuid);
     }
 }

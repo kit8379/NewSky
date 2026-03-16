@@ -1,4 +1,3 @@
-// NEW FILE: IslandOpLock.java
 package org.me.newsky.network.lock;
 
 import org.bukkit.Bukkit;
@@ -13,25 +12,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-/**
- * Shared distributed lock wrapper for sensitive island operations (load/unload/delete).
- *
- * <p>Uses Redis lock keys (via RuntimeCache) and maintains TTL using a heartbeat until the
- * provided action future completes, then releases the lock.
- */
-public final class IslandOpLock {
-
-    /**
-     * Default lock TTL. Must be long enough to cover worst-case island load/unload/delete.
-     * Extended periodically by heartbeat while the operation is running.
-     */
-    public static final long DEFAULT_LOCK_TTL_MS = TimeUnit.MINUTES.toMillis(5);
-
-    /**
-     * How often to extend the lock TTL while a sensitive operation is running.
-     * Keep it comfortably below TTL to avoid expiry during pauses.
-     */
-    public static final long DEFAULT_HEARTBEAT_MS = TimeUnit.MINUTES.toMillis(1);
+public final class IslandOperationLock {
 
     private final NewSky plugin;
     private final RuntimeCache runtimeCache;
@@ -39,11 +20,14 @@ public final class IslandOpLock {
     private final long lockTtlMs;
     private final long heartbeatMs;
 
-    public IslandOpLock(NewSky plugin, RuntimeCache runtimeCache, String serverID) {
+    public static final long DEFAULT_LOCK_TTL_MS = TimeUnit.MINUTES.toMillis(5);
+    public static final long DEFAULT_HEARTBEAT_MS = TimeUnit.MINUTES.toMillis(1);
+
+    public IslandOperationLock(NewSky plugin, RuntimeCache runtimeCache, String serverID) {
         this(plugin, runtimeCache, serverID, DEFAULT_LOCK_TTL_MS, DEFAULT_HEARTBEAT_MS);
     }
 
-    public IslandOpLock(NewSky plugin, RuntimeCache runtimeCache, String serverID, long lockTtlMs, long heartbeatMs) {
+    public IslandOperationLock(NewSky plugin, RuntimeCache runtimeCache, String serverID, long lockTtlMs, long heartbeatMs) {
         this.plugin = plugin;
         this.runtimeCache = runtimeCache;
         this.serverID = serverID;
@@ -55,19 +39,13 @@ public final class IslandOpLock {
         return runtimeCache.isIslandOpLocked(islandUuid);
     }
 
-    /**
-     * Run an action under the distributed island op lock.
-     *
-     * <p>If lock is already held by someone else, completes exceptionally with {@link IslandBusyException}.
-     * Lock TTL is extended periodically until the returned future completes, then lock is released.
-     */
     public <T> CompletableFuture<T> withLock(UUID islandUuid, Supplier<CompletableFuture<T>> action) {
         String token = serverID + ":" + UUID.randomUUID();
 
         Optional<String> acquired = runtimeCache.tryAcquireIslandOpLock(islandUuid, token, lockTtlMs);
         if (acquired.isEmpty()) {
             long pttl = runtimeCache.getIslandOpLockTtlMillis(islandUuid);
-            plugin.debug("IslandOpLock", "withLock: busy lock for " + islandUuid + " (pttl=" + pttl + "ms)");
+            plugin.debug("IslandOperationLock", "withLock: busy lock for " + islandUuid + " (pttl=" + pttl + "ms)");
             return CompletableFuture.failedFuture(new IslandBusyException());
         }
 
@@ -76,7 +54,7 @@ public final class IslandOpLock {
         BukkitTask heartbeat = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
             boolean ok = runtimeCache.extendIslandOpLock(islandUuid, token, lockTtlMs);
             if (!ok) {
-                plugin.debug("IslandOpLock", "withLock: failed to extend lock (lost ownership?) island=" + islandUuid);
+                plugin.debug("IslandOperationLock", "withLock: failed to extend lock (lost ownership?) island=" + islandUuid);
             }
         }, periodTicks, periodTicks);
 

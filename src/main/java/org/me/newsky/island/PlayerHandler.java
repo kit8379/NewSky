@@ -97,9 +97,9 @@ public class PlayerHandler {
 
     public CompletableFuture<Void> addPendingInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {
         return CompletableFuture.runAsync(() -> {
-            Optional<Invitation> existingInvite = runtimeCache.getIslandInvite(inviteeUuid);
-            if (existingInvite.isPresent()) {
-                throw new InvitedAlreadyException();
+            Set<UUID> members = dataCache.getIslandPlayers(islandUuid);
+            if (members.contains(inviteeUuid)) {
+                throw new IslandPlayerAlreadyExistsException();
             }
 
             Optional<UUID> existingIsland = dataCache.getIslandUuid(inviteeUuid);
@@ -107,9 +107,9 @@ public class PlayerHandler {
                 throw new IslandAlreadyExistException();
             }
 
-            Set<UUID> members = dataCache.getIslandPlayers(islandUuid);
-            if (members.contains(inviteeUuid)) {
-                throw new IslandPlayerAlreadyExistsException();
+            Optional<Invitation> existingInvite = runtimeCache.getIslandInvite(inviteeUuid);
+            if (existingInvite.isPresent()) {
+                throw new InvitedAlreadyException();
             }
 
             runtimeCache.addIslandInvite(inviteeUuid, islandUuid, inviterUuid, ttlSeconds);

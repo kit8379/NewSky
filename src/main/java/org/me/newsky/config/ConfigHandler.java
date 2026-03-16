@@ -146,10 +146,6 @@ public class ConfigHandler {
         return config.getInt("redis.database");
     }
 
-    public String getRedisCacheChannel() {
-        return config.getString("redis.channel.cache");
-    }
-
     public String getRedisIslandChannel() {
         return config.getString("redis.channel.island");
     }
@@ -1238,8 +1234,8 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.warp-name-not-legal"));
     }
 
-    public Component getWarpSuccessMessage(String warp) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.warp-success")).replace("{warp}", warp));
+    public Component getWarpSuccessMessage(String player, String warp) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.warp-success")).replace("{warp}", warp).replace("{player}", player));
     }
 
     public Component getNoWarpMessage(String player, String warp) {

@@ -40,6 +40,7 @@ public final class LevelUpdateScheduler {
     public void stop() {
         if (task != null) {
             task.cancel();
+            task = null;
         }
         entries.clear();
         pq.clear();

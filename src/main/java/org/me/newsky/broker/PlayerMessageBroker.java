@@ -15,16 +15,12 @@ public class PlayerMessageBroker {
 
     private final NewSky plugin;
     private final RedisHandler redisHandler;
-
     private JedisPubSub subscriber;
-
-    private final String serverID;
     private final String channelID;
 
-    public PlayerMessageBroker(NewSky plugin, RedisHandler redisHandler, String serverID, String channelID) {
+    public PlayerMessageBroker(NewSky plugin, RedisHandler redisHandler, String channelID) {
         this.plugin = plugin;
         this.redisHandler = redisHandler;
-        this.serverID = serverID;
         this.channelID = channelID;
     }
 
@@ -35,14 +31,8 @@ public class PlayerMessageBroker {
                 plugin.debug("PlayerMessageBroker", "Received message on channel " + channel + ": " + message);
                 try {
                     JSONObject json = new JSONObject(message);
-                    String target = json.getString("server");
                     String uuid = json.getString("uuid");
                     String component = json.getString("component");
-
-                    if (!serverID.equals(target)) {
-                        plugin.debug("PlayerMessageBroker", "Message intended for server " + target + ", ignoring.");
-                        return;
-                    }
 
                     handlePlayerMessage(UUID.fromString(uuid), ComponentUtils.deserialize(component));
                 } catch (Exception e) {
@@ -62,23 +52,17 @@ public class PlayerMessageBroker {
         }
     }
 
-    public void sendPlayerMessage(String playerServer, UUID playerUuid, Component component) {
-        if (serverID.equals(playerServer)) {
-            handlePlayerMessage(playerUuid, component);
-        } else {
-            try {
-                JSONObject json = new JSONObject();
-                json.put("server", playerServer);
-                json.put("uuid", playerUuid.toString());
-                json.put("component", ComponentUtils.serialize(component));
+    public void sendPlayerMessage(UUID playerUuid, Component component) {
+        try {
+            JSONObject json = new JSONObject();
+            json.put("uuid", playerUuid.toString());
+            json.put("component", ComponentUtils.serialize(component));
 
-                plugin.debug("PlayerMessageBroker", "Publishing message to player " + playerUuid + " on server " + playerServer);
-                redisHandler.publish(channelID, json.toString());
-            } catch (Exception e) {
-                plugin.severe("PlayerMessageBroker failed to publish message to player " + playerUuid, e);
-            }
+            plugin.debug("PlayerMessageBroker", "Publishing message to channel " + channelID + ": " + json);
+            redisHandler.publish(channelID, json.toString());
+        } catch (Exception e) {
+            plugin.severe("PlayerMessageBroker failed to publish message to player " + playerUuid, e);
         }
-
     }
 
     private void handlePlayerMessage(UUID playerUuid, Component component) {

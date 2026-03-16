@@ -10,7 +10,7 @@ import org.me.newsky.island.UpgradeHandler;
 import org.me.newsky.model.Island;
 import org.me.newsky.scheduler.LevelUpdateScheduler;
 import org.me.newsky.util.IslandUtils;
-import snapshot.IslandLoadedSnapshot;
+import snapshot.IslandSnapshot;
 
 import java.util.Map;
 import java.util.UUID;
@@ -20,13 +20,13 @@ public class WorldLoadListener implements Listener {
     private final NewSky plugin;
     private final ConfigHandler config;
     private final LevelUpdateScheduler levelUpdateScheduler;
-    private final IslandLoadedSnapshot islandLoadedSnapshot;
+    private final IslandSnapshot islandSnapshot;
 
-    public WorldLoadListener(NewSky plugin, ConfigHandler config, LevelUpdateScheduler levelUpdateScheduler, IslandLoadedSnapshot islandLoadedSnapshot) {
+    public WorldLoadListener(NewSky plugin, ConfigHandler config, LevelUpdateScheduler levelUpdateScheduler, IslandSnapshot islandSnapshot) {
         this.plugin = plugin;
         this.config = config;
         this.levelUpdateScheduler = levelUpdateScheduler;
-        this.islandLoadedSnapshot = islandLoadedSnapshot;
+        this.islandSnapshot = islandSnapshot;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -41,7 +41,7 @@ public class WorldLoadListener implements Listener {
         UUID islandUuid = IslandUtils.nameToUUID(name);
 
         applyGameRules(world);
-        applyWorldBorder(world, islandUuid);
+        applyBorder(world, islandUuid);
         registerLevelUpdate(islandUuid);
     }
 
@@ -97,8 +97,8 @@ public class WorldLoadListener implements Listener {
         }
     }
 
-    private void applyWorldBorder(World world, UUID islandUuid) {
-        Island island = islandLoadedSnapshot.get(islandUuid);
+    private void applyBorder(World world, UUID islandUuid) {
+        Island island = islandSnapshot.get(islandUuid);
 
         int level = island.getUpgrades().getOrDefault(UpgradeHandler.UPGRADE_ISLAND_SIZE, 1);
         int size = plugin.getApi().getIslandSize(level);

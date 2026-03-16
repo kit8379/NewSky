@@ -80,12 +80,10 @@ public class AdminUnbanCommand implements SubCommand, AsyncTabComplete {
 
                 UUID targetPlayerUuid = targetUuidOpt.get();
 
-                return api.getIslandUuid(islandOwnerUuid).thenCompose(islandUuid -> {
-                    return api.unbanPlayer(islandUuid, targetPlayerUuid).thenRun(() -> {
-                        sender.sendMessage(config.getAdminUnbanSuccessMessage(islandOwnerName, banPlayerName));
-                        api.sendPlayerMessage(targetPlayerUuid, config.getWasUnbannedFromIslandMessage(islandOwnerName));
-                    });
-                });
+                return api.getIslandUuid(islandOwnerUuid).thenCompose(islandUuid -> api.unbanPlayer(islandUuid, targetPlayerUuid).thenRun(() -> {
+                    sender.sendMessage(config.getAdminUnbanSuccessMessage(islandOwnerName, banPlayerName));
+                    api.sendPlayerMessage(targetPlayerUuid, config.getWasUnbannedFromIslandMessage(islandOwnerName));
+                }));
             });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
@@ -124,11 +122,7 @@ public class AdminUnbanCommand implements SubCommand, AsyncTabComplete {
                         return CompletableFuture.completedFuture(Collections.<String>emptyList());
                     }
 
-                    List<CompletableFuture<String>> nameFutures = bannedPlayers.stream().map(uuid -> api.getPlayerName(uuid).thenApply(nameOpt -> nameOpt.orElse(uuid.toString()))).toList();
-
-                    CompletableFuture<Void> all = CompletableFuture.allOf(nameFutures.toArray(new CompletableFuture[0]));
-
-                    return all.thenApply(v -> nameFutures.stream().map(CompletableFuture::join).filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()));
+                    return api.getPlayerNames(bannedPlayers).thenApply(nameMap -> bannedPlayers.stream().map(uuid -> nameMap.getOrDefault(uuid, uuid.toString())).filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()));
                 }));
             }).exceptionally(ex -> Collections.emptyList());
         }

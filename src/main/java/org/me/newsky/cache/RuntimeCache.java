@@ -28,7 +28,6 @@ public class RuntimeCache {
     private static final String GAME_SERVER_HEARTBEAT_PREFIX = RUNTIME_PREFIX + "heartbeat:game_server:";
 
     private static final String ISLAND_SERVER_KEY = RUNTIME_PREFIX + "island_server";
-    private static final String ONLINE_PLAYERS_KEY = RUNTIME_PREFIX + "online_players";
     private static final String ONLINE_PLAYER_NAMES_KEY = RUNTIME_PREFIX + "online_player_names";
 
     private static final String SERVER_MSPT_KEY = RUNTIME_PREFIX + "server_mspt";
@@ -36,8 +35,8 @@ public class RuntimeCache {
 
     private static final String ISLAND_INVITE_PREFIX = RUNTIME_PREFIX + "invite:island:";
 
-
     private static final String LUA_RELEASE_LOCK = "if redis.call('GET', KEYS[1]) == ARGV[1] then " + " return redis.call('DEL', KEYS[1]) " + "else " + " return 0 " + "end";
+
     private static final String LUA_EXTEND_LOCK = "if redis.call('GET', KEYS[1]) == ARGV[1] then " + " return redis.call('PEXPIRE', KEYS[1], ARGV[2]) " + "else " + " return 0 " + "end";
 
     private final RedisHandler redisHandler;
@@ -122,7 +121,7 @@ public class RuntimeCache {
      * - island load
      * - island unload
      * - island delete
-     * - any operation tha t must not run concurrently for the same island
+     * - any operation that must not run concurrently for the same island
      * ====================================================================================================
      */
 
@@ -216,7 +215,6 @@ public class RuntimeCache {
     public void removeActiveServer(String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             Pipeline pipeline = jedis.pipelined();
-
             pipeline.del(serverHeartbeatKey(serverName));
             pipeline.del(gameServerHeartbeatKey(serverName));
             pipeline.hdel(SERVER_MSPT_KEY, serverName);
@@ -231,18 +229,6 @@ public class RuntimeCache {
                     }
                 }
                 islandPipeline.sync();
-            }
-
-            Map<String, String> onlinePlayers = jedis.hgetAll(ONLINE_PLAYERS_KEY);
-            if (!onlinePlayers.isEmpty()) {
-                Pipeline playerPipeline = jedis.pipelined();
-                for (Map.Entry<String, String> entry : onlinePlayers.entrySet()) {
-                    if (serverName.equals(entry.getValue())) {
-                        playerPipeline.hdel(ONLINE_PLAYERS_KEY, entry.getKey());
-                        playerPipeline.hdel(ONLINE_PLAYER_NAMES_KEY, entry.getKey());
-                    }
-                }
-                playerPipeline.sync();
             }
 
             plugin.debug("RuntimeCache", "Cleaned up all runtime data for server: " + serverName);
@@ -307,46 +293,28 @@ public class RuntimeCache {
      * ====================================================================================================
      * =                                       ONLINE PLAYER PRESENCE                                      =
      * ====================================================================================================
-     * This section tracks online players and which server they are on.
-     * Two hashes are used:
+     * This section tracks online player names currently known by the network.
      *
-     * 1) UUID -> server
-     * 2) UUID -> player name
+     * UUID -> player name
      *
-     * This allows fast lookup by UUID while still being able to list names.
+     * This is mainly used for:
+     * - online-name listing
+     * - tab completion
+     * - online UUID enumeration
      * ====================================================================================================
      */
 
-    public Optional<String> getPlayerOnlineServer(UUID playerUuid) {
+    public void addOnlinePlayer(UUID playerUuid, String playerName) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            return Optional.ofNullable(jedis.hget(ONLINE_PLAYERS_KEY, playerUuid.toString()));
-        } catch (Exception e) {
-            plugin.severe("Failed to get player server for: " + playerUuid, e);
-            return Optional.empty();
-        }
-    }
-
-    public void addOnlinePlayer(UUID playerUuid, String playerName, String serverName) {
-        String playerUuidString = playerUuid.toString();
-
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline pipeline = jedis.pipelined();
-            pipeline.hset(ONLINE_PLAYERS_KEY, playerUuidString, serverName);
-            pipeline.hset(ONLINE_PLAYER_NAMES_KEY, playerUuidString, playerName);
-            pipeline.sync();
+            jedis.hset(ONLINE_PLAYER_NAMES_KEY, playerUuid.toString(), playerName);
         } catch (Exception e) {
             plugin.severe("Failed to add online player: " + playerUuid, e);
         }
     }
 
     public void removeOnlinePlayer(UUID playerUuid) {
-        String playerUuidString = playerUuid.toString();
-
         try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline pipeline = jedis.pipelined();
-            pipeline.hdel(ONLINE_PLAYERS_KEY, playerUuidString);
-            pipeline.hdel(ONLINE_PLAYER_NAMES_KEY, playerUuidString);
-            pipeline.sync();
+            jedis.hdel(ONLINE_PLAYER_NAMES_KEY, playerUuid.toString());
         } catch (Exception e) {
             plugin.severe("Failed to remove online player: " + playerUuid, e);
         }
@@ -354,16 +322,17 @@ public class RuntimeCache {
 
     public Set<UUID> getOnlinePlayersUUIDs() {
         try (Jedis jedis = redisHandler.getJedis()) {
-            return jedis.hkeys(ONLINE_PLAYERS_KEY).stream().map(key -> {
+            Set<String> rawKeys = jedis.hkeys(ONLINE_PLAYER_NAMES_KEY);
+            return rawKeys.stream().map(key -> {
                 try {
                     return UUID.fromString(key);
                 } catch (IllegalArgumentException e) {
-                    plugin.severe("Invalid UUID in online players key: " + key, e);
+                    plugin.severe("Invalid UUID in online player names cache: " + key, e);
                     return null;
                 }
             }).filter(Objects::nonNull).collect(Collectors.toSet());
         } catch (Exception e) {
-            plugin.severe("Failed to get online players", e);
+            plugin.severe("Failed to get online player UUIDs", e);
             return Set.of();
         }
     }

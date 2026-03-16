@@ -10,7 +10,6 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -69,15 +68,8 @@ public class PlayerBanListCommand implements SubCommand {
                 return CompletableFuture.completedFuture(null);
             }
 
-            List<CompletableFuture<String>> nameFutures = new ArrayList<>(bannedPlayers.size());
-            for (UUID bannedPlayerUuid : bannedPlayers) {
-                nameFutures.add(api.getPlayerName(bannedPlayerUuid).thenApply(nameOpt -> nameOpt.orElse(bannedPlayerUuid.toString())));
-            }
-
-            CompletableFuture<Void> all = CompletableFuture.allOf(nameFutures.toArray(new CompletableFuture[0]));
-
-            return all.thenAccept(v -> {
-                List<String> playerNames = nameFutures.stream().map(CompletableFuture::join).sorted(String.CASE_INSENSITIVE_ORDER).toList();
+            return api.getPlayerNames(bannedPlayers).thenAccept(nameMap -> {
+                List<String> playerNames = bannedPlayers.stream().map(uuid -> nameMap.getOrDefault(uuid, uuid.toString())).sorted(String.CASE_INSENSITIVE_ORDER).toList();
 
                 TextComponent.Builder bannedList = Component.text().append(config.getBannedPlayersHeaderMessage());
 

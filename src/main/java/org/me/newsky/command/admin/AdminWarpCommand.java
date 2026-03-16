@@ -86,7 +86,7 @@ public class AdminWarpCommand implements SubCommand, AsyncTabComplete {
 
             if (teleportPlayerName == null) {
                 return api.warp(warpPlayerUuid, warpName, finalSenderUuid).thenRun(() -> {
-                    api.sendPlayerMessage(finalSenderUuid, config.getWarpSuccessMessage(warpName));
+                    api.sendPlayerMessage(finalSenderUuid, config.getWarpSuccessMessage(warpPlayerName, warpName));
                 });
             }
 
@@ -98,7 +98,7 @@ public class AdminWarpCommand implements SubCommand, AsyncTabComplete {
 
                 UUID teleportPlayerUuid = teleportPlayerUuidOpt.get();
 
-                return api.warp(warpPlayerUuid, warpName, teleportPlayerUuid).thenRun(() -> api.sendPlayerMessage(teleportPlayerUuid, config.getWarpSuccessMessage(warpName)));
+                return api.warp(warpPlayerUuid, warpName, teleportPlayerUuid).thenRun(() -> api.sendPlayerMessage(teleportPlayerUuid, config.getWarpSuccessMessage(warpPlayerName, warpName)));
             });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();

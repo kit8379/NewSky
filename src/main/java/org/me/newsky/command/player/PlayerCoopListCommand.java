@@ -10,7 +10,6 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -69,15 +68,8 @@ public class PlayerCoopListCommand implements SubCommand {
                 return CompletableFuture.completedFuture(null);
             }
 
-            List<CompletableFuture<String>> nameFutures = new ArrayList<>(coopedPlayers.size());
-            for (UUID coopedPlayerUuid : coopedPlayers) {
-                nameFutures.add(api.getPlayerName(coopedPlayerUuid).thenApply(nameOpt -> nameOpt.orElse(coopedPlayerUuid.toString())));
-            }
-
-            CompletableFuture<Void> all = CompletableFuture.allOf(nameFutures.toArray(new CompletableFuture[0]));
-
-            return all.thenAccept(v -> {
-                List<String> playerNames = nameFutures.stream().map(CompletableFuture::join).sorted(String.CASE_INSENSITIVE_ORDER).toList();
+            return api.getPlayerNames(coopedPlayers).thenAccept(nameMap -> {
+                List<String> playerNames = coopedPlayers.stream().map(uuid -> nameMap.getOrDefault(uuid, uuid.toString())).sorted(String.CASE_INSENSITIVE_ORDER).toList();
 
                 TextComponent.Builder coopedList = Component.text().append(config.getCoopedPlayersHeaderMessage());
 

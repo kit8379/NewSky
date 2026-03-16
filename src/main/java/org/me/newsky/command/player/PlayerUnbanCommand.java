@@ -10,7 +10,10 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerNotBannedException;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -104,15 +107,6 @@ public class PlayerUnbanCommand implements SubCommand, AsyncTabComplete {
         String prefix = args[1].toLowerCase(Locale.ROOT);
         UUID playerUuid = player.getUniqueId();
 
-        return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getBannedPlayers(islandUuid).thenCompose(bannedPlayers -> {
-            List<CompletableFuture<String>> nameFutures = new ArrayList<>(bannedPlayers.size());
-            for (UUID bannedPlayerUuid : bannedPlayers) {
-                nameFutures.add(api.getPlayerName(bannedPlayerUuid).thenApply(nameOpt -> nameOpt.orElse(bannedPlayerUuid.toString())));
-            }
-
-            CompletableFuture<Void> all = CompletableFuture.allOf(nameFutures.toArray(new CompletableFuture[0]));
-
-            return all.thenApply(v -> nameFutures.stream().map(CompletableFuture::join).filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()));
-        })).exceptionally(ex -> Collections.emptyList());
+        return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getBannedPlayers(islandUuid).thenCompose(bannedPlayers -> api.getPlayerNames(bannedPlayers).thenApply(nameMap -> bannedPlayers.stream().map(uuid -> nameMap.getOrDefault(uuid, uuid.toString())).filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())))).exceptionally(ex -> Collections.emptyList());
     }
 }

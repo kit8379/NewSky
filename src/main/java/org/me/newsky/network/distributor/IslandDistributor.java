@@ -7,7 +7,7 @@ import org.me.newsky.exceptions.IslandAlreadyLoadedException;
 import org.me.newsky.exceptions.IslandBusyException;
 import org.me.newsky.exceptions.IslandNotLoadedException;
 import org.me.newsky.exceptions.NoActiveServerException;
-import org.me.newsky.network.lock.IslandOpLock;
+import org.me.newsky.network.lock.IslandOperationLock;
 import org.me.newsky.network.operator.IslandOperator;
 import org.me.newsky.routing.ServerSelector;
 import org.me.newsky.util.ServerUtil;
@@ -25,17 +25,17 @@ public class IslandDistributor {
     private final RuntimeCache runtimeCache;
     private final IslandOperator islandOperator;
     private final ServerSelector serverSelector;
-    private final IslandOpLock islandOpLock;
+    private final IslandOperationLock islandOperationLock;
     private final String serverID;
 
     private IslandBroker islandBroker;
 
-    public IslandDistributor(NewSky plugin, RuntimeCache runtimeCache, IslandOperator islandOperator, ServerSelector serverSelector, IslandOpLock islandOpLock, String serverID) {
+    public IslandDistributor(NewSky plugin, RuntimeCache runtimeCache, IslandOperator islandOperator, ServerSelector serverSelector, IslandOperationLock islandOperationLock, String serverID) {
         this.plugin = plugin;
         this.runtimeCache = runtimeCache;
         this.islandOperator = islandOperator;
         this.serverSelector = serverSelector;
-        this.islandOpLock = islandOpLock;
+        this.islandOperationLock = islandOperationLock;
         this.serverID = serverID;
     }
 
@@ -50,7 +50,7 @@ public class IslandDistributor {
     private CompletableFuture<String> ensureIslandLoaded(UUID islandUuid) {
         String alreadyLoadedServer = getServerByIsland(islandUuid);
         if (alreadyLoadedServer != null) {
-            if (islandOpLock.isLocked(islandUuid)) {
+            if (islandOperationLock.isLocked(islandUuid)) {
                 return CompletableFuture.failedFuture(new IslandBusyException());
             }
             return CompletableFuture.completedFuture(alreadyLoadedServer);
@@ -304,7 +304,7 @@ public class IslandDistributor {
     // =====================================================================================
 
     private <T> CompletableFuture<T> withIslandOpLock(UUID islandUuid, Supplier<CompletableFuture<T>> action) {
-        return islandOpLock.withLock(islandUuid, action);
+        return islandOperationLock.withLock(islandUuid, action);
     }
 
     private String selectServer(Map<String, String> servers) {

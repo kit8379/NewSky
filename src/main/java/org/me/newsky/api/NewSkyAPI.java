@@ -8,10 +8,7 @@ import org.me.newsky.model.Invitation;
 import org.me.newsky.model.UpgradeResult;
 import org.me.newsky.uuid.UuidHandler;
 
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 public class NewSkyAPI {
@@ -323,6 +320,11 @@ public class NewSkyAPI {
     @SuppressWarnings("unused")
     public CompletableFuture<Optional<String>> getPlayerName(UUID uuid) {
         return uuidHandler.getPlayerName(uuid);
+    }
+
+    @SuppressWarnings("unused")
+    public CompletableFuture<Map<UUID, String>> getPlayerNames(Collection<UUID> uuids) {
+        return uuidHandler.getPlayerNames(uuids);
     }
 
     @SuppressWarnings("unused")

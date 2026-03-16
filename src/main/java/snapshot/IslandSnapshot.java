@@ -9,14 +9,14 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class IslandLoadedSnapshot {
+public class IslandSnapshot {
 
     private final NewSky plugin;
     private final DataCache dataCache;
 
     private final Map<UUID, Island> islands = new ConcurrentHashMap<>();
 
-    public IslandLoadedSnapshot(NewSky plugin, DataCache dataCache) {
+    public IslandSnapshot(NewSky plugin, DataCache dataCache) {
         this.plugin = plugin;
         this.dataCache = dataCache;
     }

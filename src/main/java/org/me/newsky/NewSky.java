@@ -19,7 +19,7 @@ import org.me.newsky.island.*;
 import org.me.newsky.listener.*;
 import org.me.newsky.message.PlayerMessageHandler;
 import org.me.newsky.network.distributor.IslandDistributor;
-import org.me.newsky.network.lock.IslandOpLock;
+import org.me.newsky.network.lock.IslandOperationLock;
 import org.me.newsky.network.operator.IslandOperator;
 import org.me.newsky.placeholder.NewSkyPlaceholderExpansion;
 import org.me.newsky.redis.RedisHandler;
@@ -35,7 +35,7 @@ import org.me.newsky.thread.BukkitAsyncExecutor;
 import org.me.newsky.uuid.UuidHandler;
 import org.me.newsky.world.WorldActivityHandler;
 import org.me.newsky.world.WorldHandler;
-import snapshot.IslandLoadedSnapshot;
+import snapshot.IslandSnapshot;
 
 import java.lang.reflect.Constructor;
 import java.util.Collections;
@@ -106,7 +106,7 @@ public class NewSky extends JavaPlugin {
             info("Data cache handler loaded");
 
             info("Loading island loaded snapshot");
-            IslandLoadedSnapshot islandLoadedSnapshot = new IslandLoadedSnapshot(this, dataCache);
+            IslandSnapshot islandSnapshot = new IslandSnapshot(this, dataCache);
             info("Island loaded snapshot loaded");
 
             info("Starting world handler");
@@ -141,19 +141,19 @@ public class NewSky extends JavaPlugin {
             info("Server selector loaded");
 
             info("Starting handlers for island remote requests");
-            IslandOpLock islandOpLock = new IslandOpLock(this, runtimeCache, serverID);
-            IslandOperator islandOperator = new IslandOperator(this, runtimeCache, worldHandler, teleportHandler, islandLoadedSnapshot, serverID);
-            IslandDistributor islandDistributor = new IslandDistributor(this, runtimeCache, islandOperator, serverSelector, islandOpLock, serverID);
+            IslandOperationLock islandOperationLock = new IslandOperationLock(this, runtimeCache, serverID);
+            IslandOperator islandOperator = new IslandOperator(this, runtimeCache, worldHandler, teleportHandler, islandSnapshot, serverID);
+            IslandDistributor islandDistributor = new IslandDistributor(this, runtimeCache, islandOperator, serverSelector, islandOperationLock, serverID);
             info("All handlers for remote requests loaded");
 
             info("Starting player message handler");
-            PlayerMessageHandler playerMessageHandler = new PlayerMessageHandler(this, runtimeCache);
+            PlayerMessageHandler playerMessageHandler = new PlayerMessageHandler(this);
             info("Player message handler loaded");
 
             info("Starting all brokers for the plugin");
             islandBroker = new IslandBroker(this, redisHandler, islandOperator, serverID, config.getRedisIslandChannel());
             islandDistributor.setIslandBroker(islandBroker);
-            playerMessageBroker = new PlayerMessageBroker(this, redisHandler, serverID, config.getRedisPlayerMessageChannel());
+            playerMessageBroker = new PlayerMessageBroker(this, redisHandler, config.getRedisPlayerMessageChannel());
             playerMessageHandler.setPlayerMessageBroker(playerMessageBroker);
             info("All brokers loaded");
 
@@ -177,7 +177,7 @@ public class NewSky extends JavaPlugin {
             info("Plugin messaging loaded");
 
             info("Starting all schedulers for the plugin");
-            islandUnloadScheduler = new IslandUnloadScheduler(this, config, runtimeCache, worldHandler, worldActivityHandler, islandOpLock);
+            islandUnloadScheduler = new IslandUnloadScheduler(this, config, runtimeCache, worldHandler, worldActivityHandler, islandOperationLock);
             levelupdateScheduler = new LevelUpdateScheduler(this, levelHandler);
 
             if (serverSelector instanceof MSPTServerSelector) {
@@ -196,15 +196,15 @@ public class NewSky extends JavaPlugin {
             info("Starting listeners");
             getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, runtimeCache, serverID), this);
             getServer().getPluginManager().registerEvents(new WorldInitListener(this), this);
-            getServer().getPluginManager().registerEvents(new WorldLoadListener(this, config, levelupdateScheduler, islandLoadedSnapshot), this);
-            getServer().getPluginManager().registerEvents(new WorldUnloadListener(this, levelupdateScheduler), this);
+            getServer().getPluginManager().registerEvents(new WorldLoadListener(this, config, levelupdateScheduler, islandSnapshot), this);
+            getServer().getPluginManager().registerEvents(new WorldUnloadListener(this, levelupdateScheduler, islandSnapshot), this);
             getServer().getPluginManager().registerEvents(new WorldActivityListener(this, worldActivityHandler), this);
             getServer().getPluginManager().registerEvents(new TeleportRequestListener(this, teleportHandler), this);
-            getServer().getPluginManager().registerEvents(new IslandProtectionListener(this, config, islandLoadedSnapshot), this);
-            getServer().getPluginManager().registerEvents(new IslandAccessListener(this, config, islandLoadedSnapshot), this);
-            getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config, islandLoadedSnapshot), this);
+            getServer().getPluginManager().registerEvents(new IslandProtectionListener(this, config, islandSnapshot), this);
+            getServer().getPluginManager().registerEvents(new IslandAccessListener(this, config, islandSnapshot), this);
+            getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config, islandSnapshot), this);
             getServer().getPluginManager().registerEvents(new UuidUpdateListener(this), this);
-            getServer().getPluginManager().registerEvents(new CobblestoneGeneratorListener(this, islandLoadedSnapshot, cobblestoneGeneratorHandler), this);
+            getServer().getPluginManager().registerEvents(new CobblestoneGeneratorListener(this, islandSnapshot, cobblestoneGeneratorHandler), this);
             info("All listeners loaded");
 
             info("Registering commands");

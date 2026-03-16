@@ -91,18 +91,15 @@ public class PlayerInfoCommand implements SubCommand, AsyncTabComplete {
                 return CompletableFuture.completedFuture(null);
             }
 
-            return api.getIslandOwner(islandUuid).thenCompose(ownerUuid -> api.getIslandMembers(islandUuid).thenCompose(members -> api.getIslandLevel(islandUuid).thenCompose(level -> api.getPlayerName(ownerUuid).thenCompose(ownerNameOpt -> {
-                String ownerName = ownerNameOpt.orElse(ownerUuid.toString());
+            return api.getIslandOwner(islandUuid).thenCompose(ownerUuid -> api.getIslandMembers(islandUuid).thenCompose(members -> api.getIslandLevel(islandUuid).thenCompose(level -> {
+                List<UUID> uuidsToResolve = new ArrayList<>(members.size() + 1);
+                uuidsToResolve.add(ownerUuid);
+                uuidsToResolve.addAll(members);
 
-                List<CompletableFuture<String>> nameFutures = new ArrayList<>(members.size());
-                for (UUID memberUuid : members) {
-                    nameFutures.add(api.getPlayerName(memberUuid).thenApply(memberNameOpt -> memberNameOpt.orElse(memberUuid.toString())));
-                }
+                return api.getPlayerNames(uuidsToResolve).thenAccept(nameMap -> {
+                    String ownerName = nameMap.getOrDefault(ownerUuid, ownerUuid.toString());
 
-                CompletableFuture<Void> all = CompletableFuture.allOf(nameFutures.toArray(new CompletableFuture[0]));
-
-                return all.thenAccept(v -> {
-                    String memberNames = nameFutures.stream().map(CompletableFuture::join).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.joining(", "));
+                    String memberNames = members.stream().map(uuid -> nameMap.getOrDefault(uuid, uuid.toString())).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.joining(", "));
 
                     sender.sendMessage(config.getIslandInfoHeaderMessage());
                     sender.sendMessage(config.getIslandInfoUUIDMessage(islandUuid));
@@ -115,7 +112,7 @@ public class PlayerInfoCommand implements SubCommand, AsyncTabComplete {
                         sender.sendMessage(config.getIslandInfoMembersMessage(memberNames));
                     }
                 });
-            }))));
+            })));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {

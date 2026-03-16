@@ -79,7 +79,7 @@ public class PlayerWarpCommand implements SubCommand, AsyncTabComplete {
 
             UUID targetUuid = targetUuidOpt.get();
 
-            return api.warp(targetUuid, warpName, playerUuid).thenRun(() -> api.sendPlayerMessage(playerUuid, config.getWarpSuccessMessage(warpName)));
+            return api.warp(targetUuid, warpName, playerUuid).thenRun(() -> api.sendPlayerMessage(playerUuid, config.getWarpSuccessMessage(targetName, warpName)));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {

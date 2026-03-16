@@ -485,6 +485,16 @@ public final class DataCache {
         }
     }
 
+    public Optional<UUID> getPlayerUuid(String name) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            String value = jedis.hget(PLAYER_UUID_KEY, name.toLowerCase(Locale.ROOT));
+            return parseUuid(value);
+        } catch (Exception e) {
+            plugin.severe("Failed to get player UUID for name: " + name, e);
+            return Optional.empty();
+        }
+    }
+
     public Optional<String> getPlayerName(UUID uuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             return Optional.ofNullable(jedis.hget(PLAYER_NAME_KEY, uuid.toString()));
@@ -494,13 +504,76 @@ public final class DataCache {
         }
     }
 
-    public Optional<UUID> getPlayerUuid(String name) {
+    public Map<UUID, String> getPlayerNames(Collection<UUID> uuids) {
+        if (uuids == null || uuids.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        if (uuids.size() == 1) {
+            UUID only = uuids.iterator().next();
+            if (only == null) {
+                return Collections.emptyMap();
+            }
+
+            try (Jedis jedis = redisHandler.getJedis()) {
+                String name = jedis.hget(PLAYER_NAME_KEY, only.toString());
+                if (name == null) {
+                    return Collections.emptyMap();
+                }
+
+                Map<UUID, String> result = new HashMap<>(1);
+                result.put(only, name);
+                return result;
+            } catch (Exception e) {
+                plugin.severe("Failed to get player name for single UUID: " + only, e);
+                return Collections.emptyMap();
+            }
+        }
+
+        final List<UUID> orderedUuids;
+
+        if (uuids instanceof Set<?>) {
+            orderedUuids = new ArrayList<>(uuids.size());
+            for (UUID uuid : uuids) {
+                if (uuid != null) {
+                    orderedUuids.add(uuid);
+                }
+            }
+        } else {
+            orderedUuids = new ArrayList<>(uuids.size());
+            Set<UUID> seen = new HashSet<>((int) (uuids.size() / 0.75f) + 1);
+
+            for (UUID uuid : uuids) {
+                if (uuid != null && seen.add(uuid)) {
+                    orderedUuids.add(uuid);
+                }
+            }
+        }
+
+        if (orderedUuids.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        String[] fields = new String[orderedUuids.size()];
+        for (int i = 0; i < orderedUuids.size(); i++) {
+            fields[i] = orderedUuids.get(i).toString();
+        }
+
         try (Jedis jedis = redisHandler.getJedis()) {
-            String value = jedis.hget(PLAYER_UUID_KEY, name.toLowerCase(Locale.ROOT));
-            return parseUuid(value);
+            List<String> names = jedis.hmget(PLAYER_NAME_KEY, fields);
+            Map<UUID, String> result = new HashMap<>((int) (orderedUuids.size() / 0.75f) + 1);
+
+            for (int i = 0; i < orderedUuids.size(); i++) {
+                String name = names.get(i);
+                if (name != null) {
+                    result.put(orderedUuids.get(i), name);
+                }
+            }
+
+            return result;
         } catch (Exception e) {
-            plugin.severe("Failed to get player UUID for name: " + name, e);
-            return Optional.empty();
+            plugin.severe("Failed to get player names for UUID collection, size=" + orderedUuids.size(), e);
+            return Collections.emptyMap();
         }
     }
 

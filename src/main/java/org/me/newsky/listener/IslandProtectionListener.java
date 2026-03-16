@@ -20,7 +20,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.InventoryHolder;
 import org.me.newsky.NewSky;
-import snapshot.IslandLoadedSnapshot;
+import snapshot.IslandSnapshot;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.UpgradeHandler;
 import org.me.newsky.model.Island;
@@ -33,12 +33,12 @@ public class IslandProtectionListener implements Listener {
 
     private final NewSky plugin;
     private final ConfigHandler config;
-    private final IslandLoadedSnapshot islandLoadedSnapshot;
+    private final IslandSnapshot islandSnapshot;
 
-    public IslandProtectionListener(NewSky plugin, ConfigHandler config, IslandLoadedSnapshot islandLoadedSnapshot) {
+    public IslandProtectionListener(NewSky plugin, ConfigHandler config, IslandSnapshot islandSnapshot) {
         this.plugin = plugin;
         this.config = config;
-        this.islandLoadedSnapshot = islandLoadedSnapshot;
+        this.islandSnapshot = islandSnapshot;
     }
 
     private UUID getIslandUuidIfIslandWorld(Location location) {
@@ -60,7 +60,7 @@ public class IslandProtectionListener implements Listener {
     }
 
     private boolean isInsideIslandBoundary(UUID islandUuid, Location location) {
-        Island island = islandLoadedSnapshot.get(islandUuid);
+        Island island = islandSnapshot.get(islandUuid);
 
         Map<String, Integer> upgrades = island.getUpgrades();
         int islandSizeLevel = upgrades.getOrDefault(UpgradeHandler.UPGRADE_ISLAND_SIZE, 1);
@@ -91,7 +91,7 @@ public class IslandProtectionListener implements Listener {
             return true;
         }
 
-        Island island = islandLoadedSnapshot.get(islandUuid);
+        Island island = islandSnapshot.get(islandUuid);
 
         UUID playerUuid = player.getUniqueId();
         return island.getOwner().equals(playerUuid) || island.getMembers().contains(playerUuid) || island.getCoops().contains(playerUuid);

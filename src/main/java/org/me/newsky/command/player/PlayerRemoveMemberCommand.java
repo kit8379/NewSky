@@ -11,7 +11,10 @@ import org.me.newsky.exceptions.CannotRemoveOwnerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -112,15 +115,6 @@ public class PlayerRemoveMemberCommand implements SubCommand, AsyncTabComplete {
         String prefix = args[1].toLowerCase(Locale.ROOT);
         UUID playerUuid = player.getUniqueId();
 
-        return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getIslandMembers(islandUuid).thenCompose(members -> {
-            List<CompletableFuture<String>> nameFutures = new ArrayList<>(members.size());
-            for (UUID memberUuid : members) {
-                nameFutures.add(api.getPlayerName(memberUuid).thenApply(nameOpt -> nameOpt.orElse(memberUuid.toString())));
-            }
-
-            CompletableFuture<Void> all = CompletableFuture.allOf(nameFutures.toArray(new CompletableFuture[0]));
-
-            return all.thenApply(v -> nameFutures.stream().map(CompletableFuture::join).filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()));
-        })).exceptionally(ex -> Collections.emptyList());
+        return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getIslandMembers(islandUuid).thenCompose(members -> api.getPlayerNames(members).thenApply(nameMap -> members.stream().map(uuid -> nameMap.getOrDefault(uuid, uuid.toString())).filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())))).exceptionally(ex -> Collections.emptyList());
     }
 }

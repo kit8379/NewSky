@@ -47,6 +47,7 @@ public class HeartBeatHandler {
         if (heartbeatTask != null) {
             plugin.debug("HeartBeatHandler", "Stopping heartbeat task for server: " + serverID);
             heartbeatTask.cancel();
+            heartbeatTask = null;
             plugin.debug("HeartBeatHandler", "Heartbeat task stopped.");
         }
 

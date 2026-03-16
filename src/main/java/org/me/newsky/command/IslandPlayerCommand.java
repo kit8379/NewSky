@@ -9,7 +9,6 @@ import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.player.*;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.exceptions.IslandDoesNotExistException;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -19,13 +18,11 @@ import java.util.concurrent.CompletableFuture;
  */
 public class IslandPlayerCommand implements CommandExecutor, AsyncCommandTabRouter {
     private final ConfigHandler config;
-    private final NewSkyAPI api;
     private final Map<String, SubCommand> subCommandMap = new HashMap<>();
     private final Set<SubCommand> subCommands = new HashSet<>();
 
     public IslandPlayerCommand(NewSky plugin, NewSkyAPI api, ConfigHandler config) {
         this.config = config;
-        this.api = api;
 
         subCommands.add(new PlayerCreateIslandCommand(plugin, api, config));
         subCommands.add(new PlayerDeleteIslandCommand(plugin, api, config));
@@ -137,25 +134,8 @@ public class IslandPlayerCommand implements CommandExecutor, AsyncCommandTabRout
                     return true;
                 }
 
-                try {
-                    api.getIslandUuid(player.getUniqueId());
-
-                    SubCommand homeCmd = subCommandMap.get("home");
-                    if (homeCmd != null) {
-                        return homeCmd.execute(player, new String[]{"home"});
-                    } else {
-                        player.sendMessage(config.getPlayerNoHomeMessage("default"));
-                        return true;
-                    }
-                } catch (IslandDoesNotExistException e) {
-                    SubCommand createCmd = subCommandMap.get("create");
-                    if (createCmd != null) {
-                        return createCmd.execute(player, new String[]{"create"});
-                    } else {
-                        player.sendMessage(config.getPlayerNoIslandMessage());
-                        return true;
-                    }
-                }
+                SubCommand homeCmd = subCommandMap.get("home");
+                return homeCmd.execute(player, new String[]{"home"});
             } else {
                 SubCommand helpCmd = subCommandMap.get("help");
                 if (helpCmd != null) {

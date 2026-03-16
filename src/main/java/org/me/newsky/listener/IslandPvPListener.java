@@ -6,7 +6,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.me.newsky.NewSky;
-import snapshot.IslandLoadedSnapshot;
+import snapshot.IslandSnapshot;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.model.Island;
 import org.me.newsky.util.IslandUtils;
@@ -17,12 +17,12 @@ public class IslandPvPListener implements Listener {
 
     private final NewSky plugin;
     private final ConfigHandler config;
-    private final IslandLoadedSnapshot islandLoadedSnapshot;
+    private final IslandSnapshot islandSnapshot;
 
-    public IslandPvPListener(NewSky plugin, ConfigHandler config, IslandLoadedSnapshot islandLoadedSnapshot) {
+    public IslandPvPListener(NewSky plugin, ConfigHandler config, IslandSnapshot islandSnapshot) {
         this.plugin = plugin;
         this.config = config;
-        this.islandLoadedSnapshot = islandLoadedSnapshot;
+        this.islandSnapshot = islandSnapshot;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -37,7 +37,7 @@ public class IslandPvPListener implements Listener {
 
         UUID islandUuid = IslandUtils.nameToUUID(victim.getWorld().getName());
 
-        Island island = islandLoadedSnapshot.get(islandUuid);
+        Island island = islandSnapshot.get(islandUuid);
 
         if (!island.isPvp()) {
             event.setCancelled(true);

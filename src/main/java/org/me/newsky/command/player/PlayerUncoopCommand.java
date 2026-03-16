@@ -10,7 +10,10 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerNotCoopedException;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -104,15 +107,6 @@ public class PlayerUncoopCommand implements SubCommand, AsyncTabComplete {
         String prefix = args[1].toLowerCase(Locale.ROOT);
         UUID playerUuid = player.getUniqueId();
 
-        return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getCoopedPlayers(islandUuid).thenCompose(coopedPlayers -> {
-            List<CompletableFuture<String>> nameFutures = new ArrayList<>(coopedPlayers.size());
-            for (UUID coopedPlayerUuid : coopedPlayers) {
-                nameFutures.add(api.getPlayerName(coopedPlayerUuid).thenApply(nameOpt -> nameOpt.orElse(coopedPlayerUuid.toString())));
-            }
-
-            CompletableFuture<Void> all = CompletableFuture.allOf(nameFutures.toArray(new CompletableFuture[0]));
-
-            return all.thenApply(v -> nameFutures.stream().map(CompletableFuture::join).filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()));
-        })).exceptionally(ex -> Collections.emptyList());
+        return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getCoopedPlayers(islandUuid).thenCompose(coopedPlayers -> api.getPlayerNames(coopedPlayers).thenApply(nameMap -> coopedPlayers.stream().map(uuid -> nameMap.getOrDefault(uuid, uuid.toString())).filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())))).exceptionally(ex -> Collections.emptyList());
     }
 }

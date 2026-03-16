@@ -1,12 +1,14 @@
 // MODIFIED FILE: IslandUnloadScheduler.java
 package org.me.newsky.scheduler;
 
+import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.RuntimeCache;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandBusyException;
-import org.me.newsky.network.lock.IslandOpLock;
+import org.me.newsky.network.lock.IslandOperationLock;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.world.WorldActivityHandler;
 import org.me.newsky.world.WorldHandler;
@@ -19,18 +21,18 @@ public class IslandUnloadScheduler {
     private final RuntimeCache runtimeCache;
     private final WorldHandler worldHandler;
     private final WorldActivityHandler worldActivityHandler;
-    private final IslandOpLock islandOpLock;
+    private final IslandOperationLock islandOperationLock;
 
     private final long unloadInterval;
 
     private BukkitTask task;
 
-    public IslandUnloadScheduler(NewSky plugin, ConfigHandler config, RuntimeCache runtimeCache, WorldHandler worldHandler, WorldActivityHandler worldActivityHandler, IslandOpLock islandOpLock) {
+    public IslandUnloadScheduler(NewSky plugin, ConfigHandler config, RuntimeCache runtimeCache, WorldHandler worldHandler, WorldActivityHandler worldActivityHandler, IslandOperationLock islandOperationLock) {
         this.plugin = plugin;
         this.runtimeCache = runtimeCache;
         this.worldHandler = worldHandler;
         this.worldActivityHandler = worldActivityHandler;
-        this.islandOpLock = islandOpLock;
+        this.islandOperationLock = islandOperationLock;
         this.unloadInterval = config.getIslandUnloadInterval();
     }
 
@@ -41,7 +43,7 @@ public class IslandUnloadScheduler {
         }
 
         plugin.debug("IslandUnloadScheduler", "Starting unload scheduler with interval: " + unloadInterval + " seconds.");
-        this.task = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::checkInactiveWorlds, 0, unloadInterval * 20L);
+        this.task = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::checkInactiveWorlds, 0L, unloadInterval * 20L);
         plugin.debug("IslandUnloadScheduler", "Unload scheduler started successfully.");
     }
 
@@ -49,6 +51,7 @@ public class IslandUnloadScheduler {
         if (task != null) {
             plugin.debug("IslandUnloadScheduler", "Stopping unload scheduler.");
             task.cancel();
+            task = null;
             plugin.debug("IslandUnloadScheduler", "Unload scheduler stopped.");
         }
     }
@@ -61,7 +64,15 @@ public class IslandUnloadScheduler {
         worldActivityHandler.getInactiveWorlds(thresholdMillis, now).forEach((worldName, timestamp) -> {
             UUID islandUuid = IslandUtils.nameToUUID(worldName);
 
-            islandOpLock.withLock(islandUuid, () -> {
+            World bukkitWorld = Bukkit.getWorld(worldName);
+
+            if (bukkitWorld == null) {
+                plugin.debug("IslandUnloadScheduler", "World is already absent in Bukkit. Clearing stale inactive entry: " + worldName);
+                worldActivityHandler.clearWorld(worldName);
+                return;
+            }
+
+            islandOperationLock.withLock(islandUuid, () -> {
                 plugin.debug("IslandUnloadScheduler", "Unloading inactive world under lock: " + worldName);
 
                 return worldHandler.unloadWorld(worldName).thenRun(() -> {
@@ -70,11 +81,12 @@ public class IslandUnloadScheduler {
                     plugin.debug("IslandUnloadScheduler", "Unloaded world: " + worldName);
                 });
             }).exceptionally(ex -> {
-                Throwable cause = (ex.getCause() != null) ? ex.getCause() : ex;
+                Throwable cause = ex.getCause();
                 if (cause instanceof IslandBusyException) {
                     plugin.debug("IslandUnloadScheduler", "Skip unload because of busy lock: " + worldName);
                     return null;
                 }
+
                 plugin.severe("Failed to unload world: " + worldName, ex);
                 return null;
             });

@@ -112,7 +112,7 @@ messages:
   # Island - Teleport: Warp
   # ================================================================================================================
   warp-name-not-legal: "&cInvalid warp name. &7Allowed characters: &f[a-z0-9_-]&7, length: &f1-32&7 characters."
-  warp-success: "<green>Teleported to warp <aqua>{warp}<green>!"
+  warp-success: "<green>Teleported to {player}'s warp <aqua>{warp}<green>!"
   no-warp: "<red>Player <aqua>{player} <red>does not have a warp named <aqua>{warp}<red>!"
 
   player-must-in-island-set-warp: "<red>You must be on your island to set a warp!"
