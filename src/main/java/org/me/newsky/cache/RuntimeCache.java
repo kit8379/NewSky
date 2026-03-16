@@ -11,6 +11,7 @@ import redis.clients.jedis.resps.ScanResult;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class RuntimeCache {
 
@@ -322,15 +323,14 @@ public class RuntimeCache {
 
     public Set<UUID> getOnlinePlayersUUIDs() {
         try (Jedis jedis = redisHandler.getJedis()) {
-            Set<String> rawKeys = jedis.hkeys(ONLINE_PLAYER_NAMES_KEY);
-            return rawKeys.stream().map(key -> {
+            return jedis.hkeys(ONLINE_PLAYER_NAMES_KEY).stream().flatMap(key -> {
                 try {
-                    return UUID.fromString(key);
+                    return Stream.of(UUID.fromString(key));
                 } catch (IllegalArgumentException e) {
                     plugin.severe("Invalid UUID in online player names cache: " + key, e);
-                    return null;
+                    return Stream.empty();
                 }
-            }).filter(Objects::nonNull).collect(Collectors.toSet());
+            }).collect(Collectors.toSet());
         } catch (Exception e) {
             plugin.severe("Failed to get online player UUIDs", e);
             return Set.of();
