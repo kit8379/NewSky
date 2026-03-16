@@ -4,7 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.RuntimeCache;
-import org.me.newsky.exceptions.IslandBusyException;
+import org.me.newsky.exceptions.IslandOperationBusyException;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -46,7 +46,7 @@ public final class IslandOperationLock {
         if (acquired.isEmpty()) {
             long pttl = runtimeCache.getIslandOpLockTtlMillis(islandUuid);
             plugin.debug("IslandOperationLock", "withLock: busy lock for " + islandUuid + " (pttl=" + pttl + "ms)");
-            return CompletableFuture.failedFuture(new IslandBusyException());
+            return CompletableFuture.failedFuture(new IslandOperationBusyException());
         }
 
         long periodTicks = Math.max(1L, heartbeatMs / 50L);

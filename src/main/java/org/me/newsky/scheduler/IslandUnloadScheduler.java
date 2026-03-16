@@ -7,7 +7,7 @@ import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.RuntimeCache;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.exceptions.IslandBusyException;
+import org.me.newsky.exceptions.IslandOperationBusyException;
 import org.me.newsky.network.lock.IslandOperationLock;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.world.WorldActivityHandler;
@@ -82,7 +82,7 @@ public class IslandUnloadScheduler {
                 });
             }).exceptionally(ex -> {
                 Throwable cause = ex.getCause();
-                if (cause instanceof IslandBusyException) {
+                if (cause instanceof IslandOperationBusyException) {
                     plugin.debug("IslandUnloadScheduler", "Skip unload because of busy lock: " + worldName);
                     return null;
                 }

@@ -90,7 +90,7 @@ public class PlayerWarpCommand implements SubCommand, AsyncTabComplete {
                 player.sendMessage(config.getPlayerBannedMessage());
             } else if (cause instanceof IslandLockedException) {
                 player.sendMessage(config.getIslandLockedMessage());
-            } else if (cause instanceof IslandBusyException) {
+            } else if (cause instanceof IslandOperationBusyException) {
                 sender.sendMessage(config.getIslandBusyMessage());
             } else if (cause instanceof NoActiveServerException) {
                 player.sendMessage(config.getNoActiveServerMessage());
