@@ -1,7 +1,7 @@
 package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.DataCache;
+import org.me.newsky.cache.data.DataCache;
 import org.me.newsky.exceptions.CannotBanIslandPlayerException;
 import org.me.newsky.exceptions.PlayerAlreadyBannedException;
 import org.me.newsky.exceptions.PlayerNotBannedException;

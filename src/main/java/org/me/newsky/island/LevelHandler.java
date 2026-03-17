@@ -2,7 +2,7 @@ package org.me.newsky.island;
 
 import org.bukkit.*;
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.DataCache;
+import org.me.newsky.cache.data.DataCache;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.util.IslandUtils;
 

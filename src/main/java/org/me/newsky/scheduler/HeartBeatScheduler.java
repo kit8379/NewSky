@@ -1,11 +1,11 @@
-package org.me.newsky.heartbeat;
+package org.me.newsky.scheduler;
 
 import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.RuntimeCache;
 import org.me.newsky.config.ConfigHandler;
 
-public class HeartBeatHandler {
+public class HeartBeatScheduler {
 
     private final NewSky plugin;
     private final ConfigHandler config;
@@ -16,7 +16,7 @@ public class HeartBeatHandler {
 
     private BukkitTask heartbeatTask;
 
-    public HeartBeatHandler(NewSky plugin, ConfigHandler config, RuntimeCache runtimeCache, String serverID) {
+    public HeartBeatScheduler(NewSky plugin, ConfigHandler config, RuntimeCache runtimeCache, String serverID) {
         this.plugin = plugin;
         this.config = config;
         this.runtimeCache = runtimeCache;
@@ -27,32 +27,32 @@ public class HeartBeatHandler {
 
     public void start() {
         if (heartbeatTask != null) {
-            plugin.debug("HeartBeatHandler", "Heartbeat task is already running. No action taken.");
+            plugin.debug("HeartBeatScheduler", "Heartbeat task is already running. No action taken.");
             return;
         }
 
-        plugin.debug("HeartBeatHandler", "Performing startup cleanup for server: " + serverID);
+        plugin.debug("HeartBeatScheduler", "Performing startup cleanup for server: " + serverID);
         runtimeCache.removeActiveServer(serverID);
-        plugin.debug("HeartBeatHandler", "Startup cleanup complete.");
+        plugin.debug("HeartBeatScheduler", "Startup cleanup complete.");
 
-        plugin.debug("HeartBeatHandler", "Starting heartbeat task with interval: " + heartbeatInterval + " seconds, ttl: " + heartbeatTtlSeconds + " seconds.");
+        plugin.debug("HeartBeatScheduler", "Starting heartbeat task with interval: " + heartbeatInterval + " seconds, ttl: " + heartbeatTtlSeconds + " seconds.");
         heartbeatTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
             runtimeCache.updateActiveServer(serverID, config.isLobbyOnly(), heartbeatTtlSeconds);
-            plugin.debug("HeartBeatHandler", "Sent heartbeat for server: " + serverID);
+            plugin.debug("HeartBeatScheduler", "Sent heartbeat for server: " + serverID);
         }, 0L, heartbeatInterval * 20L);
-        plugin.debug("HeartBeatHandler", "Heartbeat task started successfully.");
+        plugin.debug("HeartBeatScheduler", "Heartbeat task started successfully.");
     }
 
     public void stop() {
         if (heartbeatTask != null) {
-            plugin.debug("HeartBeatHandler", "Stopping heartbeat task for server: " + serverID);
+            plugin.debug("HeartBeatScheduler", "Stopping heartbeat task for server: " + serverID);
             heartbeatTask.cancel();
             heartbeatTask = null;
-            plugin.debug("HeartBeatHandler", "Heartbeat task stopped.");
+            plugin.debug("HeartBeatScheduler", "Heartbeat task stopped.");
         }
 
-        plugin.debug("HeartBeatHandler", "Performing shutdown cleanup for server: " + serverID);
+        plugin.debug("HeartBeatScheduler", "Performing shutdown cleanup for server: " + serverID);
         runtimeCache.removeActiveServer(serverID);
-        plugin.debug("HeartBeatHandler", "Shutdown cleanup complete.");
+        plugin.debug("HeartBeatScheduler", "Shutdown cleanup complete.");
     }
 }

@@ -1,6 +1,7 @@
-package org.me.newsky.cache;
+package org.me.newsky.cache.data;
 
 import org.me.newsky.NewSky;
+import org.me.newsky.cache.RuntimeCache;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.model.Island;
 import org.me.newsky.redis.RedisHandler;

@@ -1,7 +1,7 @@
 package org.me.newsky.uuid;
 
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.DataCache;
+import org.me.newsky.cache.data.DataCache;
 
 import java.util.Collection;
 import java.util.Map;

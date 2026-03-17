@@ -7,14 +7,13 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.broker.IslandBroker;
 import org.me.newsky.broker.PlayerMessageBroker;
-import org.me.newsky.cache.DataCache;
 import org.me.newsky.cache.RuntimeCache;
+import org.me.newsky.cache.data.DataCache;
 import org.me.newsky.command.AsyncTabCompleteListener;
 import org.me.newsky.command.IslandAdminCommand;
 import org.me.newsky.command.IslandPlayerCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
-import org.me.newsky.heartbeat.HeartBeatHandler;
 import org.me.newsky.island.*;
 import org.me.newsky.listener.*;
 import org.me.newsky.message.PlayerMessageHandler;
@@ -27,6 +26,7 @@ import org.me.newsky.routing.MSPTServerSelector;
 import org.me.newsky.routing.RandomServerSelector;
 import org.me.newsky.routing.RoundRobinServerSelector;
 import org.me.newsky.routing.ServerSelector;
+import org.me.newsky.scheduler.HeartBeatScheduler;
 import org.me.newsky.scheduler.IslandUnloadScheduler;
 import org.me.newsky.scheduler.LevelUpdateScheduler;
 import org.me.newsky.scheduler.MSPTUpdateScheduler;
@@ -52,9 +52,9 @@ public class NewSky extends JavaPlugin {
     private RedisHandler redisHandler;
     private DatabaseHandler databaseHandler;
     private RuntimeCache runtimeCache;
-    private HeartBeatHandler heartBeatHandler;
+    private HeartBeatScheduler heartBeatScheduler;
     private IslandUnloadScheduler islandUnloadScheduler;
-    private LevelUpdateScheduler levelupdateScheduler;
+    private LevelUpdateScheduler levelupdateSchedulerIsland;
     private MSPTUpdateScheduler msptUpdateScheduler;
     private IslandBroker islandBroker;
     private PlayerMessageBroker playerMessageBroker;
@@ -117,10 +117,6 @@ public class NewSky extends JavaPlugin {
             TeleportHandler teleportHandler = new TeleportHandler();
             info("Teleport handler loaded");
 
-            info("Start connecting to Heart Beat system now...");
-            heartBeatHandler = new HeartBeatHandler(this, config, runtimeCache, serverID);
-            info("Heart Beat handler created!");
-
             info("Starting server selector");
             ServerSelector serverSelector;
             switch (config.getServerSelector().toLowerCase(Locale.ROOT)) {
@@ -177,8 +173,9 @@ public class NewSky extends JavaPlugin {
             info("Plugin messaging loaded");
 
             info("Starting all schedulers for the plugin");
+            heartBeatScheduler = new HeartBeatScheduler(this, config, runtimeCache, serverID);
             islandUnloadScheduler = new IslandUnloadScheduler(this, config, runtimeCache, worldHandler, worldActivityHandler, islandOperationLock);
-            levelupdateScheduler = new LevelUpdateScheduler(this, levelHandler);
+            levelupdateSchedulerIsland = new LevelUpdateScheduler(this, levelHandler);
 
             if (serverSelector instanceof MSPTServerSelector) {
                 info("MSPT server selector detected, creating MSPT update scheduler");
@@ -196,8 +193,8 @@ public class NewSky extends JavaPlugin {
             info("Starting listeners");
             getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, runtimeCache, serverID), this);
             getServer().getPluginManager().registerEvents(new WorldInitListener(this), this);
-            getServer().getPluginManager().registerEvents(new WorldLoadListener(this, config, levelupdateScheduler, islandSnapshot), this);
-            getServer().getPluginManager().registerEvents(new WorldUnloadListener(this, levelupdateScheduler, islandSnapshot), this);
+            getServer().getPluginManager().registerEvents(new WorldLoadListener(this, config, levelupdateSchedulerIsland, islandSnapshot), this);
+            getServer().getPluginManager().registerEvents(new WorldUnloadListener(this, levelupdateSchedulerIsland, islandSnapshot), this);
             getServer().getPluginManager().registerEvents(new WorldActivityListener(this, worldActivityHandler), this);
             getServer().getPluginManager().registerEvents(new TeleportRequestListener(this, teleportHandler), this);
             getServer().getPluginManager().registerEvents(new IslandProtectionListener(this, config, islandSnapshot), this);
@@ -239,9 +236,9 @@ public class NewSky extends JavaPlugin {
 
             islandBroker.subscribe();
             playerMessageBroker.subscribe();
-            heartBeatHandler.start();
+            heartBeatScheduler.start();
             islandUnloadScheduler.start();
-            levelupdateScheduler.start();
+            levelupdateSchedulerIsland.start();
 
             if (msptUpdateScheduler != null) {
                 msptUpdateScheduler.start();
@@ -273,24 +270,24 @@ public class NewSky extends JavaPlugin {
     }
 
     public void shutdown() {
+        if (worldHandler != null) {
+            worldHandler.unloadAllWorldsOnShutdown();
+        }
+
         if (msptUpdateScheduler != null) {
             msptUpdateScheduler.stop();
         }
 
-        if (levelupdateScheduler != null) {
-            levelupdateScheduler.stop();
+        if (levelupdateSchedulerIsland != null) {
+            levelupdateSchedulerIsland.stop();
         }
 
         if (islandUnloadScheduler != null) {
             islandUnloadScheduler.stop();
         }
 
-        if (worldHandler != null) {
-            worldHandler.unloadAllWorldsOnShutdown();
-        }
-
-        if (heartBeatHandler != null) {
-            heartBeatHandler.stop();
+        if (heartBeatScheduler != null) {
+            heartBeatScheduler.stop();
         }
 
         if (playerMessageBroker != null) {
