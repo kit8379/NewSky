@@ -1,11 +1,11 @@
-package org.me.newsky.network.operator;
+package org.me.newsky.network;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.RuntimeCache;
+import org.me.newsky.state.IslandServerState;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.util.LocationUtils;
@@ -18,18 +18,18 @@ import java.util.concurrent.CompletableFuture;
 public class IslandOperator {
 
     private final NewSky plugin;
-    private final RuntimeCache runtimeCache;
     private final WorldHandler worldHandler;
     private final TeleportHandler teleportHandler;
     private final IslandSnapshot islandSnapshot;
+    private final IslandServerState islandServerState;
     private final String serverID;
 
-    public IslandOperator(NewSky plugin, RuntimeCache runtimeCache, WorldHandler worldHandler, TeleportHandler teleportHandler, IslandSnapshot islandSnapshot, String serverID) {
+    public IslandOperator(NewSky plugin, WorldHandler worldHandler, TeleportHandler teleportHandler, IslandSnapshot islandSnapshot, IslandServerState islandServerState, String serverID) {
         this.plugin = plugin;
-        this.runtimeCache = runtimeCache;
         this.worldHandler = worldHandler;
         this.teleportHandler = teleportHandler;
         this.islandSnapshot = islandSnapshot;
+        this.islandServerState = islandServerState;
         this.serverID = serverID;
     }
 
@@ -41,7 +41,7 @@ public class IslandOperator {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         return islandSnapshot.load(islandUuid).thenCompose(v -> worldHandler.createWorld(islandName)).thenRun(() -> {
-            runtimeCache.updateIslandLoadedServer(islandUuid, serverID);
+            islandServerState.updateIslandLoadedServer(islandUuid, serverID);
             plugin.debug("IslandOperator", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
         });
     }
@@ -50,7 +50,7 @@ public class IslandOperator {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         return islandSnapshot.load(islandUuid).thenCompose(v -> worldHandler.loadWorld(islandName)).thenRun(() -> {
-            runtimeCache.updateIslandLoadedServer(islandUuid, serverID);
+            islandServerState.updateIslandLoadedServer(islandUuid, serverID);
             plugin.debug("IslandOperator", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
         });
     }
@@ -59,7 +59,7 @@ public class IslandOperator {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         return worldHandler.unloadWorld(islandName).thenRun(() -> {
-            runtimeCache.removeIslandLoadedServer(islandUuid);
+            islandServerState.removeIslandLoadedServer(islandUuid);
             plugin.debug("IslandOperator", "Removed island loaded server for UUID: " + islandUuid);
         });
     }
@@ -68,7 +68,7 @@ public class IslandOperator {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         return worldHandler.deleteWorld(islandName).thenRun(() -> {
-            runtimeCache.removeIslandLoadedServer(islandUuid);
+            islandServerState.removeIslandLoadedServer(islandUuid);
             plugin.debug("IslandOperator", "Removed island loaded server for UUID: " + islandUuid);
         });
     }

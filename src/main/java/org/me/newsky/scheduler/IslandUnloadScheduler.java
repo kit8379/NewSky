@@ -5,10 +5,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.RuntimeCache;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandOperationBusyException;
-import org.me.newsky.network.lock.IslandOperationLock;
+import org.me.newsky.lock.IslandOperationLock;
+import org.me.newsky.state.IslandServerState;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.world.WorldActivityHandler;
 import org.me.newsky.world.WorldHandler;
@@ -18,21 +18,21 @@ import java.util.UUID;
 public class IslandUnloadScheduler {
 
     private final NewSky plugin;
-    private final RuntimeCache runtimeCache;
     private final WorldHandler worldHandler;
     private final WorldActivityHandler worldActivityHandler;
     private final IslandOperationLock islandOperationLock;
+    private final IslandServerState islandServerState;
 
     private final long unloadInterval;
 
     private BukkitTask task;
 
-    public IslandUnloadScheduler(NewSky plugin, ConfigHandler config, RuntimeCache runtimeCache, WorldHandler worldHandler, WorldActivityHandler worldActivityHandler, IslandOperationLock islandOperationLock) {
+    public IslandUnloadScheduler(NewSky plugin, ConfigHandler config, WorldHandler worldHandler, WorldActivityHandler worldActivityHandler, IslandOperationLock islandOperationLock, IslandServerState islandServerState) {
         this.plugin = plugin;
-        this.runtimeCache = runtimeCache;
         this.worldHandler = worldHandler;
         this.worldActivityHandler = worldActivityHandler;
         this.islandOperationLock = islandOperationLock;
+        this.islandServerState = islandServerState;
         this.unloadInterval = config.getIslandUnloadInterval();
     }
 
@@ -77,7 +77,7 @@ public class IslandUnloadScheduler {
 
                 return worldHandler.unloadWorld(worldName).thenRun(() -> {
                     worldActivityHandler.clearWorld(worldName);
-                    runtimeCache.removeIslandLoadedServer(islandUuid);
+                    islandServerState.removeIslandLoadedServer(islandUuid);
                     plugin.debug("IslandUnloadScheduler", "Unloaded world: " + worldName);
                 });
             }).exceptionally(ex -> {

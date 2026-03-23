@@ -3,7 +3,7 @@ package org.me.newsky.broker;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.me.newsky.NewSky;
-import org.me.newsky.network.operator.IslandOperator;
+import org.me.newsky.network.IslandOperator;
 import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.JedisPubSub;
 

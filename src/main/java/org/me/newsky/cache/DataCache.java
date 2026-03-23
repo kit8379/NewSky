@@ -1,7 +1,6 @@
-package org.me.newsky.cache.data;
+package org.me.newsky.cache;
 
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.RuntimeCache;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.model.Island;
 import org.me.newsky.redis.RedisHandler;
@@ -28,14 +27,11 @@ public final class DataCache {
     private final NewSky plugin;
     private final RedisHandler redisHandler;
     private final DatabaseHandler database;
-    private final RuntimeCache runtimeCache;
 
-    public DataCache(NewSky plugin, RedisHandler redisHandler, DatabaseHandler database, RuntimeCache runtimeCache) {
+    public DataCache(NewSky plugin, RedisHandler redisHandler, DatabaseHandler database) {
         this.plugin = plugin;
         this.redisHandler = redisHandler;
         this.database = database;
-        this.runtimeCache = runtimeCache;
-
         cacheAll();
     }
 
@@ -112,10 +108,6 @@ public final class DataCache {
 
     public void cacheAll() {
         plugin.debug("DataCache", "Starting Redis data cache from MySQL...");
-
-        if (!runtimeCache.getActiveServers().isEmpty()) {
-            plugin.severe("Active servers detected in runtime cache during data cache. Skip rebuild. Active servers: " + runtimeCache.getActiveServers());
-        }
 
         flushData();
         cacheIslandCore();

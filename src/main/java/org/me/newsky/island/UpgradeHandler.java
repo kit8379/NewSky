@@ -1,15 +1,14 @@
-// UpgradeHandler.java
 package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.data.DataCache;
+import org.me.newsky.cache.DataCache;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.UpgradeDoesNotExistException;
 import org.me.newsky.exceptions.UpgradeIslandLevelTooLowException;
 import org.me.newsky.exceptions.UpgradeLevelDoesNotExistException;
 import org.me.newsky.exceptions.UpgradeMaxedException;
 import org.me.newsky.model.UpgradeResult;
-import org.me.newsky.network.distributor.IslandDistributor;
+import org.me.newsky.network.IslandDistributor;
 
 import java.util.Map;
 import java.util.Set;
@@ -29,6 +28,7 @@ public final class UpgradeHandler {
     public static final String UPGRADE_COOP_LIMIT = "coop-limit";
     public static final String UPGRADE_ISLAND_SIZE = "island-size";
     public static final String UPGRADE_GENERATOR_RATES = "generator-rates";
+    public static final String UPGRADE_BIOMES = "biomes";
 
     public UpgradeHandler(NewSky plugin, ConfigHandler config, DataCache dataCache, IslandDistributor islandDistributor) {
         this.plugin = plugin;
@@ -58,7 +58,7 @@ public final class UpgradeHandler {
             }
         }
 
-        return (next == Integer.MAX_VALUE) ? -1 : next;
+        return next == Integer.MAX_VALUE ? -1 : next;
     }
 
     public int getUpgradeRequireIslandLevel(String upgradeId, int level) {
@@ -89,8 +89,12 @@ public final class UpgradeHandler {
         return config.getUpgradeGeneratorRates(level);
     }
 
+    public Set<String> getBiomeAllowList(int level) {
+        return config.getUpgradeBiomes(level);
+    }
+
     // ================================================================================================================
-    // Upgrade operations
+    // Upgrade Operations
     // ================================================================================================================
 
     public CompletableFuture<UpgradeResult> upgradeToNextLevel(UUID islandUuid, String upgradeId) {
@@ -117,6 +121,7 @@ public final class UpgradeHandler {
             if (upgradeId.equals(UPGRADE_ISLAND_SIZE)) {
                 islandDistributor.updateBorder(islandUuid, getIslandSize(nextLevel));
             }
+
             islandDistributor.reloadSnapshot(islandUuid);
 
             return new UpgradeResult(upgradeId, oldLevel, nextLevel, requireIslandLevel);
@@ -139,8 +144,8 @@ public final class UpgradeHandler {
             if (upgradeId.equals(UPGRADE_ISLAND_SIZE)) {
                 islandDistributor.updateBorder(islandUuid, getIslandSize(level));
             }
-            islandDistributor.reloadSnapshot(islandUuid);
 
+            islandDistributor.reloadSnapshot(islandUuid);
         }, plugin.getBukkitAsyncExecutor());
     }
 

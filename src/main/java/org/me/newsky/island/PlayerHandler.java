@@ -1,12 +1,12 @@
 package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.data.DataCache;
-import org.me.newsky.cache.RuntimeCache;
+import org.me.newsky.cache.DataCache;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.*;
 import org.me.newsky.model.Invitation;
-import org.me.newsky.network.distributor.IslandDistributor;
+import org.me.newsky.network.IslandDistributor;
+import org.me.newsky.state.IslandInvitationState;
 
 import java.util.Optional;
 import java.util.Set;
@@ -18,15 +18,15 @@ public class PlayerHandler {
     private final NewSky plugin;
     private final ConfigHandler config;
     private final DataCache dataCache;
-    private final RuntimeCache runtimeCache;
     private final IslandDistributor islandDistributor;
+    private final IslandInvitationState islandInvitationState;
 
-    public PlayerHandler(NewSky plugin, ConfigHandler config, DataCache dataCache, RuntimeCache runtimeCache, IslandDistributor islandDistributor) {
+    public PlayerHandler(NewSky plugin, ConfigHandler config, DataCache dataCache, IslandDistributor islandDistributor, IslandInvitationState islandInvitationState) {
         this.plugin = plugin;
         this.config = config;
         this.dataCache = dataCache;
-        this.runtimeCache = runtimeCache;
         this.islandDistributor = islandDistributor;
+        this.islandInvitationState = islandInvitationState;
     }
 
     public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role) {
@@ -107,21 +107,21 @@ public class PlayerHandler {
                 throw new IslandAlreadyExistException();
             }
 
-            Optional<Invitation> existingInvite = runtimeCache.getIslandInvite(inviteeUuid);
+            Optional<Invitation> existingInvite = islandInvitationState.getIslandInvite(inviteeUuid);
             if (existingInvite.isPresent()) {
                 throw new InvitedAlreadyException();
             }
 
-            runtimeCache.addIslandInvite(inviteeUuid, islandUuid, inviterUuid, ttlSeconds);
+            islandInvitationState.addIslandInvite(inviteeUuid, islandUuid, inviterUuid, ttlSeconds);
         }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> removePendingInvite(UUID playerUuid) {
-        return CompletableFuture.runAsync(() -> runtimeCache.removeIslandInvite(playerUuid), plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.runAsync(() -> islandInvitationState.removeIslandInvite(playerUuid), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Optional<Invitation>> getPendingInvite(UUID playerUuid) {
-        return CompletableFuture.supplyAsync(() -> runtimeCache.getIslandInvite(playerUuid), plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> islandInvitationState.getIslandInvite(playerUuid), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<UUID> getIslandOwner(UUID islandUuid) {

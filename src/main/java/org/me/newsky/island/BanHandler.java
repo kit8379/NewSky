@@ -1,11 +1,11 @@
 package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.data.DataCache;
+import org.me.newsky.cache.DataCache;
 import org.me.newsky.exceptions.CannotBanIslandPlayerException;
 import org.me.newsky.exceptions.PlayerAlreadyBannedException;
 import org.me.newsky.exceptions.PlayerNotBannedException;
-import org.me.newsky.network.distributor.IslandDistributor;
+import org.me.newsky.network.IslandDistributor;
 
 import java.util.Set;
 import java.util.UUID;

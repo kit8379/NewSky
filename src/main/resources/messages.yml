@@ -237,6 +237,18 @@ messages:
   admin-upgrade-set-success: "<#55FF55>Set <white>{upgrade}<#55FF55> to <white>Lv.{level}<#55FF55>."
 
   # ================================================================================================================
+  # Biome
+  # ================================================================================================================
+  player-biome-invalid: "&cInvalid biome: &e{biome}"
+  player-biome-not-unlocked: "&cYou have not unlocked biome: &e{biome}"
+  player-biome-allowed-list: "&7Allowed biomes: &f{biomes}"
+  player-biome-change-success: "&aBiome changed to &e{biome}"
+  player-biome-must-in-own-island: "&cYou must be in your own island to use this command"
+
+  admin-biome-must-in-island: '&cYou must be standing in an island world to use this command'
+  admin-biome-change-success: '&aChunk biome changed to &e{biome}'
+
+  # ================================================================================================================
   # Info Display
   # ================================================================================================================
 

@@ -313,6 +313,29 @@ public class ConfigHandler {
         return out;
     }
 
+    public Set<String> getUpgradeBiomes(int level) {
+        List<String> raw = upgrades.getStringList("upgrades.biomes." + level + ".allowed");
+        if (raw.isEmpty()) {
+            raw = upgrades.getStringList("upgrades.biomes.1.allowed");
+        }
+
+        if (raw.isEmpty()) {
+            return Set.of();
+        }
+
+        Set<String> result = new LinkedHashSet<>();
+        for (String entry : raw) {
+            if (entry == null || entry.isBlank()) {
+                continue;
+            }
+
+            result.add(entry.trim().toLowerCase(Locale.ROOT).replace(' ', '_').replace('-', '_'));
+        }
+
+        return result.isEmpty() ? Set.of() : Set.copyOf(result);
+    }
+
+
 // ================================================================================================================
 // Commands Section
 // ================================================================================================================
@@ -801,6 +824,22 @@ public class ConfigHandler {
         return commands.getString("commands.player.upgrade.description");
     }
 
+    public String[] getPlayerBiomeAliases() {
+        return commands.getStringList("commands.player.biome.aliases").toArray(new String[0]);
+    }
+
+    public String getPlayerBiomePermission() {
+        return commands.getString("commands.player.biome.permission");
+    }
+
+    public String getPlayerBiomeSyntax() {
+        return commands.getString("commands.player.biome.syntax");
+    }
+
+    public String getPlayerBiomeDescription() {
+        return commands.getString("commands.player.biome.description");
+    }
+
     public List<String> getAdminCommandOrder() {
         return Objects.requireNonNull(commands.getConfigurationSection("commands.admin")).getKeys(false).stream().toList();
     }
@@ -1155,6 +1194,22 @@ public class ConfigHandler {
 
     public String getAdminUpgradeDescription() {
         return commands.getString("commands.admin.upgrade.description");
+    }
+
+    public String[] getAdminBiomeAliases() {
+        return commands.getStringList("commands.admin.biome.aliases").toArray(new String[0]);
+    }
+
+    public String getAdminBiomePermission() {
+        return commands.getString("commands.admin.biome.permission");
+    }
+
+    public String getAdminBiomeSyntax() {
+        return commands.getString("commands.admin.biome.syntax");
+    }
+
+    public String getAdminBiomeDescription() {
+        return commands.getString("commands.admin.biome.description");
     }
 
 // =========================================================
@@ -1763,6 +1818,36 @@ public class ConfigHandler {
 
     public Component getPlayerCoopLimitReachedMessage(int limit) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-coop-limit-reached")).replace("{limit}", String.valueOf(limit)));
+    }
+
+    // Biome
+
+    public Component getPlayerBiomeInvalidMessage(String biome) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-biome-invalid")).replace("{biome}", biome));
+    }
+
+    public Component getPlayerBiomeNotUnlockedMessage(String biome) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-biome-not-unlocked")).replace("{biome}", biome));
+    }
+
+    public Component getPlayerBiomeAllowedListMessage(String biomes) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-biome-allowed-list")).replace("{biomes}", biomes));
+    }
+
+    public Component getPlayerBiomeChangeSuccessMessage(String biome) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-biome-change-success")).replace("{biome}", biome));
+    }
+
+    public Component getPlayerBiomeMustInOwnIslandMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-biome-must-in-own-island"));
+    }
+
+    public Component getAdminBiomeMustInIslandMessage() {
+        return ColorUtils.colorize(messages.getString("messages.admin-biome-must-in-island"));
+    }
+
+    public Component getAdminBiomeChangeSuccessMessage(String biome) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-biome-change-success")).replace("{biome}", biome));
     }
 
     // Help

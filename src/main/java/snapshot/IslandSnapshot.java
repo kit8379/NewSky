@@ -1,7 +1,7 @@
 package snapshot;
 
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.data.DataCache;
+import org.me.newsky.cache.DataCache;
 import org.me.newsky.model.Island;
 
 import java.util.Map;

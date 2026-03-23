@@ -2,7 +2,7 @@ package org.me.newsky.island;
 
 import org.bukkit.*;
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.data.DataCache;
+import org.me.newsky.cache.DataCache;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.util.IslandUtils;
 
@@ -71,7 +71,6 @@ public class LevelHandler {
         CompletableFuture<Void> allLoaded = CompletableFuture.allOf(chunkFutures.toArray(new CompletableFuture[0]));
 
         CompletableFuture<List<ChunkSnapshot>> snapshotsFuture = allLoaded.thenApply(chunks -> {
-
             List<ChunkSnapshot> snapshots = new ArrayList<>(chunkFutures.size());
 
             for (CompletableFuture<Chunk> f : chunkFutures) {
@@ -87,29 +86,22 @@ public class LevelHandler {
         });
 
         return snapshotsFuture.thenApplyAsync(snapshots -> {
+            int minY = world.getMinHeight();
+            int maxY = world.getMaxHeight();
+            int[] table = this.pointsByMaterialOrdinal;
 
-                    int minY = world.getMinHeight();
-                    int maxY = world.getMaxHeight();
-                    int[] table = this.pointsByMaterialOrdinal;
+            long totalPoints = 0;
 
-                    long totalPoints = 0;
+            for (ChunkSnapshot snapshot : snapshots) {
+                totalPoints += calculateSnapshotPoints(snapshot, minY, maxY, table);
+            }
 
-                    for (ChunkSnapshot snapshot : snapshots) {
-                        totalPoints += calculateSnapshotPoints(snapshot, minY, maxY, table);
-                    }
-
-                    return (int) Math.round((double) totalPoints / 100.0);
-
-                }, plugin.getBukkitAsyncExecutor())
-
-                .thenApply(totalLevel -> {
-
-                    dataCache.updateIslandLevel(islandUuid, totalLevel);
-
-                    plugin.debug("LevelHandler", "Calculated level for island " + islandUuid + ": " + totalLevel);
-
-                    return totalLevel;
-                });
+            return (int) Math.round((double) totalPoints / 100.0);
+        }, plugin.getBukkitAsyncExecutor()).thenApply(totalLevel -> {
+            dataCache.updateIslandLevel(islandUuid, totalLevel);
+            plugin.debug("LevelHandler", "Calculated level for island " + islandUuid + ": " + totalLevel);
+            return totalLevel;
+        });
     }
 
     private static long calculateSnapshotPoints(ChunkSnapshot snapshot, int minY, int maxY, int[] table) {

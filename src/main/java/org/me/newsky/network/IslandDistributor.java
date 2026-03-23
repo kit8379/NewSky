@@ -1,15 +1,15 @@
-package org.me.newsky.network.distributor;
+package org.me.newsky.network;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.broker.IslandBroker;
-import org.me.newsky.cache.RuntimeCache;
 import org.me.newsky.exceptions.IslandAlreadyLoadedException;
-import org.me.newsky.exceptions.IslandOperationBusyException;
 import org.me.newsky.exceptions.IslandNotLoadedException;
+import org.me.newsky.exceptions.IslandOperationBusyException;
 import org.me.newsky.exceptions.NoActiveServerException;
-import org.me.newsky.network.lock.IslandOperationLock;
-import org.me.newsky.network.operator.IslandOperator;
+import org.me.newsky.lock.IslandOperationLock;
 import org.me.newsky.routing.ServerSelector;
+import org.me.newsky.state.IslandServerState;
+import org.me.newsky.state.ServerHeartbeatState;
 import org.me.newsky.util.ServerUtil;
 
 import java.util.List;
@@ -22,20 +22,22 @@ import java.util.stream.Collectors;
 public class IslandDistributor {
 
     private final NewSky plugin;
-    private final RuntimeCache runtimeCache;
     private final IslandOperator islandOperator;
-    private final ServerSelector serverSelector;
     private final IslandOperationLock islandOperationLock;
+    private final ServerSelector serverSelector;
+    private final ServerHeartbeatState serverHeartbeatState;
+    private final IslandServerState islandServerState;
     private final String serverID;
 
     private IslandBroker islandBroker;
 
-    public IslandDistributor(NewSky plugin, RuntimeCache runtimeCache, IslandOperator islandOperator, ServerSelector serverSelector, IslandOperationLock islandOperationLock, String serverID) {
+    public IslandDistributor(NewSky plugin, IslandOperator islandOperator, IslandOperationLock islandOperationLock, ServerSelector serverSelector, ServerHeartbeatState serverHeartbeatState, IslandServerState islandServerState, String serverID) {
         this.plugin = plugin;
-        this.runtimeCache = runtimeCache;
         this.islandOperator = islandOperator;
-        this.serverSelector = serverSelector;
         this.islandOperationLock = islandOperationLock;
+        this.serverSelector = serverSelector;
+        this.serverHeartbeatState = serverHeartbeatState;
+        this.islandServerState = islandServerState;
         this.serverID = serverID;
     }
 
@@ -64,7 +66,7 @@ public class IslandDistributor {
 
             plugin.debug("IslandDistributor", "ensureIslandLoaded: island not loaded. Selecting server to load " + islandUuid);
 
-            String targetServer = selectServer(runtimeCache.getActiveGameServers());
+            String targetServer = selectServer(serverHeartbeatState.getActiveGameServers());
             if (targetServer == null) {
                 plugin.debug("IslandDistributor", "ensureIslandLoaded: no active server available to load island " + islandUuid);
                 return CompletableFuture.failedFuture(new NoActiveServerException());
@@ -97,7 +99,7 @@ public class IslandDistributor {
 
     public CompletableFuture<Void> createIsland(UUID islandUuid) {
         return withIslandOpLock(islandUuid, () -> {
-            String targetServer = selectServer(runtimeCache.getActiveGameServers());
+            String targetServer = selectServer(serverHeartbeatState.getActiveGameServers());
             if (targetServer == null) {
                 plugin.debug("IslandDistributor", "createIsland: no active server available.");
                 return CompletableFuture.failedFuture(new NoActiveServerException());
@@ -125,7 +127,7 @@ public class IslandDistributor {
 
             plugin.debug("IslandDistributor", "loadIsland: island not loaded. Selecting server to load " + islandUuid);
 
-            String targetServer = selectServer(runtimeCache.getActiveGameServers());
+            String targetServer = selectServer(serverHeartbeatState.getActiveGameServers());
             if (targetServer == null) {
                 plugin.debug("IslandDistributor", "loadIsland: no active server available.");
                 return CompletableFuture.failedFuture(new NoActiveServerException());
@@ -201,7 +203,7 @@ public class IslandDistributor {
     }
 
     public CompletableFuture<Void> teleportLobby(UUID playerUuid, List<String> lobbyServers, String lobbyWorld, String lobbyLocation) {
-        String targetLobbyServer = selectServer(runtimeCache.getActiveServers().entrySet().stream().filter(entry -> lobbyServers.contains(entry.getKey())).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+        String targetLobbyServer = selectServer(serverHeartbeatState.getActiveServers().entrySet().stream().filter(entry -> lobbyServers.contains(entry.getKey())).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
 
         if (targetLobbyServer == null) {
             plugin.debug("IslandDistributor", "teleportLobby: no active lobby server available.");
@@ -312,6 +314,6 @@ public class IslandDistributor {
     }
 
     private String getServerByIsland(UUID islandUuid) {
-        return runtimeCache.getIslandLoadedServer(islandUuid).orElse(null);
+        return islandServerState.getIslandLoadedServer(islandUuid).orElse(null);
     }
 }

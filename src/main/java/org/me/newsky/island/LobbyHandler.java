@@ -2,7 +2,7 @@ package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.network.distributor.IslandDistributor;
+import org.me.newsky.network.IslandDistributor;
 
 import java.util.List;
 import java.util.UUID;

@@ -64,3 +64,26 @@ upgrades:
         COBBLESTONE: 89.5
         IRON_ORE: 5
         DIAMOND_ORE: 0.5
+
+  biomes:
+    '1':
+      allowed:
+        - PLAINS
+    '2':
+      require-level: 10
+      allowed:
+        - PLAINS
+        - FOREST
+        - BIRCH_FOREST
+        - CHERRY_GROVE
+    '3':
+      require-level: 30
+      allowed:
+        - PLAINS
+        - FOREST
+        - BIRCH_FOREST
+        - CHERRY_GROVE
+        - JUNGLE
+        - BADLANDS
+        - DESERT
+        - SAVANNA

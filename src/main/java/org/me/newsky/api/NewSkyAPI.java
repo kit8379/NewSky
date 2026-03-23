@@ -24,9 +24,10 @@ public class NewSkyAPI {
     private final LobbyHandler lobbyHandler;
     private final PlayerMessageHandler playerMessageHandler;
     private final UpgradeHandler upgradeHandler;
+    private final BiomeHandler biomeHandler;
     private final UuidHandler uuidHandler;
 
-    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, PlayerMessageHandler playerMessageHandler, UuidHandler uuidHandler, UpgradeHandler upgradeHandler) {
+    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, PlayerMessageHandler playerMessageHandler, UuidHandler uuidHandler, UpgradeHandler upgradeHandler, BiomeHandler biomeHandler) {
 
         this.plugin = plugin;
         this.islandHandler = islandHandler;
@@ -39,6 +40,7 @@ public class NewSkyAPI {
         this.lobbyHandler = lobbyHandler;
         this.playerMessageHandler = playerMessageHandler;
         this.upgradeHandler = upgradeHandler;
+        this.biomeHandler = biomeHandler;
         this.uuidHandler = uuidHandler;
     }
 
@@ -290,6 +292,16 @@ public class NewSkyAPI {
     @SuppressWarnings("unused")
     public Map<String, Double> getGeneratorRates(int level) {
         return upgradeHandler.getGeneratorRates(level);
+    }
+
+    @SuppressWarnings("unused")
+    public Set<String> getBiomeAllowList(int level) {
+        return upgradeHandler.getBiomeAllowList(level);
+    }
+
+    @SuppressWarnings("unused")
+    public CompletableFuture<Void> applyChunkBiome(String worldName, int chunkX, int chunkZ, String biomeName) {
+        return biomeHandler.applyChunkBiome(worldName, chunkX, chunkZ, biomeName);
     }
 
     @SuppressWarnings("unused")

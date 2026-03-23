@@ -1,9 +1,9 @@
 package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.data.DataCache;
+import org.me.newsky.cache.DataCache;
 import org.me.newsky.exceptions.*;
-import org.me.newsky.network.distributor.IslandDistributor;
+import org.me.newsky.network.IslandDistributor;
 import org.me.newsky.util.IslandUtils;
 
 import java.util.Optional;

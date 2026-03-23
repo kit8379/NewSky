@@ -7,11 +7,11 @@ public class IslandUtils {
     /**
      * Converts an island name to a UUID.
      *
-     * @param islandName the name of the island
+     * @param worldName the name of the island
      * @return the UUID of the island
      */
-    public static UUID nameToUUID(String islandName) {
-        return UUID.fromString(islandName.substring(7));
+    public static UUID nameToUUID(String worldName) {
+        return UUID.fromString(worldName.substring(7));
     }
 
     /**
@@ -27,10 +27,10 @@ public class IslandUtils {
     /**
      * Checks if the given island name is valid.
      *
-     * @param islandName the name of the island
+     * @param worldName the name of the island
      * @return true if the island name is valid, false otherwise
      */
-    public static boolean isIslandWorld(String islandName) {
-        return islandName.startsWith("island-");
+    public static boolean isIslandWorld(String worldName) {
+        return worldName.startsWith("island-");
     }
 }
