@@ -5,6 +5,7 @@ import org.me.newsky.NewSky;
 import org.me.newsky.island.*;
 import org.me.newsky.message.PlayerMessageHandler;
 import org.me.newsky.model.Invitation;
+import org.me.newsky.model.IslandTop;
 import org.me.newsky.model.UpgradeResult;
 import org.me.newsky.uuid.UuidHandler;
 
@@ -232,6 +233,11 @@ public class NewSkyAPI {
     @SuppressWarnings("unused")
     public CompletableFuture<Integer> getIslandLevel(UUID islandUuid) {
         return levelHandler.getIslandLevel(islandUuid);
+    }
+
+    @SuppressWarnings("unused")
+    public CompletableFuture<List<IslandTop>> getTopIslandLevels(int limit) {
+        return levelHandler.getTopIslandLevels(limit);
     }
 
     @SuppressWarnings("unused")

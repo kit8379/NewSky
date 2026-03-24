@@ -19,7 +19,6 @@ import org.me.newsky.lock.IslandOperationLock;
 import org.me.newsky.message.PlayerMessageHandler;
 import org.me.newsky.network.IslandDistributor;
 import org.me.newsky.network.IslandOperator;
-import org.me.newsky.placeholder.NewSkyPlaceholderExpansion;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.routing.MSPTServerSelector;
 import org.me.newsky.routing.RandomServerSelector;
@@ -107,7 +106,7 @@ public class NewSky extends JavaPlugin {
             info("Redis cache state handler loaded");
 
             info("Starting persistent data cache handler");
-            DataCache dataCache = new DataCache(this, redisHandler, databaseHandler);
+            DataCache dataCache = new DataCache(this, redisHandler, databaseHandler, serverHeartbeatState);
             info("Persistent data cache handler loaded");
 
             info("Loading island loaded snapshot");
@@ -231,14 +230,14 @@ public class NewSky extends JavaPlugin {
             getServer().getPluginManager().registerEvents(asyncTabCompleteListener, this);
             info("All commands registered");
 
-            info("Registering placeholder");
-            if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-                info("PlaceholderAPI found, registering placeholders");
-                new NewSkyPlaceholderExpansion(this).register();
-                info("Placeholder registered");
-            } else {
-                info("PlaceholderAPI not found, skipping placeholder registration");
-            }
+//            info("Registering placeholder");
+//            if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+//                info("PlaceholderAPI found, registering placeholders");
+//                new NewSkyPlaceholderExpansion(this).register();
+//                info("Placeholder registered");
+//            } else {
+//                info("PlaceholderAPI not found, skipping placeholder registration");
+//            }
 
             islandBroker.subscribe();
             playerMessageBroker.subscribe();

@@ -4,6 +4,7 @@ import org.bukkit.*;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.DataCache;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.model.IslandTop;
 import org.me.newsky.util.IslandUtils;
 
 import java.util.ArrayList;
@@ -126,5 +127,9 @@ public class LevelHandler {
         return CompletableFuture.supplyAsync(() -> {
             return dataCache.getIslandLevel(islandUuid);
         }, plugin.getBukkitAsyncExecutor());
+    }
+
+    public CompletableFuture<List<IslandTop>> getTopIslandLevels(int limit) {
+        return CompletableFuture.supplyAsync(() -> dataCache.getTopIslandLevels(limit), plugin.getBukkitAsyncExecutor());
     }
 }

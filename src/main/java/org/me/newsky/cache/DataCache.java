@@ -3,7 +3,9 @@ package org.me.newsky.cache;
 import org.me.newsky.NewSky;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.model.Island;
+import org.me.newsky.model.IslandTop;
 import org.me.newsky.redis.RedisHandler;
+import org.me.newsky.state.ServerHeartbeatState;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.params.ScanParams;
@@ -21,18 +23,23 @@ public final class DataCache {
     private static final String PLAYER_UUID_KEY = DATA_PREFIX + "player:uuid";
 
     private static final String LUA_UPDATE_ISLAND_OWNER = "local playersKey = KEYS[1] " + "local coreKey = KEYS[2] " + "local playerIslandKey = KEYS[3] " + "local islandUuid = ARGV[1] " + "local oldOwnerUuid = ARGV[2] " + "local newOwnerUuid = ARGV[3] " + "local currentOwner = redis.call('HGET', coreKey, 'owner') " + "if currentOwner ~= oldOwnerUuid then " + "    return 0 " + "end " + "local newOwnerRole = redis.call('HGET', playersKey, newOwnerUuid) " + "if not newOwnerRole then " + "    return -1 " + "end " + "redis.call('HSET', playersKey, oldOwnerUuid, 'member') " + "redis.call('HSET', playersKey, newOwnerUuid, 'owner') " + "redis.call('HSET', coreKey, 'owner', newOwnerUuid) " + "redis.call('HSET', playerIslandKey, newOwnerUuid, islandUuid) " + "return 1";
-
     private static final String LUA_DELETE_ALL_COOP_OF_PLAYER = "local reverseKey = KEYS[1] " + "local dataPrefix = ARGV[1] " + "local playerUuid = ARGV[2] " + "local islands = redis.call('SMEMBERS', reverseKey) " + "for i = 1, #islands do " + "    local coopKey = dataPrefix .. 'island:' .. islands[i] .. ':coops' " + "    redis.call('SREM', coopKey, playerUuid) " + "end " + "redis.call('DEL', reverseKey) " + "return islands";
 
     private final NewSky plugin;
     private final RedisHandler redisHandler;
     private final DatabaseHandler database;
 
-    public DataCache(NewSky plugin, RedisHandler redisHandler, DatabaseHandler database) {
+    public DataCache(NewSky plugin, RedisHandler redisHandler, DatabaseHandler database, ServerHeartbeatState serverHeartbeatState) {
         this.plugin = plugin;
         this.redisHandler = redisHandler;
         this.database = database;
-        cacheAll();
+
+        if (serverHeartbeatState.getActiveServers().isEmpty()) {
+            plugin.debug("DataCache", "Server heartbeat indicates this is the only active server, performing full Redis data cache bootstrap.");
+            cacheAll();
+        } else {
+            plugin.debug("DataCache", "Server heartbeat indicates there are already active servers, skipping full Redis data cache bootstrap.");
+        }
     }
 
     // =================================================================================================================
@@ -631,6 +638,111 @@ public final class DataCache {
         } catch (Exception e) {
             plugin.severe("Failed to get island level for: " + islandUuid, e);
             return 0;
+        }
+    }
+
+    public List<IslandTop> getTopIslandLevels(int limit) {
+        int safeLimit = Math.max(1, limit);
+
+        Comparator<IslandTop> comparator = Comparator.comparingInt(IslandTop::getLevel).thenComparing(top -> top.getIslandUuid().toString());
+
+        try (Jedis jedis = redisHandler.getJedis()) {
+            String cursor = ScanParams.SCAN_POINTER_START;
+            ScanParams params = new ScanParams().match(DATA_PREFIX + "island:*:core").count(500);
+
+            int prefixLength = (DATA_PREFIX + "island:").length();
+            int suffixLength = ":core".length();
+
+            PriorityQueue<IslandTop> topQueue = new PriorityQueue<>(safeLimit, comparator);
+
+            do {
+                ScanResult<String> scan = jedis.scan(cursor, params);
+                List<String> keys = scan.getResult();
+
+                if (!keys.isEmpty()) {
+                    Pipeline pipeline = jedis.pipelined();
+                    List<redis.clients.jedis.Response<List<String>>> coreResponses = new ArrayList<>(keys.size());
+
+                    for (String key : keys) {
+                        coreResponses.add(pipeline.hmget(key, "owner", "level"));
+                    }
+
+                    pipeline.sync();
+
+                    for (int i = 0; i < keys.size(); i++) {
+                        String key = keys.get(i);
+                        if (key == null || key.length() <= prefixLength + suffixLength) {
+                            continue;
+                        }
+
+                        Optional<UUID> islandUuid = parseUuid(key.substring(prefixLength, key.length() - suffixLength));
+                        if (islandUuid.isEmpty()) {
+                            continue;
+                        }
+
+                        List<String> core = coreResponses.get(i).get();
+                        if (core == null || core.size() < 2) {
+                            continue;
+                        }
+
+                        Optional<UUID> ownerUuid = parseUuid(core.get(0));
+                        if (ownerUuid.isEmpty()) {
+                            continue;
+                        }
+
+                        IslandTop top = new IslandTop(islandUuid.get(), ownerUuid.get(), parseInt(core.get(1), 0), Set.of());
+
+                        topQueue.offer(top);
+                        if (topQueue.size() > safeLimit) {
+                            topQueue.poll();
+                        }
+                    }
+                }
+
+                cursor = scan.getCursor();
+            } while (!ScanParams.SCAN_POINTER_START.equals(cursor));
+
+            if (topQueue.isEmpty()) {
+                return List.of();
+            }
+
+            List<IslandTop> topIslands = new ArrayList<>(topQueue);
+            topIslands.sort(comparator.reversed());
+
+            Pipeline pipeline = jedis.pipelined();
+            List<redis.clients.jedis.Response<Map<String, String>>> memberResponses = new ArrayList<>(topIslands.size());
+
+            for (IslandTop islandTop : topIslands) {
+                memberResponses.add(pipeline.hgetAll(islandPlayersKey(islandTop.getIslandUuid())));
+            }
+
+            pipeline.sync();
+
+            List<IslandTop> result = new ArrayList<>(topIslands.size());
+
+            for (int i = 0; i < topIslands.size(); i++) {
+                IslandTop islandTop = topIslands.get(i);
+                Map<String, String> players = memberResponses.get(i).get();
+
+                if (players == null || players.isEmpty()) {
+                    result.add(new IslandTop(islandTop.getIslandUuid(), islandTop.getOwnerUuid(), islandTop.getLevel(), Set.of()));
+                    continue;
+                }
+
+                Set<UUID> members = new LinkedHashSet<>();
+                for (Map.Entry<String, String> entry : players.entrySet()) {
+                    if ("member".equalsIgnoreCase(entry.getValue())) {
+                        parseUuid(entry.getKey()).ifPresent(members::add);
+                    }
+                }
+
+                result.add(new IslandTop(islandTop.getIslandUuid(), islandTop.getOwnerUuid(), islandTop.getLevel(), members.isEmpty() ? Set.of() : Set.copyOf(members)));
+            }
+
+            return result;
+        } catch (Exception e) {
+            plugin.severe("Failed to get top island levels", e);
+            return List.of();
         }
     }
 
