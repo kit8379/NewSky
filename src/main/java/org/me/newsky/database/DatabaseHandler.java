@@ -143,7 +143,7 @@ public class DatabaseHandler {
     }
 
     private void createIslandPlayersTable() {
-        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_players (" + "player_uuid CHAR(36) NOT NULL," + "island_uuid CHAR(36) NOT NULL," + "role VARCHAR(56) NOT NULL," + "PRIMARY KEY (player_uuid, island_uuid)," + "CONSTRAINT fk_island_players_island " + "FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid) " + "ON DELETE CASCADE" + ") ENGINE=InnoDB;", stmt -> {
+        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_players (" + "player_uuid CHAR(36) NOT NULL," + "island_uuid CHAR(36) NOT NULL," + "role VARCHAR(56) NOT NULL," + "PRIMARY KEY (player_uuid, island_uuid)," + "UNIQUE KEY uq_island_players_player_uuid (player_uuid)," + "KEY idx_island_players_island_uuid (island_uuid)," + "CONSTRAINT fk_island_players_island " + "FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid) " + "ON DELETE CASCADE" + ") ENGINE=InnoDB;", stmt -> {
         });
     }
 
@@ -237,13 +237,14 @@ public class DatabaseHandler {
 
     public void addIslandData(UUID islandUuid, UUID ownerUuid, String homePoint) {
         inTransaction(connection -> {
-            executeUpdate(connection, "INSERT INTO " + prefix + "islands (island_uuid) VALUES (?);", stmt -> stmt.setString(1, islandUuid.toString()));
+            executeUpdate(connection, "INSERT INTO " + prefix + "islands (island_uuid) VALUES (?);", stmt -> {
+                stmt.setString(1, islandUuid.toString());
+            });
 
-            executeUpdate(connection, "INSERT INTO " + prefix + "island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?) " + "ON DUPLICATE KEY UPDATE role = ?;", stmt -> {
+            executeUpdate(connection, "INSERT INTO " + prefix + "island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?);", stmt -> {
                 stmt.setString(1, ownerUuid.toString());
                 stmt.setString(2, islandUuid.toString());
                 stmt.setString(3, "owner");
-                stmt.setString(4, "owner");
             });
 
             executeUpdate(connection, "INSERT INTO " + prefix + "island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) " + "ON DUPLICATE KEY UPDATE home_location = ?;", stmt -> {
@@ -258,11 +259,10 @@ public class DatabaseHandler {
 
     public void addIslandPlayer(UUID islandUuid, UUID playerUuid, String role, String homePoint) {
         inTransaction(connection -> {
-            executeUpdate(connection, "INSERT INTO " + prefix + "island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?) " + "ON DUPLICATE KEY UPDATE role = ?;", stmt -> {
+            executeUpdate(connection, "INSERT INTO " + prefix + "island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?);", stmt -> {
                 stmt.setString(1, playerUuid.toString());
                 stmt.setString(2, islandUuid.toString());
                 stmt.setString(3, role);
-                stmt.setString(4, role);
             });
 
             executeUpdate(connection, "INSERT INTO " + prefix + "island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) " + "ON DUPLICATE KEY UPDATE home_location = ?;", stmt -> {
@@ -365,7 +365,9 @@ public class DatabaseHandler {
     }
 
     public void deleteIsland(UUID islandUuid) {
-        executeUpdate("DELETE FROM " + prefix + "islands WHERE island_uuid = ?;", stmt -> stmt.setString(1, islandUuid.toString()));
+        executeUpdate("DELETE FROM " + prefix + "islands WHERE island_uuid = ?;", stmt -> {
+            stmt.setString(1, islandUuid.toString());
+        });
     }
 
     public void deleteIslandPlayer(UUID islandUuid, UUID playerUuid) {
@@ -406,7 +408,9 @@ public class DatabaseHandler {
     }
 
     public void deleteAllCoopOfPlayer(UUID playerUuid) {
-        executeUpdate("DELETE FROM " + prefix + "island_coops WHERE cooped_player = ?;", stmt -> stmt.setString(1, playerUuid.toString()));
+        executeUpdate("DELETE FROM " + prefix + "island_coops WHERE cooped_player = ?;", stmt -> {
+            stmt.setString(1, playerUuid.toString());
+        });
     }
 
     public void deleteIslandUpgrade(UUID islandUuid, String upgradeId) {
