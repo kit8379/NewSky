@@ -54,11 +54,6 @@ public class PlayerTopCommand implements SubCommand {
 
     @Override
     public boolean execute(CommandSender sender, String[] args) {
-        if (args.length > 1) {
-            sender.sendMessage(getSyntax());
-            return true;
-        }
-
         api.getTopIslandLevels(TOP_LIMIT).thenCompose(entries -> {
             if (entries.isEmpty()) {
                 return CompletableFuture.completedFuture(new PreparedTopResult(List.of(), Map.of()));
@@ -81,12 +76,6 @@ public class PlayerTopCommand implements SubCommand {
                 return Map.of();
             }).thenApply(names -> new PreparedTopResult(entries, names));
         }).whenComplete((result, ex) -> {
-            if (ex != null) {
-                sender.sendMessage(config.getUnknownExceptionMessage());
-                plugin.severe("Error executing /is top command", ex);
-                return;
-            }
-
             if (result.entries().isEmpty()) {
                 sender.sendMessage(config.getNoIslandsFoundMessage());
                 return;
@@ -107,6 +96,10 @@ public class PlayerTopCommand implements SubCommand {
 
                 rank++;
             }
+        }).exceptionally(ex -> {
+            sender.sendMessage(config.getUnknownExceptionMessage());
+            plugin.severe("Error showing island top for player " + sender.getName(), ex);
+            return null;
         });
 
         return true;
