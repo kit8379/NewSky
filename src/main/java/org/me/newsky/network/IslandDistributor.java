@@ -83,6 +83,7 @@ public class IslandDistributor {
                 loadFuture = islandBroker.sendRequest(targetServer, "load", islandUuid.toString());
             }
 
+            // TODO: can cut
             return loadFuture.thenApply(v -> {
                 String loadedOn = getServerByIsland(islandUuid);
                 if (loadedOn == null) {
@@ -203,21 +204,21 @@ public class IslandDistributor {
     }
 
     public CompletableFuture<Void> teleportLobby(UUID playerUuid, List<String> lobbyServers, String lobbyWorld, String lobbyLocation) {
-        String targetLobbyServer = selectServer(serverHeartbeatState.getActiveServers().entrySet().stream().filter(entry -> lobbyServers.contains(entry.getKey())).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
+        String lobbyServer = selectServer(serverHeartbeatState.getActiveServers().entrySet().stream().filter(entry -> lobbyServers.contains(entry.getKey())).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
 
-        if (targetLobbyServer == null) {
+        if (lobbyServer == null) {
             plugin.debug("IslandDistributor", "teleportLobby: no active lobby server available.");
             return CompletableFuture.failedFuture(new NoActiveServerException());
         }
 
-        plugin.debug("IslandDistributor", "teleportLobby: selected lobby server " + targetLobbyServer + " for player " + playerUuid);
+        plugin.debug("IslandDistributor", "teleportLobby: selected lobby server " + lobbyServer + " for player " + playerUuid);
 
-        if (targetLobbyServer.equals(serverID)) {
+        if (lobbyServer.equals(serverID)) {
             plugin.debug("IslandDistributor", "teleportLobby: teleporting locally on " + serverID);
             return islandOperator.teleport(playerUuid, lobbyWorld, lobbyLocation);
         } else {
-            plugin.debug("IslandDistributor", "teleportLobby: forwarding teleport to server " + targetLobbyServer);
-            return islandBroker.sendRequest(targetLobbyServer, "teleport", playerUuid.toString(), lobbyWorld, lobbyLocation).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, targetLobbyServer));
+            plugin.debug("IslandDistributor", "teleportLobby: forwarding teleport to server " + lobbyServer);
+            return islandBroker.sendRequest(lobbyServer, "teleport", playerUuid.toString(), lobbyWorld, lobbyLocation).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, lobbyServer));
         }
     }
 

@@ -33,8 +33,8 @@ public class BanHandler {
                 throw new CannotBanIslandPlayerException();
             }
 
-            islandDistributor.expelPlayer(islandUuid, playerUuid);
             dataCache.updateBanPlayer(islandUuid, playerUuid);
+            islandDistributor.expelPlayer(islandUuid, playerUuid);
             islandDistributor.reloadSnapshot(islandUuid);
         }, plugin.getBukkitAsyncExecutor());
     }

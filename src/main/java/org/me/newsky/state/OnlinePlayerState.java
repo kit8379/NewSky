@@ -26,6 +26,7 @@ public class OnlinePlayerState {
             jedis.hset(ONLINE_PLAYERS_KEY, playerUuid.toString(), playerName);
         } catch (Exception e) {
             plugin.severe("Failed to add online player: " + playerUuid, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -34,6 +35,7 @@ public class OnlinePlayerState {
             jedis.hdel(ONLINE_PLAYERS_KEY, playerUuid.toString());
         } catch (Exception e) {
             plugin.severe("Failed to remove online player: " + playerUuid, e);
+            throw new RuntimeException(e);
         }
     }
 

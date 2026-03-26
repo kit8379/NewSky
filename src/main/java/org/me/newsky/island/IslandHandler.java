@@ -68,8 +68,8 @@ public class IslandHandler {
                 islandDistributor.reloadSnapshot(islandUuid);
                 return false;
             } else {
-                islandDistributor.lockIsland(islandUuid);
                 dataCache.updateIslandLock(islandUuid, true);
+                islandDistributor.lockIsland(islandUuid);
                 islandDistributor.reloadSnapshot(islandUuid);
                 return true;
             }

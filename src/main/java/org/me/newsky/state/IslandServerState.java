@@ -24,6 +24,7 @@ public class IslandServerState {
             jedis.hset(ISLAND_SERVER_KEY, islandUuid.toString(), serverName);
         } catch (Exception e) {
             plugin.severe("Failed to update island loaded server for: " + islandUuid, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -32,6 +33,7 @@ public class IslandServerState {
             jedis.hdel(ISLAND_SERVER_KEY, islandUuid.toString());
         } catch (Exception e) {
             plugin.severe("Failed to remove island loaded server for: " + islandUuid, e);
+            throw new RuntimeException(e);
         }
     }
 

@@ -31,6 +31,7 @@ public class IslandInvitationState {
             jedis.setex(islandInvitationKey(inviteeUuid), ttlSeconds, value);
         } catch (Exception e) {
             plugin.severe("Failed to add island invite for: " + inviteeUuid, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -39,6 +40,7 @@ public class IslandInvitationState {
             jedis.del(islandInvitationKey(inviteeUuid));
         } catch (Exception e) {
             plugin.severe("Failed to remove island invite for: " + inviteeUuid, e);
+            throw new RuntimeException(e);
         }
     }
 

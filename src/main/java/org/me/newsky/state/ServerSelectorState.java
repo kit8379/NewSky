@@ -24,6 +24,7 @@ public class ServerSelectorState {
             jedis.hset(SERVER_MSPT_KEY, serverName, String.format(Locale.ROOT, "%.2f", mspt));
         } catch (Exception e) {
             plugin.severe("Failed to update MSPT for server: " + serverName, e);
+            throw new RuntimeException(e);
         }
     }
 

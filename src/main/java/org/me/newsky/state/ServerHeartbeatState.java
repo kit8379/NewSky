@@ -47,6 +47,7 @@ public class ServerHeartbeatState {
             }
         } catch (Exception e) {
             plugin.severe("Failed to update active server for: " + serverName, e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -77,6 +78,7 @@ public class ServerHeartbeatState {
 
         } catch (Exception e) {
             plugin.severe("Failed to remove active server: " + serverName, e);
+            throw new RuntimeException(e);
         }
     }
 
