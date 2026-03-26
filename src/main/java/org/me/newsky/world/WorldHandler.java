@@ -86,10 +86,17 @@ public class WorldHandler {
 
     public CompletableFuture<Void> unloadWorld(String worldName) {
         plugin.debug("WorldHandler", "Unloading world: " + worldName);
+
         try {
             SlimeWorld world = asp.getLoadedWorld(worldName);
-            asp.saveWorld(world);
-            plugin.debug("WorldHandler", "World saved before unload: " + worldName);
+
+            if (world != null) {
+                asp.saveWorld(world);
+                plugin.debug("WorldHandler", "World saved before unload: " + worldName);
+            } else {
+                plugin.debug("WorldHandler", "ASP loaded world not found for unload, skipping save: " + worldName);
+            }
+
             return unloadWorldFromBukkit(worldName).thenRunAsync(() -> plugin.debug("WorldHandler", "World successfully unloaded: " + worldName), plugin.getBukkitAsyncExecutor());
         } catch (Exception e) {
             plugin.severe("Failed to unload slime world: " + worldName, e);
@@ -121,14 +128,19 @@ public class WorldHandler {
     public CompletableFuture<Void> unloadWorldFromBukkit(String worldName) {
         return CompletableFuture.runAsync(() -> {
             World world = Bukkit.getWorld(worldName);
-            if (world != null) {
-                removePlayersFromWorld(world);
-                if (Bukkit.unloadWorld(world, false)) {
-                    plugin.debug("WorldHandler", "World unloaded successfully from Bukkit: " + worldName);
-                } else {
-                    plugin.severe("Failed to unload world from Bukkit: " + worldName);
-                    throw new IllegalStateException("Failed to unload world from Bukkit: " + worldName);
-                }
+
+            if (world == null) {
+                plugin.debug("WorldHandler", "World already absent from Bukkit, treating as unloaded: " + worldName);
+                return;
+            }
+
+            removePlayersFromWorld(world);
+
+            if (Bukkit.unloadWorld(world, false)) {
+                plugin.debug("WorldHandler", "World unloaded successfully from Bukkit: " + worldName);
+            } else {
+                plugin.severe("Failed to unload world from Bukkit: " + worldName);
+                throw new IllegalStateException("Failed to unload world from Bukkit: " + worldName);
             }
         }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
     }
