@@ -20,9 +20,20 @@ public class IslandInvitationState {
         this.redisHandler = redisHandler;
     }
 
-
     private String islandInvitationKey(UUID inviteeUuid) {
         return ISLAND_INVITATION_PREFIX + inviteeUuid;
+    }
+
+    private UUID parseRequiredUuid(String value, String fieldName) {
+        if (value == null || value.isEmpty()) {
+            throw new IllegalStateException("Missing UUID value in IslandInvitationState for field: " + fieldName);
+        }
+
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException("Invalid UUID value in IslandInvitationState for field " + fieldName + ": " + value, e);
+        }
     }
 
     public void addIslandInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {
@@ -51,17 +62,17 @@ public class IslandInvitationState {
                 return Optional.empty();
             }
 
-            String[] parts = value.split(":");
+            String[] parts = value.split(":", 2);
             if (parts.length != 2) {
-                return Optional.empty();
+                throw new IllegalStateException("Invalid island invitation format for invitee: " + inviteeUuid + ", value=" + value);
             }
 
-            UUID islandUuid = UUID.fromString(parts[0]);
-            UUID inviterUuid = UUID.fromString(parts[1]);
+            UUID islandUuid = parseRequiredUuid(parts[0], "invitation.islandUuid");
+            UUID inviterUuid = parseRequiredUuid(parts[1], "invitation.inviterUuid");
             return Optional.of(new Invitation(islandUuid, inviterUuid));
         } catch (Exception e) {
             plugin.severe("Failed to get island invite for: " + inviteeUuid, e);
-            return Optional.empty();
+            throw new RuntimeException(e);
         }
     }
 }

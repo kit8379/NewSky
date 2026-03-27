@@ -74,23 +74,13 @@ public class IslandDistributor {
 
             plugin.debug("IslandDistributor", "ensureIslandLoaded: selected server " + targetServer + " to load island " + islandUuid);
 
-            CompletableFuture<Void> loadFuture;
             if (targetServer.equals(serverID)) {
                 plugin.debug("IslandDistributor", "ensureIslandLoaded: loading island locally on " + serverID);
-                loadFuture = islandOperator.loadIsland(islandUuid);
+                return islandOperator.loadIsland(islandUuid).thenApply(v -> targetServer);
             } else {
                 plugin.debug("IslandDistributor", "ensureIslandLoaded: sending load request to remote server " + targetServer);
-                loadFuture = islandBroker.sendRequest(targetServer, "load", islandUuid.toString());
+                return islandBroker.sendRequest(targetServer, "load", islandUuid.toString()).thenApply(v -> targetServer);
             }
-
-            // TODO: can cut
-            return loadFuture.thenApply(v -> {
-                String loadedOn = getServerByIsland(islandUuid);
-                if (loadedOn == null) {
-                    throw new IllegalStateException("Island load completed but island_server not set for " + islandUuid);
-                }
-                return loadedOn;
-            });
         });
     }
 

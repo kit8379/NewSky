@@ -95,7 +95,9 @@ public class ServerHeartbeatState {
 
                 for (String key : scan.getResult()) {
                     String value = jedis.get(key);
-                    if (value == null) continue;
+                    if (value == null) {
+                        continue;
+                    }
 
                     String serverName = key.substring(SERVER_HEARTBEAT_PREFIX.length());
                     result.put(serverName, value);
@@ -107,6 +109,7 @@ public class ServerHeartbeatState {
 
         } catch (Exception e) {
             plugin.severe("Failed to get active servers", e);
+            throw new RuntimeException(e);
         }
 
         return result;
@@ -125,7 +128,9 @@ public class ServerHeartbeatState {
 
                 for (String key : scan.getResult()) {
                     String value = jedis.get(key);
-                    if (value == null) continue;
+                    if (value == null) {
+                        continue;
+                    }
 
                     String serverName = key.substring(GAME_SERVER_HEARTBEAT_PREFIX.length());
                     result.put(serverName, value);
@@ -137,6 +142,7 @@ public class ServerHeartbeatState {
 
         } catch (Exception e) {
             plugin.severe("Failed to get active game servers", e);
+            throw new RuntimeException(e);
         }
 
         return result;

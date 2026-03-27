@@ -34,7 +34,7 @@ public class ServerSelectorState {
             return value != null ? Double.parseDouble(value) : -1;
         } catch (Exception e) {
             plugin.severe("Failed to get MSPT for server: " + serverName, e);
-            return -1;
+            throw new RuntimeException(e);
         }
     }
 
@@ -50,7 +50,7 @@ public class ServerSelectorState {
             return value;
         } catch (Exception e) {
             plugin.severe("Failed to increment round-robin counter", e);
-            return -1;
+            throw new RuntimeException(e);
         }
     }
 }

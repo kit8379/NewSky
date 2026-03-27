@@ -12,7 +12,6 @@ import redis.clients.jedis.params.ScanParams;
 import redis.clients.jedis.resps.ScanResult;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public final class DataCache {
 
@@ -86,26 +85,51 @@ public final class DataCache {
         return "1".equals(value) || "true".equalsIgnoreCase(value);
     }
 
-    private int parseInt(String value, int def) {
-        if (value == null) {
-            return def;
+    private OptionalInt parseOptionalInt(String value) {
+        if (value == null || value.isEmpty()) {
+            return OptionalInt.empty();
         }
+
         try {
-            return Integer.parseInt(value);
-        } catch (Exception ignored) {
-            return def;
+            return OptionalInt.of(Integer.parseInt(value));
+        } catch (NumberFormatException e) {
+            throw new IllegalStateException("Invalid integer value in DataCache: " + value, e);
         }
     }
 
-    private Optional<UUID> parseUuid(String value) {
+    private int parseRequiredInt(String value, @SuppressWarnings("SameParameterValue") String fieldName) {
+        if (value == null || value.isEmpty()) {
+            throw new IllegalStateException("Missing integer value in DataCache for field: " + fieldName);
+        }
+
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            throw new IllegalStateException("Invalid integer value in DataCache for field " + fieldName + ": " + value, e);
+        }
+    }
+
+    private Optional<UUID> parseOptionalUuid(String value) {
         if (value == null || value.isEmpty()) {
             return Optional.empty();
         }
+
         try {
             return Optional.of(UUID.fromString(value));
-        } catch (Exception e) {
-            plugin.severe("Invalid UUID value in DataCache: " + value, e);
-            return Optional.empty();
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException("Invalid UUID value in DataCache: " + value, e);
+        }
+    }
+
+    private UUID parseRequiredUuid(String value, @SuppressWarnings("SameParameterValue") String fieldName) {
+        if (value == null || value.isEmpty()) {
+            throw new IllegalStateException("Missing UUID value in DataCache for field: " + fieldName);
+        }
+
+        try {
+            return UUID.fromString(value);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalStateException("Invalid UUID value in DataCache for field " + fieldName + ": " + value, e);
         }
     }
 
@@ -450,10 +474,10 @@ public final class DataCache {
     public Optional<UUID> getIslandUuid(UUID playerUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             String value = jedis.hget(PLAYER_ISLAND_KEY, playerUuid.toString());
-            return parseUuid(value);
+            return parseOptionalUuid(value);
         } catch (Exception e) {
             plugin.severe("Failed to get island UUID for player: " + playerUuid, e);
-            return Optional.empty();
+            throw new RuntimeException(e);
         }
     }
 
@@ -488,10 +512,10 @@ public final class DataCache {
     public Optional<UUID> getPlayerUuid(String name) {
         try (Jedis jedis = redisHandler.getJedis()) {
             String value = jedis.hget(PLAYER_UUID_KEY, name.toLowerCase(Locale.ROOT));
-            return parseUuid(value);
+            return parseOptionalUuid(value);
         } catch (Exception e) {
             plugin.severe("Failed to get player UUID for name: " + name, e);
-            return Optional.empty();
+            throw new RuntimeException(e);
         }
     }
 
@@ -500,7 +524,7 @@ public final class DataCache {
             return Optional.ofNullable(jedis.hget(PLAYER_NAME_KEY, uuid.toString()));
         } catch (Exception e) {
             plugin.severe("Failed to get player name for: " + uuid, e);
-            return Optional.empty();
+            throw new RuntimeException(e);
         }
     }
 
@@ -526,7 +550,7 @@ public final class DataCache {
                 return result;
             } catch (Exception e) {
                 plugin.severe("Failed to get player name for single UUID: " + only, e);
-                return Collections.emptyMap();
+                throw new RuntimeException(e);
             }
         }
 
@@ -573,7 +597,7 @@ public final class DataCache {
             return result;
         } catch (Exception e) {
             plugin.severe("Failed to get player names for UUID collection, size=" + orderedUuids.size(), e);
-            return Collections.emptyMap();
+            throw new RuntimeException(e);
         }
     }
 
@@ -597,7 +621,7 @@ public final class DataCache {
             return parseBool(jedis.hget(islandCoreKey(islandUuid), "lock"));
         } catch (Exception e) {
             plugin.severe("Failed to get island lock for: " + islandUuid, e);
-            return false;
+            throw new RuntimeException(e);
         }
     }
 
@@ -617,7 +641,7 @@ public final class DataCache {
             return parseBool(jedis.hget(islandCoreKey(islandUuid), "pvp"));
         } catch (Exception e) {
             plugin.severe("Failed to get island pvp for: " + islandUuid, e);
-            return false;
+            throw new RuntimeException(e);
         }
     }
 
@@ -634,10 +658,10 @@ public final class DataCache {
 
     public int getIslandLevel(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            return parseInt(jedis.hget(islandCoreKey(islandUuid), "level"), 0);
+            return parseOptionalInt(jedis.hget(islandCoreKey(islandUuid), "level")).orElse(0);
         } catch (Exception e) {
             plugin.severe("Failed to get island level for: " + islandUuid, e);
-            return 0;
+            throw new RuntimeException(e);
         }
     }
 
@@ -675,7 +699,7 @@ public final class DataCache {
                             continue;
                         }
 
-                        Optional<UUID> islandUuid = parseUuid(key.substring(prefixLength, key.length() - suffixLength));
+                        Optional<UUID> islandUuid = parseOptionalUuid(key.substring(prefixLength, key.length() - suffixLength));
                         if (islandUuid.isEmpty()) {
                             continue;
                         }
@@ -685,12 +709,13 @@ public final class DataCache {
                             continue;
                         }
 
-                        Optional<UUID> ownerUuid = parseUuid(core.get(0));
+                        Optional<UUID> ownerUuid = parseOptionalUuid(core.get(0));
                         if (ownerUuid.isEmpty()) {
                             continue;
                         }
 
-                        IslandTop top = new IslandTop(islandUuid.get(), ownerUuid.get(), parseInt(core.get(1), 0), Set.of());
+                        int level = parseOptionalInt(core.get(1)).orElse(0);
+                        IslandTop top = new IslandTop(islandUuid.get(), ownerUuid.get(), level, Set.of());
 
                         topQueue.offer(top);
                         if (topQueue.size() > safeLimit) {
@@ -732,7 +757,7 @@ public final class DataCache {
                 Set<UUID> members = new LinkedHashSet<>();
                 for (Map.Entry<String, String> entry : players.entrySet()) {
                     if ("member".equalsIgnoreCase(entry.getValue())) {
-                        parseUuid(entry.getKey()).ifPresent(members::add);
+                        members.add(parseRequiredUuid(entry.getKey(), "islandPlayers.memberUuid"));
                     }
                 }
 
@@ -742,7 +767,7 @@ public final class DataCache {
             return result;
         } catch (Exception e) {
             plugin.severe("Failed to get top island levels", e);
-            return List.of();
+            throw new RuntimeException(e);
         }
     }
 
@@ -809,7 +834,7 @@ public final class DataCache {
     public UUID getIslandOwner(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             String value = jedis.hget(islandCoreKey(islandUuid), "owner");
-            return parseUuid(value).orElseThrow(() -> new IllegalStateException("Island owner missing for island: " + islandUuid));
+            return parseRequiredUuid(value, "islandCore.owner");
         } catch (Exception e) {
             plugin.severe("Failed to get island owner for: " + islandUuid, e);
             throw new RuntimeException(e);
@@ -819,28 +844,42 @@ public final class DataCache {
     public Set<UUID> getIslandMembers(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             Map<String, String> players = jedis.hgetAll(islandPlayersKey(islandUuid));
+            if (players == null || players.isEmpty()) {
+                return Set.of();
+            }
+
             Set<UUID> result = new HashSet<>();
 
             for (Map.Entry<String, String> entry : players.entrySet()) {
                 if (!"member".equalsIgnoreCase(entry.getValue())) {
                     continue;
                 }
-                parseUuid(entry.getKey()).ifPresent(result::add);
+                result.add(parseRequiredUuid(entry.getKey(), "islandPlayers.memberUuid"));
             }
 
-            return result;
+            return result.isEmpty() ? Set.of() : Set.copyOf(result);
         } catch (Exception e) {
             plugin.severe("Failed to get island members for: " + islandUuid, e);
-            return Set.of();
+            throw new RuntimeException(e);
         }
     }
 
     public Set<UUID> getIslandPlayers(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            return jedis.hkeys(islandPlayersKey(islandUuid)).stream().map(this::parseUuid).flatMap(Optional::stream).collect(Collectors.toSet());
+            Set<String> rawPlayers = jedis.hkeys(islandPlayersKey(islandUuid));
+            if (rawPlayers == null || rawPlayers.isEmpty()) {
+                return Set.of();
+            }
+
+            Set<UUID> result = new HashSet<>(rawPlayers.size());
+            for (String rawPlayer : rawPlayers) {
+                result.add(parseRequiredUuid(rawPlayer, "islandPlayers.playerUuid"));
+            }
+
+            return Set.copyOf(result);
         } catch (Exception e) {
             plugin.severe("Failed to get island players for: " + islandUuid, e);
-            return Set.of();
+            throw new RuntimeException(e);
         }
     }
 
@@ -875,16 +914,17 @@ public final class DataCache {
             return Optional.ofNullable(jedis.hget(islandHomesKey(islandUuid, playerUuid), homeName));
         } catch (Exception e) {
             plugin.severe("Failed to get home location: island=" + islandUuid + ", player=" + playerUuid + ", home=" + homeName, e);
-            return Optional.empty();
+            throw new RuntimeException(e);
         }
     }
 
     public Set<String> getHomeNames(UUID islandUuid, UUID playerUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            return jedis.hkeys(islandHomesKey(islandUuid, playerUuid));
+            Set<String> names = jedis.hkeys(islandHomesKey(islandUuid, playerUuid));
+            return names == null || names.isEmpty() ? Set.of() : Set.copyOf(names);
         } catch (Exception e) {
             plugin.severe("Failed to get home names: island=" + islandUuid + ", player=" + playerUuid, e);
-            return Set.of();
+            throw new RuntimeException(e);
         }
     }
 
@@ -919,16 +959,17 @@ public final class DataCache {
             return Optional.ofNullable(jedis.hget(islandWarpsKey(islandUuid, playerUuid), warpName));
         } catch (Exception e) {
             plugin.severe("Failed to get warp location: island=" + islandUuid + ", player=" + playerUuid + ", warp=" + warpName, e);
-            return Optional.empty();
+            throw new RuntimeException(e);
         }
     }
 
     public Set<String> getWarpNames(UUID islandUuid, UUID playerUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            return jedis.hkeys(islandWarpsKey(islandUuid, playerUuid));
+            Set<String> names = jedis.hkeys(islandWarpsKey(islandUuid, playerUuid));
+            return names == null || names.isEmpty() ? Set.of() : Set.copyOf(names);
         } catch (Exception e) {
             plugin.severe("Failed to get warp names: island=" + islandUuid + ", player=" + playerUuid, e);
-            return Set.of();
+            throw new RuntimeException(e);
         }
     }
 
@@ -963,16 +1004,26 @@ public final class DataCache {
             return jedis.sismember(islandBansKey(islandUuid), playerUuid.toString());
         } catch (Exception e) {
             plugin.severe("Failed to check banned player: island=" + islandUuid + ", player=" + playerUuid, e);
-            return false;
+            throw new RuntimeException(e);
         }
     }
 
     public Set<UUID> getBannedPlayers(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            return jedis.smembers(islandBansKey(islandUuid)).stream().map(this::parseUuid).flatMap(Optional::stream).collect(Collectors.toSet());
+            Set<String> rawPlayers = jedis.smembers(islandBansKey(islandUuid));
+            if (rawPlayers == null || rawPlayers.isEmpty()) {
+                return Set.of();
+            }
+
+            Set<UUID> result = new HashSet<>(rawPlayers.size());
+            for (String rawPlayer : rawPlayers) {
+                result.add(parseRequiredUuid(rawPlayer, "islandBans.playerUuid"));
+            }
+
+            return Set.copyOf(result);
         } catch (Exception e) {
             plugin.severe("Failed to get banned players for island: " + islandUuid, e);
-            return Set.of();
+            throw new RuntimeException(e);
         }
     }
 
@@ -1021,11 +1072,11 @@ public final class DataCache {
             Set<UUID> touchedIslands = new HashSet<>();
             for (Object raw : rawList) {
                 if (raw != null) {
-                    parseUuid(String.valueOf(raw)).ifPresent(touchedIslands::add);
+                    touchedIslands.add(parseRequiredUuid(String.valueOf(raw), "deleteAllCoopOfPlayer.islandUuid"));
                 }
             }
 
-            return touchedIslands;
+            return touchedIslands.isEmpty() ? Set.of() : Set.copyOf(touchedIslands);
         } catch (Exception e) {
             plugin.severe("Database delete succeeded but Redis sync failed while deleting all coop of player: player=" + playerUuid, e);
             throw new RuntimeException(e);
@@ -1037,16 +1088,26 @@ public final class DataCache {
             return jedis.sismember(islandCoopsKey(islandUuid), playerUuid.toString());
         } catch (Exception e) {
             plugin.severe("Failed to check cooped player: island=" + islandUuid + ", player=" + playerUuid, e);
-            return false;
+            throw new RuntimeException(e);
         }
     }
 
     public Set<UUID> getCoopedPlayers(UUID islandUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            return jedis.smembers(islandCoopsKey(islandUuid)).stream().map(this::parseUuid).flatMap(Optional::stream).collect(Collectors.toSet());
+            Set<String> rawPlayers = jedis.smembers(islandCoopsKey(islandUuid));
+            if (rawPlayers == null || rawPlayers.isEmpty()) {
+                return Set.of();
+            }
+
+            Set<UUID> result = new HashSet<>(rawPlayers.size());
+            for (String rawPlayer : rawPlayers) {
+                result.add(parseRequiredUuid(rawPlayer, "islandCoops.playerUuid"));
+            }
+
+            return Set.copyOf(result);
         } catch (Exception e) {
             plugin.severe("Failed to get cooped players for island: " + islandUuid, e);
-            return Set.of();
+            throw new RuntimeException(e);
         }
     }
 
@@ -1075,10 +1136,10 @@ public final class DataCache {
 
     public int getIslandUpgradeLevel(UUID islandUuid, String upgradeId) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            return parseInt(jedis.hget(islandUpgradesKey(islandUuid), upgradeId), 1);
+            return parseOptionalInt(jedis.hget(islandUpgradesKey(islandUuid), upgradeId)).orElse(1);
         } catch (Exception e) {
             plugin.severe("Failed to get island upgrade level: island=" + islandUuid + ", upgrade=" + upgradeId, e);
-            return 1;
+            throw new RuntimeException(e);
         }
     }
 
@@ -1096,7 +1157,7 @@ public final class DataCache {
 
             boolean lock = parseBool(core.get("lock"));
             boolean pvp = parseBool(core.get("pvp"));
-            UUID owner = parseUuid(core.get("owner")).orElse(null);
+            UUID owner = parseRequiredUuid(core.get("owner"), "islandCore.owner");
 
             Map<String, String> playersRaw = jedis.hgetAll(islandPlayersKey(islandUuid));
             Set<UUID> members = new HashSet<>();
@@ -1105,29 +1166,37 @@ public final class DataCache {
                 if (!"member".equalsIgnoreCase(entry.getValue())) {
                     continue;
                 }
-                parseUuid(entry.getKey()).ifPresent(members::add);
+                members.add(parseRequiredUuid(entry.getKey(), "islandPlayers.memberUuid"));
             }
 
-            Set<UUID> coops = jedis.smembers(islandCoopsKey(islandUuid)).stream().map(this::parseUuid).flatMap(Optional::stream).collect(Collectors.toSet());
+            Set<String> rawCoops = jedis.smembers(islandCoopsKey(islandUuid));
+            Set<UUID> coops = new HashSet<>(rawCoops.size());
+            for (String rawCoop : rawCoops) {
+                coops.add(parseRequiredUuid(rawCoop, "islandCoops.playerUuid"));
+            }
 
-            Set<UUID> bans = jedis.smembers(islandBansKey(islandUuid)).stream().map(this::parseUuid).flatMap(Optional::stream).collect(Collectors.toSet());
+            Set<String> rawBans = jedis.smembers(islandBansKey(islandUuid));
+            Set<UUID> bans = new HashSet<>(rawBans.size());
+            for (String rawBan : rawBans) {
+                bans.add(parseRequiredUuid(rawBan, "islandBans.playerUuid"));
+            }
 
             Map<String, String> upgradesRaw = jedis.hgetAll(islandUpgradesKey(islandUuid));
             Map<String, Integer> upgrades = new HashMap<>();
 
             for (Map.Entry<String, String> entry : upgradesRaw.entrySet()) {
-                int upgradeLevel = parseInt(entry.getValue(), 1);
+                int upgradeLevel = parseRequiredInt(entry.getValue(), "islandUpgrades.level");
                 if (upgradeLevel <= 1) {
                     continue;
                 }
                 upgrades.put(entry.getKey(), upgradeLevel);
             }
 
-            return new Island(islandUuid, lock, pvp, owner, members, coops, bans, upgrades);
+            return new Island(islandUuid, lock, pvp, owner, members.isEmpty() ? Set.of() : Set.copyOf(members), coops.isEmpty() ? Set.of() : Set.copyOf(coops), bans.isEmpty() ? Set.of() : Set.copyOf(bans), upgrades.isEmpty() ? Map.of() : Map.copyOf(upgrades));
 
         } catch (Exception e) {
             plugin.severe("Failed to load island snapshot from Redis for: " + islandUuid, e);
-            return null;
+            throw new RuntimeException(e);
         }
     }
 }

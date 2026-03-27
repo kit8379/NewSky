@@ -42,7 +42,7 @@ public class IslandServerState {
             return Optional.ofNullable(jedis.hget(ISLAND_SERVER_KEY, islandUuid.toString()));
         } catch (Exception e) {
             plugin.severe("Failed to get island loaded server for: " + islandUuid, e);
-            return Optional.empty();
+            throw new RuntimeException(e);
         }
     }
 }
