@@ -31,7 +31,7 @@ public class ServerSelectorState {
     public double getServerMSPT(String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             String value = jedis.hget(SERVER_MSPT_KEY, serverName);
-            return value != null ? Double.parseDouble(value) : -1;
+            return value != null && !value.isEmpty() ? Double.parseDouble(value) : -1;
         } catch (Exception e) {
             plugin.severe("Failed to get MSPT for server: " + serverName, e);
             throw new RuntimeException(e);
