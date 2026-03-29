@@ -199,10 +199,7 @@ public final class DataCache {
         Optional<UUID> loaded = database.getIslandUuid(playerUuid);
 
         try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline pipeline = jedis.pipelined();
-            pipeline.hset(PLAYER_ISLAND_KEY, playerUuid.toString(), loaded.map(UUID::toString).orElse(NULL_MARKER));
-            pipeline.expire(PLAYER_ISLAND_KEY, TTL_SECONDS);
-            pipeline.sync();
+            jedis.hset(PLAYER_ISLAND_KEY, playerUuid.toString(), loaded.map(UUID::toString).orElse(NULL_MARKER));
         } catch (Exception e) {
             plugin.severe("Failed to populate player->island cache for player: " + playerUuid, e);
         }
@@ -257,10 +254,7 @@ public final class DataCache {
         Optional<UUID> loaded = database.getPlayerUuid(name);
 
         try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline pipeline = jedis.pipelined();
-            pipeline.hset(PLAYER_UUID_KEY, lower, loaded.map(UUID::toString).orElse(NULL_MARKER));
-            pipeline.expire(PLAYER_UUID_KEY, TTL_SECONDS);
-            pipeline.sync();
+            jedis.hset(PLAYER_UUID_KEY, lower, loaded.map(UUID::toString).orElse(NULL_MARKER));
         } catch (Exception e) {
             plugin.severe("Failed to populate player uuid cache for name: " + name, e);
         }
@@ -287,11 +281,9 @@ public final class DataCache {
             Pipeline pipeline = jedis.pipelined();
 
             pipeline.hset(PLAYER_NAME_KEY, uuid.toString(), loaded.orElse(NULL_MARKER));
-            pipeline.expire(PLAYER_NAME_KEY, TTL_SECONDS);
 
             if (loaded.isPresent() && !loaded.get().isEmpty()) {
                 pipeline.hset(PLAYER_UUID_KEY, loaded.get().toLowerCase(Locale.ROOT), uuid.toString());
-                pipeline.expire(PLAYER_UUID_KEY, TTL_SECONDS);
             }
 
             pipeline.sync();
@@ -378,8 +370,6 @@ public final class DataCache {
                     pipeline.hset(PLAYER_UUID_KEY, loadedName.toLowerCase(Locale.ROOT), miss.toString());
                 }
 
-                pipeline.expire(PLAYER_NAME_KEY, TTL_SECONDS);
-                pipeline.expire(PLAYER_UUID_KEY, TTL_SECONDS);
                 pipeline.sync();
             } catch (Exception e) {
                 plugin.severe("Failed to populate player names cache from DB, size=" + loaded.size(), e);
