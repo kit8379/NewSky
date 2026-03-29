@@ -106,11 +106,11 @@ public class NewSky extends JavaPlugin {
             info("Redis cache state handler loaded");
 
             info("Starting persistent data cache handler");
-            DataCache dataCache = new DataCache(this, redisHandler, databaseHandler, serverHeartbeatState);
+            DataCache dataCache = new DataCache(this, redisHandler, databaseHandler);
             info("Persistent data cache handler loaded");
 
             info("Loading island loaded snapshot");
-            IslandSnapshot islandSnapshot = new IslandSnapshot(this, dataCache);
+            IslandSnapshot islandSnapshot = new IslandSnapshot(this, databaseHandler);
             info("Island loaded snapshot loaded");
 
             info("Starting world handler");

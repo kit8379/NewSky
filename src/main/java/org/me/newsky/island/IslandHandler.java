@@ -62,17 +62,12 @@ public class IslandHandler {
     }
 
     public CompletableFuture<Boolean> toggleIslandLock(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> dataCache.isIslandLock(islandUuid), plugin.getBukkitAsyncExecutor()).thenApplyAsync(isLocked -> {
-            if (isLocked) {
-                dataCache.updateIslandLock(islandUuid, false);
-                islandDistributor.reloadSnapshot(islandUuid);
-                return false;
-            } else {
-                dataCache.updateIslandLock(islandUuid, true);
-                islandDistributor.lockIsland(islandUuid);
-                islandDistributor.reloadSnapshot(islandUuid);
-                return true;
-            }
+        return CompletableFuture.supplyAsync(() -> {
+            boolean enabled = dataCache.isIslandLock(islandUuid);
+            boolean newValue = !enabled;
+            dataCache.updateIslandLock(islandUuid, newValue);
+            islandDistributor.reloadSnapshot(islandUuid);
+            return newValue;
         }, plugin.getBukkitAsyncExecutor());
     }
 

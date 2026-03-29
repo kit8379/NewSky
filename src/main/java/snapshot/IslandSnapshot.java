@@ -1,7 +1,7 @@
 package snapshot;
 
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.DataCache;
+import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.model.Island;
 
 import java.util.Map;
@@ -12,13 +12,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public class IslandSnapshot {
 
     private final NewSky plugin;
-    private final DataCache dataCache;
+    private final DatabaseHandler database;
 
     private final Map<UUID, Island> islands = new ConcurrentHashMap<>();
 
-    public IslandSnapshot(NewSky plugin, DataCache dataCache) {
+    public IslandSnapshot(NewSky plugin, DatabaseHandler database) {
         this.plugin = plugin;
-        this.dataCache = dataCache;
+        this.database = database;
     }
 
     public Island get(UUID islandUuid) {
@@ -27,7 +27,7 @@ public class IslandSnapshot {
 
     public CompletableFuture<Void> load(UUID islandUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            return dataCache.getIslandSnapshot(islandUuid);
+            return database.getIslandSnapshot(islandUuid);
         }, plugin.getBukkitAsyncExecutor()).thenAccept(island -> {
             islands.put(islandUuid, island);
         });
