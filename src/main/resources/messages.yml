@@ -38,7 +38,6 @@ messages:
   island-already-loaded: "<red>The island is already loaded!"
   island-locked: "<red>This island is currently locked!"
 
-
   # ================================================================================================================
   # Island - Access Control / Membership
   # ================================================================================================================
@@ -85,13 +84,13 @@ messages:
   # ================================================================================================================
 
   player-lobby-success: "<green>You have been teleported to the lobby server!"
-
   admin-lobby-success: "<green>{player} has been teleported to the lobby server!"
 
   # ================================================================================================================
   # Island - Teleport: Home
   # ================================================================================================================
-  home-name-not-legal: "&cInvalid home name. &7Allowed characters: &f[a-z0-9_-]&7, length: &f1-32&7 characters."
+
+  home-name-not-legal: "<red>Invalid home name. <gray>Allowed characters: <white>[a-z0-9_-]<gray>, length: <white>1-32<gray> characters."
 
   player-must-in-island-set-home: "<red>You must be on your island to set a home!"
   player-set-home-success: "<green>Home <aqua>{home}<green> set successfully!"
@@ -105,13 +104,14 @@ messages:
   admin-set-home-success: "<green>Set home <aqua>{home} <green>for player <aqua>{player}<green>!"
   admin-no-home: "<red>Player <aqua>{player} <red>does not have a home named <aqua>{home}<red>!"
   admin-home-success: "<green>Teleported to player <aqua>{player}'s <green>home <aqua>{home}<green>!"
-  admin-delete-home-success: "<green>Deleted home <#00FF555>{home} <green>of player <aqua>{player}<green>!"
+  admin-delete-home-success: "<green>Deleted home <aqua>{home} <green>of player <aqua>{player}<green>!"
   admin-cannot-delete-default-home: "<red>Cannot delete default home of player <aqua>{player}<red>!"
 
   # ================================================================================================================
   # Island - Teleport: Warp
   # ================================================================================================================
-  warp-name-not-legal: "&cInvalid warp name. &7Allowed characters: &f[a-z0-9_-]&7, length: &f1-32&7 characters."
+
+  warp-name-not-legal: "<red>Invalid warp name. <gray>Allowed characters: <white>[a-z0-9_-]<gray>, length: <white>1-32<gray> characters."
   warp-success: "<green>Teleported to {player}'s warp <aqua>{warp}<green>!"
   no-warp: "<red>Player <aqua>{player} <red>does not have a warp named <aqua>{warp}<red>!"
 
@@ -163,7 +163,7 @@ messages:
   player-invite-receive: "<yellow>You have received an island invitation from <aqua>{player}</aqua>. <green><click:suggest_command:'/is accept'><hover:show_text:'Click to accept the invitation'>/is accept</hover></click></green><yellow> or <red><click:suggest_command:'/is reject'><hover:show_text:'Click to reject the invitation'>/is reject</hover></click></red><yellow>."
   player-invite-accepted-notify: "<green>{player} has accepted your island invitation!"
   player-invite-rejected-notify: "<red>{player} has rejected your island invitation!"
-  player-invite-accepted: "<green>You have acceepted the island invitation and successfully joined the island!"
+  player-invite-accepted: "<green>You have accepted the island invitation and successfully joined the island!"
   player-invite-rejected: "<yellow>You have rejected the island invitation."
   player-already-invited: "<red>Player <aqua>{player} <red>already has a pending island invitation!"
   player-no-pending-invite: "<red>You have no pending island invitations!"
@@ -239,14 +239,15 @@ messages:
   # ================================================================================================================
   # Biome
   # ================================================================================================================
-  player-biome-invalid: "&cInvalid biome: &e{biome}"
-  player-biome-not-unlocked: "&cYou have not unlocked biome: &e{biome}"
-  player-biome-allowed-list: "&7Allowed biomes: &f{biomes}"
-  player-biome-change-success: "&aBiome changed to &e{biome}"
-  player-biome-must-in-own-island: "&cYou must be in your own island to use this command"
 
-  admin-biome-must-in-island: '&cYou must be standing in an island world to use this command'
-  admin-biome-change-success: '&aChunk biome changed to &e{biome}'
+  player-biome-invalid: "<red>Invalid biome: <yellow>{biome}"
+  player-biome-not-unlocked: "<red>You have not unlocked biome: <yellow>{biome}"
+  player-biome-allowed-list: "<gray>Allowed biomes: <white>{biomes}"
+  player-biome-change-success: "<green>Biome changed to <yellow>{biome}"
+  player-biome-must-in-own-island: "<red>You must be in your own island to use this command"
+
+  admin-biome-must-in-island: "<red>You must be standing in an island world to use this command"
+  admin-biome-change-success: "<green>Chunk biome changed to <yellow>{biome}"
 
   # ================================================================================================================
   # Info Display
@@ -262,7 +263,7 @@ messages:
   island-level: "<#FFD700>Island Level: <white>{level}"
   block-value: "<green>Block Value: <white>{value}"
   no-item-in-hand: "<red>You must be holding an item!"
-  block-limit-reached: "&cYou island has reached the limit of {limit} for {block}."
+  block-limit-reached: "<red>Your island has reached the limit of <white>{limit}<red> for <white>{block}<red>."
 
   player-info-not-in-island: "<red>You are not on any island!"
 
@@ -284,7 +285,7 @@ messages:
 
   admin-help-header: "<aqua>⎯⎯⎯ <#FF69B4>Admin Commands <aqua>⎯⎯⎯"
   admin-help-entry: "<hover:show_text:'<gray>Click to execute'><click:suggest_command:'/isadmin {command} '><#FF69B4>▸ <white>/isadmin {command} <#AAAAAA>{syntax} <#808080>{description}</click></hover>"
-  admin-help-footer: "<aqua>⎯⎯⎯ <hover:show_text:'<gray>Previous page'><click:run_command:'/isadmin help {prev}'><#AAAAAA>[«]</click></hover> (Page {page} / {total}) <hover:show_text:'<gray>Next page'><click:run_command:'/isadmin help {next}'><#AAAAAA>[»]</click></hover> (Page {page} / {total}) <hover:show_text:'<gray>Next page'><click:run_command:'/isadmin help {next}'><#AAAAAA>[»]</click></hover> ⎯⎯⎯"
+  admin-help-footer: "<aqua>⎯⎯⎯ <hover:show_text:'<gray>Previous page'><click:run_command:'/isadmin help {prev}'><#AAAAAA>[«]</click></hover> (Page {page} / {total}) <hover:show_text:'<gray>Next page'><click:run_command:'/isadmin help {next}'><#AAAAAA>[»]</click></hover> ⎯⎯⎯"
 
   # ================================================================================================================
   # Command Usage / Unknown Command
