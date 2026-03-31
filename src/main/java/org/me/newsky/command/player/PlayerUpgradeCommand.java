@@ -168,6 +168,11 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
             return formatRates(rates);
         }
 
+        if (UpgradeHandler.UPGRADE_BIOMES.equals(upgradeId)) {
+            Set<String> biomes = api.getBiomeAllowList(level);
+            return formatBiomes(biomes);
+        }
+
         return "N/A";
     }
 
@@ -194,6 +199,14 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
         }
 
         return sb.toString();
+    }
+
+    private String formatBiomes(Set<String> biomes) {
+        if (biomes == null || biomes.isEmpty()) {
+            return "N/A";
+        }
+
+        return biomes.stream().filter(Objects::nonNull).filter(name -> !name.isBlank()).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.joining(", "));
     }
 
     @Override

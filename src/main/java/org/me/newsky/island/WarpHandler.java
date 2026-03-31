@@ -23,15 +23,8 @@ public class WarpHandler {
         this.islandDistributor = islandDistributor;
     }
 
-    public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
-
-        return CompletableFuture.supplyAsync(() -> dataCache.getIslandUuid(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
-            if (islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException();
-            }
-
-            UUID islandUuid = islandUuidOpt.get();
-
+    public CompletableFuture<Void> setWarp(UUID islandUuid, UUID playerUuid, String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
+        return CompletableFuture.runAsync(() -> {
             if (!worldName.equals(IslandUtils.UUIDToName(islandUuid))) {
                 throw new LocationNotInIslandException();
             }
@@ -52,39 +45,21 @@ public class WarpHandler {
             String warpLocation = x + "," + y + "," + z + "," + yaw + "," + pitch;
 
             dataCache.updateWarpPoint(islandUuid, playerUuid, normalizedWarpName, warpLocation);
-
-            return CompletableFuture.completedFuture(null);
-        });
+        }, plugin.getBukkitAsyncExecutor());
     }
 
-    public CompletableFuture<Void> delWarp(UUID playerUuid, String warpName) {
-        return CompletableFuture.supplyAsync(() -> {
-            return dataCache.getIslandUuid(playerUuid);
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
-            if (islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException();
-            }
-
-            UUID islandUuid = islandUuidOpt.get();
+    public CompletableFuture<Void> delWarp(UUID islandUuid, UUID playerUuid, String warpName) {
+        return CompletableFuture.runAsync(() -> {
             if (dataCache.getWarpLocation(islandUuid, playerUuid, warpName).isEmpty()) {
                 throw new WarpDoesNotExistException();
             }
 
             dataCache.deleteWarpPoint(islandUuid, playerUuid, warpName);
-
-            return CompletableFuture.completedFuture(null);
-        });
+        }, plugin.getBukkitAsyncExecutor());
     }
 
-    public CompletableFuture<Void> warp(UUID playerUuid, String warpName, UUID targetPlayerUuid) {
+    public CompletableFuture<Void> warp(UUID islandUuid, UUID playerUuid, String warpName, UUID targetPlayerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            return dataCache.getIslandUuid(playerUuid);
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
-            if (islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException();
-            }
-            UUID islandUuid = islandUuidOpt.get();
-
             if (dataCache.isPlayerBanned(islandUuid, targetPlayerUuid)) {
                 throw new PlayerBannedException();
             }
@@ -100,21 +75,14 @@ public class WarpHandler {
                 throw new WarpDoesNotExistException();
             }
 
+            return warpLocationOpt.get();
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(warpLocation -> {
             String warpWorld = IslandUtils.UUIDToName(islandUuid);
-            String warpLocation = warpLocationOpt.get();
-
             return islandDistributor.teleportIsland(islandUuid, targetPlayerUuid, warpWorld, warpLocation);
         });
     }
 
-    public CompletableFuture<Set<String>> getWarpNames(UUID playerUuid) {
-        return CompletableFuture.supplyAsync(() -> {
-            Optional<UUID> islandUuidOpt = dataCache.getIslandUuid(playerUuid);
-            if (islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException();
-            }
-            UUID islandUuid = islandUuidOpt.get();
-            return dataCache.getWarpNames(islandUuid, playerUuid);
-        }, plugin.getBukkitAsyncExecutor());
+    public CompletableFuture<Set<String>> getWarpNames(UUID islandUuid, UUID playerUuid) {
+        return CompletableFuture.supplyAsync(() -> dataCache.getWarpNames(islandUuid, playerUuid), plugin.getBukkitAsyncExecutor());
     }
 }

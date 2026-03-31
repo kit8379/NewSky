@@ -1,4 +1,3 @@
-// AdminSetWarpCommand.java
 package org.me.newsky.command.admin;
 
 import org.bukkit.Location;
@@ -11,10 +10,12 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
+import org.me.newsky.exceptions.WarpNameNotLegalException;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
@@ -85,13 +86,17 @@ public class AdminSetWarpCommand implements SubCommand, AsyncTabComplete {
                 return CompletableFuture.completedFuture(null);
             }
 
-            return api.setWarp(targetUuidOpt.get(), warpName, worldName, x, y, z, yaw, pitch).thenRun(() -> sender.sendMessage(config.getAdminSetWarpSuccessMessage(warpPlayerName, warpName)));
+            UUID targetUuid = targetUuidOpt.get();
+
+            return api.getIslandUuid(targetUuid).thenCompose(islandUuid -> api.setWarp(islandUuid, targetUuid, warpName, worldName, x, y, z, yaw, pitch).thenRun(() -> sender.sendMessage(config.getAdminSetWarpSuccessMessage(warpPlayerName, warpName))));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 sender.sendMessage(config.getAdminNoIslandMessage(warpPlayerName));
             } else if (cause instanceof LocationNotInIslandException) {
                 sender.sendMessage(config.getAdminMustInIslandSetWarpMessage(warpPlayerName));
+            } else if (cause instanceof WarpNameNotLegalException) {
+                sender.sendMessage(config.getWarpNameNotLegalMessage());
             } else {
                 sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.severe("Error setting warp " + warpName + " for " + warpPlayerName, ex);
@@ -116,7 +121,9 @@ public class AdminSetWarpCommand implements SubCommand, AsyncTabComplete {
                     return CompletableFuture.completedFuture(Collections.<String>emptyList());
                 }
 
-                return api.getWarpNames(uuidOpt.get()).thenApply(warps -> warps.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()));
+                UUID targetUuid = uuidOpt.get();
+
+                return api.getIslandUuid(targetUuid).thenCompose(islandUuid -> api.getWarpNames(islandUuid, targetUuid).thenApply(warps -> warps.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())));
             }).exceptionally(ex -> Collections.emptyList());
         }
 

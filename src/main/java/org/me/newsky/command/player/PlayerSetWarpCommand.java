@@ -77,7 +77,7 @@ public class PlayerSetWarpCommand implements SubCommand, AsyncTabComplete {
         float yaw = loc.getYaw();
         float pitch = loc.getPitch();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getWarpNames(playerUuid).thenCompose(existingWarps -> {
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getWarpNames(islandUuid, playerUuid).thenCompose(existingWarps -> {
             boolean overwriting = existingWarps.stream().anyMatch(n -> n.equalsIgnoreCase(warpName));
 
             return api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_WARP_LIMIT).thenCompose(warpLimitLevel -> {
@@ -88,7 +88,7 @@ public class PlayerSetWarpCommand implements SubCommand, AsyncTabComplete {
                     return CompletableFuture.completedFuture(null);
                 }
 
-                return api.setWarp(playerUuid, warpName, worldName, x, y, z, yaw, pitch).thenRun(() -> player.sendMessage(config.getPlayerSetWarpSuccessMessage(warpName)));
+                return api.setWarp(islandUuid, playerUuid, warpName, worldName, x, y, z, yaw, pitch).thenRun(() -> player.sendMessage(config.getPlayerSetWarpSuccessMessage(warpName)));
             });
         })).exceptionally(ex -> {
             Throwable cause = ex.getCause();
@@ -116,7 +116,8 @@ public class PlayerSetWarpCommand implements SubCommand, AsyncTabComplete {
         }
 
         String prefix = args[1].toLowerCase(Locale.ROOT);
+        UUID playerUuid = player.getUniqueId();
 
-        return api.getWarpNames(player.getUniqueId()).thenApply(warps -> warps.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())).exceptionally(ex -> Collections.emptyList());
+        return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getWarpNames(islandUuid, playerUuid).thenApply(warps -> warps.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()))).exceptionally(ex -> Collections.emptyList());
     }
 }

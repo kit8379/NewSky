@@ -111,18 +111,18 @@ public class NewSkyAPI {
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
-        return warpHandler.setWarp(playerUuid, warpName, worldName, x, y, z, yaw, pitch);
+    public CompletableFuture<Void> setWarp(UUID islandUuid, UUID playerUuid, String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
+        return warpHandler.setWarp(islandUuid, playerUuid, warpName, worldName, x, y, z, yaw, pitch);
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> delWarp(UUID playerUuid, String warpName) {
-        return warpHandler.delWarp(playerUuid, warpName);
+    public CompletableFuture<Void> delWarp(UUID islandUuid, UUID playerUuid, String warpName) {
+        return warpHandler.delWarp(islandUuid, playerUuid, warpName);
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> warp(UUID playerUuid, String warpName, UUID targetPlayerUuid) {
-        return warpHandler.warp(playerUuid, warpName, targetPlayerUuid);
+    public CompletableFuture<Void> warp(UUID islandUuid, UUID playerUuid, String warpName, UUID targetPlayerUuid) {
+        return warpHandler.warp(islandUuid, playerUuid, warpName, targetPlayerUuid);
     }
 
     @SuppressWarnings("unused")
@@ -206,8 +206,8 @@ public class NewSkyAPI {
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Set<String>> getWarpNames(UUID playerUuid) {
-        return warpHandler.getWarpNames(playerUuid);
+    public CompletableFuture<Set<String>> getWarpNames(UUID islandUuid, UUID playerUuid) {
+        return warpHandler.getWarpNames(islandUuid, playerUuid);
     }
 
     @SuppressWarnings("unused")
