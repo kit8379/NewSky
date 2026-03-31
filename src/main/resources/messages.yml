@@ -216,6 +216,8 @@ messages:
   # Upgrades
   # ================================================================================================================
 
+  upgrade-unknown-value: "<red>/"
+
   player-upgrade-invalid-id: "<red>Unknown upgrade id: <white>{upgrade}"
   player-upgrade-details-header: "<#FFD700>Upgrade: <white>{upgrade}"
   player-upgrade-details-current-level: "<gray>Current Level: <white>{level}"

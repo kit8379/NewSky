@@ -824,6 +824,10 @@ public class ConfigHandler {
         return commands.getString("commands.player.upgrade.description");
     }
 
+    public String getUpgradeUnknownValue() {
+        return commands.getString("commands.upgrade.unknown-value");
+    }
+
     public String[] getPlayerBiomeAliases() {
         return commands.getStringList("commands.player.biome.aliases").toArray(new String[0]);
     }

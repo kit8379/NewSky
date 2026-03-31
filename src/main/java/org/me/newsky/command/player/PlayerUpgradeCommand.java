@@ -173,12 +173,12 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
             return formatBiomes(biomes);
         }
 
-        return "N/A";
+        return config.getUpgradeUnknownValue();
     }
 
     private String formatRates(Map<String, Double> rates) {
         if (rates == null || rates.isEmpty()) {
-            return "N/A";
+            return config.getUpgradeUnknownValue();
         }
 
         StringBuilder sb = new StringBuilder();
@@ -203,7 +203,7 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
 
     private String formatBiomes(Set<String> biomes) {
         if (biomes == null || biomes.isEmpty()) {
-            return "N/A";
+            return config.getUpgradeUnknownValue();
         }
 
         return biomes.stream().filter(Objects::nonNull).filter(name -> !name.isBlank()).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.joining(", "));
