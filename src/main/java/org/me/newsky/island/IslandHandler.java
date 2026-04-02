@@ -66,6 +66,7 @@ public class IslandHandler {
             boolean enabled = dataCache.isIslandLock(islandUuid);
             boolean newValue = !enabled;
             dataCache.updateIslandLock(islandUuid, newValue);
+            islandDistributor.lockIsland(islandUuid);
             islandDistributor.reloadSnapshot(islandUuid);
             return newValue;
         }, plugin.getBukkitAsyncExecutor());
