@@ -2,40 +2,41 @@ package org.me.newsky.redis;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
-import redis.clients.jedis.Jedis;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisPoolConfig;
-import redis.clients.jedis.JedisPubSub;
+import redis.clients.jedis.*;
 
 import java.util.concurrent.CompletableFuture;
 
 public class RedisHandler {
 
     private final NewSky plugin;
-    private final JedisPool jedisPool;
+    private final ConnectionPool pool;
 
     public RedisHandler(NewSky plugin, ConfigHandler config) {
         this.plugin = plugin;
 
-        // Get Redis config
         String host = config.getRedisHost();
         int port = config.getRedisPort();
         String password = config.getRedisPassword();
         int database = config.getRedisDatabase();
 
-        // Create JedisPool with database selection
-        JedisPoolConfig poolConfig = new JedisPoolConfig();
+        ConnectionPoolConfig poolConfig = new ConnectionPoolConfig();
+
+        DefaultJedisClientConfig.Builder clientConfigBuilder = DefaultJedisClientConfig.builder().database(database).connectionTimeoutMillis(2000).socketTimeoutMillis(2000);
+
         if (password != null && !password.isEmpty()) {
-            this.jedisPool = new JedisPool(poolConfig, host, port, 2000, password, database);
+            clientConfigBuilder.password(password);
             plugin.info("Connected to Redis at " + host + ":" + port + " with password.");
         } else {
-            this.jedisPool = new JedisPool(poolConfig, host, port, 2000, null, database);
             plugin.info("Connected to Redis at " + host + ":" + port + " without password.");
         }
+
+        JedisClientConfig clientConfig = clientConfigBuilder.build();
+
+        // Correct constructor
+        this.pool = new ConnectionPool(new HostAndPort(host, port), clientConfig, poolConfig);
     }
 
-
-    // Publish a message to a channel
+    // Publish
     public void publish(String channel, String message) {
         try (Jedis jedis = getJedis()) {
             jedis.publish(channel, message);
@@ -43,7 +44,7 @@ public class RedisHandler {
         }
     }
 
-    // Subscribe to a channel
+    // Subscribe
     public void subscribe(JedisPubSub pubSub, String channel) {
         CompletableFuture.runAsync(() -> {
             try (Jedis jedis = getJedis()) {
@@ -54,12 +55,13 @@ public class RedisHandler {
     }
 
     public Jedis getJedis() {
-        return jedisPool.getResource();
+        Connection connection = pool.getResource();
+        return new Jedis(connection);
     }
 
     public void disconnect() {
-        if (jedisPool != null) {
-            jedisPool.close();
+        if (pool != null) {
+            pool.close();
             plugin.info("Disconnected from Redis.");
         }
     }

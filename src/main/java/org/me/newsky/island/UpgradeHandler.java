@@ -66,7 +66,13 @@ public final class UpgradeHandler {
             double price = getUpgradePrice(upgradeId, nextLevel);
 
             return new Upgrade(upgradeId, oldLevel, nextLevel, requireIslandLevel, price);
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(result -> economyHandler.withdraw(playerUuid, result.getPrice()).thenApply(ignored -> result)).thenApplyAsync(result -> {
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(result -> {
+            if (result.getPrice() <= 0D) {
+                return CompletableFuture.completedFuture(result);
+            }
+
+            return economyHandler.withdraw(playerUuid, result.getPrice()).thenApply(ignored -> result);
+        }).thenApplyAsync(result -> {
             dataCache.updateIslandUpgradeLevel(islandUuid, upgradeId, result.getNewLevel());
 
             if (UPGRADE_ISLAND_SIZE.equals(upgradeId)) {

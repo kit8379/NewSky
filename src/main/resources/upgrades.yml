@@ -4,9 +4,11 @@ upgrades:
       limit: 1
     '2':
       require-level: 8
+      price: 1000
       limit: 2
     '3':
       require-level: 25
+      price: 5000
       limit: 3
 
   team-limit:
@@ -14,9 +16,11 @@ upgrades:
       limit: 5
     '2':
       require-level: 10
+      price: 2000
       limit: 6
     '3':
       require-level: 25
+      price: 10000
       limit: 7
 
   home-limit:
@@ -24,9 +28,11 @@ upgrades:
       limit: 1
     '2':
       require-level: 5
+      price: 500
       limit: 2
     '3':
       require-level: 20
+      price: 2500
       limit: 3
 
   warp-limit:
@@ -34,9 +40,11 @@ upgrades:
       limit: 1
     '2':
       require-level: 5
+      price: 500
       limit: 2
     '3':
       require-level: 20
+      price: 2500
       limit: 3
 
   island-size:
@@ -44,6 +52,7 @@ upgrades:
       size: 75
     '2':
       require-level: 10
+      price: 1000
       size: 100
     '3':
       require-level: 30
@@ -55,11 +64,13 @@ upgrades:
         COBBLESTONE: 100.0
     '2':
       require-level: 15
+      price: 2000
       rates:
         COBBLESTONE: 95.0
         IRON_ORE: 5.0
     '3':
       require-level: 35
+      price: 10000
       rates:
         COBBLESTONE: 89.5
         IRON_ORE: 5
@@ -71,6 +82,7 @@ upgrades:
         - PLAINS
     '2':
       require-level: 10
+      price: 2000
       allowed:
         - PLAINS
         - FOREST
@@ -78,6 +90,7 @@ upgrades:
         - CHERRY_GROVE
     '3':
       require-level: 30
+      price: 10000
       allowed:
         - PLAINS
         - FOREST

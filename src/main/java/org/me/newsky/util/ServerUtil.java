@@ -35,6 +35,8 @@ public class ServerUtil {
             } else {
                 throw new IllegalStateException("Player not found: " + playerUuid);
             }
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> plugin.debug("ServerUtil", "Sent connect message to player " + playerUuid + " for server: " + serverName), plugin.getBukkitAsyncExecutor());
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> {
+            plugin.debug("ServerUtil", "Sent connect message to player " + playerUuid + " for server: " + serverName);
+        }, plugin.getBukkitAsyncExecutor());
     }
 }
