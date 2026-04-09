@@ -6,6 +6,7 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.IslandBusyException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.UpgradeDoesNotExistException;
 import org.me.newsky.exceptions.UpgradeLevelDoesNotExistException;
@@ -117,6 +118,8 @@ public class AdminUpgradeCommand implements SubCommand, AsyncTabComplete {
                 sender.sendMessage(config.getPlayerUpgradeInvalidIdMessage(upgradeId));
             } else if (cause instanceof UpgradeLevelDoesNotExistException) {
                 sender.sendMessage(config.getAdminUpgradeInvalidLevelMessage());
+            } else if (cause instanceof IslandBusyException) {
+                sender.sendMessage(config.getIslandBusyMessage());
             } else {
                 sender.sendMessage(config.getUnknownExceptionMessage());
 

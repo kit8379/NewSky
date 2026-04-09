@@ -112,7 +112,7 @@ public class AdminWarpCommand implements SubCommand, AsyncTabComplete {
                 sender.sendMessage(config.getPlayerBannedMessage());
             } else if (cause instanceof IslandLockedException) {
                 sender.sendMessage(config.getIslandLockedMessage());
-            } else if (cause instanceof IslandOperationBusyException) {
+            } else if (cause instanceof IslandBusyException) {
                 sender.sendMessage(config.getIslandBusyMessage());
             } else if (cause instanceof NoActiveServerException) {
                 sender.sendMessage(config.getNoActiveServerMessage());

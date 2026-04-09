@@ -7,7 +7,7 @@ import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandAlreadyLoadedException;
-import org.me.newsky.exceptions.IslandOperationBusyException;
+import org.me.newsky.exceptions.IslandBusyException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.NoActiveServerException;
 
@@ -75,7 +75,7 @@ public class AdminLoadCommand implements SubCommand, AsyncTabComplete {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 sender.sendMessage(config.getNoIslandMessage(targetPlayerName));
-            } else if (cause instanceof IslandOperationBusyException) {
+            } else if (cause instanceof IslandBusyException) {
                 sender.sendMessage(config.getIslandBusyMessage());
             } else if (cause instanceof NoActiveServerException) {
                 sender.sendMessage(config.getNoActiveServerMessage());

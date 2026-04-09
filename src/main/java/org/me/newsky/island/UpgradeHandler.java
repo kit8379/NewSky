@@ -8,6 +8,7 @@ import org.me.newsky.exceptions.UpgradeDoesNotExistException;
 import org.me.newsky.exceptions.UpgradeIslandLevelTooLowException;
 import org.me.newsky.exceptions.UpgradeLevelDoesNotExistException;
 import org.me.newsky.exceptions.UpgradeMaxedException;
+import org.me.newsky.lock.IslandUpgradeLock;
 import org.me.newsky.model.Upgrade;
 import org.me.newsky.network.IslandDistributor;
 
@@ -29,15 +30,17 @@ public final class UpgradeHandler {
     private final NewSky plugin;
     private final ConfigHandler config;
     private final DataCache dataCache;
-    private final IslandDistributor islandDistributor;
     private final EconomyHandler economyHandler;
+    private final IslandDistributor islandDistributor;
+    private final IslandUpgradeLock islandUpgradeLock;
 
-    public UpgradeHandler(NewSky plugin, ConfigHandler config, DataCache dataCache, IslandDistributor islandDistributor, EconomyHandler economyHandler) {
+    public UpgradeHandler(NewSky plugin, ConfigHandler config, DataCache dataCache, EconomyHandler economyHandler, IslandDistributor islandDistributor, IslandUpgradeLock islandUpgradeLock) {
         this.plugin = plugin;
         this.config = config;
         this.dataCache = dataCache;
-        this.islandDistributor = islandDistributor;
         this.economyHandler = economyHandler;
+        this.islandDistributor = islandDistributor;
+        this.islandUpgradeLock = islandUpgradeLock;
     }
 
     // ================================================================================================================
@@ -45,7 +48,7 @@ public final class UpgradeHandler {
     // ================================================================================================================
 
     public CompletableFuture<Upgrade> upgradeToNextLevel(UUID islandUuid, UUID playerUuid, String upgradeId) {
-        return CompletableFuture.supplyAsync(() -> {
+        return islandUpgradeLock.withLock(islandUuid, () -> CompletableFuture.supplyAsync(() -> {
             if (!getUpgradeIds().contains(upgradeId)) {
                 throw new UpgradeDoesNotExistException();
             }
@@ -82,11 +85,11 @@ public final class UpgradeHandler {
             islandDistributor.reloadSnapshot(islandUuid);
 
             return result;
-        }, plugin.getBukkitAsyncExecutor());
+        }, plugin.getBukkitAsyncExecutor()));
     }
 
     public CompletableFuture<Void> setUpgradeLevel(UUID islandUuid, String upgradeId, int level) {
-        return CompletableFuture.runAsync(() -> {
+        return islandUpgradeLock.withLock(islandUuid, () -> CompletableFuture.runAsync(() -> {
             if (!getUpgradeIds().contains(upgradeId)) {
                 throw new UpgradeDoesNotExistException();
             }
@@ -103,7 +106,7 @@ public final class UpgradeHandler {
             }
 
             islandDistributor.reloadSnapshot(islandUuid);
-        }, plugin.getBukkitAsyncExecutor());
+        }, plugin.getBukkitAsyncExecutor()));
     }
 
     public CompletableFuture<Integer> getCurrentUpgradeLevel(UUID islandUuid, String upgradeId) {

@@ -96,7 +96,7 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
                     int requireIslandLevel = api.getUpgradeRequireIslandLevel(upgradeId, nextLevel);
                     double price = api.getUpgradePrice(upgradeId, nextLevel);
 
-                    return api.getIslandLevel(islandUuid).thenCompose(islandLevel -> api.getBalance(playerUuid).thenAccept(balance -> {
+                    return api.getBalance(islandUuid).thenCompose(balance -> api.getIslandLevel(playerUuid).thenAccept(islandLevel -> {
                         player.sendMessage(config.getPlayerUpgradeDetailsNextLevelMessage(String.valueOf(nextLevel)));
                         player.sendMessage(config.getPlayerUpgradeDetailsNextValueMessage(nextValue));
                         player.sendMessage(config.getPlayerUpgradeDetailsRequireIslandLevelMessage(requireIslandLevel));
@@ -134,6 +134,8 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
                 player.sendMessage(config.getPlayerUpgradeIslandLevelTooLowMessage(upgradeId));
             } else if (cause instanceof InsufficientFundsException) {
                 player.sendMessage(config.getPlayerUpgradeNotEnoughMoneyMessage());
+            } else if (cause instanceof IslandBusyException) {
+                sender.sendMessage(config.getIslandBusyMessage());
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.severe("Error handling upgrade command for player " + player.getName() + " upgradeId=" + upgradeId, ex);

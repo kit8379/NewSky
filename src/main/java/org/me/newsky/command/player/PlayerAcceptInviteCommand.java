@@ -6,7 +6,7 @@ import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.exceptions.IslandOperationBusyException;
+import org.me.newsky.exceptions.IslandBusyException;
 import org.me.newsky.exceptions.NoActiveServerException;
 import org.me.newsky.island.UpgradeHandler;
 import org.me.newsky.model.Invitation;
@@ -99,7 +99,7 @@ public class PlayerAcceptInviteCommand implements SubCommand {
             });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
-            if (cause instanceof IslandOperationBusyException) {
+            if (cause instanceof IslandBusyException) {
                 sender.sendMessage(config.getIslandBusyMessage());
             } else if (cause instanceof NoActiveServerException) {
                 player.sendMessage(config.getNoActiveServerMessage());

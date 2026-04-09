@@ -4,7 +4,7 @@ import org.me.newsky.NewSky;
 import org.me.newsky.broker.IslandBroker;
 import org.me.newsky.exceptions.IslandAlreadyLoadedException;
 import org.me.newsky.exceptions.IslandNotLoadedException;
-import org.me.newsky.exceptions.IslandOperationBusyException;
+import org.me.newsky.exceptions.IslandBusyException;
 import org.me.newsky.exceptions.NoActiveServerException;
 import org.me.newsky.lock.IslandOperationLock;
 import org.me.newsky.routing.ServerSelector;
@@ -53,7 +53,7 @@ public class IslandDistributor {
         String alreadyLoadedServer = getServerByIsland(islandUuid);
         if (alreadyLoadedServer != null) {
             if (islandOperationLock.isLocked(islandUuid)) {
-                return CompletableFuture.failedFuture(new IslandOperationBusyException());
+                return CompletableFuture.failedFuture(new IslandBusyException());
             }
             return CompletableFuture.completedFuture(alreadyLoadedServer);
         }

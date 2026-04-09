@@ -1,4 +1,3 @@
-// NEW FILE: IslandLockState.java
 package org.me.newsky.state;
 
 import org.me.newsky.NewSky;
@@ -8,7 +7,7 @@ import redis.clients.jedis.params.SetParams;
 
 import java.util.Objects;
 
-public final class IslandLockState {
+public final class LockState {
 
     private static final String LUA_RELEASE_LOCK = "if redis.call('GET', KEYS[1]) == ARGV[1] then " + "return redis.call('DEL', KEYS[1]) " + "else " + "return 0 " + "end";
     private static final String LUA_EXTEND_LOCK = "if redis.call('GET', KEYS[1]) == ARGV[1] then " + "return redis.call('PEXPIRE', KEYS[1], ARGV[2]) " + "else " + "return 0 " + "end";
@@ -16,7 +15,7 @@ public final class IslandLockState {
     private final NewSky plugin;
     private final RedisHandler redisHandler;
 
-    public IslandLockState(NewSky plugin, RedisHandler redisHandler) {
+    public LockState(NewSky plugin, RedisHandler redisHandler) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
         this.redisHandler = Objects.requireNonNull(redisHandler, "redisHandler");
     }

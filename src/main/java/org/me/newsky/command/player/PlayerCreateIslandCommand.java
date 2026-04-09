@@ -7,6 +7,7 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
+import org.me.newsky.exceptions.IslandBusyException;
 import org.me.newsky.exceptions.NoActiveServerException;
 
 import java.util.UUID;
@@ -66,6 +67,8 @@ public class PlayerCreateIslandCommand implements SubCommand {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandAlreadyExistException) {
                 player.sendMessage(config.getPlayerAlreadyHasIslandMessage());
+            } else if (cause instanceof IslandBusyException) {
+                player.sendMessage(config.getIslandBusyMessage());
             } else if (cause instanceof NoActiveServerException) {
                 player.sendMessage(config.getNoActiveServerMessage());
             } else {

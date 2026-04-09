@@ -22,7 +22,6 @@ public final class EconomyHandler {
 
     public boolean setup() {
         if (Bukkit.getPluginManager().getPlugin("Vault") == null) {
-            plugin.severe("Vault plugin not found!.");
             return false;
         }
 

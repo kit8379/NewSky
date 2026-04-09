@@ -1,4 +1,3 @@
-// MODIFIED FILE: IslandOperationLock.java
 package org.me.newsky.lock;
 
 import org.bukkit.Bukkit;
@@ -13,10 +12,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-public final class IslandOperationLock {
+public final class IslandUpgradeLock {
 
-
-    private static final String ISLAND_OP_LOCK_PREFIX = "newsky:lock:island_operation:";
+    private static final String ISLAND_UPGRADE_LOCK_PREFIX = "newsky:lock:island_upgrade:";
 
     private static final long LOCK_TTL_MS = TimeUnit.MINUTES.toMillis(5);
     private static final long HEARTBEAT_MS = TimeUnit.MINUTES.toMillis(1);
@@ -25,17 +23,10 @@ public final class IslandOperationLock {
     private final LockState lockState;
     private final String serverID;
 
-
-    public IslandOperationLock(NewSky plugin, LockState lockState, String serverID) {
+    public IslandUpgradeLock(NewSky plugin, LockState lockState, String serverID) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
         this.lockState = Objects.requireNonNull(lockState, "lockState");
         this.serverID = Objects.requireNonNull(serverID, "serverID");
-    }
-
-
-    public boolean isLocked(UUID islandUuid) {
-        Objects.requireNonNull(islandUuid, "islandUuid");
-        return lockState.exists(lockKey(islandUuid));
     }
 
     public <T> CompletableFuture<T> withLock(UUID islandUuid, Supplier<CompletableFuture<T>> action) {
@@ -47,7 +38,7 @@ public final class IslandOperationLock {
 
         if (!lockState.tryAcquire(key, token, LOCK_TTL_MS)) {
             long pttl = lockState.pttl(key);
-            plugin.debug("IslandOperationLock", "withLock: busy lock for " + islandUuid + " (pttl=" + pttl + "ms)");
+            plugin.debug("IslandUpgradeLock", "withLock: busy lock for " + islandUuid + " (pttl=" + pttl + "ms)");
             return CompletableFuture.failedFuture(new IslandBusyException());
         }
 
@@ -56,7 +47,7 @@ public final class IslandOperationLock {
         BukkitTask heartbeat = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
             boolean ok = lockState.extend(key, token, LOCK_TTL_MS);
             if (!ok) {
-                plugin.debug("IslandOperationLock", "withLock: failed to extend lock (lost ownership?) island=" + islandUuid);
+                plugin.debug("IslandUpgradeLock", "withLock: failed to extend lock (lost ownership?) island=" + islandUuid);
             }
         }, periodTicks, periodTicks);
 
@@ -76,6 +67,6 @@ public final class IslandOperationLock {
     }
 
     private String lockKey(UUID islandUuid) {
-        return ISLAND_OP_LOCK_PREFIX + islandUuid;
+        return ISLAND_UPGRADE_LOCK_PREFIX + islandUuid;
     }
 }

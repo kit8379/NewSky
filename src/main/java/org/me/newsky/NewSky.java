@@ -17,6 +17,7 @@ import org.me.newsky.economy.EconomyHandler;
 import org.me.newsky.island.*;
 import org.me.newsky.listener.*;
 import org.me.newsky.lock.IslandOperationLock;
+import org.me.newsky.lock.IslandUpgradeLock;
 import org.me.newsky.message.PlayerMessageHandler;
 import org.me.newsky.network.IslandDistributor;
 import org.me.newsky.network.IslandOperator;
@@ -100,7 +101,7 @@ public class NewSky extends JavaPlugin {
             info("Starting Redis cache state handler");
             onlinePlayerState = new OnlinePlayerState(this, redisHandler);
             IslandInvitationState islandInvitationState = new IslandInvitationState(this, redisHandler);
-            IslandLockState islandLockState = new IslandLockState(this, redisHandler);
+            LockState lockState = new LockState(this, redisHandler);
             IslandServerState islandServerState = new IslandServerState(this, redisHandler);
             ServerHeartbeatState serverHeartbeatState = new ServerHeartbeatState(this, redisHandler);
             ServerSelectorState serverSelectorState = new ServerSelectorState(this, redisHandler);
@@ -141,8 +142,12 @@ public class NewSky extends JavaPlugin {
             }
             info("Server selector loaded");
 
+            info("Starting distributed lock");
+            IslandOperationLock islandOperationLock = new IslandOperationLock(this, lockState, serverID);
+            IslandUpgradeLock islandUpgradeLock = new IslandUpgradeLock(this, lockState, serverID);
+            info("Distributed lock loaded");
+
             info("Starting handlers for island remote requests");
-            IslandOperationLock islandOperationLock = new IslandOperationLock(this, islandLockState, serverID);
             IslandOperator islandOperator = new IslandOperator(this, worldHandler, teleportHandler, islandSnapshot, islandServerState, serverID);
             IslandDistributor islandDistributor = new IslandDistributor(this, islandOperator, islandOperationLock, serverSelector, serverHeartbeatState, islandServerState, serverID);
             info("All handlers for remote requests loaded");
@@ -175,7 +180,7 @@ public class NewSky extends JavaPlugin {
             levelHandler = new LevelHandler(this, config, dataCache);
             BanHandler banHandler = new BanHandler(this, dataCache, islandDistributor);
             CoopHandler coopHandler = new CoopHandler(this, dataCache, islandDistributor);
-            UpgradeHandler upgradeHandler = new UpgradeHandler(this, config, dataCache, islandDistributor, economyHandler);
+            UpgradeHandler upgradeHandler = new UpgradeHandler(this, config, dataCache, economyHandler, islandDistributor, islandUpgradeLock);
             cobblestoneGeneratorHandler = new CobblestoneGeneratorHandler(this, upgradeHandler);
             BiomeHandler biomeHandler = new BiomeHandler(this);
             LobbyHandler lobbyHandler = new LobbyHandler(this, config, islandDistributor);
