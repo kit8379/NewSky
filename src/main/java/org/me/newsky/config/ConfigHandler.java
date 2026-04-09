@@ -275,6 +275,10 @@ public class ConfigHandler {
         return upgrades.getInt("upgrades." + upgradeId + "." + level + ".require-level", 0);
     }
 
+    public double getUpgradePrice(String upgradeId, int level) {
+        return upgrades.getDouble("upgrades." + upgradeId + "." + level + ".price", 0);
+    }
+
     public int getUpgradeTeamLimit(int level) {
         return upgrades.getInt("upgrades.team-limit." + level + ".limit", 0);
     }
@@ -1788,6 +1792,14 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-your-island-level")).replace("{level}", String.valueOf(islandLevel)));
     }
 
+    public Component getPlayerUpgradeDetailsPriceMessage(double price) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-price")).replace("{price}", String.valueOf(price)));
+    }
+
+    public Component getPlayerUpgradeDetailsYourBalanceMessage(double balance) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-your-balance")).replace("{balance}", String.valueOf(balance)));
+    }
+
     public Component getPlayerUpgradeDetailsStatusLockedMessage() {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-status-locked")));
     }
@@ -1796,8 +1808,8 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-status-available")));
     }
 
-    public Component getPlayerUpgradeBuySuccessMessage(String upgradeId, int oldLevel, int newLevel, int requireIslandLevel) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-buy-success")).replace("{upgrade}", upgradeId).replace("{old_level}", String.valueOf(oldLevel)).replace("{new_level}", String.valueOf(newLevel)).replace("{require_level}", String.valueOf(requireIslandLevel)));
+    public Component getPlayerUpgradeBuySuccessMessage(String upgradeId, int oldLevel, int newLevel, int requireIslandLevel, double price) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-buy-success")).replace("{upgrade}", upgradeId).replace("{old_level}", String.valueOf(oldLevel)).replace("{new_level}", String.valueOf(newLevel)).replace("{require_level}", String.valueOf(requireIslandLevel).replace("{price}", String.valueOf(price))));
     }
 
     public Component getPlayerUpgradeMaxedMessage(String upgradeId) {
@@ -1806,6 +1818,13 @@ public class ConfigHandler {
 
     public Component getPlayerUpgradeIslandLevelTooLowMessage(String upgradeId) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-island-level-too-low")).replace("{upgrade}", upgradeId));
+    }
+
+
+
+
+    public Component getPlayerUpgradeNotEnoughMoneyMessage() {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-not-enough-money")));
     }
 
     public Component getPlayerTeamLimitReachedMessage(int limit) {

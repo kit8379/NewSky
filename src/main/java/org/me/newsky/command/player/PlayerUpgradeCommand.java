@@ -7,10 +7,7 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.exceptions.IslandDoesNotExistException;
-import org.me.newsky.exceptions.UpgradeDoesNotExistException;
-import org.me.newsky.exceptions.UpgradeIslandLevelTooLowException;
-import org.me.newsky.exceptions.UpgradeMaxedException;
+import org.me.newsky.exceptions.*;
 import org.me.newsky.island.UpgradeHandler;
 
 import java.util.*;
@@ -75,7 +72,6 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
 
         api.getIslandUuid(playerUuid).thenCompose(islandUuid -> {
             // /is upgrade <upgradeId>
-            // Show specific upgrade details
             if (args.length == 2) {
                 if (!api.getUpgradeIds().contains(upgradeId)) {
                     player.sendMessage(config.getPlayerUpgradeInvalidIdMessage(upgradeId));
@@ -98,32 +94,36 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
 
                     String nextValue = formatUpgradeValue(upgradeId, nextLevel);
                     int requireIslandLevel = api.getUpgradeRequireIslandLevel(upgradeId, nextLevel);
+                    double price = api.getUpgradePrice(upgradeId, nextLevel);
 
-                    return api.getIslandLevel(islandUuid).thenAccept(islandLevel -> {
+                    return api.getIslandLevel(islandUuid).thenCompose(islandLevel -> api.getBalance(playerUuid).thenAccept(balance -> {
                         player.sendMessage(config.getPlayerUpgradeDetailsNextLevelMessage(String.valueOf(nextLevel)));
                         player.sendMessage(config.getPlayerUpgradeDetailsNextValueMessage(nextValue));
                         player.sendMessage(config.getPlayerUpgradeDetailsRequireIslandLevelMessage(requireIslandLevel));
                         player.sendMessage(config.getPlayerUpgradeDetailsYourIslandLevelMessage(islandLevel));
+                        player.sendMessage(config.getPlayerUpgradeDetailsPriceMessage(price));
+                        player.sendMessage(config.getPlayerUpgradeDetailsYourBalanceMessage(balance));
 
-                        if (islandLevel < requireIslandLevel) {
+                        if (islandLevel < requireIslandLevel || balance < price) {
                             player.sendMessage(config.getPlayerUpgradeDetailsStatusLockedMessage());
                         } else {
                             player.sendMessage(config.getPlayerUpgradeDetailsStatusAvailableMessage());
                         }
-                    });
+                    }));
                 });
             }
 
             // /is upgrade <upgradeId> buy
-            if (args.length != 3 || !args[2].equalsIgnoreCase("buy")) {
-                return CompletableFuture.completedFuture(null);
+            if (args.length == 3 && args[2].equalsIgnoreCase("buy")) {
+                return api.upgradeToNextLevel(islandUuid, playerUuid, upgradeId).thenAccept(result -> {
+                    player.sendMessage(config.getPlayerUpgradeBuySuccessMessage(result.getUpgradeId(), result.getOldLevel(), result.getNewLevel(), result.getRequireIslandLevel(), result.getPrice()));
+                });
             }
 
-            return api.upgradeToNextLevel(islandUuid, upgradeId).thenAccept(result -> {
-                player.sendMessage(config.getPlayerUpgradeBuySuccessMessage(result.getUpgradeId(), result.getOldLevel(), result.getNewLevel(), result.getRequireIslandLevel()));
-            });
+            return CompletableFuture.completedFuture(null);
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
+
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else if (cause instanceof UpgradeDoesNotExistException) {
@@ -132,10 +132,13 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
                 player.sendMessage(config.getPlayerUpgradeMaxedMessage(upgradeId));
             } else if (cause instanceof UpgradeIslandLevelTooLowException) {
                 player.sendMessage(config.getPlayerUpgradeIslandLevelTooLowMessage(upgradeId));
+            } else if (cause instanceof InsufficientFundsException) {
+                player.sendMessage(config.getPlayerUpgradeNotEnoughMoneyMessage());
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.severe("Error handling upgrade command for player " + player.getName() + " upgradeId=" + upgradeId, ex);
             }
+
             return null;
         });
 
@@ -187,6 +190,7 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
         for (Map.Entry<String, Double> e : rates.entrySet()) {
             String key = e.getKey();
             Double val = e.getValue();
+
             if (key == null || val == null) {
                 continue;
             }
@@ -194,6 +198,7 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
             if (!first) {
                 sb.append(", ");
             }
+
             first = false;
             sb.append(key).append(": ").append(val);
         }
@@ -229,6 +234,7 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
             if ("buy".startsWith(prefix)) {
                 return CompletableFuture.completedFuture(Collections.singletonList("buy"));
             }
+
             return CompletableFuture.completedFuture(Collections.emptyList());
         }
 

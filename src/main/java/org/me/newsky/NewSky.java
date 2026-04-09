@@ -13,6 +13,7 @@ import org.me.newsky.command.IslandAdminCommand;
 import org.me.newsky.command.IslandPlayerCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
+import org.me.newsky.economy.EconomyHandler;
 import org.me.newsky.island.*;
 import org.me.newsky.listener.*;
 import org.me.newsky.lock.IslandOperationLock;
@@ -157,6 +158,15 @@ public class NewSky extends JavaPlugin {
             playerMessageHandler.setPlayerMessageBroker(playerMessageBroker);
             info("All brokers loaded");
 
+            info("Starting economy handler");
+            EconomyHandler economyHandler = new EconomyHandler(this);
+            if (!economyHandler.setup()) {
+                getLogger().severe("Economy provider not found. Disabling plugin.");
+                getServer().getPluginManager().disablePlugin(this);
+                return;
+            }
+            info("Economy handler loaded");
+
             info("Starting main handlers for the plugin");
             IslandHandler islandHandler = new IslandHandler(this, config, dataCache, islandDistributor);
             PlayerHandler playerHandler = new PlayerHandler(this, config, dataCache, islandDistributor, islandInvitationState);
@@ -165,7 +175,7 @@ public class NewSky extends JavaPlugin {
             levelHandler = new LevelHandler(this, config, dataCache);
             BanHandler banHandler = new BanHandler(this, dataCache, islandDistributor);
             CoopHandler coopHandler = new CoopHandler(this, dataCache, islandDistributor);
-            UpgradeHandler upgradeHandler = new UpgradeHandler(this, config, dataCache, islandDistributor);
+            UpgradeHandler upgradeHandler = new UpgradeHandler(this, config, dataCache, islandDistributor, economyHandler);
             cobblestoneGeneratorHandler = new CobblestoneGeneratorHandler(this, upgradeHandler);
             BiomeHandler biomeHandler = new BiomeHandler(this);
             LobbyHandler lobbyHandler = new LobbyHandler(this, config, islandDistributor);
@@ -192,7 +202,7 @@ public class NewSky extends JavaPlugin {
             info("All schedulers loaded");
 
             info("Starting API");
-            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, playerMessageHandler, uuidHandler, upgradeHandler, biomeHandler);
+            api = new NewSkyAPI(this, economyHandler, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, playerMessageHandler, uuidHandler, upgradeHandler, biomeHandler);
             info("API loaded");
 
             info("Starting listeners");
