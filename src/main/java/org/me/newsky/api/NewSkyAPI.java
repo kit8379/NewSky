@@ -2,7 +2,6 @@ package org.me.newsky.api;
 
 import net.kyori.adventure.text.Component;
 import org.me.newsky.NewSky;
-import org.me.newsky.economy.EconomyHandler;
 import org.me.newsky.island.*;
 import org.me.newsky.message.PlayerMessageHandler;
 import org.me.newsky.model.Invitation;
@@ -16,7 +15,6 @@ import java.util.concurrent.CompletableFuture;
 public class NewSkyAPI {
 
     private final NewSky plugin;
-    private final EconomyHandler economyHandler;
     private final IslandHandler islandHandler;
     private final PlayerHandler playerHandler;
     private final HomeHandler homeHandler;
@@ -30,9 +28,8 @@ public class NewSkyAPI {
     private final BiomeHandler biomeHandler;
     private final UuidHandler uuidHandler;
 
-    public NewSkyAPI(NewSky plugin, EconomyHandler economyHandler, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, PlayerMessageHandler playerMessageHandler, UuidHandler uuidHandler, UpgradeHandler upgradeHandler, BiomeHandler biomeHandler) {
+    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, PlayerMessageHandler playerMessageHandler, UuidHandler uuidHandler, UpgradeHandler upgradeHandler, BiomeHandler biomeHandler) {
         this.plugin = plugin;
-        this.economyHandler = economyHandler;
         this.islandHandler = islandHandler;
         this.playerHandler = playerHandler;
         this.homeHandler = homeHandler;
@@ -320,11 +317,6 @@ public class NewSkyAPI {
     @SuppressWarnings("unused")
     public CompletableFuture<Integer> getCurrentUpgradeLevel(UUID islandUuid, String upgradeId) {
         return upgradeHandler.getCurrentUpgradeLevel(islandUuid, upgradeId);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Double> getBalance(UUID playerUuid) {
-        return economyHandler.getBalance(playerUuid);
     }
 
     @SuppressWarnings("unused")

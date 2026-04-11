@@ -3,94 +3,149 @@ upgrades:
     '1':
       limit: 1
     '2':
-      require-level: 8
-      price: 1000
+      require-level: 100
+      price: 25000
       limit: 2
     '3':
-      require-level: 25
-      price: 5000
+      require-level: 250
+      price: 80000
       limit: 3
+    '4':
+      require-level: 500
+      price: 200000
+      limit: 4
+    '5':
+      require-level: 900
+      price: 450000
+      limit: 5
 
   team-limit:
     '1':
       limit: 5
     '2':
-      require-level: 10
-      price: 2000
+      require-level: 150
+      price: 40000
       limit: 6
     '3':
-      require-level: 25
-      price: 10000
+      require-level: 350
+      price: 120000
       limit: 7
+    '4':
+      require-level: 700
+      price: 300000
+      limit: 8
+    '5':
+      require-level: 1200
+      price: 700000
+      limit: 9
 
   home-limit:
     '1':
       limit: 1
     '2':
-      require-level: 5
-      price: 500
+      require-level: 75
+      price: 20000
       limit: 2
     '3':
-      require-level: 20
-      price: 2500
+      require-level: 200
+      price: 60000
       limit: 3
+    '4':
+      require-level: 400
+      price: 150000
+      limit: 4
+    '5':
+      require-level: 750
+      price: 350000
+      limit: 5
 
   warp-limit:
     '1':
       limit: 1
     '2':
-      require-level: 5
-      price: 500
+      require-level: 75
+      price: 20000
       limit: 2
     '3':
-      require-level: 20
-      price: 2500
+      require-level: 200
+      price: 60000
       limit: 3
+    '4':
+      require-level: 400
+      price: 150000
+      limit: 4
+    '5':
+      require-level: 750
+      price: 350000
+      limit: 5
 
   island-size:
     '1':
       size: 75
     '2':
-      require-level: 10
-      price: 1000
+      require-level: 200
+      price: 60000
       size: 100
     '3':
-      require-level: 30
+      require-level: 450
+      price: 180000
       size: 125
+    '4':
+      require-level: 850
+      price: 450000
+      size: 150
+    '5':
+      require-level: 1400
+      price: 1000000
+      size: 175
 
   generator-rates:
     '1':
       rates:
         COBBLESTONE: 100.0
     '2':
-      require-level: 15
-      price: 2000
+      require-level: 250
+      price: 80000
       rates:
         COBBLESTONE: 95.0
         IRON_ORE: 5.0
     '3':
-      require-level: 35
-      price: 10000
+      require-level: 550
+      price: 250000
       rates:
-        COBBLESTONE: 89.5
-        IRON_ORE: 5
+        COBBLESTONE: 91.0
+        IRON_ORE: 8.5
         DIAMOND_ORE: 0.5
+    '4':
+      require-level: 1000
+      price: 600000
+      rates:
+        COBBLESTONE: 85.0
+        IRON_ORE: 13.0
+        DIAMOND_ORE: 2.0
+    '5':
+      require-level: 1600
+      price: 1400000
+      rates:
+        COBBLESTONE: 78.0
+        IRON_ORE: 18.0
+        DIAMOND_ORE: 4.0
 
   biomes:
     '1':
       allowed:
         - PLAINS
     '2':
-      require-level: 10
-      price: 2000
+      require-level: 125
+      price: 30000
       allowed:
         - PLAINS
         - FOREST
         - BIRCH_FOREST
         - CHERRY_GROVE
     '3':
-      require-level: 30
-      price: 10000
+      require-level: 300
+      price: 100000
       allowed:
         - PLAINS
         - FOREST
@@ -100,3 +155,39 @@ upgrades:
         - BADLANDS
         - DESERT
         - SAVANNA
+    '4':
+      require-level: 650
+      price: 250000
+      allowed:
+        - PLAINS
+        - FOREST
+        - BIRCH_FOREST
+        - CHERRY_GROVE
+        - JUNGLE
+        - BADLANDS
+        - DESERT
+        - SAVANNA
+        - SNOWY_PLAINS
+        - TAIGA
+        - DARK_FOREST
+        - MANGROVE_SWAMP
+    '5':
+      require-level: 1100
+      price: 550000
+      allowed:
+        - PLAINS
+        - FOREST
+        - BIRCH_FOREST
+        - CHERRY_GROVE
+        - JUNGLE
+        - BADLANDS
+        - DESERT
+        - SAVANNA
+        - SNOWY_PLAINS
+        - TAIGA
+        - DARK_FOREST
+        - MANGROVE_SWAMP
+        - STONY_PEAKS
+        - MEADOW
+        - GROVE
+        - WINDSWEPT_HILLS

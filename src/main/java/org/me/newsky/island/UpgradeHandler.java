@@ -1,13 +1,13 @@
 package org.me.newsky.island;
 
+import net.milkbowl.vault.economy.Economy;
+import net.milkbowl.vault.economy.EconomyResponse;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.me.newsky.NewSky;
 import org.me.newsky.cache.DataCache;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.economy.EconomyHandler;
-import org.me.newsky.exceptions.UpgradeDoesNotExistException;
-import org.me.newsky.exceptions.UpgradeIslandLevelTooLowException;
-import org.me.newsky.exceptions.UpgradeLevelDoesNotExistException;
-import org.me.newsky.exceptions.UpgradeMaxedException;
+import org.me.newsky.exceptions.*;
 import org.me.newsky.lock.IslandUpgradeLock;
 import org.me.newsky.model.Upgrade;
 import org.me.newsky.network.IslandDistributor;
@@ -30,15 +30,13 @@ public final class UpgradeHandler {
     private final NewSky plugin;
     private final ConfigHandler config;
     private final DataCache dataCache;
-    private final EconomyHandler economyHandler;
     private final IslandDistributor islandDistributor;
     private final IslandUpgradeLock islandUpgradeLock;
 
-    public UpgradeHandler(NewSky plugin, ConfigHandler config, DataCache dataCache, EconomyHandler economyHandler, IslandDistributor islandDistributor, IslandUpgradeLock islandUpgradeLock) {
+    public UpgradeHandler(NewSky plugin, ConfigHandler config, DataCache dataCache, IslandDistributor islandDistributor, IslandUpgradeLock islandUpgradeLock) {
         this.plugin = plugin;
         this.config = config;
         this.dataCache = dataCache;
-        this.economyHandler = economyHandler;
         this.islandDistributor = islandDistributor;
         this.islandUpgradeLock = islandUpgradeLock;
     }
@@ -48,7 +46,8 @@ public final class UpgradeHandler {
     // ================================================================================================================
 
     public CompletableFuture<Upgrade> upgradeToNextLevel(UUID islandUuid, UUID playerUuid, String upgradeId) {
-        return islandUpgradeLock.withLock(islandUuid, () -> CompletableFuture.supplyAsync(() -> {
+        return CompletableFuture.runAsync(() -> {
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(ignored -> islandUpgradeLock.withLock(islandUuid, () -> CompletableFuture.supplyAsync(() -> {
             if (!getUpgradeIds().contains(upgradeId)) {
                 throw new UpgradeDoesNotExistException();
             }
@@ -74,7 +73,10 @@ public final class UpgradeHandler {
                 return CompletableFuture.completedFuture(result);
             }
 
-            return economyHandler.withdraw(playerUuid, result.getPrice()).thenApply(ignored -> result);
+            return CompletableFuture.supplyAsync(() -> {
+                withdraw(playerUuid, result.getPrice());
+                return result;
+            }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
         }).thenApplyAsync(result -> {
             dataCache.updateIslandUpgradeLevel(islandUuid, upgradeId, result.getNewLevel());
 
@@ -85,11 +87,12 @@ public final class UpgradeHandler {
             islandDistributor.reloadSnapshot(islandUuid);
 
             return result;
-        }, plugin.getBukkitAsyncExecutor()));
+        }, plugin.getBukkitAsyncExecutor())));
     }
 
     public CompletableFuture<Void> setUpgradeLevel(UUID islandUuid, String upgradeId, int level) {
-        return islandUpgradeLock.withLock(islandUuid, () -> CompletableFuture.runAsync(() -> {
+        return CompletableFuture.runAsync(() -> {
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(ignored -> islandUpgradeLock.withLock(islandUuid, () -> CompletableFuture.runAsync(() -> {
             if (!getUpgradeIds().contains(upgradeId)) {
                 throw new UpgradeDoesNotExistException();
             }
@@ -106,11 +109,34 @@ public final class UpgradeHandler {
             }
 
             islandDistributor.reloadSnapshot(islandUuid);
-        }, plugin.getBukkitAsyncExecutor()));
+        }, plugin.getBukkitAsyncExecutor())));
     }
 
     public CompletableFuture<Integer> getCurrentUpgradeLevel(UUID islandUuid, String upgradeId) {
         return CompletableFuture.supplyAsync(() -> dataCache.getIslandUpgradeLevel(islandUuid, upgradeId), plugin.getBukkitAsyncExecutor());
+    }
+
+    // ================================================================================================================
+    // Internal Economy
+    // ================================================================================================================
+
+    private void withdraw(UUID playerUuid, double amount) {
+        Economy economy = plugin.getEconomy();
+        if (economy == null) {
+            throw new IllegalStateException("Vault economy is not available.");
+        }
+
+        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerUuid);
+
+        double balance = economy.getBalance(offlinePlayer);
+        if (balance < amount) {
+            throw new InsufficientFundsException();
+        }
+
+        EconomyResponse response = economy.withdrawPlayer(offlinePlayer, amount);
+        if (!response.transactionSuccess()) {
+            throw new IllegalStateException("Vault withdraw failed: " + response.errorMessage);
+        }
     }
 
     // ================================================================================================================

@@ -1,8 +1,10 @@
 package org.me.newsky;
 
+import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.broker.IslandBroker;
@@ -13,7 +15,6 @@ import org.me.newsky.command.IslandAdminCommand;
 import org.me.newsky.command.IslandPlayerCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
-import org.me.newsky.economy.EconomyHandler;
 import org.me.newsky.island.*;
 import org.me.newsky.listener.*;
 import org.me.newsky.lock.IslandOperationLock;
@@ -63,6 +64,7 @@ public class NewSky extends JavaPlugin {
     private CobblestoneGeneratorHandler cobblestoneGeneratorHandler;
     private NewSkyAPI api;
     private BukkitAsyncExecutor bukkitAsyncExecutor;
+    private Economy economy;
 
     @Override
     public void onEnable() {
@@ -163,14 +165,13 @@ public class NewSky extends JavaPlugin {
             playerMessageHandler.setPlayerMessageBroker(playerMessageBroker);
             info("All brokers loaded");
 
-            info("Starting economy handler");
-            EconomyHandler economyHandler = new EconomyHandler(this);
-            if (!economyHandler.setup()) {
+            info("Starting economy provider");
+            if (!setupEconomy()) {
                 getLogger().severe("Economy provider not found. Disabling plugin.");
                 getServer().getPluginManager().disablePlugin(this);
                 return;
             }
-            info("Economy handler loaded");
+            info("Economy provider loaded");
 
             info("Starting main handlers for the plugin");
             IslandHandler islandHandler = new IslandHandler(this, config, dataCache, islandDistributor);
@@ -180,7 +181,7 @@ public class NewSky extends JavaPlugin {
             levelHandler = new LevelHandler(this, config, dataCache);
             BanHandler banHandler = new BanHandler(this, dataCache, islandDistributor);
             CoopHandler coopHandler = new CoopHandler(this, dataCache, islandDistributor);
-            UpgradeHandler upgradeHandler = new UpgradeHandler(this, config, dataCache, economyHandler, islandDistributor, islandUpgradeLock);
+            UpgradeHandler upgradeHandler = new UpgradeHandler(this, config, dataCache, islandDistributor, islandUpgradeLock);
             cobblestoneGeneratorHandler = new CobblestoneGeneratorHandler(this, upgradeHandler);
             BiomeHandler biomeHandler = new BiomeHandler(this);
             LobbyHandler lobbyHandler = new LobbyHandler(this, config, islandDistributor);
@@ -207,7 +208,7 @@ public class NewSky extends JavaPlugin {
             info("All schedulers loaded");
 
             info("Starting API");
-            api = new NewSkyAPI(this, economyHandler, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, playerMessageHandler, uuidHandler, upgradeHandler, biomeHandler);
+            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, playerMessageHandler, uuidHandler, upgradeHandler, biomeHandler);
             info("API loaded");
 
             info("Starting listeners");
@@ -270,6 +271,20 @@ public class NewSky extends JavaPlugin {
             getLogger().log(Level.SEVERE, "An error occurred during plugin initialization", e);
             getServer().getPluginManager().disablePlugin(this);
         }
+    }
+
+    private boolean setupEconomy() {
+        if (Bukkit.getPluginManager().getPlugin("Vault") == null) {
+            return false;
+        }
+
+        RegisteredServiceProvider<Economy> rsp = Bukkit.getServicesManager().getRegistration(Economy.class);
+        if (rsp == null) {
+            return false;
+        }
+
+        economy = rsp.getProvider();
+        return true;
     }
 
     private PluginCommand createCommand(String name) {
@@ -353,6 +368,11 @@ public class NewSky extends JavaPlugin {
     @SuppressWarnings("unused")
     public NewSkyAPI getApi() {
         return api;
+    }
+
+    @SuppressWarnings("unused")
+    public Economy getEconomy() {
+        return economy;
     }
 
     @SuppressWarnings("unused")

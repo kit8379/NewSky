@@ -27,10 +27,6 @@ public class CobblestoneGeneratorHandler {
         reload();
     }
 
-    /**
-     * Rebuild all cached weighted tables from upgrades.yml (generator-rates).
-     * Call this on enable and on config reload.
-     */
     public void reload() {
         Map<Integer, WeightedTable> built = new HashMap<>();
 
@@ -48,7 +44,7 @@ public class CobblestoneGeneratorHandler {
         }
 
         this.tables = Collections.unmodifiableMap(built);
-        plugin.getLogger().info("[CobblestoneGenerator] Levels=" + this.tables.keySet());
+        plugin.debug("CobblestoneGeneratorHandler", "Reloaded generator rates: " + tables);
     }
 
     public Material roll(int upgradeLevel) {
@@ -83,7 +79,7 @@ public class CobblestoneGeneratorHandler {
 
             Material m = Material.matchMaterial(key);
             if (m == null) {
-                plugin.getLogger().warning("[CobblestoneGenerator] Unknown material in generator-rates level " + level + ": " + key);
+                plugin.warning("Invalid material '" + key + "' in generator rates for level " + level);
                 continue;
             }
 

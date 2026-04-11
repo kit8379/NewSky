@@ -6,6 +6,7 @@ messages:
 
   plugin-reloaded: "<green>Plugin reloaded successfully!"
   unknown-exception: "<red>An unknown error occurred while processing your request. Please try again later or contact the administrator."
+  island-busy: "<red>Island is currently busy. Please try again later!"
 
   # ================================================================================================================
   # Permissions / Sender
@@ -33,7 +34,6 @@ messages:
   player-already-has-island: "<red>You already own an island!"
   admin-no-island: "<red>Player <aqua>{player} <red>does not have an island!"
 
-  island-busy: "<red>Island is currently loading the island. Please try again later!"
   island-not-loaded: "<red>The island is not loaded!"
   island-already-loaded: "<red>The island is already loaded!"
   island-locked: "<red>This island is currently locked!"

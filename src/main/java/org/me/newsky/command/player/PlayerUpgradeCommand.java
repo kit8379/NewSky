@@ -1,5 +1,8 @@
 package org.me.newsky.command.player;
 
+import net.milkbowl.vault.economy.Economy;
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
@@ -70,15 +73,20 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
         UUID playerUuid = player.getUniqueId();
         String upgradeId = args[1].toLowerCase(Locale.ROOT);
 
+        if (!api.getUpgradeIds().contains(upgradeId)) {
+            player.sendMessage(config.getPlayerUpgradeInvalidIdMessage(upgradeId));
+            return true;
+        }
+
         api.getIslandUuid(playerUuid).thenCompose(islandUuid -> {
+
             // /is upgrade <upgradeId>
             if (args.length == 2) {
-                if (!api.getUpgradeIds().contains(upgradeId)) {
-                    player.sendMessage(config.getPlayerUpgradeInvalidIdMessage(upgradeId));
-                    return CompletableFuture.completedFuture(null);
-                }
+                CompletableFuture<Integer> currentLevelFuture = api.getCurrentUpgradeLevel(islandUuid, upgradeId);
+                CompletableFuture<Integer> islandLevelFuture = api.getIslandLevel(islandUuid);
 
-                return api.getCurrentUpgradeLevel(islandUuid, upgradeId).thenCompose(currentLevel -> {
+                return currentLevelFuture.thenCombine(islandLevelFuture, (currentLevel, islandLevel) -> {
+
                     String currentValue = formatUpgradeValue(upgradeId, currentLevel);
 
                     int nextLevel = api.getNextUpgradeLevel(upgradeId, currentLevel);
@@ -89,14 +97,24 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
                     player.sendMessage(config.getPlayerUpgradeDetailsCurrentValueMessage(currentValue));
 
                     if (maxed) {
-                        return CompletableFuture.completedFuture(null);
+                        return CompletableFuture.<Void>completedFuture(null);
                     }
 
+                    // compute everything here (cheap operations)
                     String nextValue = formatUpgradeValue(upgradeId, nextLevel);
                     int requireIslandLevel = api.getUpgradeRequireIslandLevel(upgradeId, nextLevel);
                     double price = api.getUpgradePrice(upgradeId, nextLevel);
 
-                    return api.getBalance(islandUuid).thenCompose(balance -> api.getIslandLevel(playerUuid).thenAccept(islandLevel -> {
+                    // jump to main thread for Vault + messaging
+                    return CompletableFuture.runAsync(() -> {
+                        Economy economy = plugin.getEconomy();
+                        if (economy == null) {
+                            throw new IllegalStateException("Vault economy is not available.");
+                        }
+
+                        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerUuid);
+                        double balance = economy.getBalance(offlinePlayer);
+
                         player.sendMessage(config.getPlayerUpgradeDetailsNextLevelMessage(String.valueOf(nextLevel)));
                         player.sendMessage(config.getPlayerUpgradeDetailsNextValueMessage(nextValue));
                         player.sendMessage(config.getPlayerUpgradeDetailsRequireIslandLevelMessage(requireIslandLevel));
@@ -109,8 +127,9 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
                         } else {
                             player.sendMessage(config.getPlayerUpgradeDetailsStatusAvailableMessage());
                         }
-                    }));
-                });
+                    }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
+
+                }).thenCompose(f -> f); // flatten nested future
             }
 
             // /is upgrade <upgradeId> buy
@@ -121,6 +140,7 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
             }
 
             return CompletableFuture.completedFuture(null);
+
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
 
@@ -190,19 +210,12 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
         boolean first = true;
 
         for (Map.Entry<String, Double> e : rates.entrySet()) {
-            String key = e.getKey();
-            Double val = e.getValue();
+            if (e.getKey() == null || e.getValue() == null) continue;
 
-            if (key == null || val == null) {
-                continue;
-            }
-
-            if (!first) {
-                sb.append(", ");
-            }
-
+            if (!first) sb.append(", ");
             first = false;
-            sb.append(key).append(": ").append(val);
+
+            sb.append(e.getKey()).append(": ").append(e.getValue());
         }
 
         return sb.toString();
@@ -222,7 +235,6 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
             return CompletableFuture.completedFuture(Collections.emptyList());
         }
 
-        // /is upgrade <upgradeId>
         if (args.length == 2) {
             Set<String> ids = api.getUpgradeIds();
             String prefix = args[1].toLowerCase(Locale.ROOT);
@@ -230,7 +242,6 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
             return CompletableFuture.completedFuture(ids.stream().filter(id -> id.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()));
         }
 
-        // /is upgrade <upgradeId> buy
         if (args.length == 3) {
             String prefix = args[2].toLowerCase(Locale.ROOT);
             if ("buy".startsWith(prefix)) {
