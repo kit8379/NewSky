@@ -50,6 +50,9 @@ public class IslandAccessListener implements Listener {
         UUID playerUuid = player.getUniqueId();
 
         Island island = islandSnapshot.get(islandUuid);
+        if (island == null) {
+            return;
+        }
 
         boolean banned = island.getBans().contains(playerUuid);
         boolean locked = island.isLock() && !island.getOwner().equals(playerUuid) && !island.getMembers().contains(playerUuid) && !island.getCoops().contains(playerUuid);

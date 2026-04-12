@@ -10,7 +10,12 @@ import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.*;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockFormEvent;
+import org.bukkit.event.block.BlockFromToEvent;
+import org.bukkit.event.block.BlockPistonExtendEvent;
+import org.bukkit.event.block.BlockPistonRetractEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
@@ -20,11 +25,11 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.InventoryHolder;
 import org.me.newsky.NewSky;
-import snapshot.IslandSnapshot;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.UpgradeHandler;
 import org.me.newsky.model.Island;
 import org.me.newsky.util.IslandUtils;
+import snapshot.IslandSnapshot;
 
 import java.util.Map;
 import java.util.UUID;
@@ -59,8 +64,10 @@ public class IslandProtectionListener implements Listener {
         return IslandUtils.nameToUUID(worldName);
     }
 
-    private boolean isInsideIslandBoundary(UUID islandUuid, Location location) {
-        Island island = islandSnapshot.get(islandUuid);
+    private boolean isInsideIslandBoundary(Island island, Location location) {
+        if (island == null || location == null) {
+            return false;
+        }
 
         Map<String, Integer> upgrades = island.getUpgrades();
         int islandSizeLevel = upgrades.getOrDefault(UpgradeHandler.UPGRADE_ISLAND_SIZE, 1);
@@ -83,7 +90,12 @@ public class IslandProtectionListener implements Listener {
             return true;
         }
 
-        if (!isInsideIslandBoundary(islandUuid, location)) {
+        Island island = islandSnapshot.get(islandUuid);
+        if (island == null) {
+            return false;
+        }
+
+        if (!isInsideIslandBoundary(island, location)) {
             return false;
         }
 
@@ -91,10 +103,10 @@ public class IslandProtectionListener implements Listener {
             return true;
         }
 
-        Island island = islandSnapshot.get(islandUuid);
-
         UUID playerUuid = player.getUniqueId();
-        return island.getOwner().equals(playerUuid) || island.getMembers().contains(playerUuid) || island.getCoops().contains(playerUuid);
+        return island.getOwner().equals(playerUuid)
+                || island.getMembers().contains(playerUuid)
+                || island.getCoops().contains(playerUuid);
     }
 
     private boolean isAllowedByBoundary(Location location) {
@@ -102,14 +114,20 @@ public class IslandProtectionListener implements Listener {
         if (islandUuid == null) {
             return true;
         }
-        return isInsideIslandBoundary(islandUuid, location);
+
+        Island island = islandSnapshot.get(islandUuid);
+        if (island == null) {
+            return false;
+        }
+
+        return isInsideIslandBoundary(island, location);
     }
 
     private void deny(Player player) {
         player.sendMessage(config.getCannotEditIslandMessage());
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
         Location loc = event.getBlock().getLocation();
@@ -117,11 +135,10 @@ public class IslandProtectionListener implements Listener {
         if (!canPlayerEdit(player, loc)) {
             event.setCancelled(true);
             deny(player);
-            plugin.debug("IslandProtectionListener", "Player " + player.getName() + " tried to break a block in a protected area: " + loc);
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
         Player player = event.getPlayer();
         Location loc = event.getBlockPlaced().getLocation();
@@ -129,11 +146,10 @@ public class IslandProtectionListener implements Listener {
         if (!canPlayerEdit(player, loc)) {
             event.setCancelled(true);
             deny(player);
-            plugin.debug("IslandProtectionListener", "Player " + player.getName() + " tried to place a block in a protected area: " + loc);
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPlayerInteract(PlayerInteractEvent event) {
         Block clicked = event.getClickedBlock();
         if (clicked == null) {
@@ -146,11 +162,10 @@ public class IslandProtectionListener implements Listener {
         if (!canPlayerEdit(player, loc)) {
             event.setCancelled(true);
             deny(player);
-            plugin.debug("IslandProtectionListener", "Player " + player.getName() + " tried to interact with a block in a protected area: " + loc);
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBucketUse(PlayerBucketEmptyEvent event) {
         Player player = event.getPlayer();
         Location loc = event.getBlock().getLocation();
@@ -158,69 +173,51 @@ public class IslandProtectionListener implements Listener {
         if (!canPlayerEdit(player, loc)) {
             event.setCancelled(true);
             deny(player);
-            plugin.debug("IslandProtectionListener", "Player " + player.getName() + " tried to use a bucket in a protected area: " + loc);
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onFluidSpread(BlockFromToEvent event) {
-        Location toLoc = event.getToBlock().getLocation();
-
-        if (!isAllowedByBoundary(toLoc)) {
+        if (!isAllowedByBoundary(event.getToBlock().getLocation())) {
             event.setCancelled(true);
-            plugin.debug("IslandProtectionListener", "Fluid spread blocked outside island boundary: " + toLoc);
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockForm(BlockFormEvent event) {
-        Location loc = event.getBlock().getLocation();
-
-        if (!isAllowedByBoundary(loc)) {
+        if (!isAllowedByBoundary(event.getBlock().getLocation())) {
             event.setCancelled(true);
-            plugin.debug("IslandProtectionListener", "Block formation blocked outside island boundary: " + loc);
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPistonExtend(BlockPistonExtendEvent event) {
         for (Block block : event.getBlocks()) {
-            Block toBlock = block.getRelative(event.getDirection());
-            Location toLoc = toBlock.getLocation();
-
-            if (!isAllowedByBoundary(toLoc)) {
+            if (!isAllowedByBoundary(block.getRelative(event.getDirection()).getLocation())) {
                 event.setCancelled(true);
-                plugin.debug("IslandProtectionListener", "Piston extension blocked outside island boundary: " + toLoc);
                 return;
             }
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPistonRetract(BlockPistonRetractEvent event) {
         for (Block block : event.getBlocks()) {
-            Block toBlock = block.getRelative(event.getDirection());
-            Location toLoc = toBlock.getLocation();
-
-            if (!isAllowedByBoundary(toLoc)) {
+            if (!isAllowedByBoundary(block.getRelative(event.getDirection()).getLocation())) {
                 event.setCancelled(true);
-                plugin.debug("IslandProtectionListener", "Piston retraction blocked outside island boundary: " + toLoc);
                 return;
             }
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onMobTrample(EntityChangeBlockEvent event) {
-        Location loc = event.getBlock().getLocation();
-
-        if (!isAllowedByBoundary(loc)) {
+        if (!isAllowedByBoundary(event.getBlock().getLocation())) {
             event.setCancelled(true);
-            plugin.debug("IslandProtectionListener", "Entity change block blocked outside island boundary: " + loc);
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onEntityDamage(EntityDamageByEntityEvent event) {
         Player damager = null;
 
@@ -238,15 +235,13 @@ public class IslandProtectionListener implements Listener {
             return;
         }
 
-        Location loc = event.getEntity().getLocation();
-        if (!canPlayerEdit(damager, loc)) {
+        if (!canPlayerEdit(damager, event.getEntity().getLocation())) {
             event.setCancelled(true);
             deny(damager);
-            plugin.debug("IslandProtectionListener", "Player " + damager.getName() + " tried to damage an entity in a protected area: " + loc);
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onOpenInventory(InventoryOpenEvent event) {
         if (!(event.getPlayer() instanceof Player player)) {
             return;
@@ -257,43 +252,33 @@ public class IslandProtectionListener implements Listener {
             return;
         }
 
-        Location loc = state.getBlock().getLocation();
-        if (!canPlayerEdit(player, loc)) {
+        if (!canPlayerEdit(player, state.getBlock().getLocation())) {
             event.setCancelled(true);
             deny(player);
-            plugin.debug("IslandProtectionListener", "Player " + player.getName() + " tried to open an inventory in a protected area: " + loc);
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onFishingRodPull(PlayerFishEvent event) {
-        if (event.getState() != PlayerFishEvent.State.CAUGHT_ENTITY) {
-            return;
-        }
-
-        if (event.getCaught() == null) {
+        if (event.getState() != PlayerFishEvent.State.CAUGHT_ENTITY || event.getCaught() == null) {
             return;
         }
 
         Player player = event.getPlayer();
-        Location loc = event.getCaught().getLocation();
 
-        if (!canPlayerEdit(player, loc)) {
+        if (!canPlayerEdit(player, event.getCaught().getLocation())) {
             event.setCancelled(true);
             deny(player);
-            plugin.debug("IslandProtectionListener", "Player " + player.getName() + " tried to pull an entity with a fishing rod in a protected area: " + loc);
         }
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onTeleport(PlayerTeleportEvent event) {
         Player player = event.getPlayer();
-        Location to = event.getTo();
 
-        if (!canPlayerEdit(player, to)) {
+        if (!canPlayerEdit(player, event.getTo())) {
             event.setCancelled(true);
             deny(player);
-            plugin.debug("IslandProtectionListener", "Player " + player.getName() + " tried to teleport to a protected area: " + to);
         }
     }
 }

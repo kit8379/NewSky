@@ -21,6 +21,7 @@ public class ConfigHandler {
     private volatile FileConfiguration commands;
     private volatile FileConfiguration levels;
     private volatile FileConfiguration upgrades;
+    private volatile FileConfiguration limits;
 
     public ConfigHandler(NewSky plugin) {
         this.plugin = plugin;
@@ -33,6 +34,7 @@ public class ConfigHandler {
         this.commands = load("commands.yml");
         this.levels = load("levels.yml");
         this.upgrades = load("upgrades.yml");
+        this.limits = load("limits.yml");
     }
 
     private FileConfiguration load(String fileName) {
@@ -238,17 +240,25 @@ public class ConfigHandler {
         return config.getBoolean("debug");
     }
 
-// ================================================================================================================
-// Levels Section
-// ================================================================================================================
+    // ================================================================================================================
+    // Levels Section
+    // ================================================================================================================
 
     public int getBlockLevel(String material) {
         return levels.getInt("blocks." + material, 0);
     }
 
-// ================================================================================================================
-// Upgrades Section
-// ================================================================================================================
+    // ================================================================================================================
+    // Limits Section
+    // ================================================================================================================
+
+    public int getBlockLimit(String material) {
+        return limits.getInt("limit." + material, 0);
+    }
+
+    // ================================================================================================================
+    // Upgrades Section
+    // ================================================================================================================
 
     public Set<String> getUpgradeIds() {
         return Objects.requireNonNull(upgrades.getConfigurationSection("upgrades")).getKeys(false);
@@ -1819,8 +1829,6 @@ public class ConfigHandler {
     public Component getPlayerUpgradeIslandLevelTooLowMessage(String upgradeId) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-island-level-too-low")).replace("{upgrade}", upgradeId));
     }
-
-
 
 
     public Component getPlayerUpgradeNotEnoughMoneyMessage() {

@@ -29,7 +29,7 @@ public final class CobblestoneGeneratorListener implements Listener {
         this.generatorHandler = generatorHandler;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockForm(BlockFormEvent event) {
         Block block = event.getBlock();
         World world = block.getWorld();
@@ -45,12 +45,14 @@ public final class CobblestoneGeneratorListener implements Listener {
         UUID islandUuid = IslandUtils.nameToUUID(world.getName());
 
         Island island = islandSnapshot.get(islandUuid);
+        if (island == null) {
+            return;
+        }
 
         Map<String, Integer> upgrades = island.getUpgrades();
         int genLevel = upgrades.getOrDefault(UpgradeHandler.UPGRADE_GENERATOR_RATES, 1);
 
         Material result = generatorHandler.roll(genLevel);
-
         event.getNewState().setType(result);
 
         plugin.debug("CobblestoneGeneratorListener", "Cobblestone generator roll: island=" + islandUuid + ", level=" + genLevel + ", result=" + result + ", location=" + block.getLocation());

@@ -38,6 +38,9 @@ public class IslandPvPListener implements Listener {
         UUID islandUuid = IslandUtils.nameToUUID(victim.getWorld().getName());
 
         Island island = islandSnapshot.get(islandUuid);
+        if (island == null) {
+            return;
+        }
 
         if (!island.isPvp()) {
             event.setCancelled(true);

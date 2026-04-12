@@ -99,6 +99,9 @@ public class WorldLoadListener implements Listener {
 
     private void applyBorder(World world, UUID islandUuid) {
         Island island = islandSnapshot.get(islandUuid);
+        if (island == null) {
+            return;
+        }
 
         int level = island.getUpgrades().getOrDefault(UpgradeHandler.UPGRADE_ISLAND_SIZE, 1);
         int size = plugin.getApi().getIslandSize(level);

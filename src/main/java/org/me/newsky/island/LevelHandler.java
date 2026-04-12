@@ -24,10 +24,10 @@ public class LevelHandler {
         this.plugin = plugin;
         this.config = config;
         this.dataCache = dataCache;
-        reload();
+        startup();
     }
 
-    public void reload() {
+    public void startup() {
         Material[] materials = Material.values();
         int[] table = new int[materials.length];
 
@@ -44,14 +44,6 @@ public class LevelHandler {
         }
 
         String islandName = IslandUtils.UUIDToName(islandUuid);
-
-        int halfSize = config.getIslandSize() / 2;
-
-        int minChunkX = Math.floorDiv(-halfSize, 16);
-        int minChunkZ = Math.floorDiv(-halfSize, 16);
-        int maxChunkX = Math.floorDiv(halfSize, 16);
-        int maxChunkZ = Math.floorDiv(halfSize, 16);
-
         World world = plugin.getServer().getWorld(islandName);
 
         if (world == null) {
@@ -60,6 +52,13 @@ public class LevelHandler {
                 return cachedLevel;
             });
         }
+
+        int halfSize = config.getIslandSize() / 2;
+
+        int minChunkX = Math.floorDiv(-halfSize, 16);
+        int minChunkZ = Math.floorDiv(-halfSize, 16);
+        int maxChunkX = Math.floorDiv(halfSize, 16);
+        int maxChunkZ = Math.floorDiv(halfSize, 16);
 
         List<CompletableFuture<Chunk>> chunkFutures = new ArrayList<>();
 

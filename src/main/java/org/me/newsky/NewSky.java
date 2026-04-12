@@ -62,6 +62,7 @@ public class NewSky extends JavaPlugin {
     private PlayerMessageBroker playerMessageBroker;
     private LevelHandler levelHandler;
     private CobblestoneGeneratorHandler cobblestoneGeneratorHandler;
+    private LimitHandler limitHandler;
     private NewSkyAPI api;
     private BukkitAsyncExecutor bukkitAsyncExecutor;
     private Economy economy;
@@ -150,7 +151,7 @@ public class NewSky extends JavaPlugin {
             info("Distributed lock loaded");
 
             info("Starting handlers for island remote requests");
-            IslandOperator islandOperator = new IslandOperator(this, worldHandler, teleportHandler, islandSnapshot, islandServerState, serverID);
+            IslandOperator islandOperator = new IslandOperator(this, worldHandler, teleportHandler, islandSnapshot, limitHandler, islandServerState, serverID);
             IslandDistributor islandDistributor = new IslandDistributor(this, islandOperator, islandOperationLock, serverSelector, serverHeartbeatState, islandServerState, serverID);
             info("All handlers for remote requests loaded");
 
@@ -184,6 +185,7 @@ public class NewSky extends JavaPlugin {
             UpgradeHandler upgradeHandler = new UpgradeHandler(this, config, dataCache, islandDistributor, islandUpgradeLock);
             cobblestoneGeneratorHandler = new CobblestoneGeneratorHandler(this, upgradeHandler);
             BiomeHandler biomeHandler = new BiomeHandler(this);
+            limitHandler = new LimitHandler(this, config);
             LobbyHandler lobbyHandler = new LobbyHandler(this, config, islandDistributor);
             UuidHandler uuidHandler = new UuidHandler(this, dataCache);
             WorldActivityHandler worldActivityHandler = new WorldActivityHandler(this);
@@ -215,7 +217,7 @@ public class NewSky extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, onlinePlayerState, serverID), this);
             getServer().getPluginManager().registerEvents(new WorldInitListener(this), this);
             getServer().getPluginManager().registerEvents(new WorldLoadListener(this, config, levelupdateSchedulerIsland, islandSnapshot), this);
-            getServer().getPluginManager().registerEvents(new WorldUnloadListener(this, levelupdateSchedulerIsland, islandSnapshot), this);
+            getServer().getPluginManager().registerEvents(new WorldUnloadListener(this, levelupdateSchedulerIsland, islandSnapshot, limitHandler), this);
             getServer().getPluginManager().registerEvents(new WorldActivityListener(this, worldActivityHandler), this);
             getServer().getPluginManager().registerEvents(new TeleportRequestListener(this, teleportHandler), this);
             getServer().getPluginManager().registerEvents(new IslandProtectionListener(this, config, islandSnapshot), this);
@@ -223,6 +225,7 @@ public class NewSky extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config, islandSnapshot), this);
             getServer().getPluginManager().registerEvents(new UuidUpdateListener(this), this);
             getServer().getPluginManager().registerEvents(new CobblestoneGeneratorListener(this, islandSnapshot, cobblestoneGeneratorHandler), this);
+            getServer().getPluginManager().registerEvents(new IslandLimitListener(this, config, limitHandler), this);
             info("All listeners loaded");
 
             info("Registering commands");
@@ -345,8 +348,9 @@ public class NewSky extends JavaPlugin {
     public void reload() {
         info("Plugin configs reloading...");
         config.reload();
-        levelHandler.reload();
-        cobblestoneGeneratorHandler.reload();
+        levelHandler.startup();
+        cobblestoneGeneratorHandler.startup();
+        limitHandler.startup();
         info("Plugin configs reloaded!");
     }
 

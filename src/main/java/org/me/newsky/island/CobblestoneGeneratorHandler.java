@@ -24,10 +24,10 @@ public class CobblestoneGeneratorHandler {
     public CobblestoneGeneratorHandler(NewSky plugin, UpgradeHandler upgradeHandler) {
         this.plugin = plugin;
         this.upgradeHandler = upgradeHandler;
-        reload();
+        startup();
     }
 
-    public void reload() {
+    public void startup() {
         Map<Integer, WeightedTable> built = new HashMap<>();
 
         // Always build base (level 1)
