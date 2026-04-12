@@ -1714,6 +1714,11 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(Objects.requireNonNull(messages.getString("messages.island-info-uuid")).replace("{island_uuid}", islandUuid.toString())));
     }
 
+    // Limit
+    public Component getBlockLimitReachedMessage(String block, int limit) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.block-limit-reached")).replace("{block}", block).replace("{limit}", String.valueOf(limit)));
+    }
+
     public Component getIslandInfoLevelMessage(int level) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-level")).replace("{level}", String.valueOf(level)));
     }

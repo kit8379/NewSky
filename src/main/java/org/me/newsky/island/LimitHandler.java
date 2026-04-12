@@ -27,10 +27,6 @@ public final class LimitHandler {
         startup();
     }
 
-    /**
-     * Build tracked-material lookup table once.
-     * Call this again on reload if limit config changes.
-     */
     public void startup() {
         Material[] materials = Material.values();
         boolean[] tracked = new boolean[materials.length];
@@ -42,16 +38,6 @@ public final class LimitHandler {
         this.trackedByMaterialOrdinal = tracked;
     }
 
-    /**
-     * Rebuild the island limit counts by scanning the loaded island world.
-     * <p>
-     * This uses the same general pattern as LevelHandler:
-     * - ensure main-thread entry
-     * - async load chunks
-     * - take ChunkSnapshot
-     * - async count limited blocks from snapshots
-     * - replace local cache
-     */
     public CompletableFuture<Void> calIslandLimit(UUID islandUuid) {
         if (!Bukkit.isPrimaryThread()) {
             return CompletableFuture.completedFuture(null).thenComposeAsync(v -> calIslandLimit(islandUuid), Bukkit.getScheduler().getMainThreadExecutor(plugin));

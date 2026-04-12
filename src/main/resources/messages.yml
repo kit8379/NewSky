@@ -265,11 +265,6 @@ messages:
   island-info-members: "<#00FFAA>Island Members: <white>{members}"
   island-info-no-members: "<red>No members"
 
-  island-level: "<#FFD700>Island Level: <white>{level}"
-  block-value: "<green>Block Value: <white>{value}"
-  no-item-in-hand: "<red>You must be holding an item!"
-  block-limit-reached: "<red>Your island has reached the limit of <white>{limit}<red> for <white>{block}<red>."
-
   player-info-not-in-island: "<red>You are not on any island!"
 
   # ================================================================================================================
@@ -279,6 +274,15 @@ messages:
   top-islands-header: "<#FFD700>Top 10 Highest Level Islands:"
   top-islands-message: "<aqua>{rank}. <white>{owner} <#AAAAAA>({members}) - <#FFD700>{level}"
   top-islands-no-island: "<red>No islands found."
+
+  # ================================================================================================================
+  # Level / Limit
+  # ================================================================================================================
+
+  island-level: "<#FFD700>Island Level: <white>{level}"
+  block-value: "<green>Block Value: <white>{value}"
+  no-item-in-hand: "<red>You must be holding an item!"
+  block-limit-reached: "<red>Your island has reached the limit of <white>{limit}<red> for <white>{block}<red>."
 
   # ================================================================================================================
   # Help
