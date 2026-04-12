@@ -19,8 +19,6 @@ public class MSPTUpdateScheduler {
         this.serverSelectorState = serverSelectorState;
         this.serverID = serverID;
         this.updateInterval = config.getMsptUpdateInterval();
-
-        plugin.debug("MSPTUpdateScheduler", "Initialized with update interval: " + updateInterval + " seconds, serverID: " + serverID);
     }
 
     public void start() {

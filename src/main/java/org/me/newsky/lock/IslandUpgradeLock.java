@@ -4,7 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
 import org.me.newsky.exceptions.IslandBusyException;
-import org.me.newsky.state.LockState;
+import org.me.newsky.state.IslandLockState;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -20,12 +20,12 @@ public final class IslandUpgradeLock {
     private static final long HEARTBEAT_MS = TimeUnit.MINUTES.toMillis(1);
 
     private final NewSky plugin;
-    private final LockState lockState;
+    private final IslandLockState islandLockState;
     private final String serverID;
 
-    public IslandUpgradeLock(NewSky plugin, LockState lockState, String serverID) {
+    public IslandUpgradeLock(NewSky plugin, IslandLockState islandLockState, String serverID) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
-        this.lockState = Objects.requireNonNull(lockState, "lockState");
+        this.islandLockState = Objects.requireNonNull(islandLockState, "islandLockState");
         this.serverID = Objects.requireNonNull(serverID, "serverID");
     }
 
@@ -36,8 +36,8 @@ public final class IslandUpgradeLock {
         String key = lockKey(islandUuid);
         String token = serverID + ":" + UUID.randomUUID();
 
-        if (!lockState.tryAcquire(key, token, LOCK_TTL_MS)) {
-            long pttl = lockState.pttl(key);
+        if (!islandLockState.tryAcquire(key, token, LOCK_TTL_MS)) {
+            long pttl = islandLockState.pttl(key);
             plugin.debug("IslandUpgradeLock", "withLock: busy lock for " + islandUuid + " (pttl=" + pttl + "ms)");
             return CompletableFuture.failedFuture(new IslandBusyException());
         }
@@ -45,7 +45,7 @@ public final class IslandUpgradeLock {
         long periodTicks = Math.max(1L, HEARTBEAT_MS / 50L);
 
         BukkitTask heartbeat = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-            boolean ok = lockState.extend(key, token, LOCK_TTL_MS);
+            boolean ok = islandLockState.extend(key, token, LOCK_TTL_MS);
             if (!ok) {
                 plugin.debug("IslandUpgradeLock", "withLock: failed to extend lock (lost ownership?) island=" + islandUuid);
             }
@@ -56,13 +56,13 @@ public final class IslandUpgradeLock {
             future = action.get();
         } catch (Throwable t) {
             heartbeat.cancel();
-            lockState.release(key, token);
+            islandLockState.release(key, token);
             return CompletableFuture.failedFuture(t);
         }
 
         return future.whenComplete((result, throwable) -> {
             heartbeat.cancel();
-            lockState.release(key, token);
+            islandLockState.release(key, token);
         });
     }
 

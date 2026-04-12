@@ -104,7 +104,7 @@ public class NewSky extends JavaPlugin {
             info("Starting Redis cache state handler");
             onlinePlayerState = new OnlinePlayerState(this, redisHandler);
             IslandInvitationState islandInvitationState = new IslandInvitationState(this, redisHandler);
-            LockState lockState = new LockState(this, redisHandler);
+            IslandLockState islandLockState = new IslandLockState(this, redisHandler);
             IslandServerState islandServerState = new IslandServerState(this, redisHandler);
             ServerHeartbeatState serverHeartbeatState = new ServerHeartbeatState(this, redisHandler);
             ServerSelectorState serverSelectorState = new ServerSelectorState(this, redisHandler);
@@ -146,8 +146,8 @@ public class NewSky extends JavaPlugin {
             info("Server selector loaded");
 
             info("Starting distributed lock");
-            IslandOperationLock islandOperationLock = new IslandOperationLock(this, lockState, serverID);
-            IslandUpgradeLock islandUpgradeLock = new IslandUpgradeLock(this, lockState, serverID);
+            IslandOperationLock islandOperationLock = new IslandOperationLock(this, islandLockState, serverID);
+            IslandUpgradeLock islandUpgradeLock = new IslandUpgradeLock(this, islandLockState, serverID);
             info("Distributed lock loaded");
 
             info("Starting handlers for island remote requests");
@@ -248,15 +248,6 @@ public class NewSky extends JavaPlugin {
             asyncTabCompleteListener.registerRoot("isadmin", islandAdminCommand);
             getServer().getPluginManager().registerEvents(asyncTabCompleteListener, this);
             info("All commands registered");
-
-//            info("Registering placeholder");
-//            if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-//                info("PlaceholderAPI found, registering placeholders");
-//                new NewSkyPlaceholderExpansion(this).register();
-//                info("Placeholder registered");
-//            } else {
-//                info("PlaceholderAPI not found, skipping placeholder registration");
-//            }
 
             islandBroker.subscribe();
             playerMessageBroker.subscribe();

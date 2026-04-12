@@ -7,7 +7,7 @@ import redis.clients.jedis.params.SetParams;
 
 import java.util.Objects;
 
-public final class LockState {
+public final class IslandLockState {
 
     private static final String LUA_RELEASE_LOCK = "if redis.call('GET', KEYS[1]) == ARGV[1] then " + "return redis.call('DEL', KEYS[1]) " + "else " + "return 0 " + "end";
     private static final String LUA_EXTEND_LOCK = "if redis.call('GET', KEYS[1]) == ARGV[1] then " + "return redis.call('PEXPIRE', KEYS[1], ARGV[2]) " + "else " + "return 0 " + "end";
@@ -15,7 +15,7 @@ public final class LockState {
     private final NewSky plugin;
     private final RedisHandler redisHandler;
 
-    public LockState(NewSky plugin, RedisHandler redisHandler) {
+    public IslandLockState(NewSky plugin, RedisHandler redisHandler) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
         this.redisHandler = Objects.requireNonNull(redisHandler, "redisHandler");
     }

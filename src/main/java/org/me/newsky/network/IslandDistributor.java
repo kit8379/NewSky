@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class IslandDistributor {
@@ -58,7 +57,7 @@ public class IslandDistributor {
             return CompletableFuture.completedFuture(alreadyLoadedServer);
         }
 
-        return withLock(islandUuid, () -> {
+        return islandOperationLock.withLock(islandUuid, () -> {
             String recheckedServer = getServerByIsland(islandUuid);
             if (recheckedServer != null) {
                 return CompletableFuture.completedFuture(recheckedServer);
@@ -89,7 +88,7 @@ public class IslandDistributor {
     // =====================================================================================
 
     public CompletableFuture<Void> createIsland(UUID islandUuid) {
-        return withLock(islandUuid, () -> {
+        return islandOperationLock.withLock(islandUuid, () -> {
             String targetServer = selectServer(serverHeartbeatState.getActiveGameServers());
             if (targetServer == null) {
                 plugin.debug("IslandDistributor", "createIsland: no active server available.");
@@ -109,7 +108,7 @@ public class IslandDistributor {
     }
 
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
-        return withLock(islandUuid, () -> {
+        return islandOperationLock.withLock(islandUuid, () -> {
             String islandServer = getServerByIsland(islandUuid);
             if (islandServer != null) {
                 plugin.debug("IslandDistributor", "loadIsland: island already loaded on server " + islandServer);
@@ -137,7 +136,7 @@ public class IslandDistributor {
     }
 
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
-        return withLock(islandUuid, () -> {
+        return islandOperationLock.withLock(islandUuid, () -> {
             String islandServer = getServerByIsland(islandUuid);
             if (islandServer == null) {
                 plugin.debug("IslandDistributor", "unloadIsland: island not loaded anywhere, cannot unload " + islandUuid);
@@ -157,7 +156,7 @@ public class IslandDistributor {
     }
 
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
-        return withLock(islandUuid, () -> {
+        return islandOperationLock.withLock(islandUuid, () -> {
             String islandServer = getServerByIsland(islandUuid);
 
             if (islandServer == null) {
@@ -295,10 +294,6 @@ public class IslandDistributor {
     // =====================================================================================
     // Internal helpers
     // =====================================================================================
-
-    private <T> CompletableFuture<T> withLock(UUID islandUuid, Supplier<CompletableFuture<T>> action) {
-        return islandOperationLock.withLock(islandUuid, action);
-    }
 
     private String selectServer(Map<String, String> servers) {
         return serverSelector.selectServer(servers);
