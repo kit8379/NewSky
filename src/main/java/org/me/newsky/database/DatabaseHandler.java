@@ -4,6 +4,9 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.CannotRemoveOwnerException;
+import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
+import org.me.newsky.exceptions.PlayerAlreadyOwnerException;
 import org.me.newsky.model.Island;
 import org.me.newsky.model.IslandTop;
 
@@ -102,6 +105,13 @@ public class DatabaseHandler {
         try (PreparedStatement statement = connection.prepareStatement(query)) {
             consumer.use(statement);
             statement.executeUpdate();
+        }
+    }
+
+    private int executeUpdateCount(Connection connection, String query, PreparedStatementConsumer consumer) throws SQLException {
+        try (PreparedStatement statement = connection.prepareStatement(query)) {
+            consumer.use(statement);
+            return statement.executeUpdate();
         }
     }
 
@@ -550,7 +560,7 @@ public class DatabaseHandler {
                 stmt.setString(3, "owner");
             });
 
-            executeUpdate(connection, "INSERT INTO " + prefix + "island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) " + "ON DUPLICATE KEY UPDATE home_location = ?;", stmt -> {
+            executeUpdate(connection, "INSERT INTO " + prefix + "island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE home_location = ?;", stmt -> {
                 stmt.setString(1, ownerUuid.toString());
                 stmt.setString(2, islandUuid.toString());
                 stmt.setString(3, "default");
@@ -568,7 +578,7 @@ public class DatabaseHandler {
                 stmt.setString(3, role);
             });
 
-            executeUpdate(connection, "INSERT INTO " + prefix + "island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) " + "ON DUPLICATE KEY UPDATE home_location = ?;", stmt -> {
+            executeUpdate(connection, "INSERT INTO " + prefix + "island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE home_location = ?;", stmt -> {
                 stmt.setString(1, playerUuid.toString());
                 stmt.setString(2, islandUuid.toString());
                 stmt.setString(3, "default");
@@ -579,7 +589,7 @@ public class DatabaseHandler {
     }
 
     public void updateHomePoint(UUID islandUuid, UUID playerUuid, String homeName, String homeLocation) {
-        executeUpdate("INSERT INTO " + prefix + "island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) " + "ON DUPLICATE KEY UPDATE home_location = ?;", stmt -> {
+        executeUpdate("INSERT INTO " + prefix + "island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE home_location = ?;", stmt -> {
             stmt.setString(1, playerUuid.toString());
             stmt.setString(2, islandUuid.toString());
             stmt.setString(3, homeName);
@@ -589,7 +599,7 @@ public class DatabaseHandler {
     }
 
     public void updateWarpPoint(UUID islandUuid, UUID playerUuid, String warpName, String warpLocation) {
-        executeUpdate("INSERT INTO " + prefix + "island_warps (player_uuid, island_uuid, warp_name, warp_location) VALUES (?, ?, ?, ?) " + "ON DUPLICATE KEY UPDATE warp_location = ?;", stmt -> {
+        executeUpdate("INSERT INTO " + prefix + "island_warps (player_uuid, island_uuid, warp_name, warp_location) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE warp_location = ?;", stmt -> {
             stmt.setString(1, playerUuid.toString());
             stmt.setString(2, islandUuid.toString());
             stmt.setString(3, warpName);
@@ -617,63 +627,40 @@ public class DatabaseHandler {
             throw new IllegalArgumentException("Island owner UUID cannot be null");
         }
 
-        if (oldOwnerUuid.equals(newOwnerUuid)) {
-            return;
-        }
-
         inTransaction(connection -> {
-            String oldRole = null;
-            try (PreparedStatement stmt = connection.prepareStatement("SELECT role FROM " + prefix + "island_players WHERE player_uuid = ? AND island_uuid = ? LIMIT 1")) {
-                stmt.setString(1, oldOwnerUuid.toString());
-                stmt.setString(2, islandUuid.toString());
+            Map<UUID, String> lockedRoles = lockIslandPlayerRoles(connection, islandUuid, List.of(oldOwnerUuid, newOwnerUuid));
 
-                try (ResultSet rs = stmt.executeQuery()) {
-                    if (rs.next()) {
-                        oldRole = rs.getString("role");
-                    }
-                }
-            }
-
+            String oldRole = lockedRoles.get(oldOwnerUuid);
             if (!"owner".equalsIgnoreCase(oldRole)) {
-                throw new IllegalStateException("Old owner is not the current owner of island: island=" + islandUuid + ", oldOwner=" + oldOwnerUuid);
+                throw new IslandPlayerDoesNotExistException();
             }
 
-            String newRole = null;
-            try (PreparedStatement stmt = connection.prepareStatement("SELECT role FROM " + prefix + "island_players WHERE player_uuid = ? AND island_uuid = ? LIMIT 1")) {
-                stmt.setString(1, newOwnerUuid.toString());
-                stmt.setString(2, islandUuid.toString());
-
-                try (ResultSet rs = stmt.executeQuery()) {
-                    if (rs.next()) {
-                        newRole = rs.getString("role");
-                    }
-                }
-            }
-
+            String newRole = lockedRoles.get(newOwnerUuid);
             if (newRole == null || newRole.isEmpty()) {
-                throw new IllegalStateException("New owner is not a player of island: island=" + islandUuid + ", newOwner=" + newOwnerUuid);
+                throw new IslandPlayerDoesNotExistException();
             }
 
-            int demoted;
-            try (PreparedStatement stmt = connection.prepareStatement("UPDATE " + prefix + "island_players SET role = ? WHERE player_uuid = ? AND island_uuid = ? AND role = ?")) {
+            if ("owner".equalsIgnoreCase(newRole)) {
+                throw new PlayerAlreadyOwnerException();
+            }
+
+            int demoted = executeUpdateCount(connection, "UPDATE " + prefix + "island_players SET role = ? WHERE player_uuid = ? AND island_uuid = ? AND role = ?;", stmt -> {
                 stmt.setString(1, "member");
                 stmt.setString(2, oldOwnerUuid.toString());
                 stmt.setString(3, islandUuid.toString());
                 stmt.setString(4, "owner");
-                demoted = stmt.executeUpdate();
-            }
+            });
 
             if (demoted != 1) {
                 throw new IllegalStateException("Failed to demote old owner exactly once: island=" + islandUuid + ", oldOwner=" + oldOwnerUuid + ", updated=" + demoted);
             }
 
-            int promoted;
-            try (PreparedStatement stmt = connection.prepareStatement("UPDATE " + prefix + "island_players SET role = ? WHERE player_uuid = ? AND island_uuid = ?")) {
+            int promoted = executeUpdateCount(connection, "UPDATE " + prefix + "island_players SET role = ? WHERE player_uuid = ? AND island_uuid = ? AND role <> ?;", stmt -> {
                 stmt.setString(1, "owner");
                 stmt.setString(2, newOwnerUuid.toString());
                 stmt.setString(3, islandUuid.toString());
-                promoted = stmt.executeUpdate();
-            }
+                stmt.setString(4, "owner");
+            });
 
             if (promoted != 1) {
                 throw new IllegalStateException("Failed to promote new owner exactly once: island=" + islandUuid + ", newOwner=" + newOwnerUuid + ", updated=" + promoted);
@@ -696,7 +683,7 @@ public class DatabaseHandler {
     }
 
     public void updateIslandLevel(UUID islandUuid, int level) {
-        executeUpdate("INSERT INTO " + prefix + "island_levels (island_uuid, level) VALUES (?, ?) " + "ON DUPLICATE KEY UPDATE level = ?;", stmt -> {
+        executeUpdate("INSERT INTO " + prefix + "island_levels (island_uuid, level) VALUES (?, ?) ON DUPLICATE KEY UPDATE level = ?;", stmt -> {
             stmt.setString(1, islandUuid.toString());
             stmt.setInt(2, level);
             stmt.setInt(3, level);
@@ -704,7 +691,7 @@ public class DatabaseHandler {
     }
 
     public void upsertIslandUpgrade(UUID islandUuid, String upgradeId, int level) {
-        executeUpdate("INSERT INTO " + prefix + "island_upgrades (island_uuid, upgrade_id, level) VALUES (?, ?, ?) " + "ON DUPLICATE KEY UPDATE level = ?;", stmt -> {
+        executeUpdate("INSERT INTO " + prefix + "island_upgrades (island_uuid, upgrade_id, level) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE level = ?;", stmt -> {
             stmt.setString(1, islandUuid.toString());
             stmt.setString(2, upgradeId);
             stmt.setInt(3, level);
@@ -717,7 +704,7 @@ public class DatabaseHandler {
             throw new IllegalArgumentException("Player name cannot be null or empty");
         }
 
-        executeUpdate("INSERT INTO " + prefix + "player_uuid (uuid, name, name_lower) VALUES (?, ?, ?) " + "ON DUPLICATE KEY UPDATE name = ?, name_lower = ?;", stmt -> {
+        executeUpdate("INSERT INTO " + prefix + "player_uuid (uuid, name, name_lower) VALUES (?, ?, ?) ON DUPLICATE KEY UPDATE name = ?, name_lower = ?;", stmt -> {
             stmt.setString(1, uuid.toString());
             stmt.setString(2, name);
             stmt.setString(3, name.toLowerCase(Locale.ROOT));
@@ -734,31 +721,26 @@ public class DatabaseHandler {
 
     public void deleteIslandPlayer(UUID islandUuid, UUID playerUuid) {
         inTransaction(connection -> {
-            String role = null;
+            Map<UUID, String> lockedRoles = lockIslandPlayerRoles(connection, islandUuid, List.of(playerUuid));
+            String role = lockedRoles.get(playerUuid);
 
-            try (PreparedStatement stmt = connection.prepareStatement("SELECT role FROM " + prefix + "island_players WHERE player_uuid = ? AND island_uuid = ? LIMIT 1")) {
-                stmt.setString(1, playerUuid.toString());
-                stmt.setString(2, islandUuid.toString());
-
-                try (ResultSet rs = stmt.executeQuery()) {
-                    if (rs.next()) {
-                        role = rs.getString("role");
-                    }
-                }
-            }
-
-            if (role == null) {
-                return;
+            if (role == null || role.isEmpty()) {
+                throw new IslandPlayerDoesNotExistException();
             }
 
             if ("owner".equalsIgnoreCase(role)) {
-                throw new IllegalStateException("Cannot delete island owner directly: island=" + islandUuid + ", owner=" + playerUuid);
+                throw new CannotRemoveOwnerException();
             }
 
-            executeUpdate(connection, "DELETE FROM " + prefix + "island_players WHERE player_uuid = ? AND island_uuid = ?;", stmt -> {
+            int deleted = executeUpdateCount(connection, "DELETE FROM " + prefix + "island_players WHERE player_uuid = ? AND island_uuid = ? AND role <> ?;", stmt -> {
                 stmt.setString(1, playerUuid.toString());
                 stmt.setString(2, islandUuid.toString());
+                stmt.setString(3, "owner");
             });
+
+            if (deleted != 1) {
+                throw new IllegalStateException("Failed to delete island player exactly once: island=" + islandUuid + ", player=" + playerUuid + ", deleted=" + deleted);
+            }
         });
     }
 
@@ -899,6 +881,59 @@ public class DatabaseHandler {
     // ================================================================================================================
     // Helpers
     // ================================================================================================================
+
+    private Map<UUID, String> lockIslandPlayerRoles(Connection connection, UUID islandUuid, Collection<UUID> playerUuids) throws SQLException {
+        if (playerUuids == null || playerUuids.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        List<UUID> ordered = new ArrayList<>();
+        Set<UUID> seen = new LinkedHashSet<>();
+
+        for (UUID playerUuid : playerUuids) {
+            if (playerUuid != null && seen.add(playerUuid)) {
+                ordered.add(playerUuid);
+            }
+        }
+
+        if (ordered.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        StringBuilder sql = new StringBuilder("SELECT player_uuid, role FROM ").append(prefix).append("island_players WHERE island_uuid = ? AND player_uuid IN (");
+
+        for (int i = 0; i < ordered.size(); i++) {
+            if (i > 0) {
+                sql.append(",");
+            }
+            sql.append("?");
+        }
+
+        sql.append(") FOR UPDATE");
+
+        Map<UUID, String> result = new HashMap<>();
+
+        try (PreparedStatement stmt = connection.prepareStatement(sql.toString())) {
+            stmt.setString(1, islandUuid.toString());
+
+            for (int i = 0; i < ordered.size(); i++) {
+                stmt.setString(i + 2, ordered.get(i).toString());
+            }
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    UUID playerUuid = parseRequiredUuid(rs.getString("player_uuid"), "island_players.player_uuid");
+                    String role = rs.getString("role");
+
+                    if (role != null && !role.isEmpty()) {
+                        result.put(playerUuid, role);
+                    }
+                }
+            }
+        }
+
+        return result.isEmpty() ? Collections.emptyMap() : Map.copyOf(result);
+    }
 
     private UUID parseRequiredUuid(String value, String fieldName) {
         if (value == null || value.isEmpty()) {
