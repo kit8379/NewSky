@@ -34,7 +34,7 @@ public final class LevelUpdateScheduler {
         }
 
         task = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, POLL_PERIOD_TICKS, POLL_PERIOD_TICKS);
-        plugin.debug("LevelUpdateScheduler", "Started (BASE_INTERVAL_MS=" + BASE_INTERVAL_MS + ", JITTER_MS=" + JITTER_MS + ", MAX_CONCURRENT=" + MAX_CONCURRENT + ", POLL_PERIOD_TICKS=" + POLL_PERIOD_TICKS + ")");
+        plugin.debug("LevelUpdateScheduler", "Started level update scheduler with poll period of " + POLL_PERIOD_TICKS + " ticks.");
     }
 
     public void stop() {
