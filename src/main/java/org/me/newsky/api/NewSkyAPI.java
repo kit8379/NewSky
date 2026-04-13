@@ -26,9 +26,10 @@ public class NewSkyAPI {
     private final PlayerMessageHandler playerMessageHandler;
     private final UpgradeHandler upgradeHandler;
     private final BiomeHandler biomeHandler;
+    private final LimitHandler limitHandler;
     private final UuidHandler uuidHandler;
 
-    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, PlayerMessageHandler playerMessageHandler, UuidHandler uuidHandler, UpgradeHandler upgradeHandler, BiomeHandler biomeHandler) {
+    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, PlayerMessageHandler playerMessageHandler, UuidHandler uuidHandler, UpgradeHandler upgradeHandler, BiomeHandler biomeHandler, LimitHandler limitHandler) {
         this.plugin = plugin;
         this.islandHandler = islandHandler;
         this.playerHandler = playerHandler;
@@ -41,6 +42,7 @@ public class NewSkyAPI {
         this.playerMessageHandler = playerMessageHandler;
         this.upgradeHandler = upgradeHandler;
         this.biomeHandler = biomeHandler;
+        this.limitHandler = limitHandler;
         this.uuidHandler = uuidHandler;
     }
 
@@ -250,6 +252,11 @@ public class NewSkyAPI {
     }
 
     @SuppressWarnings("unused")
+    public CompletableFuture<Integer> getCurrentUpgradeLevel(UUID islandUuid, String upgradeId) {
+        return upgradeHandler.getCurrentUpgradeLevel(islandUuid, upgradeId);
+    }
+
+    @SuppressWarnings("unused")
     public Set<String> getUpgradeIds() {
         return upgradeHandler.getUpgradeIds();
     }
@@ -314,9 +321,8 @@ public class NewSkyAPI {
         return biomeHandler.applyChunkBiome(worldName, chunkX, chunkZ, biomeName);
     }
 
-    @SuppressWarnings("unused")
-    public CompletableFuture<Integer> getCurrentUpgradeLevel(UUID islandUuid, String upgradeId) {
-        return upgradeHandler.getCurrentUpgradeLevel(islandUuid, upgradeId);
+    public CompletableFuture<Void> calIslandLimit(UUID islandUuid) {
+        return limitHandler.calIslandLimit(islandUuid);
     }
 
     @SuppressWarnings("unused")

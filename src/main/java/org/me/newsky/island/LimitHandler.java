@@ -125,10 +125,6 @@ public final class LimitHandler {
         return result;
     }
 
-    public CompletableFuture<Void> load(UUID islandUuid) {
-        return calIslandLimit(islandUuid);
-    }
-
     public void unload(UUID islandUuid) {
         data.remove(islandUuid);
     }

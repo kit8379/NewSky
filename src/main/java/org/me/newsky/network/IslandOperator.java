@@ -5,7 +5,6 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
-import org.me.newsky.island.LimitHandler;
 import org.me.newsky.state.IslandServerState;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.util.IslandUtils;
@@ -22,16 +21,14 @@ public class IslandOperator {
     private final WorldHandler worldHandler;
     private final TeleportHandler teleportHandler;
     private final IslandSnapshot islandSnapshot;
-    private final LimitHandler limitHandler;
     private final IslandServerState islandServerState;
     private final String serverID;
 
-    public IslandOperator(NewSky plugin, WorldHandler worldHandler, TeleportHandler teleportHandler, IslandSnapshot islandSnapshot, LimitHandler limitHandler, IslandServerState islandServerState, String serverID) {
+    public IslandOperator(NewSky plugin, WorldHandler worldHandler, TeleportHandler teleportHandler, IslandSnapshot islandSnapshot, IslandServerState islandServerState, String serverID) {
         this.plugin = plugin;
         this.worldHandler = worldHandler;
         this.teleportHandler = teleportHandler;
         this.islandSnapshot = islandSnapshot;
-        this.limitHandler = limitHandler;
         this.islandServerState = islandServerState;
         this.serverID = serverID;
     }
@@ -43,18 +40,28 @@ public class IslandOperator {
     public CompletableFuture<Void> createIsland(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        return islandSnapshot.load(islandUuid).thenCompose(v -> worldHandler.createWorld(islandName)).thenCompose(v -> limitHandler.load(islandUuid)).thenRunAsync(() -> {
+        return islandSnapshot.load(islandUuid).thenCompose(v -> {
+            return worldHandler.createWorld(islandName);
+        }).thenRun(() -> {
             islandServerState.updateIslandLoadedServer(islandUuid, serverID);
-            plugin.debug("IslandOperator", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
+        }).thenCompose(v -> {
+            return plugin.getApi().calIslandLimit(islandUuid);
+        }).thenRunAsync(() -> {
+            plugin.debug("IslandOperator", "Created island, updated loaded server, and calculated island limits for UUID: " + islandUuid + " on server: " + serverID);
         }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        return islandSnapshot.load(islandUuid).thenCompose(v -> worldHandler.loadWorld(islandName)).thenCompose(v -> limitHandler.load(islandUuid)).thenRunAsync(() -> {
+        return islandSnapshot.load(islandUuid).thenCompose(v -> {
+            return worldHandler.loadWorld(islandName);
+        }).thenRun(() -> {
             islandServerState.updateIslandLoadedServer(islandUuid, serverID);
-            plugin.debug("IslandOperator", "Updated island loaded server for UUID: " + islandUuid + " on server: " + serverID);
+        }).thenCompose(v -> {
+            return plugin.getApi().calIslandLimit(islandUuid);
+        }).thenRunAsync(() -> {
+            plugin.debug("IslandOperator", "Loaded island, updated loaded server, and calculated island limits for UUID: " + islandUuid + " on server: " + serverID);
         }, plugin.getBukkitAsyncExecutor());
     }
 
