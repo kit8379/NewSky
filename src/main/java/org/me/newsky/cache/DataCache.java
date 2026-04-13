@@ -8,6 +8,8 @@ import redis.clients.jedis.Jedis;
 import redis.clients.jedis.Pipeline;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 public final class DataCache {
 
@@ -23,6 +25,12 @@ public final class DataCache {
     private final NewSky plugin;
     private final RedisHandler redisHandler;
     private final DatabaseHandler database;
+
+    /*
+     * Prevent local cache stampede for lazy loads.
+     * This is JVM-local protection. It does not coordinate across servers.
+     */
+    private final ConcurrentHashMap<String, Object> loadLocks = new ConcurrentHashMap<>();
 
     public DataCache(NewSky plugin, RedisHandler redisHandler, DatabaseHandler database) {
         this.plugin = plugin;
@@ -108,6 +116,254 @@ public final class DataCache {
         }
     }
 
+    private <T> T withLoadLock(String lockKey, Supplier<T> supplier) {
+        Object lock = loadLocks.computeIfAbsent(lockKey, ignored -> new Object());
+
+        synchronized (lock) {
+            try {
+                return supplier.get();
+            } finally {
+                loadLocks.remove(lockKey, lock);
+            }
+        }
+    }
+
+    private boolean isCompositeCacheKnown(Jedis jedis, String key) {
+        return jedis.exists(key) || jedis.exists(cacheMarkerKey(key));
+    }
+
+    private void invalidateCompositeKey(Pipeline pipeline, String key) {
+        pipeline.del(key);
+        pipeline.del(cacheMarkerKey(key));
+    }
+
+    private void writeHashObjectCache(String key, Map<String, String> payload) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            Pipeline pipeline = jedis.pipelined();
+
+            invalidateCompositeKey(pipeline, key);
+
+            if (payload == null || payload.isEmpty()) {
+                pipeline.setex(cacheMarkerKey(key), TTL_SECONDS, "1");
+            } else {
+                pipeline.hset(key, payload);
+                pipeline.expire(key, TTL_SECONDS);
+            }
+
+            pipeline.sync();
+        }
+    }
+
+    private void writeSetObjectCache(String key, Collection<String> values) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            Pipeline pipeline = jedis.pipelined();
+
+            invalidateCompositeKey(pipeline, key);
+
+            if (values == null || values.isEmpty()) {
+                pipeline.setex(cacheMarkerKey(key), TTL_SECONDS, "1");
+            } else {
+                pipeline.sadd(key, values.toArray(new String[0]));
+                pipeline.expire(key, TTL_SECONDS);
+            }
+
+            pipeline.sync();
+        }
+    }
+
+    private Map<String, String> getHashObject(String key, Supplier<Map<String, String>> dbLoader, String loadDescription) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            Map<String, String> cached = jedis.hgetAll(key);
+
+            if (cached != null && !cached.isEmpty()) {
+                return cached;
+            }
+
+            if (isCompositeCacheKnown(jedis, key)) {
+                return Collections.emptyMap();
+            }
+        } catch (Exception e) {
+            plugin.severe("Failed to get " + loadDescription + " cache from Redis for key: " + key, e);
+        }
+
+        return withLoadLock("hash:" + key, () -> {
+            try (Jedis jedis = redisHandler.getJedis()) {
+                Map<String, String> cached = jedis.hgetAll(key);
+
+                if (cached != null && !cached.isEmpty()) {
+                    return cached;
+                }
+
+                if (isCompositeCacheKnown(jedis, key)) {
+                    return Collections.emptyMap();
+                }
+            } catch (Exception e) {
+                plugin.severe("Failed to re-check " + loadDescription + " cache from Redis for key: " + key, e);
+            }
+
+            Map<String, String> loaded = dbLoader.get();
+
+            try {
+                writeHashObjectCache(key, loaded);
+            } catch (Exception e) {
+                plugin.severe("Failed to populate " + loadDescription + " cache for key: " + key, e);
+            }
+
+            return loaded == null || loaded.isEmpty() ? Collections.emptyMap() : loaded;
+        });
+    }
+
+    private Set<String> getSetObject(String key, Supplier<Set<String>> dbLoader, String loadDescription) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            Set<String> cached = jedis.smembers(key);
+
+            if (cached != null && !cached.isEmpty()) {
+                return cached;
+            }
+
+            if (isCompositeCacheKnown(jedis, key)) {
+                return Set.of();
+            }
+        } catch (Exception e) {
+            plugin.severe("Failed to get " + loadDescription + " cache from Redis for key: " + key, e);
+        }
+
+        return withLoadLock("set:" + key, () -> {
+            try (Jedis jedis = redisHandler.getJedis()) {
+                Set<String> cached = jedis.smembers(key);
+
+                if (cached != null && !cached.isEmpty()) {
+                    return cached;
+                }
+
+                if (isCompositeCacheKnown(jedis, key)) {
+                    return Set.of();
+                }
+            } catch (Exception e) {
+                plugin.severe("Failed to re-check " + loadDescription + " cache from Redis for key: " + key, e);
+            }
+
+            Set<String> loaded = dbLoader.get();
+
+            try {
+                writeSetObjectCache(key, loaded);
+            } catch (Exception e) {
+                plugin.severe("Failed to populate " + loadDescription + " cache for key: " + key, e);
+            }
+
+            return loaded == null || loaded.isEmpty() ? Set.of() : loaded;
+        });
+    }
+
+    private Map<String, String> toRawIslandPlayersPayload(Map<UUID, String> players) {
+        if (players == null || players.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, String> payload = new LinkedHashMap<>();
+
+        for (Map.Entry<UUID, String> entry : players.entrySet()) {
+            if (entry.getKey() == null) {
+                continue;
+            }
+
+            String role = entry.getValue();
+            if (role == null || role.isEmpty()) {
+                continue;
+            }
+
+            payload.put(entry.getKey().toString(), role);
+        }
+
+        return payload.isEmpty() ? Collections.emptyMap() : Collections.unmodifiableMap(payload);
+    }
+
+    private Map<String, String> toRawStringMapPayload(Map<String, String> values) {
+        if (values == null || values.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, String> payload = new LinkedHashMap<>();
+
+        for (Map.Entry<String, String> entry : values.entrySet()) {
+            String field = entry.getKey();
+            if (field == null || field.isEmpty()) {
+                continue;
+            }
+
+            payload.put(field, entry.getValue() == null ? "" : entry.getValue());
+        }
+
+        return payload.isEmpty() ? Collections.emptyMap() : Collections.unmodifiableMap(payload);
+    }
+
+    private Map<String, String> toRawUpgradePayload(Map<String, Integer> upgrades) {
+        if (upgrades == null || upgrades.isEmpty()) {
+            return Collections.emptyMap();
+        }
+
+        Map<String, String> payload = new LinkedHashMap<>();
+
+        for (Map.Entry<String, Integer> entry : upgrades.entrySet()) {
+            String upgradeId = entry.getKey();
+            Integer level = entry.getValue();
+
+            if (upgradeId == null || upgradeId.isEmpty() || level == null) {
+                continue;
+            }
+
+            payload.put(upgradeId, String.valueOf(level));
+        }
+
+        return payload.isEmpty() ? Collections.emptyMap() : Collections.unmodifiableMap(payload);
+    }
+
+    private Set<String> toRawUuidSetPayload(Set<UUID> values) {
+        if (values == null || values.isEmpty()) {
+            return Set.of();
+        }
+
+        Set<String> payload = new LinkedHashSet<>();
+
+        for (UUID uuid : values) {
+            if (uuid != null) {
+                payload.add(uuid.toString());
+            }
+        }
+
+        return payload.isEmpty() ? Set.of() : Set.copyOf(payload);
+    }
+
+    private Map<String, String> getIslandPlayersRoleMap(UUID islandUuid) {
+        String key = islandPlayersKey(islandUuid);
+        return getHashObject(key, () -> toRawIslandPlayersPayload(database.getIslandPlayers(islandUuid)), "island players");
+    }
+
+    private Map<String, String> getHomeMap(UUID islandUuid, UUID playerUuid) {
+        String key = islandHomesKey(islandUuid, playerUuid);
+        return getHashObject(key, () -> toRawStringMapPayload(database.getIslandHomes(islandUuid, playerUuid)), "island homes");
+    }
+
+    private Map<String, String> getWarpMap(UUID islandUuid, UUID playerUuid) {
+        String key = islandWarpsKey(islandUuid, playerUuid);
+        return getHashObject(key, () -> toRawStringMapPayload(database.getIslandWarps(islandUuid, playerUuid)), "island warps");
+    }
+
+    private Set<String> getBanSet(UUID islandUuid) {
+        String key = islandBansKey(islandUuid);
+        return getSetObject(key, () -> toRawUuidSetPayload(database.getIslandBans(islandUuid)), "island bans");
+    }
+
+    private Set<String> getCoopSet(UUID islandUuid) {
+        String key = islandCoopsKey(islandUuid);
+        return getSetObject(key, () -> toRawUuidSetPayload(database.getIslandCoops(islandUuid)), "island coops");
+    }
+
+    private Map<String, String> getUpgradeMap(UUID islandUuid) {
+        String key = islandUpgradesKey(islandUuid);
+        return getHashObject(key, () -> toRawUpgradePayload(database.getIslandUpgrades(islandUuid)), "island upgrades");
+    }
+
     // =================================================================================================================
     // Island lifecycle (DB truth + lazy Redis cache)
     // =================================================================================================================
@@ -120,23 +376,12 @@ public final class DataCache {
 
             pipeline.del(islandCoreKey(islandUuid));
 
-            pipeline.del(islandPlayersKey(islandUuid));
-            pipeline.del(cacheMarkerKey(islandPlayersKey(islandUuid)));
-
-            pipeline.del(islandHomesKey(islandUuid, ownerUuid));
-            pipeline.del(cacheMarkerKey(islandHomesKey(islandUuid, ownerUuid)));
-
-            pipeline.del(islandWarpsKey(islandUuid, ownerUuid));
-            pipeline.del(cacheMarkerKey(islandWarpsKey(islandUuid, ownerUuid)));
-
-            pipeline.del(islandBansKey(islandUuid));
-            pipeline.del(cacheMarkerKey(islandBansKey(islandUuid)));
-
-            pipeline.del(islandCoopsKey(islandUuid));
-            pipeline.del(cacheMarkerKey(islandCoopsKey(islandUuid)));
-
-            pipeline.del(islandUpgradesKey(islandUuid));
-            pipeline.del(cacheMarkerKey(islandUpgradesKey(islandUuid)));
+            invalidateCompositeKey(pipeline, islandPlayersKey(islandUuid));
+            invalidateCompositeKey(pipeline, islandHomesKey(islandUuid, ownerUuid));
+            invalidateCompositeKey(pipeline, islandWarpsKey(islandUuid, ownerUuid));
+            invalidateCompositeKey(pipeline, islandBansKey(islandUuid));
+            invalidateCompositeKey(pipeline, islandCoopsKey(islandUuid));
+            invalidateCompositeKey(pipeline, islandUpgradesKey(islandUuid));
 
             pipeline.hdel(PLAYER_ISLAND_KEY, ownerUuid.toString());
             pipeline.sync();
@@ -154,26 +399,16 @@ public final class DataCache {
 
             pipeline.del(islandCoreKey(islandUuid));
 
-            pipeline.del(islandPlayersKey(islandUuid));
-            pipeline.del(cacheMarkerKey(islandPlayersKey(islandUuid)));
-
-            pipeline.del(islandBansKey(islandUuid));
-            pipeline.del(cacheMarkerKey(islandBansKey(islandUuid)));
-
-            pipeline.del(islandCoopsKey(islandUuid));
-            pipeline.del(cacheMarkerKey(islandCoopsKey(islandUuid)));
-
-            pipeline.del(islandUpgradesKey(islandUuid));
-            pipeline.del(cacheMarkerKey(islandUpgradesKey(islandUuid)));
+            invalidateCompositeKey(pipeline, islandPlayersKey(islandUuid));
+            invalidateCompositeKey(pipeline, islandBansKey(islandUuid));
+            invalidateCompositeKey(pipeline, islandCoopsKey(islandUuid));
+            invalidateCompositeKey(pipeline, islandUpgradesKey(islandUuid));
 
             for (UUID playerUuid : playersBeforeDelete.keySet()) {
                 pipeline.hdel(PLAYER_ISLAND_KEY, playerUuid.toString());
 
-                pipeline.del(islandHomesKey(islandUuid, playerUuid));
-                pipeline.del(cacheMarkerKey(islandHomesKey(islandUuid, playerUuid)));
-
-                pipeline.del(islandWarpsKey(islandUuid, playerUuid));
-                pipeline.del(cacheMarkerKey(islandWarpsKey(islandUuid, playerUuid)));
+                invalidateCompositeKey(pipeline, islandHomesKey(islandUuid, playerUuid));
+                invalidateCompositeKey(pipeline, islandWarpsKey(islandUuid, playerUuid));
             }
 
             pipeline.sync();
@@ -187,8 +422,10 @@ public final class DataCache {
     // =================================================================================================================
 
     public Optional<UUID> getIslandUuid(UUID playerUuid) {
+        String field = playerUuid.toString();
+
         try (Jedis jedis = redisHandler.getJedis()) {
-            String value = jedis.hget(PLAYER_ISLAND_KEY, playerUuid.toString());
+            String value = jedis.hget(PLAYER_ISLAND_KEY, field);
             if (value != null) {
                 return parseOptionalUuid(value);
             }
@@ -196,15 +433,26 @@ public final class DataCache {
             plugin.severe("Failed to get island UUID from Redis for player: " + playerUuid, e);
         }
 
-        Optional<UUID> loaded = database.getIslandUuid(playerUuid);
+        return withLoadLock("scalar:" + PLAYER_ISLAND_KEY + ":" + field, () -> {
+            try (Jedis jedis = redisHandler.getJedis()) {
+                String value = jedis.hget(PLAYER_ISLAND_KEY, field);
+                if (value != null) {
+                    return parseOptionalUuid(value);
+                }
+            } catch (Exception e) {
+                plugin.severe("Failed to re-check island UUID cache from Redis for player: " + playerUuid, e);
+            }
 
-        try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.hset(PLAYER_ISLAND_KEY, playerUuid.toString(), loaded.map(UUID::toString).orElse(NULL_MARKER));
-        } catch (Exception e) {
-            plugin.severe("Failed to populate player->island cache for player: " + playerUuid, e);
-        }
+            Optional<UUID> loaded = database.getIslandUuid(playerUuid);
 
-        return loaded;
+            try (Jedis jedis = redisHandler.getJedis()) {
+                jedis.hset(PLAYER_ISLAND_KEY, field, loaded.map(UUID::toString).orElse(NULL_MARKER));
+            } catch (Exception e) {
+                plugin.severe("Failed to populate player->island cache for player: " + playerUuid, e);
+            }
+
+            return loaded;
+        });
     }
 
     // =================================================================================================================
@@ -251,20 +499,33 @@ public final class DataCache {
             plugin.severe("Failed to get player UUID from Redis for name: " + name, e);
         }
 
-        Optional<UUID> loaded = database.getPlayerUuid(name);
+        return withLoadLock("scalar:" + PLAYER_UUID_KEY + ":" + lower, () -> {
+            try (Jedis jedis = redisHandler.getJedis()) {
+                String value = jedis.hget(PLAYER_UUID_KEY, lower);
+                if (value != null) {
+                    return parseOptionalUuid(value);
+                }
+            } catch (Exception e) {
+                plugin.severe("Failed to re-check player UUID cache from Redis for name: " + name, e);
+            }
 
-        try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.hset(PLAYER_UUID_KEY, lower, loaded.map(UUID::toString).orElse(NULL_MARKER));
-        } catch (Exception e) {
-            plugin.severe("Failed to populate player uuid cache for name: " + name, e);
-        }
+            Optional<UUID> loaded = database.getPlayerUuid(name);
 
-        return loaded;
+            try (Jedis jedis = redisHandler.getJedis()) {
+                jedis.hset(PLAYER_UUID_KEY, lower, loaded.map(UUID::toString).orElse(NULL_MARKER));
+            } catch (Exception e) {
+                plugin.severe("Failed to populate player uuid cache for name: " + name, e);
+            }
+
+            return loaded;
+        });
     }
 
     public Optional<String> getPlayerName(UUID uuid) {
+        String field = uuid.toString();
+
         try (Jedis jedis = redisHandler.getJedis()) {
-            String value = jedis.hget(PLAYER_NAME_KEY, uuid.toString());
+            String value = jedis.hget(PLAYER_NAME_KEY, field);
             if (value != null) {
                 if (NULL_MARKER.equals(value)) {
                     return Optional.empty();
@@ -275,23 +536,37 @@ public final class DataCache {
             plugin.severe("Failed to get player name from Redis for: " + uuid, e);
         }
 
-        Optional<String> loaded = database.getPlayerName(uuid);
-
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline pipeline = jedis.pipelined();
-
-            pipeline.hset(PLAYER_NAME_KEY, uuid.toString(), loaded.orElse(NULL_MARKER));
-
-            if (loaded.isPresent() && !loaded.get().isEmpty()) {
-                pipeline.hset(PLAYER_UUID_KEY, loaded.get().toLowerCase(Locale.ROOT), uuid.toString());
+        return withLoadLock("scalar:" + PLAYER_NAME_KEY + ":" + field, () -> {
+            try (Jedis jedis = redisHandler.getJedis()) {
+                String value = jedis.hget(PLAYER_NAME_KEY, field);
+                if (value != null) {
+                    if (NULL_MARKER.equals(value)) {
+                        return Optional.empty();
+                    }
+                    return Optional.of(value);
+                }
+            } catch (Exception e) {
+                plugin.severe("Failed to re-check player name cache from Redis for uuid: " + uuid, e);
             }
 
-            pipeline.sync();
-        } catch (Exception e) {
-            plugin.severe("Failed to populate player name cache for uuid: " + uuid, e);
-        }
+            Optional<String> loaded = database.getPlayerName(uuid);
 
-        return loaded;
+            try (Jedis jedis = redisHandler.getJedis()) {
+                Pipeline pipeline = jedis.pipelined();
+
+                pipeline.hset(PLAYER_NAME_KEY, field, loaded.orElse(NULL_MARKER));
+
+                if (loaded.isPresent() && !loaded.get().isEmpty()) {
+                    pipeline.hset(PLAYER_UUID_KEY, loaded.get().toLowerCase(Locale.ROOT), uuid.toString());
+                }
+
+                pipeline.sync();
+            } catch (Exception e) {
+                plugin.severe("Failed to populate player name cache for uuid: " + uuid, e);
+            }
+
+            return loaded;
+        });
     }
 
     public Map<UUID, String> getPlayerNames(Collection<UUID> uuids) {
@@ -395,8 +670,10 @@ public final class DataCache {
     }
 
     public boolean isIslandLock(UUID islandUuid) {
+        String key = islandCoreKey(islandUuid);
+
         try (Jedis jedis = redisHandler.getJedis()) {
-            String value = jedis.hget(islandCoreKey(islandUuid), "lock");
+            String value = jedis.hget(key, "lock");
             if (value != null) {
                 return parseBool(value);
             }
@@ -404,18 +681,29 @@ public final class DataCache {
             plugin.severe("Failed to get island lock from Redis for island: " + islandUuid, e);
         }
 
-        boolean loaded = database.getIslandLock(islandUuid);
+        return withLoadLock("scalar:" + key + ":lock", () -> {
+            try (Jedis jedis = redisHandler.getJedis()) {
+                String value = jedis.hget(key, "lock");
+                if (value != null) {
+                    return parseBool(value);
+                }
+            } catch (Exception e) {
+                plugin.severe("Failed to re-check island lock cache from Redis for island: " + islandUuid, e);
+            }
 
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline pipeline = jedis.pipelined();
-            pipeline.hset(islandCoreKey(islandUuid), "lock", loaded ? "1" : "0");
-            pipeline.expire(islandCoreKey(islandUuid), TTL_SECONDS);
-            pipeline.sync();
-        } catch (Exception e) {
-            plugin.severe("Failed to populate island lock cache for island: " + islandUuid, e);
-        }
+            boolean loaded = database.getIslandLock(islandUuid);
 
-        return loaded;
+            try (Jedis jedis = redisHandler.getJedis()) {
+                Pipeline pipeline = jedis.pipelined();
+                pipeline.hset(key, "lock", loaded ? "1" : "0");
+                pipeline.expire(key, TTL_SECONDS);
+                pipeline.sync();
+            } catch (Exception e) {
+                plugin.severe("Failed to populate island lock cache for island: " + islandUuid, e);
+            }
+
+            return loaded;
+        });
     }
 
     public void updateIslandPvp(UUID islandUuid, boolean pvp) {
@@ -429,8 +717,10 @@ public final class DataCache {
     }
 
     public boolean isIslandPvp(UUID islandUuid) {
+        String key = islandCoreKey(islandUuid);
+
         try (Jedis jedis = redisHandler.getJedis()) {
-            String value = jedis.hget(islandCoreKey(islandUuid), "pvp");
+            String value = jedis.hget(key, "pvp");
             if (value != null) {
                 return parseBool(value);
             }
@@ -438,18 +728,29 @@ public final class DataCache {
             plugin.severe("Failed to get island pvp from Redis for island: " + islandUuid, e);
         }
 
-        boolean loaded = database.getIslandPvp(islandUuid);
+        return withLoadLock("scalar:" + key + ":pvp", () -> {
+            try (Jedis jedis = redisHandler.getJedis()) {
+                String value = jedis.hget(key, "pvp");
+                if (value != null) {
+                    return parseBool(value);
+                }
+            } catch (Exception e) {
+                plugin.severe("Failed to re-check island pvp cache from Redis for island: " + islandUuid, e);
+            }
 
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline pipeline = jedis.pipelined();
-            pipeline.hset(islandCoreKey(islandUuid), "pvp", loaded ? "1" : "0");
-            pipeline.expire(islandCoreKey(islandUuid), TTL_SECONDS);
-            pipeline.sync();
-        } catch (Exception e) {
-            plugin.severe("Failed to populate island pvp cache for island: " + islandUuid, e);
-        }
+            boolean loaded = database.getIslandPvp(islandUuid);
 
-        return loaded;
+            try (Jedis jedis = redisHandler.getJedis()) {
+                Pipeline pipeline = jedis.pipelined();
+                pipeline.hset(key, "pvp", loaded ? "1" : "0");
+                pipeline.expire(key, TTL_SECONDS);
+                pipeline.sync();
+            } catch (Exception e) {
+                plugin.severe("Failed to populate island pvp cache for island: " + islandUuid, e);
+            }
+
+            return loaded;
+        });
     }
 
     public void updateIslandLevel(UUID islandUuid, int level) {
@@ -463,8 +764,10 @@ public final class DataCache {
     }
 
     public int getIslandLevel(UUID islandUuid) {
+        String key = islandCoreKey(islandUuid);
+
         try (Jedis jedis = redisHandler.getJedis()) {
-            String value = jedis.hget(islandCoreKey(islandUuid), "level");
+            String value = jedis.hget(key, "level");
             if (value != null) {
                 return parseOptionalInt(value).orElse(0);
             }
@@ -472,18 +775,29 @@ public final class DataCache {
             plugin.severe("Failed to get island level from Redis for island: " + islandUuid, e);
         }
 
-        int loaded = database.getIslandLevel(islandUuid);
+        return withLoadLock("scalar:" + key + ":level", () -> {
+            try (Jedis jedis = redisHandler.getJedis()) {
+                String value = jedis.hget(key, "level");
+                if (value != null) {
+                    return parseOptionalInt(value).orElse(0);
+                }
+            } catch (Exception e) {
+                plugin.severe("Failed to re-check island level cache from Redis for island: " + islandUuid, e);
+            }
 
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline pipeline = jedis.pipelined();
-            pipeline.hset(islandCoreKey(islandUuid), "level", String.valueOf(loaded));
-            pipeline.expire(islandCoreKey(islandUuid), TTL_SECONDS);
-            pipeline.sync();
-        } catch (Exception e) {
-            plugin.severe("Failed to populate island level cache for island: " + islandUuid, e);
-        }
+            int loaded = database.getIslandLevel(islandUuid);
 
-        return loaded;
+            try (Jedis jedis = redisHandler.getJedis()) {
+                Pipeline pipeline = jedis.pipelined();
+                pipeline.hset(key, "level", String.valueOf(loaded));
+                pipeline.expire(key, TTL_SECONDS);
+                pipeline.sync();
+            } catch (Exception e) {
+                plugin.severe("Failed to populate island level cache for island: " + islandUuid, e);
+            }
+
+            return loaded;
+        });
     }
 
     public List<IslandTop> getTopIslandLevels(int limit) {
@@ -500,16 +814,14 @@ public final class DataCache {
         try (Jedis jedis = redisHandler.getJedis()) {
             Pipeline pipeline = jedis.pipelined();
 
-            pipeline.del(islandPlayersKey(islandUuid));
-            pipeline.del(cacheMarkerKey(islandPlayersKey(islandUuid)));
+            invalidateCompositeKey(pipeline, islandPlayersKey(islandUuid));
 
             pipeline.hdel(PLAYER_ISLAND_KEY, playerUuid.toString());
 
-            pipeline.del(islandHomesKey(islandUuid, playerUuid));
-            pipeline.del(cacheMarkerKey(islandHomesKey(islandUuid, playerUuid)));
-
-            pipeline.del(islandWarpsKey(islandUuid, playerUuid));
-            pipeline.del(cacheMarkerKey(islandWarpsKey(islandUuid, playerUuid)));
+            invalidateCompositeKey(pipeline, islandHomesKey(islandUuid, playerUuid));
+            invalidateCompositeKey(pipeline, islandWarpsKey(islandUuid, playerUuid));
+            invalidateCompositeKey(pipeline, islandBansKey(islandUuid));
+            invalidateCompositeKey(pipeline, islandCoopsKey(islandUuid));
 
             pipeline.sync();
         } catch (Exception e) {
@@ -523,16 +835,12 @@ public final class DataCache {
         try (Jedis jedis = redisHandler.getJedis()) {
             Pipeline pipeline = jedis.pipelined();
 
-            pipeline.del(islandPlayersKey(islandUuid));
-            pipeline.del(cacheMarkerKey(islandPlayersKey(islandUuid)));
+            invalidateCompositeKey(pipeline, islandPlayersKey(islandUuid));
 
             pipeline.hdel(PLAYER_ISLAND_KEY, playerUuid.toString());
 
-            pipeline.del(islandHomesKey(islandUuid, playerUuid));
-            pipeline.del(cacheMarkerKey(islandHomesKey(islandUuid, playerUuid)));
-
-            pipeline.del(islandWarpsKey(islandUuid, playerUuid));
-            pipeline.del(cacheMarkerKey(islandWarpsKey(islandUuid, playerUuid)));
+            invalidateCompositeKey(pipeline, islandHomesKey(islandUuid, playerUuid));
+            invalidateCompositeKey(pipeline, islandWarpsKey(islandUuid, playerUuid));
 
             pipeline.sync();
         } catch (Exception e) {
@@ -546,8 +854,7 @@ public final class DataCache {
         try (Jedis jedis = redisHandler.getJedis()) {
             Pipeline pipeline = jedis.pipelined();
             pipeline.del(islandCoreKey(islandUuid));
-            pipeline.del(islandPlayersKey(islandUuid));
-            pipeline.del(cacheMarkerKey(islandPlayersKey(islandUuid)));
+            invalidateCompositeKey(pipeline, islandPlayersKey(islandUuid));
             pipeline.sync();
         } catch (Exception e) {
             plugin.severe("Database update succeeded but Redis invalidation failed while updating island owner: island=" + islandUuid + ", oldOwner=" + oldOwnerUuid + ", newOwner=" + newOwnerUuid, e);
@@ -555,8 +862,10 @@ public final class DataCache {
     }
 
     public UUID getIslandOwner(UUID islandUuid) {
+        String key = islandCoreKey(islandUuid);
+
         try (Jedis jedis = redisHandler.getJedis()) {
-            String value = jedis.hget(islandCoreKey(islandUuid), "owner");
+            String value = jedis.hget(key, "owner");
             if (value != null) {
                 Optional<UUID> cached = parseOptionalUuid(value);
                 if (cached.isPresent()) {
@@ -571,147 +880,72 @@ public final class DataCache {
             plugin.severe("Failed to get island owner from Redis for island: " + islandUuid, e);
         }
 
-        Optional<UUID> loaded = database.getIslandOwner(islandUuid);
+        return withLoadLock("scalar:" + key + ":owner", () -> {
+            try (Jedis jedis = redisHandler.getJedis()) {
+                String value = jedis.hget(key, "owner");
+                if (value != null) {
+                    Optional<UUID> cached = parseOptionalUuid(value);
+                    if (cached.isPresent()) {
+                        return cached.get();
+                    }
+                    throw new IllegalStateException("Island owner does not exist in cache for island: " + islandUuid);
+                }
+            } catch (Exception e) {
+                if (e instanceof IllegalStateException) {
+                    throw (IllegalStateException) e;
+                }
+                plugin.severe("Failed to re-check island owner cache from Redis for island: " + islandUuid, e);
+            }
 
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline pipeline = jedis.pipelined();
-            pipeline.hset(islandCoreKey(islandUuid), "owner", loaded.map(UUID::toString).orElse(NULL_MARKER));
-            pipeline.expire(islandCoreKey(islandUuid), TTL_SECONDS);
-            pipeline.sync();
-        } catch (Exception e) {
-            plugin.severe("Failed to populate island owner cache for island: " + islandUuid, e);
-        }
+            Optional<UUID> loaded = database.getIslandOwner(islandUuid);
 
-        if (loaded.isEmpty()) {
-            throw new IllegalStateException("Island owner does not exist in database for island: " + islandUuid);
-        }
+            try (Jedis jedis = redisHandler.getJedis()) {
+                Pipeline pipeline = jedis.pipelined();
+                pipeline.hset(key, "owner", loaded.map(UUID::toString).orElse(NULL_MARKER));
+                pipeline.expire(key, TTL_SECONDS);
+                pipeline.sync();
+            } catch (Exception e) {
+                plugin.severe("Failed to populate island owner cache for island: " + islandUuid, e);
+            }
 
-        return loaded.get();
+            if (loaded.isEmpty()) {
+                throw new IllegalStateException("Island owner does not exist in database for island: " + islandUuid);
+            }
+
+            return loaded.get();
+        });
     }
 
     public Set<UUID> getIslandMembers(UUID islandUuid) {
-        String key = islandPlayersKey(islandUuid);
+        Map<String, String> players = getIslandPlayersRoleMap(islandUuid);
 
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Map<String, String> players = jedis.hgetAll(key);
-
-            if (players != null && !players.isEmpty()) {
-                Set<UUID> result = new LinkedHashSet<>();
-                for (Map.Entry<String, String> entry : players.entrySet()) {
-                    if ("member".equalsIgnoreCase(entry.getValue())) {
-                        result.add(parseRequiredUuid(entry.getKey(), "islandPlayers.memberUuid"));
-                    }
-                }
-                return result.isEmpty() ? Set.of() : Set.copyOf(result);
-            }
-
-            if (jedis.exists(cacheMarkerKey(key))) {
-                return Set.of();
-            }
-        } catch (Exception e) {
-            plugin.severe("Failed to get island players cache from Redis for island: " + islandUuid, e);
-        }
-
-        Map<UUID, String> loaded = database.getIslandPlayers(islandUuid);
-
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline pipeline = jedis.pipelined();
-
-            if (loaded.isEmpty()) {
-                pipeline.del(key);
-                pipeline.setex(cacheMarkerKey(key), TTL_SECONDS, "1");
-            } else {
-                Map<String, String> payload = new LinkedHashMap<>();
-                for (Map.Entry<UUID, String> entry : loaded.entrySet()) {
-                    if (entry.getKey() != null && entry.getValue() != null && !entry.getValue().isEmpty()) {
-                        payload.put(entry.getKey().toString(), entry.getValue());
-                    }
-                }
-
-                pipeline.del(cacheMarkerKey(key));
-
-                if (payload.isEmpty()) {
-                    pipeline.del(key);
-                    pipeline.setex(cacheMarkerKey(key), TTL_SECONDS, "1");
-                } else {
-                    pipeline.hset(key, payload);
-                    pipeline.expire(key, TTL_SECONDS);
-                }
-            }
-
-            pipeline.sync();
-        } catch (Exception e) {
-            plugin.severe("Failed to populate island players cache for island: " + islandUuid, e);
-        }
-
-        if (loaded.isEmpty()) {
+        if (players.isEmpty()) {
             return Set.of();
         }
 
-        Set<UUID> members = new LinkedHashSet<>();
-        for (Map.Entry<UUID, String> entry : loaded.entrySet()) {
+        Set<UUID> result = new LinkedHashSet<>();
+        for (Map.Entry<String, String> entry : players.entrySet()) {
             if ("member".equalsIgnoreCase(entry.getValue())) {
-                members.add(entry.getKey());
+                result.add(parseRequiredUuid(entry.getKey(), "islandPlayers.memberUuid"));
             }
         }
 
-        return members.isEmpty() ? Set.of() : Set.copyOf(members);
+        return result.isEmpty() ? Set.of() : Set.copyOf(result);
     }
 
     public Set<UUID> getIslandPlayers(UUID islandUuid) {
-        String key = islandPlayersKey(islandUuid);
+        Map<String, String> players = getIslandPlayersRoleMap(islandUuid);
 
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Map<String, String> players = jedis.hgetAll(key);
-
-            if (players != null && !players.isEmpty()) {
-                Set<UUID> result = new LinkedHashSet<>(players.size());
-                for (String rawPlayer : players.keySet()) {
-                    result.add(parseRequiredUuid(rawPlayer, "islandPlayers.playerUuid"));
-                }
-                return Set.copyOf(result);
-            }
-
-            if (jedis.exists(cacheMarkerKey(key))) {
-                return Set.of();
-            }
-        } catch (Exception e) {
-            plugin.severe("Failed to get island players cache from Redis for island: " + islandUuid, e);
+        if (players.isEmpty()) {
+            return Set.of();
         }
 
-        Map<UUID, String> loaded = database.getIslandPlayers(islandUuid);
-
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline pipeline = jedis.pipelined();
-
-            if (loaded.isEmpty()) {
-                pipeline.del(key);
-                pipeline.setex(cacheMarkerKey(key), TTL_SECONDS, "1");
-            } else {
-                Map<String, String> payload = new LinkedHashMap<>();
-                for (Map.Entry<UUID, String> entry : loaded.entrySet()) {
-                    if (entry.getKey() != null && entry.getValue() != null && !entry.getValue().isEmpty()) {
-                        payload.put(entry.getKey().toString(), entry.getValue());
-                    }
-                }
-
-                pipeline.del(cacheMarkerKey(key));
-
-                if (payload.isEmpty()) {
-                    pipeline.del(key);
-                    pipeline.setex(cacheMarkerKey(key), TTL_SECONDS, "1");
-                } else {
-                    pipeline.hset(key, payload);
-                    pipeline.expire(key, TTL_SECONDS);
-                }
-            }
-
-            pipeline.sync();
-        } catch (Exception e) {
-            plugin.severe("Failed to populate island players cache for island: " + islandUuid, e);
+        Set<UUID> result = new LinkedHashSet<>(players.size());
+        for (String rawPlayer : players.keySet()) {
+            result.add(parseRequiredUuid(rawPlayer, "islandPlayers.playerUuid"));
         }
 
-        return loaded.isEmpty() ? Set.of() : Set.copyOf(loaded.keySet());
+        return Set.copyOf(result);
     }
 
     // =================================================================================================================
@@ -723,8 +957,7 @@ public final class DataCache {
 
         try (Jedis jedis = redisHandler.getJedis()) {
             Pipeline pipeline = jedis.pipelined();
-            pipeline.del(islandHomesKey(islandUuid, playerUuid));
-            pipeline.del(cacheMarkerKey(islandHomesKey(islandUuid, playerUuid)));
+            invalidateCompositeKey(pipeline, islandHomesKey(islandUuid, playerUuid));
             pipeline.sync();
         } catch (Exception e) {
             plugin.severe("Database update succeeded but Redis invalidation failed while updating home point: island=" + islandUuid + ", player=" + playerUuid + ", home=" + homeName, e);
@@ -736,8 +969,7 @@ public final class DataCache {
 
         try (Jedis jedis = redisHandler.getJedis()) {
             Pipeline pipeline = jedis.pipelined();
-            pipeline.del(islandHomesKey(islandUuid, playerUuid));
-            pipeline.del(cacheMarkerKey(islandHomesKey(islandUuid, playerUuid)));
+            invalidateCompositeKey(pipeline, islandHomesKey(islandUuid, playerUuid));
             pipeline.sync();
         } catch (Exception e) {
             plugin.severe("Database delete succeeded but Redis invalidation failed while deleting home point: island=" + islandUuid + ", player=" + playerUuid + ", home=" + homeName, e);
@@ -748,78 +980,25 @@ public final class DataCache {
         String key = islandHomesKey(islandUuid, playerUuid);
 
         try (Jedis jedis = redisHandler.getJedis()) {
-            Map<String, String> homes = jedis.hgetAll(key);
-
-            if (homes != null && !homes.isEmpty()) {
-                return Optional.ofNullable(homes.get(homeName));
+            String value = jedis.hget(key, homeName);
+            if (value != null) {
+                return Optional.of(value);
             }
 
-            if (jedis.exists(cacheMarkerKey(key))) {
+            if (isCompositeCacheKnown(jedis, key)) {
                 return Optional.empty();
             }
         } catch (Exception e) {
             plugin.severe("Failed to get island homes cache from Redis for island=" + islandUuid + ", player=" + playerUuid, e);
         }
 
-        Map<String, String> loaded = database.getIslandHomes(islandUuid, playerUuid);
-
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline pipeline = jedis.pipelined();
-
-            if (loaded.isEmpty()) {
-                pipeline.del(key);
-                pipeline.setex(cacheMarkerKey(key), TTL_SECONDS, "1");
-            } else {
-                pipeline.del(cacheMarkerKey(key));
-                pipeline.hset(key, loaded);
-                pipeline.expire(key, TTL_SECONDS);
-            }
-
-            pipeline.sync();
-        } catch (Exception e) {
-            plugin.severe("Failed to populate island homes cache for island=" + islandUuid + ", player=" + playerUuid, e);
-        }
-
-        return Optional.ofNullable(loaded.get(homeName));
+        Map<String, String> homes = getHomeMap(islandUuid, playerUuid);
+        return Optional.ofNullable(homes.get(homeName));
     }
 
     public Set<String> getHomeNames(UUID islandUuid, UUID playerUuid) {
-        String key = islandHomesKey(islandUuid, playerUuid);
-
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Map<String, String> homes = jedis.hgetAll(key);
-
-            if (homes != null && !homes.isEmpty()) {
-                return Set.copyOf(homes.keySet());
-            }
-
-            if (jedis.exists(cacheMarkerKey(key))) {
-                return Set.of();
-            }
-        } catch (Exception e) {
-            plugin.severe("Failed to get island homes cache from Redis for island=" + islandUuid + ", player=" + playerUuid, e);
-        }
-
-        Map<String, String> loaded = database.getIslandHomes(islandUuid, playerUuid);
-
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline pipeline = jedis.pipelined();
-
-            if (loaded.isEmpty()) {
-                pipeline.del(key);
-                pipeline.setex(cacheMarkerKey(key), TTL_SECONDS, "1");
-            } else {
-                pipeline.del(cacheMarkerKey(key));
-                pipeline.hset(key, loaded);
-                pipeline.expire(key, TTL_SECONDS);
-            }
-
-            pipeline.sync();
-        } catch (Exception e) {
-            plugin.severe("Failed to populate island homes cache for island=" + islandUuid + ", player=" + playerUuid, e);
-        }
-
-        return loaded.isEmpty() ? Set.of() : Set.copyOf(loaded.keySet());
+        Map<String, String> homes = getHomeMap(islandUuid, playerUuid);
+        return homes.isEmpty() ? Set.of() : Set.copyOf(homes.keySet());
     }
 
     // =================================================================================================================
@@ -831,8 +1010,7 @@ public final class DataCache {
 
         try (Jedis jedis = redisHandler.getJedis()) {
             Pipeline pipeline = jedis.pipelined();
-            pipeline.del(islandWarpsKey(islandUuid, playerUuid));
-            pipeline.del(cacheMarkerKey(islandWarpsKey(islandUuid, playerUuid)));
+            invalidateCompositeKey(pipeline, islandWarpsKey(islandUuid, playerUuid));
             pipeline.sync();
         } catch (Exception e) {
             plugin.severe("Database update succeeded but Redis invalidation failed while updating warp point: island=" + islandUuid + ", player=" + playerUuid + ", warp=" + warpName, e);
@@ -844,8 +1022,7 @@ public final class DataCache {
 
         try (Jedis jedis = redisHandler.getJedis()) {
             Pipeline pipeline = jedis.pipelined();
-            pipeline.del(islandWarpsKey(islandUuid, playerUuid));
-            pipeline.del(cacheMarkerKey(islandWarpsKey(islandUuid, playerUuid)));
+            invalidateCompositeKey(pipeline, islandWarpsKey(islandUuid, playerUuid));
             pipeline.sync();
         } catch (Exception e) {
             plugin.severe("Database delete succeeded but Redis invalidation failed while deleting warp point: island=" + islandUuid + ", player=" + playerUuid + ", warp=" + warpName, e);
@@ -856,78 +1033,25 @@ public final class DataCache {
         String key = islandWarpsKey(islandUuid, playerUuid);
 
         try (Jedis jedis = redisHandler.getJedis()) {
-            Map<String, String> warps = jedis.hgetAll(key);
-
-            if (warps != null && !warps.isEmpty()) {
-                return Optional.ofNullable(warps.get(warpName));
+            String value = jedis.hget(key, warpName);
+            if (value != null) {
+                return Optional.of(value);
             }
 
-            if (jedis.exists(cacheMarkerKey(key))) {
+            if (isCompositeCacheKnown(jedis, key)) {
                 return Optional.empty();
             }
         } catch (Exception e) {
             plugin.severe("Failed to get island warps cache from Redis for island=" + islandUuid + ", player=" + playerUuid, e);
         }
 
-        Map<String, String> loaded = database.getIslandWarps(islandUuid, playerUuid);
-
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline pipeline = jedis.pipelined();
-
-            if (loaded.isEmpty()) {
-                pipeline.del(key);
-                pipeline.setex(cacheMarkerKey(key), TTL_SECONDS, "1");
-            } else {
-                pipeline.del(cacheMarkerKey(key));
-                pipeline.hset(key, loaded);
-                pipeline.expire(key, TTL_SECONDS);
-            }
-
-            pipeline.sync();
-        } catch (Exception e) {
-            plugin.severe("Failed to populate island warps cache for island=" + islandUuid + ", player=" + playerUuid, e);
-        }
-
-        return Optional.ofNullable(loaded.get(warpName));
+        Map<String, String> warps = getWarpMap(islandUuid, playerUuid);
+        return Optional.ofNullable(warps.get(warpName));
     }
 
     public Set<String> getWarpNames(UUID islandUuid, UUID playerUuid) {
-        String key = islandWarpsKey(islandUuid, playerUuid);
-
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Map<String, String> warps = jedis.hgetAll(key);
-
-            if (warps != null && !warps.isEmpty()) {
-                return Set.copyOf(warps.keySet());
-            }
-
-            if (jedis.exists(cacheMarkerKey(key))) {
-                return Set.of();
-            }
-        } catch (Exception e) {
-            plugin.severe("Failed to get island warps cache from Redis for island=" + islandUuid + ", player=" + playerUuid, e);
-        }
-
-        Map<String, String> loaded = database.getIslandWarps(islandUuid, playerUuid);
-
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline pipeline = jedis.pipelined();
-
-            if (loaded.isEmpty()) {
-                pipeline.del(key);
-                pipeline.setex(cacheMarkerKey(key), TTL_SECONDS, "1");
-            } else {
-                pipeline.del(cacheMarkerKey(key));
-                pipeline.hset(key, loaded);
-                pipeline.expire(key, TTL_SECONDS);
-            }
-
-            pipeline.sync();
-        } catch (Exception e) {
-            plugin.severe("Failed to populate island warps cache for island=" + islandUuid + ", player=" + playerUuid, e);
-        }
-
-        return loaded.isEmpty() ? Set.of() : Set.copyOf(loaded.keySet());
+        Map<String, String> warps = getWarpMap(islandUuid, playerUuid);
+        return warps.isEmpty() ? Set.of() : Set.copyOf(warps.keySet());
     }
 
     // =================================================================================================================
@@ -939,8 +1063,7 @@ public final class DataCache {
 
         try (Jedis jedis = redisHandler.getJedis()) {
             Pipeline pipeline = jedis.pipelined();
-            pipeline.del(islandBansKey(islandUuid));
-            pipeline.del(cacheMarkerKey(islandBansKey(islandUuid)));
+            invalidateCompositeKey(pipeline, islandBansKey(islandUuid));
             pipeline.sync();
         } catch (Exception e) {
             plugin.severe("Database update succeeded but Redis invalidation failed while adding banned player: island=" + islandUuid + ", player=" + playerUuid, e);
@@ -952,8 +1075,7 @@ public final class DataCache {
 
         try (Jedis jedis = redisHandler.getJedis()) {
             Pipeline pipeline = jedis.pipelined();
-            pipeline.del(islandBansKey(islandUuid));
-            pipeline.del(cacheMarkerKey(islandBansKey(islandUuid)));
+            invalidateCompositeKey(pipeline, islandBansKey(islandUuid));
             pipeline.sync();
         } catch (Exception e) {
             plugin.severe("Database delete succeeded but Redis invalidation failed while deleting banned player: island=" + islandUuid + ", player=" + playerUuid, e);
@@ -962,12 +1084,11 @@ public final class DataCache {
 
     public boolean isPlayerBanned(UUID islandUuid, UUID playerUuid) {
         String key = islandBansKey(islandUuid);
+        String member = playerUuid.toString();
 
         try (Jedis jedis = redisHandler.getJedis()) {
-            Set<String> rawPlayers = jedis.smembers(key);
-
-            if (rawPlayers != null && !rawPlayers.isEmpty()) {
-                return rawPlayers.contains(playerUuid.toString());
+            if (jedis.exists(key)) {
+                return jedis.sismember(key, member);
             }
 
             if (jedis.exists(cacheMarkerKey(key))) {
@@ -977,95 +1098,23 @@ public final class DataCache {
             plugin.severe("Failed to get island bans cache from Redis for island: " + islandUuid, e);
         }
 
-        Set<UUID> loaded = database.getIslandBans(islandUuid);
-
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline pipeline = jedis.pipelined();
-
-            if (loaded.isEmpty()) {
-                pipeline.del(key);
-                pipeline.setex(cacheMarkerKey(key), TTL_SECONDS, "1");
-            } else {
-                List<String> values = new ArrayList<>(loaded.size());
-                for (UUID uuid : loaded) {
-                    if (uuid != null) {
-                        values.add(uuid.toString());
-                    }
-                }
-
-                pipeline.del(cacheMarkerKey(key));
-
-                if (values.isEmpty()) {
-                    pipeline.del(key);
-                    pipeline.setex(cacheMarkerKey(key), TTL_SECONDS, "1");
-                } else {
-                    pipeline.sadd(key, values.toArray(new String[0]));
-                    pipeline.expire(key, TTL_SECONDS);
-                }
-            }
-
-            pipeline.sync();
-        } catch (Exception e) {
-            plugin.severe("Failed to populate island bans cache for island: " + islandUuid, e);
-        }
-
-        return loaded.contains(playerUuid);
+        Set<String> loaded = getBanSet(islandUuid);
+        return loaded.contains(member);
     }
 
     public Set<UUID> getBannedPlayers(UUID islandUuid) {
-        String key = islandBansKey(islandUuid);
+        Set<String> rawPlayers = getBanSet(islandUuid);
 
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Set<String> rawPlayers = jedis.smembers(key);
-
-            if (rawPlayers != null && !rawPlayers.isEmpty()) {
-                Set<UUID> result = new LinkedHashSet<>(rawPlayers.size());
-                for (String rawPlayer : rawPlayers) {
-                    result.add(parseRequiredUuid(rawPlayer, "islandBans.playerUuid"));
-                }
-                return Set.copyOf(result);
-            }
-
-            if (jedis.exists(cacheMarkerKey(key))) {
-                return Set.of();
-            }
-        } catch (Exception e) {
-            plugin.severe("Failed to get island bans cache from Redis for island: " + islandUuid, e);
+        if (rawPlayers.isEmpty()) {
+            return Set.of();
         }
 
-        Set<UUID> loaded = database.getIslandBans(islandUuid);
-
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline pipeline = jedis.pipelined();
-
-            if (loaded.isEmpty()) {
-                pipeline.del(key);
-                pipeline.setex(cacheMarkerKey(key), TTL_SECONDS, "1");
-            } else {
-                List<String> values = new ArrayList<>(loaded.size());
-                for (UUID uuid : loaded) {
-                    if (uuid != null) {
-                        values.add(uuid.toString());
-                    }
-                }
-
-                pipeline.del(cacheMarkerKey(key));
-
-                if (values.isEmpty()) {
-                    pipeline.del(key);
-                    pipeline.setex(cacheMarkerKey(key), TTL_SECONDS, "1");
-                } else {
-                    pipeline.sadd(key, values.toArray(new String[0]));
-                    pipeline.expire(key, TTL_SECONDS);
-                }
-            }
-
-            pipeline.sync();
-        } catch (Exception e) {
-            plugin.severe("Failed to populate island bans cache for island: " + islandUuid, e);
+        Set<UUID> result = new LinkedHashSet<>(rawPlayers.size());
+        for (String rawPlayer : rawPlayers) {
+            result.add(parseRequiredUuid(rawPlayer, "islandBans.playerUuid"));
         }
 
-        return loaded.isEmpty() ? Set.of() : Set.copyOf(loaded);
+        return Set.copyOf(result);
     }
 
     // =================================================================================================================
@@ -1077,8 +1126,7 @@ public final class DataCache {
 
         try (Jedis jedis = redisHandler.getJedis()) {
             Pipeline pipeline = jedis.pipelined();
-            pipeline.del(islandCoopsKey(islandUuid));
-            pipeline.del(cacheMarkerKey(islandCoopsKey(islandUuid)));
+            invalidateCompositeKey(pipeline, islandCoopsKey(islandUuid));
             pipeline.sync();
         } catch (Exception e) {
             plugin.severe("Database update succeeded but Redis invalidation failed while adding coop player: island=" + islandUuid + ", player=" + playerUuid, e);
@@ -1090,8 +1138,7 @@ public final class DataCache {
 
         try (Jedis jedis = redisHandler.getJedis()) {
             Pipeline pipeline = jedis.pipelined();
-            pipeline.del(islandCoopsKey(islandUuid));
-            pipeline.del(cacheMarkerKey(islandCoopsKey(islandUuid)));
+            invalidateCompositeKey(pipeline, islandCoopsKey(islandUuid));
             pipeline.sync();
         } catch (Exception e) {
             plugin.severe("Database delete succeeded but Redis invalidation failed while deleting coop player: island=" + islandUuid + ", player=" + playerUuid, e);
@@ -1106,8 +1153,7 @@ public final class DataCache {
             Pipeline pipeline = jedis.pipelined();
 
             for (UUID islandUuid : touchedIslands) {
-                pipeline.del(islandCoopsKey(islandUuid));
-                pipeline.del(cacheMarkerKey(islandCoopsKey(islandUuid)));
+                invalidateCompositeKey(pipeline, islandCoopsKey(islandUuid));
             }
 
             pipeline.sync();
@@ -1120,12 +1166,11 @@ public final class DataCache {
 
     public boolean isPlayerCooped(UUID islandUuid, UUID playerUuid) {
         String key = islandCoopsKey(islandUuid);
+        String member = playerUuid.toString();
 
         try (Jedis jedis = redisHandler.getJedis()) {
-            Set<String> rawPlayers = jedis.smembers(key);
-
-            if (rawPlayers != null && !rawPlayers.isEmpty()) {
-                return rawPlayers.contains(playerUuid.toString());
+            if (jedis.exists(key)) {
+                return jedis.sismember(key, member);
             }
 
             if (jedis.exists(cacheMarkerKey(key))) {
@@ -1135,95 +1180,23 @@ public final class DataCache {
             plugin.severe("Failed to get island coops cache from Redis for island: " + islandUuid, e);
         }
 
-        Set<UUID> loaded = database.getIslandCoops(islandUuid);
-
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline pipeline = jedis.pipelined();
-
-            if (loaded.isEmpty()) {
-                pipeline.del(key);
-                pipeline.setex(cacheMarkerKey(key), TTL_SECONDS, "1");
-            } else {
-                List<String> values = new ArrayList<>(loaded.size());
-                for (UUID uuid : loaded) {
-                    if (uuid != null) {
-                        values.add(uuid.toString());
-                    }
-                }
-
-                pipeline.del(cacheMarkerKey(key));
-
-                if (values.isEmpty()) {
-                    pipeline.del(key);
-                    pipeline.setex(cacheMarkerKey(key), TTL_SECONDS, "1");
-                } else {
-                    pipeline.sadd(key, values.toArray(new String[0]));
-                    pipeline.expire(key, TTL_SECONDS);
-                }
-            }
-
-            pipeline.sync();
-        } catch (Exception e) {
-            plugin.severe("Failed to populate island coops cache for island: " + islandUuid, e);
-        }
-
-        return loaded.contains(playerUuid);
+        Set<String> loaded = getCoopSet(islandUuid);
+        return loaded.contains(member);
     }
 
     public Set<UUID> getCoopedPlayers(UUID islandUuid) {
-        String key = islandCoopsKey(islandUuid);
+        Set<String> rawPlayers = getCoopSet(islandUuid);
 
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Set<String> rawPlayers = jedis.smembers(key);
-
-            if (rawPlayers != null && !rawPlayers.isEmpty()) {
-                Set<UUID> result = new LinkedHashSet<>(rawPlayers.size());
-                for (String rawPlayer : rawPlayers) {
-                    result.add(parseRequiredUuid(rawPlayer, "islandCoops.playerUuid"));
-                }
-                return Set.copyOf(result);
-            }
-
-            if (jedis.exists(cacheMarkerKey(key))) {
-                return Set.of();
-            }
-        } catch (Exception e) {
-            plugin.severe("Failed to get island coops cache from Redis for island: " + islandUuid, e);
+        if (rawPlayers.isEmpty()) {
+            return Set.of();
         }
 
-        Set<UUID> loaded = database.getIslandCoops(islandUuid);
-
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline pipeline = jedis.pipelined();
-
-            if (loaded.isEmpty()) {
-                pipeline.del(key);
-                pipeline.setex(cacheMarkerKey(key), TTL_SECONDS, "1");
-            } else {
-                List<String> values = new ArrayList<>(loaded.size());
-                for (UUID uuid : loaded) {
-                    if (uuid != null) {
-                        values.add(uuid.toString());
-                    }
-                }
-
-                pipeline.del(cacheMarkerKey(key));
-
-                if (values.isEmpty()) {
-                    pipeline.del(key);
-                    pipeline.setex(cacheMarkerKey(key), TTL_SECONDS, "1");
-                } else {
-                    pipeline.sadd(key, values.toArray(new String[0]));
-                    pipeline.expire(key, TTL_SECONDS);
-                }
-            }
-
-            pipeline.sync();
-        } catch (Exception e) {
-            plugin.severe("Failed to populate island coops cache for island: " + islandUuid, e);
+        Set<UUID> result = new LinkedHashSet<>(rawPlayers.size());
+        for (String rawPlayer : rawPlayers) {
+            result.add(parseRequiredUuid(rawPlayer, "islandCoops.playerUuid"));
         }
 
-        return loaded.isEmpty() ? Set.of() : Set.copyOf(loaded);
+        return Set.copyOf(result);
     }
 
     // =================================================================================================================
@@ -1239,8 +1212,7 @@ public final class DataCache {
 
         try (Jedis jedis = redisHandler.getJedis()) {
             Pipeline pipeline = jedis.pipelined();
-            pipeline.del(islandUpgradesKey(islandUuid));
-            pipeline.del(cacheMarkerKey(islandUpgradesKey(islandUuid)));
+            invalidateCompositeKey(pipeline, islandUpgradesKey(islandUuid));
             pipeline.sync();
         } catch (Exception e) {
             plugin.severe("Database update succeeded but Redis invalidation failed while updating island upgrade level: island=" + islandUuid + ", upgrade=" + upgradeId + ", level=" + level, e);
@@ -1251,53 +1223,19 @@ public final class DataCache {
         String key = islandUpgradesKey(islandUuid);
 
         try (Jedis jedis = redisHandler.getJedis()) {
-            Map<String, String> raw = jedis.hgetAll(key);
-
-            if (raw != null && !raw.isEmpty()) {
-                String value = raw.get(upgradeId);
+            String value = jedis.hget(key, upgradeId);
+            if (value != null) {
                 return parseOptionalInt(value).orElse(1);
             }
 
-            if (jedis.exists(cacheMarkerKey(key))) {
+            if (isCompositeCacheKnown(jedis, key)) {
                 return 1;
             }
         } catch (Exception e) {
             plugin.severe("Failed to get island upgrades cache from Redis for island: " + islandUuid, e);
         }
 
-        Map<String, Integer> loaded = database.getIslandUpgrades(islandUuid);
-
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline pipeline = jedis.pipelined();
-
-            if (loaded.isEmpty()) {
-                pipeline.del(key);
-                pipeline.setex(cacheMarkerKey(key), TTL_SECONDS, "1");
-            } else {
-                Map<String, String> raw = new LinkedHashMap<>();
-
-                for (Map.Entry<String, Integer> entry : loaded.entrySet()) {
-                    if (entry.getKey() != null && !entry.getKey().isEmpty() && entry.getValue() != null) {
-                        raw.put(entry.getKey(), String.valueOf(entry.getValue()));
-                    }
-                }
-
-                pipeline.del(cacheMarkerKey(key));
-
-                if (raw.isEmpty()) {
-                    pipeline.del(key);
-                    pipeline.setex(cacheMarkerKey(key), TTL_SECONDS, "1");
-                } else {
-                    pipeline.hset(key, raw);
-                    pipeline.expire(key, TTL_SECONDS);
-                }
-            }
-
-            pipeline.sync();
-        } catch (Exception e) {
-            plugin.severe("Failed to populate island upgrades cache for island: " + islandUuid, e);
-        }
-
-        return loaded.getOrDefault(upgradeId, 1);
+        Map<String, String> upgrades = getUpgradeMap(islandUuid);
+        return parseOptionalInt(upgrades.get(upgradeId)).orElse(1);
     }
 }
