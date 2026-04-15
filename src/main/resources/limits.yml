@@ -1,6 +1,12 @@
 limit:
-  HOPPER: 50
-  DISPENSER: 100
-  DROPPER: 100
-  OBSERVER: 100
-  PISTON: 500
+  blocks:
+    HOPPER: 50
+    DISPENSER: 100
+    DROPPER: 100
+    OBSERVER: 100
+    PISTON: 500
+  entities:
+    MINECART: 20
+    BOAT: 20
+    ITEM_FRAME: 100
+    ARMOR_STAND: 50

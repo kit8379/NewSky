@@ -2,12 +2,16 @@ package org.me.newsky.listener;
 
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.event.entity.EntityTransformEvent;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.island.LimitHandler;
@@ -35,7 +39,6 @@ public final class IslandLimitListener implements Listener {
         }
 
         Material type = event.getBlockPlaced().getType();
-
         int limit = config.getBlockLimit(type.name());
 
         if (limit <= 0) {
@@ -58,7 +61,6 @@ public final class IslandLimitListener implements Listener {
         }
 
         Material type = event.getBlock().getType();
-
         int limit = config.getBlockLimit(type.name());
 
         if (limit <= 0) {
@@ -78,7 +80,6 @@ public final class IslandLimitListener implements Listener {
         }
 
         Material type = event.getBlock().getType();
-
         int limit = config.getBlockLimit(type.name());
 
         if (limit <= 0) {
@@ -88,6 +89,44 @@ public final class IslandLimitListener implements Listener {
         limitHandler.decrement(islandUuid, type);
 
         plugin.debug("IslandLimitListener", "Decremented block limit count after burn: island=" + islandUuid + ", type=" + type + ", location=" + event.getBlock().getLocation());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onCreatureSpawn(CreatureSpawnEvent event) {
+        World world = event.getLocation().getWorld();
+        UUID islandUuid = getIslandUuidIfIslandWorld(world);
+
+        if (islandUuid == null) {
+            return;
+        }
+
+        EntityType type = event.getEntityType();
+
+        if (!limitHandler.canSpawnEntity(world, type)) {
+            event.setCancelled(true);
+            plugin.debug("IslandLimitListener", "Denied creature spawn due to entity limit: island=" + islandUuid + ", type=" + type + ", reason=" + event.getSpawnReason() + ", location=" + event.getLocation());
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onEntityTransform(EntityTransformEvent event) {
+        World world = event.getEntity().getWorld();
+        UUID islandUuid = getIslandUuidIfIslandWorld(world);
+
+        if (islandUuid == null) {
+            return;
+        }
+
+        for (Entity transformed : event.getTransformedEntities()) {
+            EntityType type = transformed.getType();
+
+            if (!limitHandler.canSpawnEntity(world, type)) {
+                event.setCancelled(true);
+
+                plugin.debug("IslandLimitListener", "Denied entity transform due to entity limit: island=" + islandUuid + ", fromType=" + event.getEntity().getType() + ", toType=" + type + ", reason=" + event.getTransformReason() + ", location=" + event.getEntity().getLocation());
+                return;
+            }
+        }
     }
 
     private UUID getIslandUuidIfIslandWorld(World world) {

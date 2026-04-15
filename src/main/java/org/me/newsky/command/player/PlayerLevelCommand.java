@@ -58,7 +58,7 @@ public class PlayerLevelCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(api::calIslandLevel).thenAccept(level -> {
+        api.getIslandUuid(playerUuid).thenCompose(api::getIslandLevel).thenAccept(level -> {
             player.sendMessage(config.getIslandLevelMessage(level));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();

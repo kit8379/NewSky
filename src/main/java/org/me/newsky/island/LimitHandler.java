@@ -1,6 +1,8 @@
 package org.me.newsky.island;
 
 import org.bukkit.*;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.EntityType;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.util.IslandUtils;
@@ -38,9 +40,9 @@ public final class LimitHandler {
         this.trackedByMaterialOrdinal = tracked;
     }
 
-    public CompletableFuture<Void> calIslandLimit(UUID islandUuid) {
+    public CompletableFuture<Void> calIslandBlockLimit(UUID islandUuid) {
         if (!Bukkit.isPrimaryThread()) {
-            return CompletableFuture.completedFuture(null).thenComposeAsync(v -> calIslandLimit(islandUuid), Bukkit.getScheduler().getMainThreadExecutor(plugin));
+            return CompletableFuture.completedFuture(null).thenComposeAsync(v -> calIslandBlockLimit(islandUuid), Bukkit.getScheduler().getMainThreadExecutor(plugin));
         }
 
         String islandName = IslandUtils.UUIDToName(islandUuid);
@@ -87,11 +89,10 @@ public final class LimitHandler {
             int maxY = world.getMaxHeight();
 
             boolean[] trackedByOrdinal = this.trackedByMaterialOrdinal;
-
             return calculateSnapshotCounts(snapshots, minY, maxY, trackedByOrdinal);
         }, plugin.getBukkitAsyncExecutor()).thenAccept(counts -> {
             data.put(islandUuid, counts);
-            plugin.debug("LimitHandler", "Rebuilt island limits for " + islandUuid + ": " + counts);
+            plugin.debug("LimitHandler", "Rebuilt island block limits for " + islandUuid + ": " + counts);
         });
     }
 
@@ -145,24 +146,26 @@ public final class LimitHandler {
 
         int limit = config.getBlockLimit(type.name());
 
-        if (limit <= 0) {
-            map.remove(type);
+        synchronized (map) {
+            if (limit <= 0) {
+                map.remove(type);
+                return true;
+            }
+
+            Integer current = map.get(type);
+
+            if (current == null) {
+                map.put(type, 1);
+                return true;
+            }
+
+            if (current >= limit) {
+                return false;
+            }
+
+            map.put(type, current + 1);
             return true;
         }
-
-        Integer current = map.get(type);
-
-        if (current == null) {
-            map.put(type, 1);
-            return true;
-        }
-
-        if (current >= limit) {
-            return false;
-        }
-
-        map.put(type, current + 1);
-        return true;
     }
 
     public void decrement(UUID islandUuid, Material type) {
@@ -175,15 +178,44 @@ public final class LimitHandler {
             return;
         }
 
-        Integer current = map.get(type);
-        if (current == null) {
-            return;
+        synchronized (map) {
+            Integer current = map.get(type);
+            if (current == null) {
+                return;
+            }
+
+            if (current <= 1) {
+                map.remove(type);
+            } else {
+                map.put(type, current - 1);
+            }
+        }
+    }
+
+    public boolean canSpawnEntity(World world, EntityType entityType) {
+        if (world == null || entityType == null) {
+            return true;
         }
 
-        if (current <= 1) {
-            map.remove(type);
-        } else {
-            map.put(type, current - 1);
+        int limit = config.getEntityLimit(entityType.name());
+        if (limit <= 0) {
+            return true;
         }
+
+        int count = 0;
+
+        for (Entity entity : world.getEntities()) {
+            if (entity.getType() != entityType) {
+                continue;
+            }
+
+            count++;
+
+            if (count >= limit) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

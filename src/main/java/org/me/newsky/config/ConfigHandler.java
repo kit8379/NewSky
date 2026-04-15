@@ -253,7 +253,11 @@ public class ConfigHandler {
     // ================================================================================================================
 
     public int getBlockLimit(String material) {
-        return limits.getInt("limit." + material, 0);
+        return limits.getInt("limit.blocks." + material, 0);
+    }
+
+    public int getEntityLimit(String entityType) {
+        return limits.getInt("limit.entities." + entityType, 0);
     }
 
     // ================================================================================================================

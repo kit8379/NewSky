@@ -321,8 +321,8 @@ public class NewSkyAPI {
         return biomeHandler.applyChunkBiome(worldName, chunkX, chunkZ, biomeName);
     }
 
-    public CompletableFuture<Void> calIslandLimit(UUID islandUuid) {
-        return limitHandler.calIslandLimit(islandUuid);
+    public CompletableFuture<Void> calIslandBlockLimit(UUID islandUuid) {
+        return limitHandler.calIslandBlockLimit(islandUuid);
     }
 
     @SuppressWarnings("unused")
