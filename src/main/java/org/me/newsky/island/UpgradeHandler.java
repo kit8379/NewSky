@@ -47,75 +47,83 @@ public final class UpgradeHandler {
 
     public CompletableFuture<Upgrade> upgradeToNextLevel(UUID islandUuid, UUID playerUuid, String upgradeId) {
         return CompletableFuture.runAsync(() -> {
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(ignored -> islandUpgradeLock.withLock(islandUuid, () -> {
-            return CompletableFuture.supplyAsync(() -> {
-                if (!getUpgradeIds().contains(upgradeId)) {
-                    throw new UpgradeDoesNotExistException();
-                }
-
-                int islandLevel = dataCache.getIslandLevel(islandUuid);
-                int oldLevel = dataCache.getIslandUpgradeLevel(islandUuid, upgradeId);
-
-                int nextLevel = getNextUpgradeLevel(upgradeId, oldLevel);
-                if (nextLevel == -1) {
-                    throw new UpgradeMaxedException();
-                }
-
-                int requireIslandLevel = config.getUpgradeRequireIslandLevel(upgradeId, nextLevel);
-                if (islandLevel < requireIslandLevel) {
-                    throw new UpgradeIslandLevelTooLowException();
-                }
-
-                double price = getUpgradePrice(upgradeId, nextLevel);
-
-                return new Upgrade(upgradeId, oldLevel, nextLevel, requireIslandLevel, price);
-            }, plugin.getBukkitAsyncExecutor()).thenCompose(result -> {
-                if (result.getPrice() <= 0D) {
-                    return CompletableFuture.completedFuture(result);
-                }
-
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(ignored -> {
+            return islandUpgradeLock.withLock(islandUuid, () -> {
                 return CompletableFuture.supplyAsync(() -> {
-                    withdraw(playerUuid, result.getPrice());
+                    if (!getUpgradeIds().contains(upgradeId)) {
+                        throw new UpgradeDoesNotExistException();
+                    }
+
+                    int islandLevel = dataCache.getIslandLevel(islandUuid);
+                    int oldLevel = dataCache.getIslandUpgradeLevel(islandUuid, upgradeId);
+
+                    int nextLevel = getNextUpgradeLevel(upgradeId, oldLevel);
+                    if (nextLevel == -1) {
+                        throw new UpgradeMaxedException();
+                    }
+
+                    int requireIslandLevel = config.getUpgradeRequireIslandLevel(upgradeId, nextLevel);
+                    if (islandLevel < requireIslandLevel) {
+                        throw new UpgradeIslandLevelTooLowException();
+                    }
+
+                    double price = getUpgradePrice(upgradeId, nextLevel);
+
+                    return new Upgrade(upgradeId, oldLevel, nextLevel, requireIslandLevel, price);
+                }, plugin.getBukkitAsyncExecutor()).thenCompose(result -> {
+                    if (result.getPrice() <= 0D) {
+                        return CompletableFuture.completedFuture(result);
+                    }
+
+                    return CompletableFuture.supplyAsync(() -> {
+                        withdraw(playerUuid, result.getPrice());
+                        return result;
+                    }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
+                }).thenApplyAsync(result -> {
+                    dataCache.updateIslandUpgradeLevel(islandUuid, upgradeId, result.getNewLevel());
+
+                    if (UPGRADE_ISLAND_SIZE.equals(upgradeId)) {
+                        islandDistributor.updateBorder(islandUuid, getIslandSize(result.getNewLevel()));
+                    }
+
+                    islandDistributor.reloadSnapshot(islandUuid);
+
                     return result;
-                }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
-            }).thenApplyAsync(result -> {
-                dataCache.updateIslandUpgradeLevel(islandUuid, upgradeId, result.getNewLevel());
-
-                if (UPGRADE_ISLAND_SIZE.equals(upgradeId)) {
-                    islandDistributor.updateBorder(islandUuid, getIslandSize(result.getNewLevel()));
-                }
-
-                islandDistributor.reloadSnapshot(islandUuid);
-
-                return result;
-            }, plugin.getBukkitAsyncExecutor());
-        }));
+                }, plugin.getBukkitAsyncExecutor());
+            });
+        });
     }
 
     public CompletableFuture<Void> setUpgradeLevel(UUID islandUuid, String upgradeId, int level) {
         return CompletableFuture.runAsync(() -> {
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(ignored -> islandUpgradeLock.withLock(islandUuid, () -> CompletableFuture.runAsync(() -> {
-            if (!getUpgradeIds().contains(upgradeId)) {
-                throw new UpgradeDoesNotExistException();
-            }
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(ignored -> {
+            return islandUpgradeLock.withLock(islandUuid, () -> {
+                return CompletableFuture.runAsync(() -> {
+                    if (!getUpgradeIds().contains(upgradeId)) {
+                        throw new UpgradeDoesNotExistException();
+                    }
 
-            Set<Integer> levels = getUpgradeLevels(upgradeId);
-            if (!levels.contains(level)) {
-                throw new UpgradeLevelDoesNotExistException();
-            }
+                    Set<Integer> levels = getUpgradeLevels(upgradeId);
+                    if (!levels.contains(level)) {
+                        throw new UpgradeLevelDoesNotExistException();
+                    }
 
-            dataCache.updateIslandUpgradeLevel(islandUuid, upgradeId, level);
+                    dataCache.updateIslandUpgradeLevel(islandUuid, upgradeId, level);
 
-            if (UPGRADE_ISLAND_SIZE.equals(upgradeId)) {
-                islandDistributor.updateBorder(islandUuid, getIslandSize(level));
-            }
+                    if (UPGRADE_ISLAND_SIZE.equals(upgradeId)) {
+                        islandDistributor.updateBorder(islandUuid, getIslandSize(level));
+                    }
 
-            islandDistributor.reloadSnapshot(islandUuid);
-        }, plugin.getBukkitAsyncExecutor())));
+                    islandDistributor.reloadSnapshot(islandUuid);
+                }, plugin.getBukkitAsyncExecutor());
+            });
+        });
     }
 
     public CompletableFuture<Integer> getCurrentUpgradeLevel(UUID islandUuid, String upgradeId) {
-        return CompletableFuture.supplyAsync(() -> dataCache.getIslandUpgradeLevel(islandUuid, upgradeId), plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> {
+            return dataCache.getIslandUpgradeLevel(islandUuid, upgradeId);
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     // ================================================================================================================

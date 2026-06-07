@@ -26,18 +26,12 @@ public final class DataCache {
     private final RedisHandler redisHandler;
     private final DatabaseHandler database;
 
-    /*
-     * Prevent local cache stampede for lazy loads.
-     * This is JVM-local protection. It does not coordinate across servers.
-     */
     private final ConcurrentHashMap<String, Object> loadLocks = new ConcurrentHashMap<>();
 
     public DataCache(NewSky plugin, RedisHandler redisHandler, DatabaseHandler database) {
         this.plugin = plugin;
         this.redisHandler = redisHandler;
         this.database = database;
-
-        plugin.debug("DataCache", "Using lazy Redis cache mode with negative caching. Startup bootstrap is disabled.");
     }
 
     // =================================================================================================================

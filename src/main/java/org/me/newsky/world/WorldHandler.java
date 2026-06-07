@@ -77,7 +77,9 @@ public class WorldHandler {
         try {
             SlimeWorld world = asp.readWorld(slimeLoader, worldName, false, properties);
             plugin.debug("WorldHandler", "World read from slime loader: " + worldName);
-            return loadWorldToBukkit(world).thenRunAsync(() -> plugin.debug("WorldHandler", "World loaded into Bukkit: " + worldName), plugin.getBukkitAsyncExecutor());
+            return loadWorldToBukkit(world).thenRunAsync(() -> {
+                plugin.debug("WorldHandler", "World loaded into Bukkit: " + worldName);
+            }, plugin.getBukkitAsyncExecutor());
         } catch (Exception e) {
             plugin.severe("Failed to load world: " + worldName, e);
             return CompletableFuture.failedFuture(e);

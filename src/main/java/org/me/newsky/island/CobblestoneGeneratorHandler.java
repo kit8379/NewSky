@@ -30,12 +30,10 @@ public class CobblestoneGeneratorHandler {
     public void startup() {
         Map<Integer, WeightedTable> built = new HashMap<>();
 
-        // Always build base (level 1)
         WeightedTable level1 = buildTableForLevel(1);
         if (level1 == null) level1 = DEFAULT_TABLE;
         built.put(1, level1);
 
-        // Build all other defined levels for generator-rates
         Set<Integer> levels = upgradeHandler.getUpgradeLevels(UpgradeHandler.UPGRADE_GENERATOR_RATES);
         for (int lvl : levels) {
             if (lvl <= 1) continue;

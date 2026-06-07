@@ -100,12 +100,12 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
                         return CompletableFuture.<Void>completedFuture(null);
                     }
 
-                    // compute everything here (cheap operations)
+                    // Compute everything here
                     String nextValue = formatUpgradeValue(upgradeId, nextLevel);
                     int requireIslandLevel = api.getUpgradeRequireIslandLevel(upgradeId, nextLevel);
                     double price = api.getUpgradePrice(upgradeId, nextLevel);
 
-                    // jump to main thread for Vault + messaging
+                    // jump to main thread for Vault
                     return CompletableFuture.runAsync(() -> {
                         Economy economy = plugin.getEconomy();
                         if (economy == null) {
@@ -129,7 +129,7 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
                         }
                     }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
 
-                }).thenCompose(f -> f); // flatten nested future
+                }).thenCompose(f -> f);
             }
 
             // /is upgrade <upgradeId> buy
