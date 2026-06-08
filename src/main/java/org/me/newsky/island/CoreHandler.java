@@ -10,14 +10,14 @@ import org.me.newsky.network.IslandDistributor;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
-public class IslandHandler {
+public class CoreHandler {
 
     private final NewSky plugin;
     private final ConfigHandler config;
     private final DataCache dataCache;
     private final IslandDistributor islandDistributor;
 
-    public IslandHandler(NewSky plugin, ConfigHandler config, DataCache dataCache, IslandDistributor islandDistributor) {
+    public CoreHandler(NewSky plugin, ConfigHandler config, DataCache dataCache, IslandDistributor islandDistributor) {
         this.plugin = plugin;
         this.config = config;
         this.dataCache = dataCache;

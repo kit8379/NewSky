@@ -15,7 +15,7 @@ import java.util.concurrent.CompletableFuture;
 public class NewSkyAPI {
 
     private final NewSky plugin;
-    private final IslandHandler islandHandler;
+    private final CoreHandler coreHandler;
     private final PlayerHandler playerHandler;
     private final HomeHandler homeHandler;
     private final WarpHandler warpHandler;
@@ -29,9 +29,9 @@ public class NewSkyAPI {
     private final LimitHandler limitHandler;
     private final UuidHandler uuidHandler;
 
-    public NewSkyAPI(NewSky plugin, IslandHandler islandHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, PlayerMessageHandler playerMessageHandler, UuidHandler uuidHandler, UpgradeHandler upgradeHandler, BiomeHandler biomeHandler, LimitHandler limitHandler) {
+    public NewSkyAPI(NewSky plugin, CoreHandler coreHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, PlayerMessageHandler playerMessageHandler, UuidHandler uuidHandler, UpgradeHandler upgradeHandler, BiomeHandler biomeHandler, LimitHandler limitHandler) {
         this.plugin = plugin;
-        this.islandHandler = islandHandler;
+        this.coreHandler = coreHandler;
         this.playerHandler = playerHandler;
         this.homeHandler = homeHandler;
         this.warpHandler = warpHandler;
@@ -48,22 +48,22 @@ public class NewSkyAPI {
 
     @SuppressWarnings("unused")
     public CompletableFuture<Void> createIsland(UUID ownerPlayerUuid) {
-        return islandHandler.createIsland(ownerPlayerUuid);
+        return coreHandler.createIsland(ownerPlayerUuid);
     }
 
     @SuppressWarnings("unused")
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
-        return islandHandler.deleteIsland(islandUuid);
+        return coreHandler.deleteIsland(islandUuid);
     }
 
     @SuppressWarnings("unused")
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
-        return islandHandler.loadIsland(islandUuid);
+        return coreHandler.loadIsland(islandUuid);
     }
 
     @SuppressWarnings("unused")
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
-        return islandHandler.unloadIsland(islandUuid);
+        return coreHandler.unloadIsland(islandUuid);
     }
 
     @SuppressWarnings("unused")
@@ -158,12 +158,12 @@ public class NewSkyAPI {
 
     @SuppressWarnings("unused")
     public CompletableFuture<Boolean> toggleIslandLock(UUID islandUuid) {
-        return islandHandler.toggleIslandLock(islandUuid);
+        return coreHandler.toggleIslandLock(islandUuid);
     }
 
     @SuppressWarnings("unused")
     public CompletableFuture<Boolean> toggleIslandPvp(UUID islandUuid) {
-        return islandHandler.toggleIslandPvp(islandUuid);
+        return coreHandler.toggleIslandPvp(islandUuid);
     }
 
     @SuppressWarnings("unused")
@@ -173,7 +173,7 @@ public class NewSkyAPI {
 
     @SuppressWarnings("unused")
     public CompletableFuture<UUID> getIslandUuid(UUID playerUuid) {
-        return islandHandler.getIslandUuid(playerUuid);
+        return coreHandler.getIslandUuid(playerUuid);
     }
 
     @SuppressWarnings("unused")
@@ -193,12 +193,12 @@ public class NewSkyAPI {
 
     @SuppressWarnings("unused")
     public CompletableFuture<Boolean> isIslandLock(UUID islandUuid) {
-        return islandHandler.isIslandLock(islandUuid);
+        return coreHandler.isIslandLock(islandUuid);
     }
 
     @SuppressWarnings("unused")
     public CompletableFuture<Boolean> isIslandPvp(UUID islandUuid) {
-        return islandHandler.isIslandPvp(islandUuid);
+        return coreHandler.isIslandPvp(islandUuid);
     }
 
     @SuppressWarnings("unused")

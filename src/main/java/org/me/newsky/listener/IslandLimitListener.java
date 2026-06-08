@@ -48,7 +48,6 @@ public final class IslandLimitListener implements Listener {
         if (!limitHandler.tryIncrement(islandUuid, type)) {
             event.setCancelled(true);
             event.getPlayer().sendMessage(config.getBlockLimitReachedMessage(type.name(), limit));
-
             plugin.debug("IslandLimitListener", "Denied block place due to limit: island=" + islandUuid + ", type=" + type + ", player=" + event.getPlayer().getUniqueId());
         }
     }
@@ -68,7 +67,6 @@ public final class IslandLimitListener implements Listener {
         }
 
         limitHandler.decrement(islandUuid, type);
-
         plugin.debug("IslandLimitListener", "Decremented block limit count after break: island=" + islandUuid + ", type=" + type + ", player=" + event.getPlayer().getUniqueId());
     }
 
@@ -87,7 +85,6 @@ public final class IslandLimitListener implements Listener {
         }
 
         limitHandler.decrement(islandUuid, type);
-
         plugin.debug("IslandLimitListener", "Decremented block limit count after burn: island=" + islandUuid + ", type=" + type + ", location=" + event.getBlock().getLocation());
     }
 
@@ -122,7 +119,6 @@ public final class IslandLimitListener implements Listener {
 
             if (!limitHandler.canSpawnEntity(world, type)) {
                 event.setCancelled(true);
-
                 plugin.debug("IslandLimitListener", "Denied entity transform due to entity limit: island=" + islandUuid + ", fromType=" + event.getEntity().getType() + ", toType=" + type + ", reason=" + event.getTransformReason() + ", location=" + event.getEntity().getLocation());
                 return;
             }

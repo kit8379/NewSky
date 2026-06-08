@@ -46,9 +46,9 @@ public class IslandOperator {
             islandServerState.updateIslandLoadedServer(islandUuid, serverID);
         }).thenCompose(v -> {
             return plugin.getApi().calIslandBlockLimit(islandUuid);
-        }).thenRunAsync(() -> {
+        }).thenRun(() -> {
             plugin.debug("IslandOperator", "Created island, updated loaded server, and calculated island limits for UUID: " + islandUuid + " on server: " + serverID);
-        }, plugin.getBukkitAsyncExecutor());
+        });
     }
 
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
@@ -60,9 +60,9 @@ public class IslandOperator {
             islandServerState.updateIslandLoadedServer(islandUuid, serverID);
         }).thenCompose(v -> {
             return plugin.getApi().calIslandBlockLimit(islandUuid);
-        }).thenRunAsync(() -> {
+        }).thenRun(() -> {
             plugin.debug("IslandOperator", "Loaded island, updated loaded server, and calculated island limits for UUID: " + islandUuid + " on server: " + serverID);
-        }, plugin.getBukkitAsyncExecutor());
+        });
     }
 
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {

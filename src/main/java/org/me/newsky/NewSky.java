@@ -175,7 +175,7 @@ public class NewSky extends JavaPlugin {
             info("Economy provider loaded");
 
             info("Starting main handlers for the plugin");
-            IslandHandler islandHandler = new IslandHandler(this, config, dataCache, islandDistributor);
+            CoreHandler coreHandler = new CoreHandler(this, config, dataCache, islandDistributor);
             PlayerHandler playerHandler = new PlayerHandler(this, config, dataCache, islandDistributor, islandInvitationState);
             HomeHandler homeHandler = new HomeHandler(this, dataCache, islandDistributor);
             WarpHandler warpHandler = new WarpHandler(this, dataCache, islandDistributor);
@@ -210,12 +210,11 @@ public class NewSky extends JavaPlugin {
             info("All schedulers loaded");
 
             info("Starting API");
-            api = new NewSkyAPI(this, islandHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, playerMessageHandler, uuidHandler, upgradeHandler, biomeHandler, limitHandler);
+            api = new NewSkyAPI(this, coreHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, playerMessageHandler, uuidHandler, upgradeHandler, biomeHandler, limitHandler);
             info("API loaded");
 
             info("Starting listeners");
             getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, onlinePlayerState, serverID), this);
-            getServer().getPluginManager().registerEvents(new WorldInitListener(this), this);
             getServer().getPluginManager().registerEvents(new WorldLoadListener(this, config, levelupdateSchedulerIsland, islandSnapshot), this);
             getServer().getPluginManager().registerEvents(new WorldUnloadListener(this, levelupdateSchedulerIsland, islandSnapshot, limitHandler), this);
             getServer().getPluginManager().registerEvents(new WorldActivityListener(this, worldActivityHandler), this);
