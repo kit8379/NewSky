@@ -65,7 +65,9 @@ public class WorldHandler {
             asp.saveWorld(newWorld);
             plugin.debug("WorldHandler", "World saved to slime loader: " + worldName);
             SlimeWorld loadedWorld = asp.readWorld(slimeLoader, worldName, false, properties);
-            return loadWorldToBukkit(loadedWorld).thenRunAsync(() -> plugin.debug("WorldHandler", "World loaded into Bukkit: " + worldName), plugin.getBukkitAsyncExecutor());
+            return loadWorldToBukkit(loadedWorld).thenRunAsync(() -> {
+                plugin.debug("WorldHandler", "World loaded into Bukkit: " + worldName);
+            }, plugin.getBukkitAsyncExecutor());
         } catch (Exception e) {
             plugin.severe("Failed to create slime world: " + worldName, e);
             return CompletableFuture.failedFuture(e);
@@ -99,7 +101,9 @@ public class WorldHandler {
                 plugin.debug("WorldHandler", "ASP loaded world not found for unload, skipping save: " + worldName);
             }
 
-            return unloadWorldFromBukkit(worldName).thenRunAsync(() -> plugin.debug("WorldHandler", "World successfully unloaded: " + worldName), plugin.getBukkitAsyncExecutor());
+            return unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
+                plugin.debug("WorldHandler", "World successfully unloaded: " + worldName);
+            }, plugin.getBukkitAsyncExecutor());
         } catch (Exception e) {
             plugin.severe("Failed to unload slime world: " + worldName, e);
             return CompletableFuture.failedFuture(e);
