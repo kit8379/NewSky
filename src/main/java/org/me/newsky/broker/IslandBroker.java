@@ -1,5 +1,6 @@
 package org.me.newsky.broker;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.me.newsky.NewSky;
 import org.me.newsky.network.IslandOperator;
@@ -61,7 +62,6 @@ public class IslandBroker {
             @Override
             public void onMessage(String channel, String message) {
                 plugin.debug("IslandBroker", "Received message on channel " + channel + ": " + message);
-
                 try {
                     JSONObject json = new JSONObject(message);
                     String type = json.getString(KEY_TYPE);
@@ -96,10 +96,6 @@ public class IslandBroker {
             plugin.debug("IslandBroker", "Unsubscribed from channel " + channelID);
         }
     }
-
-    // ==============================================================================================================================
-    // ========================================= Request-Response Handling ==========================================================
-    // ==============================================================================================================================
 
     public CompletableFuture<Void> sendRequest(String targetServer, String operation, String... args) {
         CompletableFuture<Void> future = new CompletableFuture<>();
@@ -137,50 +133,6 @@ public class IslandBroker {
         return future;
     }
 
-    private void handleRequest(JSONObject json) {
-        String requestId = json.getString(KEY_REQUEST_ID);
-        String source = json.getString(KEY_SOURCE);
-        String target = json.getString(KEY_TARGET);
-        String operation = json.getString(KEY_OPERATION);
-
-        plugin.debug("IslandBroker", "Received request " + operation + " from server " + source + " with ID " + requestId);
-
-        if (!serverID.equals(target)) {
-            plugin.debug("IslandBroker", "Ignoring request because target server " + target + " does not match this server " + serverID);
-            return;
-        }
-
-        String[] args = json.getJSONArray(KEY_ARGS).toList().stream().map(Object::toString).toArray(String[]::new);
-
-        processRequest(operation, args).thenRun(() -> sendResponse(STATUS_SUCCESS, requestId, source)).exceptionally(e -> {
-            sendResponse(STATUS_FAIL, requestId, source);
-            plugin.severe("Failed to process request " + operation + " from server " + source + " with ID " + requestId, e);
-            return null;
-        });
-    }
-
-    private CompletableFuture<Void> processRequest(String operation, String... args) {
-        try {
-            switch (operation) {
-                case OP_CREATE:
-                    return islandOperator.createIsland(UUID.fromString(args[0]));
-                case OP_DELETE:
-                    return islandOperator.deleteIsland(UUID.fromString(args[0]));
-                case OP_LOAD:
-                    return islandOperator.loadIsland(UUID.fromString(args[0]));
-                case OP_UNLOAD:
-                    return islandOperator.unloadIsland(UUID.fromString(args[0]));
-                case OP_TELEPORT:
-                    return islandOperator.teleport(UUID.fromString(args[0]), args[1], args[2]);
-                default:
-                    return CompletableFuture.failedFuture(new IllegalArgumentException("Unknown request island operation: " + operation));
-            }
-        } catch (Exception e) {
-            plugin.severe("Error processing request island operation " + operation + " with args: " + String.join(", ", args), e);
-            return CompletableFuture.failedFuture(e);
-        }
-    }
-
     private void sendResponse(String status, String requestId, String destination) {
         JSONObject json = new JSONObject();
         json.put(KEY_TYPE, TYPE_RESPONSE);
@@ -195,6 +147,44 @@ public class IslandBroker {
         } catch (Exception e) {
             plugin.severe("Failed to publish response for request " + requestId + " to server " + destination, e);
         }
+    }
+
+    public void sendEvent(String targetServer, String operation, String... args) {
+        JSONObject json = new JSONObject();
+        json.put(KEY_TYPE, TYPE_EVENT);
+        json.put(KEY_SOURCE, serverID);
+        json.put(KEY_TARGET, targetServer);
+        json.put(KEY_OPERATION, operation);
+        json.put(KEY_ARGS, args);
+
+        try {
+            plugin.debug("IslandBroker", "Sending event " + operation + " to server " + targetServer);
+            redisHandler.publish(channelID, json.toString());
+        } catch (Exception e) {
+            plugin.severe("Failed to publish event " + operation + " to server " + targetServer, e);
+        }
+    }
+
+    private void handleRequest(JSONObject json) {
+        String requestId = json.getString(KEY_REQUEST_ID);
+        String source = json.getString(KEY_SOURCE);
+        String target = json.getString(KEY_TARGET);
+        String operation = json.getString(KEY_OPERATION);
+
+        plugin.debug("IslandBroker", "Received request " + operation + " from server " + source + " with ID " + requestId);
+
+        if (!serverID.equals(target)) {
+            plugin.debug("IslandBroker", "Ignoring request because target server " + target + " does not match this server " + serverID);
+            return;
+        }
+
+        String[] args = readArgs(json.getJSONArray(KEY_ARGS));
+
+        processRequest(operation, args).thenRun(() -> sendResponse(STATUS_SUCCESS, requestId, source)).exceptionally(e -> {
+            sendResponse(STATUS_FAIL, requestId, source);
+            plugin.severe("Failed to process request " + operation + " from server " + source + " with ID " + requestId, e);
+            return null;
+        });
     }
 
     private void handleResponse(JSONObject json) {
@@ -223,26 +213,6 @@ public class IslandBroker {
         }
     }
 
-    // ======================================================================================================================================
-    // ===================================================== Event Handling =================================================================
-    // ======================================================================================================================================
-
-    public void sendEvent(String targetServer, String operation, String... args) {
-        JSONObject json = new JSONObject();
-        json.put(KEY_TYPE, TYPE_EVENT);
-        json.put(KEY_SOURCE, serverID);
-        json.put(KEY_TARGET, targetServer);
-        json.put(KEY_OPERATION, operation);
-        json.put(KEY_ARGS, args);
-
-        try {
-            plugin.debug("IslandBroker", "Sending event " + operation + " to server " + targetServer);
-            redisHandler.publish(channelID, json.toString());
-        } catch (Exception e) {
-            plugin.severe("Failed to publish event " + operation + " to server " + targetServer, e);
-        }
-    }
-
     private void handleEvent(JSONObject json) {
         String source = json.getString(KEY_SOURCE);
         String target = json.getString(KEY_TARGET);
@@ -255,9 +225,31 @@ public class IslandBroker {
             return;
         }
 
-        String[] args = json.getJSONArray(KEY_ARGS).toList().stream().map(Object::toString).toArray(String[]::new);
+        String[] args = readArgs(json.getJSONArray(KEY_ARGS));
 
         processEvent(operation, args);
+    }
+
+    private CompletableFuture<Void> processRequest(String operation, String... args) {
+        try {
+            switch (operation) {
+                case OP_CREATE:
+                    return islandOperator.createIsland(UUID.fromString(args[0]));
+                case OP_DELETE:
+                    return islandOperator.deleteIsland(UUID.fromString(args[0]));
+                case OP_LOAD:
+                    return islandOperator.loadIsland(UUID.fromString(args[0]));
+                case OP_UNLOAD:
+                    return islandOperator.unloadIsland(UUID.fromString(args[0]));
+                case OP_TELEPORT:
+                    return islandOperator.teleport(UUID.fromString(args[0]), args[1], args[2]);
+                default:
+                    return CompletableFuture.failedFuture(new IllegalArgumentException("Unknown request island operation: " + operation));
+            }
+        } catch (Exception e) {
+            plugin.severe("Error processing request island operation " + operation + " with args: " + String.join(", ", args), e);
+            return CompletableFuture.failedFuture(e);
+        }
     }
 
     private void processEvent(String operation, String... args) {
@@ -282,5 +274,13 @@ public class IslandBroker {
         } catch (Exception e) {
             plugin.severe("Error processing event island operation " + operation + " with args: " + String.join(", ", args), e);
         }
+    }
+
+    private String[] readArgs(JSONArray jsonArgs) {
+        String[] args = new String[jsonArgs.length()];
+        for (int i = 0; i < jsonArgs.length(); i++) {
+            args[i] = jsonArgs.getString(i);
+        }
+        return args;
     }
 }
