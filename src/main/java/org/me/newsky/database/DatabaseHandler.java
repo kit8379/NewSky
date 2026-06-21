@@ -190,51 +190,26 @@ public class DatabaseHandler {
     // ================================================================================================================
     // Targeted reads
     // ================================================================================================================
-
-    public boolean getIslandLock(UUID islandUuid) {
-        String sql = "SELECT `lock` FROM " + prefix + "islands WHERE island_uuid = ? LIMIT 1";
-
-        return executeQuery(sql, stmt -> stmt.setString(1, islandUuid.toString()), rs -> {
-            if (!rs.next()) {
-                return false;
-            }
-            return rs.getBoolean("lock");
-        });
-    }
-
-    public boolean getIslandPvp(UUID islandUuid) {
-        String sql = "SELECT pvp FROM " + prefix + "islands WHERE island_uuid = ? LIMIT 1";
-
-        return executeQuery(sql, stmt -> stmt.setString(1, islandUuid.toString()), rs -> {
-            if (!rs.next()) {
-                return false;
-            }
-            return rs.getBoolean("pvp");
-        });
-    }
-
-    public int getIslandLevel(UUID islandUuid) {
-        String sql = "SELECT level FROM " + prefix + "island_levels WHERE island_uuid = ? LIMIT 1";
-
-        return executeQuery(sql, stmt -> stmt.setString(1, islandUuid.toString()), rs -> {
-            if (!rs.next()) {
-                return 0;
-            }
-            return rs.getInt("level");
-        });
-    }
-
-    public Optional<UUID> getIslandOwner(UUID islandUuid) {
-        String sql = "SELECT player_uuid FROM " + prefix + "island_players WHERE island_uuid = ? AND role = ? LIMIT 1";
+    public Map<String, String> getIslandCore(UUID islandUuid) {
+        String sql = "SELECT i.`lock`, i.pvp, owner.player_uuid AS owner_uuid, COALESCE(l.level, 0) AS level " + "FROM " + prefix + "islands i " + "LEFT JOIN " + prefix + "island_players owner ON owner.island_uuid = i.island_uuid AND owner.role = ? " + "LEFT JOIN " + prefix + "island_levels l ON l.island_uuid = i.island_uuid " + "WHERE i.island_uuid = ? LIMIT 1";
 
         return executeQuery(sql, stmt -> {
-            stmt.setString(1, islandUuid.toString());
-            stmt.setString(2, "owner");
+            stmt.setString(1, "owner");
+            stmt.setString(2, islandUuid.toString());
         }, rs -> {
             if (!rs.next()) {
-                return Optional.empty();
+                return Collections.emptyMap();
             }
-            return Optional.of(parseRequiredUuid(rs.getString("player_uuid"), "island_players.player_uuid"));
+
+            Map<String, String> result = new LinkedHashMap<>();
+            result.put("lock", rs.getBoolean("lock") ? "1" : "0");
+            result.put("pvp", rs.getBoolean("pvp") ? "1" : "0");
+            result.put("level", String.valueOf(rs.getInt("level")));
+
+            String ownerUuid = rs.getString("owner_uuid");
+            result.put("owner", ownerUuid == null ? "" : ownerUuid);
+
+            return Map.copyOf(result);
         });
     }
 
