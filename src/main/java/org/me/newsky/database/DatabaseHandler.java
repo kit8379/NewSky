@@ -19,6 +19,9 @@ public class DatabaseHandler {
     private final HikariDataSource dataSource;
     private final String prefix;
 
+    public record IslandCoreData(boolean lock, boolean pvp, int level, Optional<UUID> owner) {
+    }
+
     public DatabaseHandler(NewSky plugin, ConfigHandler config) {
         this.plugin = plugin;
         this.prefix = config.getMySQLTablePrefix();
@@ -191,50 +194,21 @@ public class DatabaseHandler {
     // Targeted reads
     // ================================================================================================================
 
-    public boolean getIslandLock(UUID islandUuid) {
-        String sql = "SELECT `lock` FROM " + prefix + "islands WHERE island_uuid = ? LIMIT 1";
-
-        return executeQuery(sql, stmt -> stmt.setString(1, islandUuid.toString()), rs -> {
-            if (!rs.next()) {
-                return false;
-            }
-            return rs.getBoolean("lock");
-        });
-    }
-
-    public boolean getIslandPvp(UUID islandUuid) {
-        String sql = "SELECT pvp FROM " + prefix + "islands WHERE island_uuid = ? LIMIT 1";
-
-        return executeQuery(sql, stmt -> stmt.setString(1, islandUuid.toString()), rs -> {
-            if (!rs.next()) {
-                return false;
-            }
-            return rs.getBoolean("pvp");
-        });
-    }
-
-    public int getIslandLevel(UUID islandUuid) {
-        String sql = "SELECT level FROM " + prefix + "island_levels WHERE island_uuid = ? LIMIT 1";
-
-        return executeQuery(sql, stmt -> stmt.setString(1, islandUuid.toString()), rs -> {
-            if (!rs.next()) {
-                return 0;
-            }
-            return rs.getInt("level");
-        });
-    }
-
-    public Optional<UUID> getIslandOwner(UUID islandUuid) {
-        String sql = "SELECT player_uuid FROM " + prefix + "island_players WHERE island_uuid = ? AND role = ? LIMIT 1";
+    public Optional<IslandCoreData> getIslandCore(UUID islandUuid) {
+        String sql = "SELECT i.`lock`, i.pvp, COALESCE(l.level, 0) AS level, p.player_uuid AS owner_uuid " + "FROM " + prefix + "islands i " + "LEFT JOIN " + prefix + "island_levels l ON l.island_uuid = i.island_uuid " + "LEFT JOIN " + prefix + "island_players p ON p.island_uuid = i.island_uuid AND p.role = ? " + "WHERE i.island_uuid = ? LIMIT 1";
 
         return executeQuery(sql, stmt -> {
-            stmt.setString(1, islandUuid.toString());
-            stmt.setString(2, "owner");
+            stmt.setString(1, "owner");
+            stmt.setString(2, islandUuid.toString());
         }, rs -> {
             if (!rs.next()) {
                 return Optional.empty();
             }
-            return Optional.of(parseRequiredUuid(rs.getString("player_uuid"), "island_players.player_uuid"));
+
+            String ownerUuid = rs.getString("owner_uuid");
+            Optional<UUID> owner = ownerUuid == null || ownerUuid.isEmpty() ? Optional.empty() : Optional.of(parseRequiredUuid(ownerUuid, "island_players.player_uuid"));
+
+            return Optional.of(new IslandCoreData(rs.getBoolean("lock"), rs.getBoolean("pvp"), rs.getInt("level"), owner));
         });
     }
 
