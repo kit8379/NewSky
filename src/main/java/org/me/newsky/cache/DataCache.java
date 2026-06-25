@@ -34,10 +34,10 @@ public final class DataCache {
             local current = redis.call('GET', KEYS[3])
             if not current then current = '0' end
             if current ~= ARGV[1] then return 0 end
-
+            
             redis.call('DEL', KEYS[1])
             redis.call('DEL', KEYS[2])
-
+            
             local count = tonumber(ARGV[4])
             if count == 0 then
                 redis.call('SETEX', KEYS[2], tonumber(ARGV[3]), '1')
@@ -48,7 +48,7 @@ public final class DataCache {
                 end
                 redis.call('EXPIRE', KEYS[1], tonumber(ARGV[2]))
             end
-
+            
             return 1
             """;
 
@@ -56,10 +56,10 @@ public final class DataCache {
             local current = redis.call('GET', KEYS[3])
             if not current then current = '0' end
             if current ~= ARGV[1] then return 0 end
-
+            
             redis.call('DEL', KEYS[1])
             redis.call('DEL', KEYS[2])
-
+            
             local count = tonumber(ARGV[4])
             if count == 0 then
                 redis.call('SETEX', KEYS[2], tonumber(ARGV[3]), '1')
@@ -69,7 +69,7 @@ public final class DataCache {
                 end
                 redis.call('EXPIRE', KEYS[1], tonumber(ARGV[2]))
             end
-
+            
             return 1
             """;
 
@@ -77,7 +77,7 @@ public final class DataCache {
             local current = redis.call('GET', KEYS[2])
             if not current then current = '0' end
             if current ~= ARGV[1] then return 0 end
-
+            
             redis.call('SETEX', KEYS[1], tonumber(ARGV[2]), ARGV[3])
             return 1
             """;
@@ -643,15 +643,14 @@ public final class DataCache {
             Pipeline pipeline = jedis.pipelined();
 
             invalidateCompositeKey(pipeline, islandCoreKey(islandUuid));
-
             invalidateCompositeKey(pipeline, islandPlayersKey(islandUuid));
             invalidateCompositeKey(pipeline, islandHomesKey(islandUuid, ownerUuid));
             invalidateCompositeKey(pipeline, islandWarpsKey(islandUuid, ownerUuid));
             invalidateCompositeKey(pipeline, islandBansKey(islandUuid));
             invalidateCompositeKey(pipeline, islandCoopsKey(islandUuid));
             invalidateCompositeKey(pipeline, islandUpgradesKey(islandUuid));
-
             invalidateScalarKey(pipeline, playerIslandKey(ownerUuid));
+
             pipeline.sync();
         } catch (Exception e) {
             plugin.severe("Database insert succeeded but Redis invalidation failed while creating island: island=" + islandUuid + ", owner=" + ownerUuid, e);
