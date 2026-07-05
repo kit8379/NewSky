@@ -12,6 +12,7 @@ import java.util.UUID;
 public class OnlinePlayerState {
 
     private static final String ONLINE_PLAYERS_KEY = "newsky:online:players";
+    private static final String ONLINE_PLAYER_SERVERS_KEY = "newsky:online:player_servers";
 
     private final RedisHandler redisHandler;
     private final NewSky plugin;
@@ -21,9 +22,10 @@ public class OnlinePlayerState {
         this.redisHandler = redisHandler;
     }
 
-    public void addOnlinePlayer(UUID playerUuid, String playerName) {
+    public void addOnlinePlayer(UUID playerUuid, String playerName, String serverName) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hset(ONLINE_PLAYERS_KEY, playerUuid.toString(), playerName);
+            jedis.hset(ONLINE_PLAYER_SERVERS_KEY, playerUuid.toString(), serverName);
         } catch (Exception e) {
             plugin.severe("Failed to add online player: " + playerUuid, e);
             throw new RuntimeException(e);
@@ -33,8 +35,18 @@ public class OnlinePlayerState {
     public void removeOnlinePlayer(UUID playerUuid) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.hdel(ONLINE_PLAYERS_KEY, playerUuid.toString());
+            jedis.hdel(ONLINE_PLAYER_SERVERS_KEY, playerUuid.toString());
         } catch (Exception e) {
             plugin.severe("Failed to remove online player: " + playerUuid, e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    public String getOnlinePlayerServer(UUID playerUuid) {
+        try (Jedis jedis = redisHandler.getJedis()) {
+            return jedis.hget(ONLINE_PLAYER_SERVERS_KEY, playerUuid.toString());
+        } catch (Exception e) {
+            plugin.severe("Failed to get online player server: " + playerUuid, e);
             throw new RuntimeException(e);
         }
     }

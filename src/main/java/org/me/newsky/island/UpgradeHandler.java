@@ -79,17 +79,10 @@ public final class UpgradeHandler {
                         withdraw(playerUuid, result.getPrice());
                         return result;
                     }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
-                }).thenApplyAsync(result -> {
-                    dataCache.updateIslandUpgradeLevel(islandUuid, upgradeId, result.getNewLevel());
-
-                    if (UPGRADE_ISLAND_SIZE.equals(upgradeId)) {
-                        islandDistributor.updateBorder(islandUuid, getIslandSize(result.getNewLevel()));
-                    }
-
-                    islandDistributor.reloadSnapshot(islandUuid);
-
-                    return result;
-                }, plugin.getBukkitAsyncExecutor());
+                }).thenCompose(result -> {
+                    int borderSize = UPGRADE_ISLAND_SIZE.equals(upgradeId) ? getIslandSize(result.getNewLevel()) : -1;
+                    return islandDistributor.setUpgradeLevel(islandUuid, upgradeId, result.getNewLevel(), borderSize).thenApply(v -> result);
+                });
             });
         });
     }
@@ -98,7 +91,7 @@ public final class UpgradeHandler {
         return CompletableFuture.runAsync(() -> {
         }, plugin.getBukkitAsyncExecutor()).thenCompose(ignored -> {
             return islandUpgradeLock.withLock(islandUuid, () -> {
-                return CompletableFuture.runAsync(() -> {
+                return CompletableFuture.supplyAsync(() -> {
                     if (!getUpgradeIds().contains(upgradeId)) {
                         throw new UpgradeDoesNotExistException();
                     }
@@ -108,14 +101,8 @@ public final class UpgradeHandler {
                         throw new UpgradeLevelDoesNotExistException();
                     }
 
-                    dataCache.updateIslandUpgradeLevel(islandUuid, upgradeId, level);
-
-                    if (UPGRADE_ISLAND_SIZE.equals(upgradeId)) {
-                        islandDistributor.updateBorder(islandUuid, getIslandSize(level));
-                    }
-
-                    islandDistributor.reloadSnapshot(islandUuid);
-                }, plugin.getBukkitAsyncExecutor());
+                    return UPGRADE_ISLAND_SIZE.equals(upgradeId) ? getIslandSize(level) : -1;
+                }, plugin.getBukkitAsyncExecutor()).thenCompose(borderSize -> islandDistributor.setUpgradeLevel(islandUuid, upgradeId, level, borderSize));
             });
         });
     }

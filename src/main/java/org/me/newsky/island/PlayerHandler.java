@@ -30,7 +30,7 @@ public class PlayerHandler {
     }
 
     public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role) {
-        return CompletableFuture.runAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             Optional<UUID> existingIsland = dataCache.getIslandUuid(playerUuid);
             if (existingIsland.isPresent() && !existingIsland.get().equals(islandUuid)) {
                 throw new IslandAlreadyExistException();
@@ -43,11 +43,8 @@ public class PlayerHandler {
 
             UUID ownerUuid = dataCache.getIslandOwner(islandUuid);
 
-            String homeLocation = dataCache.getHomeLocation(islandUuid, ownerUuid, "default").orElse(config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch());
-
-            dataCache.updateIslandPlayer(islandUuid, playerUuid, role, homeLocation);
-            islandDistributor.reloadSnapshot(islandUuid);
-        }, plugin.getBukkitAsyncExecutor());
+            return dataCache.getHomeLocation(islandUuid, ownerUuid, "default").orElse(config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch());
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(homeLocation -> islandDistributor.addMember(islandUuid, playerUuid, role, homeLocation));
     }
 
     public CompletableFuture<Void> removeMember(UUID islandUuid, UUID playerUuid) {
@@ -61,14 +58,11 @@ public class PlayerHandler {
             if (!members.contains(playerUuid)) {
                 throw new IslandPlayerDoesNotExistException();
             }
-
-            dataCache.deleteIslandPlayer(islandUuid, playerUuid);
-            islandDistributor.reloadSnapshot(islandUuid);
-        }, plugin.getBukkitAsyncExecutor());
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.removeMember(islandUuid, playerUuid));
     }
 
     public CompletableFuture<Void> setOwner(UUID islandUuid, UUID newOwnerUuid) {
-        return CompletableFuture.runAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             Set<UUID> members = dataCache.getIslandPlayers(islandUuid);
             if (!members.contains(newOwnerUuid)) {
                 throw new IslandPlayerDoesNotExistException();
@@ -79,9 +73,8 @@ public class PlayerHandler {
                 throw new PlayerAlreadyOwnerException();
             }
 
-            dataCache.updateIslandOwner(islandUuid, oldOwnerUuid, newOwnerUuid);
-            islandDistributor.reloadSnapshot(islandUuid);
-        }, plugin.getBukkitAsyncExecutor());
+            return oldOwnerUuid;
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(oldOwnerUuid -> islandDistributor.setOwner(islandUuid, oldOwnerUuid, newOwnerUuid));
     }
 
     public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
@@ -91,8 +84,7 @@ public class PlayerHandler {
                 throw new CannotExpelIslandPlayerException();
             }
 
-            islandDistributor.expelPlayer(islandUuid, playerUuid);
-        }, plugin.getBukkitAsyncExecutor());
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.expelPlayer(islandUuid, playerUuid));
     }
 
     public CompletableFuture<Void> addPendingInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {

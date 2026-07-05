@@ -39,6 +39,8 @@ public class IslandPvPListener implements Listener {
 
         Island island = islandSnapshot.get(islandUuid);
         if (island == null) {
+            event.setCancelled(true);
+            attacker.sendMessage(config.getIslandPvpDisabledMessage());
             return;
         }
 

@@ -32,10 +32,7 @@ public class CoopHandler {
             if (dataCache.getIslandPlayers(islandUuid).contains(playerUuid)) {
                 throw new CannotCoopIslandPlayerException();
             }
-
-            dataCache.updateCoopPlayer(islandUuid, playerUuid);
-            islandDistributor.reloadSnapshot(islandUuid);
-        }, plugin.getBukkitAsyncExecutor());
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.addCoop(islandUuid, playerUuid));
     }
 
     public CompletableFuture<Void> unCoopPlayer(UUID islandUuid, UUID playerUuid) {
@@ -43,19 +40,14 @@ public class CoopHandler {
             if (!dataCache.isPlayerCooped(islandUuid, playerUuid)) {
                 throw new PlayerNotCoopedException();
             }
-
-            dataCache.deleteCoopPlayer(islandUuid, playerUuid);
-            islandDistributor.reloadSnapshot(islandUuid);
-        }, plugin.getBukkitAsyncExecutor());
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.removeCoop(islandUuid, playerUuid));
     }
 
     public CompletableFuture<Void> deleteAllCoopOfPlayer(UUID playerUuid) {
-        return CompletableFuture.runAsync(() -> {
-            Set<UUID> touchedIslands = dataCache.deleteAllCoopOfPlayer(playerUuid);
-            for (UUID islandUuid : touchedIslands) {
-                islandDistributor.reloadSnapshot(islandUuid);
-            }
-        }, plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> dataCache.getPlayerCoopedIslands(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(touchedIslands -> {
+            CompletableFuture<?>[] futures = touchedIslands.stream().map(islandUuid -> islandDistributor.removeCoop(islandUuid, playerUuid)).toArray(CompletableFuture[]::new);
+            return CompletableFuture.allOf(futures);
+        });
     }
 
     public CompletableFuture<Boolean> isPlayerCooped(UUID islandUuid, UUID playerUuid) {

@@ -23,7 +23,7 @@ public class OnlinePlayersListener implements Listener {
     @EventHandler(priority = EventPriority.LOWEST)
     private void onPlayerJoin(PlayerJoinEvent event) {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            onlinePlayerState.addOnlinePlayer(event.getPlayer().getUniqueId(), event.getPlayer().getName());
+            onlinePlayerState.addOnlinePlayer(event.getPlayer().getUniqueId(), event.getPlayer().getName(), serverID);
             plugin.debug("OnlinePlayersListener", "Player " + event.getPlayer().getName() + " joined on server " + serverID);
         });
     }

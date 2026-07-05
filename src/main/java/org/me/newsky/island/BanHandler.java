@@ -32,11 +32,7 @@ public class BanHandler {
             if (dataCache.getIslandPlayers(islandUuid).contains(playerUuid)) {
                 throw new CannotBanIslandPlayerException();
             }
-
-            dataCache.updateBanPlayer(islandUuid, playerUuid);
-            islandDistributor.expelPlayer(islandUuid, playerUuid);
-            islandDistributor.reloadSnapshot(islandUuid);
-        }, plugin.getBukkitAsyncExecutor());
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.addBan(islandUuid, playerUuid));
     }
 
     public CompletableFuture<Void> unbanPlayer(UUID islandUuid, UUID playerUuid) {
@@ -44,10 +40,7 @@ public class BanHandler {
             if (!dataCache.isPlayerBanned(islandUuid, playerUuid)) {
                 throw new PlayerNotBannedException();
             }
-
-            dataCache.deleteBanPlayer(islandUuid, playerUuid);
-            islandDistributor.reloadSnapshot(islandUuid);
-        }, plugin.getBukkitAsyncExecutor());
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.removeBan(islandUuid, playerUuid));
     }
 
     public CompletableFuture<Boolean> isPlayerBanned(UUID islandUuid, UUID playerUuid) {

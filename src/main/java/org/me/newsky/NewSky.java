@@ -6,9 +6,8 @@ import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.json.JSONObject;
 import org.me.newsky.api.NewSkyAPI;
-import org.me.newsky.broker.IslandBroker;
-import org.me.newsky.broker.PlayerMessageBroker;
 import org.me.newsky.cache.DataCache;
 import org.me.newsky.command.AsyncTabCompleteListener;
 import org.me.newsky.command.IslandAdminCommand;
@@ -19,6 +18,7 @@ import org.me.newsky.island.*;
 import org.me.newsky.listener.*;
 import org.me.newsky.lock.IslandOperationLock;
 import org.me.newsky.lock.IslandUpgradeLock;
+import org.me.newsky.messaging.CrossServerMessenger;
 import org.me.newsky.message.PlayerMessageHandler;
 import org.me.newsky.network.IslandDistributor;
 import org.me.newsky.network.IslandOperator;
@@ -34,6 +34,7 @@ import org.me.newsky.scheduler.MSPTUpdateScheduler;
 import org.me.newsky.state.*;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.thread.BukkitAsyncExecutor;
+import org.me.newsky.util.IslandUtils;
 import org.me.newsky.uuid.UuidHandler;
 import org.me.newsky.world.WorldActivityHandler;
 import org.me.newsky.world.WorldHandler;
@@ -58,8 +59,7 @@ public class NewSky extends JavaPlugin {
     private IslandUnloadScheduler islandUnloadScheduler;
     private LevelUpdateScheduler levelupdateSchedulerIsland;
     private MSPTUpdateScheduler msptUpdateScheduler;
-    private IslandBroker islandBroker;
-    private PlayerMessageBroker playerMessageBroker;
+    private CrossServerMessenger crossServerMessenger;
     private LevelHandler levelHandler;
     private CobblestoneGeneratorHandler cobblestoneGeneratorHandler;
     private LimitHandler limitHandler;
@@ -123,7 +123,7 @@ public class NewSky extends JavaPlugin {
             info("World handler loaded");
 
             info("Starting teleport handler");
-            TeleportHandler teleportHandler = new TeleportHandler();
+            TeleportHandler teleportHandler = new TeleportHandler(this, redisHandler);
             info("Teleport handler loaded");
 
             info("Starting server selector");
@@ -151,20 +151,15 @@ public class NewSky extends JavaPlugin {
             info("Distributed lock loaded");
 
             info("Starting handlers for island remote requests");
-            IslandOperator islandOperator = new IslandOperator(this, worldHandler, teleportHandler, islandSnapshot, islandServerState, serverID);
-            IslandDistributor islandDistributor = new IslandDistributor(this, islandOperator, islandOperationLock, serverSelector, serverHeartbeatState, islandServerState, serverID);
+            crossServerMessenger = new CrossServerMessenger(this, redisHandler, serverID);
+            IslandOperator islandOperator = new IslandOperator(this, dataCache, worldHandler, teleportHandler, islandSnapshot, islandServerState, serverID);
+            IslandDistributor islandDistributor = new IslandDistributor(this, islandOperator, islandOperationLock, serverSelector, serverHeartbeatState, islandServerState, crossServerMessenger, worldHandler, serverID);
+            registerCrossServerHandlers(crossServerMessenger, islandOperator);
             info("All handlers for remote requests loaded");
 
             info("Starting player message handler");
-            PlayerMessageHandler playerMessageHandler = new PlayerMessageHandler(this);
+            PlayerMessageHandler playerMessageHandler = new PlayerMessageHandler(this, crossServerMessenger, onlinePlayerState, serverID);
             info("Player message handler loaded");
-
-            info("Starting all brokers for the plugin");
-            islandBroker = new IslandBroker(this, redisHandler, islandOperator, serverID, config.getRedisIslandChannel());
-            islandDistributor.setIslandBroker(islandBroker);
-            playerMessageBroker = new PlayerMessageBroker(this, redisHandler, config.getRedisPlayerMessageChannel());
-            playerMessageHandler.setPlayerMessageBroker(playerMessageBroker);
-            info("All brokers loaded");
 
             info("Starting economy provider");
             if (!setupEconomy()) {
@@ -248,8 +243,7 @@ public class NewSky extends JavaPlugin {
             getServer().getPluginManager().registerEvents(asyncTabCompleteListener, this);
             info("All commands registered");
 
-            islandBroker.subscribe();
-            playerMessageBroker.subscribe();
+            crossServerMessenger.start();
             heartBeatScheduler.start();
             islandUnloadScheduler.start();
             levelupdateSchedulerIsland.start();
@@ -278,6 +272,33 @@ public class NewSky extends JavaPlugin {
 
         economy = rsp.getProvider();
         return true;
+    }
+
+    private void registerCrossServerHandlers(CrossServerMessenger messenger, IslandOperator islandOperator) {
+        messenger.register(IslandDistributor.ACTION_ISLAND_CREATE, payload -> emptyResponse(islandOperator.createIsland(uuid(payload, "islandUuid"), uuid(payload, "ownerUuid"), payload.getString("homeLocation"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_LOAD, payload -> emptyResponse(islandOperator.loadIsland(uuid(payload, "islandUuid"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_UNLOAD, payload -> emptyResponse(islandOperator.unloadIsland(uuid(payload, "islandUuid"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_DELETE, payload -> emptyResponse(islandOperator.deleteIsland(uuid(payload, "islandUuid"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_TELEPORT_PREPARE, payload -> emptyResponse(islandOperator.teleport(uuid(payload, "playerUuid"), payload.getString("teleportWorld"), payload.getString("teleportLocation"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_MEMBER_ADD, payload -> emptyResponse(islandOperator.addMember(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"), payload.getString("role"), payload.getString("homeLocation"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_MEMBER_REMOVE, payload -> emptyResponse(islandOperator.removeMember(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_OWNER_SET, payload -> emptyResponse(islandOperator.setOwner(uuid(payload, "islandUuid"), uuid(payload, "oldOwnerUuid"), uuid(payload, "newOwnerUuid"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_BAN_ADD, payload -> emptyResponse(islandOperator.addBan(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_BAN_REMOVE, payload -> emptyResponse(islandOperator.removeBan(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_COOP_ADD, payload -> emptyResponse(islandOperator.addCoop(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_COOP_REMOVE, payload -> emptyResponse(islandOperator.removeCoop(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_LOCK_SET, payload -> emptyResponse(islandOperator.setIslandLock(uuid(payload, "islandUuid"), payload.getBoolean("locked"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_PVP_SET, payload -> emptyResponse(islandOperator.setIslandPvp(uuid(payload, "islandUuid"), payload.getBoolean("pvp"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_UPGRADE_SET, payload -> emptyResponse(islandOperator.setUpgradeLevel(uuid(payload, "islandUuid"), payload.getString("upgradeId"), payload.getInt("level"), payload.getInt("borderSize"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_EXPEL, payload -> emptyResponse(worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(uuid(payload, "islandUuid")), uuid(payload, "playerUuid"))));
+    }
+
+    private CompletableFuture<JSONObject> emptyResponse(CompletableFuture<Void> future) {
+        return future.thenApply(v -> new JSONObject());
+    }
+
+    private UUID uuid(JSONObject payload, String key) {
+        return UUID.fromString(payload.getString(key));
     }
 
     private PluginCommand createCommand(String name) {
@@ -318,12 +339,8 @@ public class NewSky extends JavaPlugin {
             heartBeatScheduler.stop();
         }
 
-        if (playerMessageBroker != null) {
-            playerMessageBroker.unsubscribe();
-        }
-
-        if (islandBroker != null) {
-            islandBroker.unsubscribe();
+        if (crossServerMessenger != null) {
+            crossServerMessenger.stop();
         }
 
         if (redisHandler != null) {

@@ -1,16 +1,19 @@
 package org.me.newsky.network;
 
+import org.json.JSONObject;
 import org.me.newsky.NewSky;
-import org.me.newsky.broker.IslandBroker;
 import org.me.newsky.exceptions.IslandAlreadyLoadedException;
 import org.me.newsky.exceptions.IslandBusyException;
 import org.me.newsky.exceptions.IslandNotLoadedException;
 import org.me.newsky.exceptions.NoActiveServerException;
 import org.me.newsky.lock.IslandOperationLock;
+import org.me.newsky.messaging.CrossServerMessenger;
 import org.me.newsky.routing.ServerSelector;
 import org.me.newsky.state.IslandServerState;
 import org.me.newsky.state.ServerHeartbeatState;
+import org.me.newsky.util.IslandUtils;
 import org.me.newsky.util.ServerUtil;
+import org.me.newsky.world.WorldHandler;
 
 import java.util.List;
 import java.util.Map;
@@ -20,32 +23,47 @@ import java.util.stream.Collectors;
 
 public class IslandDistributor {
 
+    public static final String ACTION_ISLAND_CREATE = "island.create";
+    public static final String ACTION_ISLAND_LOAD = "island.load";
+    public static final String ACTION_ISLAND_UNLOAD = "island.unload";
+    public static final String ACTION_ISLAND_DELETE = "island.delete";
+    public static final String ACTION_ISLAND_TELEPORT_PREPARE = "island.teleport.prepare";
+    public static final String ACTION_ISLAND_MEMBER_ADD = "island.member.add";
+    public static final String ACTION_ISLAND_MEMBER_REMOVE = "island.member.remove";
+    public static final String ACTION_ISLAND_OWNER_SET = "island.owner.set";
+    public static final String ACTION_ISLAND_BAN_ADD = "island.ban.add";
+    public static final String ACTION_ISLAND_BAN_REMOVE = "island.ban.remove";
+    public static final String ACTION_ISLAND_COOP_ADD = "island.coop.add";
+    public static final String ACTION_ISLAND_COOP_REMOVE = "island.coop.remove";
+    public static final String ACTION_ISLAND_LOCK_SET = "island.lock.set";
+    public static final String ACTION_ISLAND_PVP_SET = "island.pvp.set";
+    public static final String ACTION_ISLAND_UPGRADE_SET = "island.upgrade.set";
+    public static final String ACTION_ISLAND_EXPEL = "island.expel";
+
     private final NewSky plugin;
     private final IslandOperator islandOperator;
     private final IslandOperationLock islandOperationLock;
     private final ServerSelector serverSelector;
     private final ServerHeartbeatState serverHeartbeatState;
     private final IslandServerState islandServerState;
+    private final CrossServerMessenger messenger;
+    private final WorldHandler worldHandler;
     private final String serverID;
 
-    private IslandBroker islandBroker;
-
-    public IslandDistributor(NewSky plugin, IslandOperator islandOperator, IslandOperationLock islandOperationLock, ServerSelector serverSelector, ServerHeartbeatState serverHeartbeatState, IslandServerState islandServerState, String serverID) {
+    public IslandDistributor(NewSky plugin, IslandOperator islandOperator, IslandOperationLock islandOperationLock, ServerSelector serverSelector, ServerHeartbeatState serverHeartbeatState, IslandServerState islandServerState, CrossServerMessenger messenger, WorldHandler worldHandler, String serverID) {
         this.plugin = plugin;
         this.islandOperator = islandOperator;
         this.islandOperationLock = islandOperationLock;
         this.serverSelector = serverSelector;
         this.serverHeartbeatState = serverHeartbeatState;
         this.islandServerState = islandServerState;
+        this.messenger = messenger;
+        this.worldHandler = worldHandler;
         this.serverID = serverID;
     }
 
-    public void setIslandBroker(IslandBroker islandBroker) {
-        this.islandBroker = islandBroker;
-    }
-
     // =====================================================================================
-    // High-level Reusable Primitive
+    // High-level reusable primitive
     // =====================================================================================
 
     private CompletableFuture<String> ensureIslandLoaded(UUID islandUuid) {
@@ -63,47 +81,39 @@ public class IslandDistributor {
                 return CompletableFuture.completedFuture(recheckedServer);
             }
 
-            plugin.debug("IslandDistributor", "ensureIslandLoaded: island not loaded. Selecting server to load " + islandUuid);
-
             String targetServer = selectServer(serverHeartbeatState.getActiveGameServers());
             if (targetServer == null) {
-                plugin.debug("IslandDistributor", "ensureIslandLoaded: no active server available to load island " + islandUuid);
                 return CompletableFuture.failedFuture(new NoActiveServerException());
             }
 
-            plugin.debug("IslandDistributor", "ensureIslandLoaded: selected server " + targetServer + " to load island " + islandUuid);
-
             if (targetServer.equals(serverID)) {
-                plugin.debug("IslandDistributor", "ensureIslandLoaded: loading island locally on " + serverID);
                 return islandOperator.loadIsland(islandUuid).thenApply(v -> targetServer);
-            } else {
-                plugin.debug("IslandDistributor", "ensureIslandLoaded: sending load request to remote server " + targetServer);
-                return islandBroker.sendRequest(targetServer, "load", islandUuid.toString()).thenApply(v -> targetServer);
             }
+
+            return messenger.requestVoid(targetServer, ACTION_ISLAND_LOAD, islandPayload(islandUuid)).thenApply(v -> targetServer);
         });
     }
 
     // =====================================================================================
-    // Sensitive operations : create/load/unload/delete
+    // Island lifecycle
     // =====================================================================================
 
-    public CompletableFuture<Void> createIsland(UUID islandUuid) {
+    public CompletableFuture<Void> createIsland(UUID islandUuid, UUID ownerUuid, String homeLocation) {
         return islandOperationLock.withLock(islandUuid, () -> {
             String targetServer = selectServer(serverHeartbeatState.getActiveGameServers());
             if (targetServer == null) {
-                plugin.debug("IslandDistributor", "createIsland: no active server available.");
                 return CompletableFuture.failedFuture(new NoActiveServerException());
             }
 
-            plugin.debug("IslandDistributor", "createIsland: selected server " + targetServer + " to create island " + islandUuid);
+            JSONObject payload = islandPayload(islandUuid);
+            payload.put("ownerUuid", ownerUuid.toString());
+            payload.put("homeLocation", homeLocation);
 
             if (targetServer.equals(serverID)) {
-                plugin.debug("IslandDistributor", "createIsland: creating island on local server " + serverID);
-                return islandOperator.createIsland(islandUuid);
-            } else {
-                plugin.debug("IslandDistributor", "createIsland: sending create request to remote server " + targetServer);
-                return islandBroker.sendRequest(targetServer, "create", islandUuid.toString());
+                return islandOperator.createIsland(islandUuid, ownerUuid, homeLocation);
             }
+
+            return messenger.requestVoid(targetServer, ACTION_ISLAND_CREATE, payload);
         });
     }
 
@@ -111,27 +121,19 @@ public class IslandDistributor {
         return islandOperationLock.withLock(islandUuid, () -> {
             String islandServer = getServerByIsland(islandUuid);
             if (islandServer != null) {
-                plugin.debug("IslandDistributor", "loadIsland: island already loaded on server " + islandServer);
                 return CompletableFuture.failedFuture(new IslandAlreadyLoadedException());
             }
 
-            plugin.debug("IslandDistributor", "loadIsland: island not loaded. Selecting server to load " + islandUuid);
-
             String targetServer = selectServer(serverHeartbeatState.getActiveGameServers());
             if (targetServer == null) {
-                plugin.debug("IslandDistributor", "loadIsland: no active server available.");
                 return CompletableFuture.failedFuture(new NoActiveServerException());
             }
 
-            plugin.debug("IslandDistributor", "loadIsland: selected server " + targetServer + " to load island " + islandUuid);
-
             if (targetServer.equals(serverID)) {
-                plugin.debug("IslandDistributor", "loadIsland: loading island locally on " + serverID);
                 return islandOperator.loadIsland(islandUuid);
-            } else {
-                plugin.debug("IslandDistributor", "loadIsland: sending load request to remote server " + targetServer);
-                return islandBroker.sendRequest(targetServer, "load", islandUuid.toString());
             }
+
+            return messenger.requestVoid(targetServer, ACTION_ISLAND_LOAD, islandPayload(islandUuid));
         });
     }
 
@@ -139,40 +141,25 @@ public class IslandDistributor {
         return islandOperationLock.withLock(islandUuid, () -> {
             String islandServer = getServerByIsland(islandUuid);
             if (islandServer == null) {
-                plugin.debug("IslandDistributor", "unloadIsland: island not loaded anywhere, cannot unload " + islandUuid);
                 return CompletableFuture.failedFuture(new IslandNotLoadedException());
             }
 
-            plugin.debug("IslandDistributor", "unloadIsland: island loaded on server " + islandServer);
-
             if (islandServer.equals(serverID)) {
-                plugin.debug("IslandDistributor", "unloadIsland: unloading island locally on " + serverID);
                 return islandOperator.unloadIsland(islandUuid);
-            } else {
-                plugin.debug("IslandDistributor", "unloadIsland: sending unload request to remote server " + islandServer);
-                return islandBroker.sendRequest(islandServer, "unload", islandUuid.toString());
             }
+
+            return messenger.requestVoid(islandServer, ACTION_ISLAND_UNLOAD, islandPayload(islandUuid));
         });
     }
 
     public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
         return islandOperationLock.withLock(islandUuid, () -> {
             String islandServer = getServerByIsland(islandUuid);
-
-            if (islandServer == null) {
-                plugin.debug("IslandDistributor", "deleteIsland: island not loaded anywhere, deleting locally " + islandUuid);
+            if (islandServer == null || islandServer.equals(serverID)) {
                 return islandOperator.deleteIsland(islandUuid);
             }
 
-            plugin.debug("IslandDistributor", "deleteIsland: island loaded on server " + islandServer);
-
-            if (islandServer.equals(serverID)) {
-                plugin.debug("IslandDistributor", "deleteIsland: deleting locally on " + serverID);
-                return islandOperator.deleteIsland(islandUuid);
-            } else {
-                plugin.debug("IslandDistributor", "deleteIsland: sending delete request to remote server " + islandServer);
-                return islandBroker.sendRequest(islandServer, "delete", islandUuid.toString());
-            }
+            return messenger.requestVoid(islandServer, ACTION_ISLAND_DELETE, islandPayload(islandUuid));
         });
     }
 
@@ -183,12 +170,10 @@ public class IslandDistributor {
     public CompletableFuture<Void> teleportIsland(UUID islandUuid, UUID playerUuid, String teleportWorld, String teleportLocation) {
         return ensureIslandLoaded(islandUuid).thenCompose(loadedServer -> {
             if (loadedServer.equals(serverID)) {
-                plugin.debug("IslandDistributor", "teleportIsland: teleporting locally on " + serverID);
                 return islandOperator.teleport(playerUuid, teleportWorld, teleportLocation);
-            } else {
-                plugin.debug("IslandDistributor", "teleportIsland: forwarding teleport to server " + loadedServer);
-                return islandBroker.sendRequest(loadedServer, "teleport", playerUuid.toString(), teleportWorld, teleportLocation).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, loadedServer));
             }
+
+            return messenger.requestVoid(loadedServer, ACTION_ISLAND_TELEPORT_PREPARE, teleportPayload(playerUuid, teleportWorld, teleportLocation)).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, loadedServer));
         });
     }
 
@@ -196,104 +181,119 @@ public class IslandDistributor {
         String lobbyServer = selectServer(serverHeartbeatState.getActiveServers().entrySet().stream().filter(entry -> lobbyServers.contains(entry.getKey())).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
 
         if (lobbyServer == null) {
-            plugin.debug("IslandDistributor", "teleportLobby: no active lobby server available.");
             return CompletableFuture.failedFuture(new NoActiveServerException());
         }
 
-        plugin.debug("IslandDistributor", "teleportLobby: selected lobby server " + lobbyServer + " for player " + playerUuid);
-
         if (lobbyServer.equals(serverID)) {
-            plugin.debug("IslandDistributor", "teleportLobby: teleporting locally on " + serverID);
             return islandOperator.teleport(playerUuid, lobbyWorld, lobbyLocation);
-        } else {
-            plugin.debug("IslandDistributor", "teleportLobby: forwarding teleport to server " + lobbyServer);
-            return islandBroker.sendRequest(lobbyServer, "teleport", playerUuid.toString(), lobbyWorld, lobbyLocation).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, lobbyServer));
         }
+
+        return messenger.requestVoid(lobbyServer, ACTION_ISLAND_TELEPORT_PREPARE, teleportPayload(playerUuid, lobbyWorld, lobbyLocation)).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, lobbyServer));
     }
 
     // =====================================================================================
-    // Other operations
+    // Snapshot-backed island data operations
     // =====================================================================================
 
-    public void lockIsland(UUID islandUuid) {
-        String islandServer = getServerByIsland(islandUuid);
-
-        if (islandServer == null) {
-            plugin.debug("IslandDistributor", "lockIsland: island not loaded on any server.");
-            return;
-        }
-
-        plugin.debug("IslandDistributor", "lockIsland: island loaded on server " + islandServer);
-
-        if (islandServer.equals(serverID)) {
-            plugin.debug("IslandDistributor", "lockIsland: locking island locally on " + serverID);
-            islandOperator.lockIsland(islandUuid);
-        } else {
-            plugin.debug("IslandDistributor", "lockIsland: sending lock event to remote server " + islandServer);
-            islandBroker.sendEvent(islandServer, "lock", islandUuid.toString());
-        }
+    public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role, String homeLocation) {
+        JSONObject payload = islandPayload(islandUuid);
+        payload.put("playerUuid", playerUuid.toString());
+        payload.put("role", role);
+        payload.put("homeLocation", homeLocation);
+        return runOnIslandServer(islandUuid, ACTION_ISLAND_MEMBER_ADD, payload, () -> {
+            return islandOperator.addMember(islandUuid, playerUuid, role, homeLocation);
+        });
     }
 
-    public void expelPlayer(UUID islandUuid, UUID playerUuid) {
-        String islandServer = getServerByIsland(islandUuid);
-
-        if (islandServer == null) {
-            plugin.debug("IslandDistributor", "expelPlayer: island not loaded on any server.");
-            return;
-        }
-
-        plugin.debug("IslandDistributor", "expelPlayer: island loaded on server " + islandServer);
-
-        if (islandServer.equals(serverID)) {
-            plugin.debug("IslandDistributor", "expelPlayer: expelling locally on " + serverID);
-            islandOperator.expelPlayer(islandUuid, playerUuid);
-        } else {
-            plugin.debug("IslandDistributor", "expelPlayer: sending expel event to remote server " + islandServer);
-            islandBroker.sendEvent(islandServer, "expel", islandUuid.toString(), playerUuid.toString());
-        }
+    public CompletableFuture<Void> removeMember(UUID islandUuid, UUID playerUuid) {
+        JSONObject payload = islandPayload(islandUuid);
+        payload.put("playerUuid", playerUuid.toString());
+        return runOnIslandServer(islandUuid, ACTION_ISLAND_MEMBER_REMOVE, payload, () -> islandOperator.removeMember(islandUuid, playerUuid));
     }
 
-    public void updateBorder(UUID islandUuid, int size) {
-        String islandServer = getServerByIsland(islandUuid);
-
-        if (islandServer == null) {
-            plugin.debug("IslandDistributor", "updateBorder: island not loaded on any server.");
-            return;
-        }
-
-        plugin.debug("IslandDistributor", "updateBorder: island loaded on server " + islandServer);
-
-        if (islandServer.equals(serverID)) {
-            plugin.debug("IslandDistributor", "updateBorder: updating border locally on " + serverID);
-            islandOperator.updateBorder(islandUuid, size);
-        } else {
-            plugin.debug("IslandDistributor", "updateBorder: sending update border event to remote server " + islandServer);
-            islandBroker.sendEvent(islandServer, "update_border", islandUuid.toString(), String.valueOf(size));
-        }
+    public CompletableFuture<Void> setOwner(UUID islandUuid, UUID oldOwnerUuid, UUID newOwnerUuid) {
+        JSONObject payload = islandPayload(islandUuid);
+        payload.put("oldOwnerUuid", oldOwnerUuid.toString());
+        payload.put("newOwnerUuid", newOwnerUuid.toString());
+        return runOnIslandServer(islandUuid, ACTION_ISLAND_OWNER_SET, payload, () -> islandOperator.setOwner(islandUuid, oldOwnerUuid, newOwnerUuid));
     }
 
-    public void reloadSnapshot(UUID islandUuid) {
-        String islandServer = getServerByIsland(islandUuid);
+    public CompletableFuture<Void> addBan(UUID islandUuid, UUID playerUuid) {
+        JSONObject payload = islandPayload(islandUuid);
+        payload.put("playerUuid", playerUuid.toString());
+        return runOnIslandServer(islandUuid, ACTION_ISLAND_BAN_ADD, payload, () -> islandOperator.addBan(islandUuid, playerUuid));
+    }
 
-        if (islandServer == null) {
-            plugin.debug("IslandDistributor", "reloadSnapshot: island not loaded on any server.");
-            return;
-        }
+    public CompletableFuture<Void> removeBan(UUID islandUuid, UUID playerUuid) {
+        JSONObject payload = islandPayload(islandUuid);
+        payload.put("playerUuid", playerUuid.toString());
+        return runOnIslandServer(islandUuid, ACTION_ISLAND_BAN_REMOVE, payload, () -> islandOperator.removeBan(islandUuid, playerUuid));
+    }
 
-        plugin.debug("IslandDistributor", "reloadSnapshot: island loaded on server " + islandServer);
+    public CompletableFuture<Void> addCoop(UUID islandUuid, UUID playerUuid) {
+        JSONObject payload = islandPayload(islandUuid);
+        payload.put("playerUuid", playerUuid.toString());
+        return runOnIslandServer(islandUuid, ACTION_ISLAND_COOP_ADD, payload, () -> islandOperator.addCoop(islandUuid, playerUuid));
+    }
 
-        if (islandServer.equals(serverID)) {
-            plugin.debug("IslandDistributor", "reloadSnapshot: reloading snapshot locally on " + serverID);
-            islandOperator.reloadSnapshot(islandUuid);
-        } else {
-            plugin.debug("IslandDistributor", "reloadSnapshot: sending reload snapshot event to remote server " + islandServer);
-            islandBroker.sendEvent(islandServer, "reload_snapshot", islandUuid.toString());
-        }
+    public CompletableFuture<Void> removeCoop(UUID islandUuid, UUID playerUuid) {
+        JSONObject payload = islandPayload(islandUuid);
+        payload.put("playerUuid", playerUuid.toString());
+        return runOnIslandServer(islandUuid, ACTION_ISLAND_COOP_REMOVE, payload, () -> islandOperator.removeCoop(islandUuid, playerUuid));
+    }
+
+    public CompletableFuture<Void> setIslandLock(UUID islandUuid, boolean locked) {
+        JSONObject payload = islandPayload(islandUuid);
+        payload.put("locked", locked);
+        return runOnIslandServer(islandUuid, ACTION_ISLAND_LOCK_SET, payload, () -> islandOperator.setIslandLock(islandUuid, locked));
+    }
+
+    public CompletableFuture<Void> setIslandPvp(UUID islandUuid, boolean pvp) {
+        JSONObject payload = islandPayload(islandUuid);
+        payload.put("pvp", pvp);
+        return runOnIslandServer(islandUuid, ACTION_ISLAND_PVP_SET, payload, () -> islandOperator.setIslandPvp(islandUuid, pvp));
+    }
+
+    public CompletableFuture<Void> setUpgradeLevel(UUID islandUuid, String upgradeId, int level, int borderSize) {
+        JSONObject payload = islandPayload(islandUuid);
+        payload.put("upgradeId", upgradeId);
+        payload.put("level", level);
+        payload.put("borderSize", borderSize);
+        return runOnIslandServer(islandUuid, ACTION_ISLAND_UPGRADE_SET, payload, () -> islandOperator.setUpgradeLevel(islandUuid, upgradeId, level, borderSize));
+    }
+
+    public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
+        JSONObject payload = islandPayload(islandUuid);
+        payload.put("playerUuid", playerUuid.toString());
+        return runOnIslandServer(islandUuid, ACTION_ISLAND_EXPEL, payload, () -> worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(islandUuid), playerUuid));
     }
 
     // =====================================================================================
     // Internal helpers
     // =====================================================================================
+
+    private CompletableFuture<Void> runOnIslandServer(UUID islandUuid, String action, JSONObject payload, LocalOperation localOperation) {
+        String islandServer = getServerByIsland(islandUuid);
+        if (islandServer == null || islandServer.equals(serverID)) {
+            return localOperation.run();
+        }
+
+        return messenger.requestVoid(islandServer, action, payload);
+    }
+
+    private JSONObject islandPayload(UUID islandUuid) {
+        JSONObject payload = new JSONObject();
+        payload.put("islandUuid", islandUuid.toString());
+        return payload;
+    }
+
+    private JSONObject teleportPayload(UUID playerUuid, String teleportWorld, String teleportLocation) {
+        JSONObject payload = new JSONObject();
+        payload.put("playerUuid", playerUuid.toString());
+        payload.put("teleportWorld", teleportWorld);
+        payload.put("teleportLocation", teleportLocation);
+        return payload;
+    }
 
     private String selectServer(Map<String, String> servers) {
         return serverSelector.selectServer(servers);
@@ -301,5 +301,10 @@ public class IslandDistributor {
 
     private String getServerByIsland(UUID islandUuid) {
         return islandServerState.getIslandLoadedServer(islandUuid).orElse(null);
+    }
+
+    @FunctionalInterface
+    private interface LocalOperation {
+        CompletableFuture<Void> run();
     }
 }

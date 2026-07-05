@@ -16,7 +16,9 @@ import org.me.newsky.config.ConfigHandler;
 import java.io.File;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Predicate;
 
 public class WorldHandler {
 
@@ -158,6 +160,39 @@ public class WorldHandler {
             player.teleport(Bukkit.getWorlds().getFirst().getSpawnLocation());
             plugin.getApi().lobby(player.getUniqueId());
         }
+    }
+
+    public CompletableFuture<Void> removePlayerFromWorld(String worldName, UUID playerUuid) {
+        return CompletableFuture.runAsync(() -> {
+            World world = Bukkit.getWorld(worldName);
+            if (world == null) {
+                return;
+            }
+
+            Player player = Bukkit.getPlayer(playerUuid);
+            if (player != null && player.getWorld().equals(world)) {
+                player.teleportAsync(Bukkit.getWorlds().getFirst().getSpawnLocation());
+                plugin.getApi().lobby(playerUuid);
+                plugin.debug("WorldHandler", "Removed player " + playerUuid + " from world: " + worldName);
+            }
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
+    }
+
+    public CompletableFuture<Void> removePlayersFromWorld(String worldName, Predicate<Player> shouldRemove) {
+        return CompletableFuture.runAsync(() -> {
+            World world = Bukkit.getWorld(worldName);
+            if (world == null) {
+                return;
+            }
+
+            for (Player player : world.getPlayers()) {
+                if (shouldRemove.test(player)) {
+                    player.teleportAsync(Bukkit.getWorlds().getFirst().getSpawnLocation());
+                    plugin.getApi().lobby(player.getUniqueId());
+                    plugin.debug("WorldHandler", "Removed player " + player.getUniqueId() + " from world: " + worldName);
+                }
+            }
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
     }
 
     public void unloadAllWorldsOnShutdown() {

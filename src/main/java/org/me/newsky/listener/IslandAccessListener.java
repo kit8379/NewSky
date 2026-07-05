@@ -51,6 +51,7 @@ public class IslandAccessListener implements Listener {
 
         Island island = islandSnapshot.get(islandUuid);
         if (island == null) {
+            denyAccess(player, config.getIslandLockedMessage());
             return;
         }
 
@@ -58,10 +59,14 @@ public class IslandAccessListener implements Listener {
         boolean locked = island.isLock() && !island.getOwner().equals(playerUuid) && !island.getMembers().contains(playerUuid) && !island.getCoops().contains(playerUuid);
 
         if (banned || locked) {
-            player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
-            plugin.getApi().lobby(playerUuid);
-            plugin.getApi().sendPlayerMessage(playerUuid, banned ? config.getPlayerBannedMessage() : config.getIslandLockedMessage());
+            denyAccess(player, banned ? config.getPlayerBannedMessage() : config.getIslandLockedMessage());
             plugin.debug("IslandAccessListener", "Player " + player.getName() + " attempted to access island " + islandUuid + " but was denied access.");
         }
+    }
+
+    private void denyAccess(Player player, net.kyori.adventure.text.Component message) {
+        player.teleportAsync(Bukkit.getServer().getWorlds().getFirst().getSpawnLocation());
+        plugin.getApi().lobby(player.getUniqueId());
+        plugin.getApi().sendPlayerMessage(player.getUniqueId(), message);
     }
 }

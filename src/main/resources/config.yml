@@ -51,10 +51,7 @@ redis:
   # Use these to separate multiple independent NewSky networks sharing the same Redis (should be identical on all servers in the same network).
   database: 0
 
-  # Pub/Sub channels (should be identical on all servers in the same network).
-  channel:
-    island: "newsky-island-channel-0"
-    playermessage: "newsky-playermessage-channel-0"
+  # Cross-server messaging uses Redis Streams with per-server inbox keys.
 
 
 # ===================================================================

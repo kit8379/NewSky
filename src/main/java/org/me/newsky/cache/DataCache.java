@@ -1193,6 +1193,11 @@ public final class DataCache {
         return touchedIslands.isEmpty() ? Set.of() : Set.copyOf(touchedIslands);
     }
 
+    public Set<UUID> getPlayerCoopedIslands(UUID playerUuid) {
+        Set<UUID> islands = database.getPlayerCoopedIslands(playerUuid);
+        return islands.isEmpty() ? Set.of() : Set.copyOf(islands);
+    }
+
     public boolean isPlayerCooped(UUID islandUuid, UUID playerUuid) {
         String key = islandCoopsKey(islandUuid);
         String member = playerUuid.toString();

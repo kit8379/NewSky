@@ -148,14 +148,6 @@ public class ConfigHandler {
         return config.getInt("redis.database");
     }
 
-    public String getRedisIslandChannel() {
-        return config.getString("redis.channel.island");
-    }
-
-    public String getRedisPlayerMessageChannel() {
-        return config.getString("redis.channel.playermessage");
-    }
-
     public int getHeartbeatInterval() {
         return config.getInt("network.heartbeat-interval-seconds");
     }
