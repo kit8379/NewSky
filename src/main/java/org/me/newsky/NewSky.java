@@ -123,7 +123,7 @@ public class NewSky extends JavaPlugin {
             info("World handler loaded");
 
             info("Starting teleport handler");
-            TeleportHandler teleportHandler = new TeleportHandler(this, redisHandler);
+            TeleportHandler teleportHandler = new TeleportHandler();
             info("Teleport handler loaded");
 
             info("Starting server selector");
@@ -279,7 +279,7 @@ public class NewSky extends JavaPlugin {
         messenger.register(IslandDistributor.ACTION_ISLAND_LOAD, payload -> emptyResponse(islandOperator.loadIsland(uuid(payload, "islandUuid"))));
         messenger.register(IslandDistributor.ACTION_ISLAND_UNLOAD, payload -> emptyResponse(islandOperator.unloadIsland(uuid(payload, "islandUuid"))));
         messenger.register(IslandDistributor.ACTION_ISLAND_DELETE, payload -> emptyResponse(islandOperator.deleteIsland(uuid(payload, "islandUuid"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_TELEPORT_PREPARE, payload -> emptyResponse(islandOperator.teleport(uuid(payload, "playerUuid"), payload.getString("teleportWorld"), payload.getString("teleportLocation"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_TELEPORT_PREPARE, payload -> emptyResponse(islandOperator.prepareTeleport(uuid(payload, "playerUuid"), payload.getString("teleportWorld"), payload.getString("teleportLocation"))));
         messenger.register(IslandDistributor.ACTION_ISLAND_MEMBER_ADD, payload -> emptyResponse(islandOperator.addMember(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"), payload.getString("role"), payload.getString("homeLocation"))));
         messenger.register(IslandDistributor.ACTION_ISLAND_MEMBER_REMOVE, payload -> emptyResponse(islandOperator.removeMember(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"))));
         messenger.register(IslandDistributor.ACTION_ISLAND_OWNER_SET, payload -> emptyResponse(islandOperator.setOwner(uuid(payload, "islandUuid"), uuid(payload, "oldOwnerUuid"), uuid(payload, "newOwnerUuid"))));

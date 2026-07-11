@@ -8,6 +8,8 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.me.newsky.NewSky;
 import org.me.newsky.state.OnlinePlayerState;
 
+import java.util.UUID;
+
 public class OnlinePlayersListener implements Listener {
 
     private final NewSky plugin;
@@ -22,17 +24,23 @@ public class OnlinePlayersListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST)
     private void onPlayerJoin(PlayerJoinEvent event) {
+        UUID playerUuid = event.getPlayer().getUniqueId();
+        String playerName = event.getPlayer().getName();
+
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            onlinePlayerState.addOnlinePlayer(event.getPlayer().getUniqueId(), event.getPlayer().getName(), serverID);
-            plugin.debug("OnlinePlayersListener", "Player " + event.getPlayer().getName() + " joined on server " + serverID);
+            onlinePlayerState.addOnlinePlayer(playerUuid, playerName, serverID);
+            plugin.debug("OnlinePlayersListener", "Player " + playerName + " joined on server " + serverID);
         });
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     private void onPlayerQuit(PlayerQuitEvent event) {
+        UUID playerUuid = event.getPlayer().getUniqueId();
+        String playerName = event.getPlayer().getName();
+
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            onlinePlayerState.removeOnlinePlayer(event.getPlayer().getUniqueId());
-            plugin.debug("OnlinePlayersListener", "Player " + event.getPlayer().getName() + " quit from server " + serverID);
+            onlinePlayerState.removeOnlinePlayer(playerUuid);
+            plugin.debug("OnlinePlayersListener", "Player " + playerName + " quit from server " + serverID);
         });
     }
 }

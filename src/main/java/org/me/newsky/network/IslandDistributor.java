@@ -90,7 +90,9 @@ public class IslandDistributor {
                 return islandOperator.loadIsland(islandUuid).thenApply(v -> targetServer);
             }
 
-            return messenger.requestVoid(targetServer, ACTION_ISLAND_LOAD, islandPayload(islandUuid)).thenApply(v -> targetServer);
+            JSONObject payload = new JSONObject();
+            payload.put("islandUuid", islandUuid.toString());
+            return messenger.requestVoid(targetServer, ACTION_ISLAND_LOAD, payload).thenApply(v -> targetServer);
         });
     }
 
@@ -105,7 +107,8 @@ public class IslandDistributor {
                 return CompletableFuture.failedFuture(new NoActiveServerException());
             }
 
-            JSONObject payload = islandPayload(islandUuid);
+            JSONObject payload = new JSONObject();
+            payload.put("islandUuid", islandUuid.toString());
             payload.put("ownerUuid", ownerUuid.toString());
             payload.put("homeLocation", homeLocation);
 
@@ -133,7 +136,9 @@ public class IslandDistributor {
                 return islandOperator.loadIsland(islandUuid);
             }
 
-            return messenger.requestVoid(targetServer, ACTION_ISLAND_LOAD, islandPayload(islandUuid));
+            JSONObject payload = new JSONObject();
+            payload.put("islandUuid", islandUuid.toString());
+            return messenger.requestVoid(targetServer, ACTION_ISLAND_LOAD, payload);
         });
     }
 
@@ -148,7 +153,9 @@ public class IslandDistributor {
                 return islandOperator.unloadIsland(islandUuid);
             }
 
-            return messenger.requestVoid(islandServer, ACTION_ISLAND_UNLOAD, islandPayload(islandUuid));
+            JSONObject payload = new JSONObject();
+            payload.put("islandUuid", islandUuid.toString());
+            return messenger.requestVoid(islandServer, ACTION_ISLAND_UNLOAD, payload);
         });
     }
 
@@ -159,21 +166,23 @@ public class IslandDistributor {
                 return islandOperator.deleteIsland(islandUuid);
             }
 
-            return messenger.requestVoid(islandServer, ACTION_ISLAND_DELETE, islandPayload(islandUuid));
+            JSONObject payload = new JSONObject();
+            payload.put("islandUuid", islandUuid.toString());
+            return messenger.requestVoid(islandServer, ACTION_ISLAND_DELETE, payload);
         });
     }
-
-    // =====================================================================================
-    // Teleport operations
-    // =====================================================================================
 
     public CompletableFuture<Void> teleportIsland(UUID islandUuid, UUID playerUuid, String teleportWorld, String teleportLocation) {
         return ensureIslandLoaded(islandUuid).thenCompose(loadedServer -> {
             if (loadedServer.equals(serverID)) {
-                return islandOperator.teleport(playerUuid, teleportWorld, teleportLocation);
+                return islandOperator.prepareTeleport(playerUuid, teleportWorld, teleportLocation);
             }
 
-            return messenger.requestVoid(loadedServer, ACTION_ISLAND_TELEPORT_PREPARE, teleportPayload(playerUuid, teleportWorld, teleportLocation)).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, loadedServer));
+            JSONObject payload = new JSONObject();
+            payload.put("playerUuid", playerUuid.toString());
+            payload.put("teleportWorld", teleportWorld);
+            payload.put("teleportLocation", teleportLocation);
+            return messenger.requestVoid(loadedServer, ACTION_ISLAND_TELEPORT_PREPARE, payload).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, loadedServer));
         });
     }
 
@@ -185,18 +194,19 @@ public class IslandDistributor {
         }
 
         if (lobbyServer.equals(serverID)) {
-            return islandOperator.teleport(playerUuid, lobbyWorld, lobbyLocation);
+            return islandOperator.prepareTeleport(playerUuid, lobbyWorld, lobbyLocation);
         }
 
-        return messenger.requestVoid(lobbyServer, ACTION_ISLAND_TELEPORT_PREPARE, teleportPayload(playerUuid, lobbyWorld, lobbyLocation)).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, lobbyServer));
+        JSONObject payload = new JSONObject();
+        payload.put("playerUuid", playerUuid.toString());
+        payload.put("teleportWorld", lobbyWorld);
+        payload.put("teleportLocation", lobbyLocation);
+        return messenger.requestVoid(lobbyServer, ACTION_ISLAND_TELEPORT_PREPARE, payload).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, lobbyServer));
     }
 
-    // =====================================================================================
-    // Snapshot-backed island data operations
-    // =====================================================================================
-
     public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role, String homeLocation) {
-        JSONObject payload = islandPayload(islandUuid);
+        JSONObject payload = new JSONObject();
+        payload.put("islandUuid", islandUuid.toString());
         payload.put("playerUuid", playerUuid.toString());
         payload.put("role", role);
         payload.put("homeLocation", homeLocation);
@@ -206,56 +216,65 @@ public class IslandDistributor {
     }
 
     public CompletableFuture<Void> removeMember(UUID islandUuid, UUID playerUuid) {
-        JSONObject payload = islandPayload(islandUuid);
+        JSONObject payload = new JSONObject();
+        payload.put("islandUuid", islandUuid.toString());
         payload.put("playerUuid", playerUuid.toString());
         return runOnIslandServer(islandUuid, ACTION_ISLAND_MEMBER_REMOVE, payload, () -> islandOperator.removeMember(islandUuid, playerUuid));
     }
 
     public CompletableFuture<Void> setOwner(UUID islandUuid, UUID oldOwnerUuid, UUID newOwnerUuid) {
-        JSONObject payload = islandPayload(islandUuid);
+        JSONObject payload = new JSONObject();
+        payload.put("islandUuid", islandUuid.toString());
         payload.put("oldOwnerUuid", oldOwnerUuid.toString());
         payload.put("newOwnerUuid", newOwnerUuid.toString());
         return runOnIslandServer(islandUuid, ACTION_ISLAND_OWNER_SET, payload, () -> islandOperator.setOwner(islandUuid, oldOwnerUuid, newOwnerUuid));
     }
 
     public CompletableFuture<Void> addBan(UUID islandUuid, UUID playerUuid) {
-        JSONObject payload = islandPayload(islandUuid);
+        JSONObject payload = new JSONObject();
+        payload.put("islandUuid", islandUuid.toString());
         payload.put("playerUuid", playerUuid.toString());
         return runOnIslandServer(islandUuid, ACTION_ISLAND_BAN_ADD, payload, () -> islandOperator.addBan(islandUuid, playerUuid));
     }
 
     public CompletableFuture<Void> removeBan(UUID islandUuid, UUID playerUuid) {
-        JSONObject payload = islandPayload(islandUuid);
+        JSONObject payload = new JSONObject();
+        payload.put("islandUuid", islandUuid.toString());
         payload.put("playerUuid", playerUuid.toString());
         return runOnIslandServer(islandUuid, ACTION_ISLAND_BAN_REMOVE, payload, () -> islandOperator.removeBan(islandUuid, playerUuid));
     }
 
     public CompletableFuture<Void> addCoop(UUID islandUuid, UUID playerUuid) {
-        JSONObject payload = islandPayload(islandUuid);
+        JSONObject payload = new JSONObject();
+        payload.put("islandUuid", islandUuid.toString());
         payload.put("playerUuid", playerUuid.toString());
         return runOnIslandServer(islandUuid, ACTION_ISLAND_COOP_ADD, payload, () -> islandOperator.addCoop(islandUuid, playerUuid));
     }
 
     public CompletableFuture<Void> removeCoop(UUID islandUuid, UUID playerUuid) {
-        JSONObject payload = islandPayload(islandUuid);
+        JSONObject payload = new JSONObject();
+        payload.put("islandUuid", islandUuid.toString());
         payload.put("playerUuid", playerUuid.toString());
         return runOnIslandServer(islandUuid, ACTION_ISLAND_COOP_REMOVE, payload, () -> islandOperator.removeCoop(islandUuid, playerUuid));
     }
 
     public CompletableFuture<Void> setIslandLock(UUID islandUuid, boolean locked) {
-        JSONObject payload = islandPayload(islandUuid);
+        JSONObject payload = new JSONObject();
+        payload.put("islandUuid", islandUuid.toString());
         payload.put("locked", locked);
         return runOnIslandServer(islandUuid, ACTION_ISLAND_LOCK_SET, payload, () -> islandOperator.setIslandLock(islandUuid, locked));
     }
 
     public CompletableFuture<Void> setIslandPvp(UUID islandUuid, boolean pvp) {
-        JSONObject payload = islandPayload(islandUuid);
+        JSONObject payload = new JSONObject();
+        payload.put("islandUuid", islandUuid.toString());
         payload.put("pvp", pvp);
         return runOnIslandServer(islandUuid, ACTION_ISLAND_PVP_SET, payload, () -> islandOperator.setIslandPvp(islandUuid, pvp));
     }
 
     public CompletableFuture<Void> setUpgradeLevel(UUID islandUuid, String upgradeId, int level, int borderSize) {
-        JSONObject payload = islandPayload(islandUuid);
+        JSONObject payload = new JSONObject();
+        payload.put("islandUuid", islandUuid.toString());
         payload.put("upgradeId", upgradeId);
         payload.put("level", level);
         payload.put("borderSize", borderSize);
@@ -263,7 +282,8 @@ public class IslandDistributor {
     }
 
     public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
-        JSONObject payload = islandPayload(islandUuid);
+        JSONObject payload = new JSONObject();
+        payload.put("islandUuid", islandUuid.toString());
         payload.put("playerUuid", playerUuid.toString());
         return runOnIslandServer(islandUuid, ACTION_ISLAND_EXPEL, payload, () -> worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(islandUuid), playerUuid));
     }
@@ -279,20 +299,6 @@ public class IslandDistributor {
         }
 
         return messenger.requestVoid(islandServer, action, payload);
-    }
-
-    private JSONObject islandPayload(UUID islandUuid) {
-        JSONObject payload = new JSONObject();
-        payload.put("islandUuid", islandUuid.toString());
-        return payload;
-    }
-
-    private JSONObject teleportPayload(UUID playerUuid, String teleportWorld, String teleportLocation) {
-        JSONObject payload = new JSONObject();
-        payload.put("playerUuid", playerUuid.toString());
-        payload.put("teleportWorld", teleportWorld);
-        payload.put("teleportLocation", teleportLocation);
-        return payload;
     }
 
     private String selectServer(Map<String, String> servers) {

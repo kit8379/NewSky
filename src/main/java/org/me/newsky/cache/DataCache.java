@@ -1174,25 +1174,6 @@ public final class DataCache {
         }
     }
 
-    public Set<UUID> deleteAllCoopOfPlayer(UUID playerUuid) {
-        Set<UUID> touchedIslands = database.getPlayerCoopedIslands(playerUuid);
-        database.deleteAllCoopOfPlayer(playerUuid);
-
-        try (Jedis jedis = redisHandler.getJedis()) {
-            Pipeline pipeline = jedis.pipelined();
-
-            for (UUID islandUuid : touchedIslands) {
-                invalidateCompositeKey(pipeline, islandCoopsKey(islandUuid));
-            }
-
-            pipeline.sync();
-        } catch (Exception e) {
-            plugin.severe("Database delete succeeded but Redis invalidation failed while deleting all coop of player: player=" + playerUuid, e);
-        }
-
-        return touchedIslands.isEmpty() ? Set.of() : Set.copyOf(touchedIslands);
-    }
-
     public Set<UUID> getPlayerCoopedIslands(UUID playerUuid) {
         Set<UUID> islands = database.getPlayerCoopedIslands(playerUuid);
         return islands.isEmpty() ? Set.of() : Set.copyOf(islands);

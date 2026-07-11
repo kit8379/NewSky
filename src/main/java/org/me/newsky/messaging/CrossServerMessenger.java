@@ -1,5 +1,6 @@
 package org.me.newsky.messaging;
 
+import org.bukkit.Bukkit;
 import org.json.JSONObject;
 import org.me.newsky.NewSky;
 import org.me.newsky.redis.RedisHandler;
@@ -47,13 +48,12 @@ public final class CrossServerMessenger {
         CompletableFuture<JSONObject> future = new CompletableFuture<>();
 
         pendingRequests.put(message.getMessageId(), future);
-        try {
-            send(message);
-        } catch (Exception e) {
-            pendingRequests.remove(message.getMessageId());
-            future.completeExceptionally(e);
-            return future;
-        }
+        sendAsyncIfNeeded(message).whenComplete((ignored, throwable) -> {
+            if (throwable != null) {
+                pendingRequests.remove(message.getMessageId());
+                future.completeExceptionally(throwable);
+            }
+        });
 
         future.orTimeout(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).whenComplete((result, throwable) -> pendingRequests.remove(message.getMessageId()));
         return future;
@@ -154,12 +154,12 @@ public final class CrossServerMessenger {
     private void handleRequest(StreamEntryID entryId, CrossServerMessage message) {
         CrossServerMessageHandler handler = handlers.get(message.getAction());
         if (handler == null) {
-            sendAndDelete(entryId, CrossServerMessage.failedResponse(message, "No handler registered for action: " + message.getAction()));
+            sendAndDeleteAsync(entryId, CrossServerMessage.failedResponse(message, "No handler registered for action: " + message.getAction()));
             return;
         }
 
         try {
-            handler.handle(message.getPayload()).whenComplete((payload, throwable) -> {
+            handler.handle(message.getPayload()).whenCompleteAsync((payload, throwable) -> {
                 CrossServerMessage response;
                 if (throwable == null) {
                     response = CrossServerMessage.successResponse(message, payload == null ? new JSONObject() : payload);
@@ -168,9 +168,9 @@ public final class CrossServerMessenger {
                 }
 
                 sendAndDelete(entryId, response);
-            });
+            }, plugin.getBukkitAsyncExecutor());
         } catch (Exception e) {
-            sendAndDelete(entryId, CrossServerMessage.failedResponse(message, e));
+            sendAndDeleteAsync(entryId, CrossServerMessage.failedResponse(message, e));
         }
     }
 
@@ -181,11 +181,13 @@ public final class CrossServerMessenger {
             return;
         }
 
-        if (CrossServerMessage.STATUS_SUCCESS.equals(message.getStatus())) {
-            future.complete(message.getPayload());
-        } else {
-            future.completeExceptionally(new CompletionException(restoreRemoteException(message)));
-        }
+        CompletableFuture.runAsync(() -> {
+            if (CrossServerMessage.STATUS_SUCCESS.equals(message.getStatus())) {
+                future.complete(message.getPayload());
+            } else {
+                future.completeExceptionally(new CompletionException(restoreRemoteException(message)));
+            }
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     private Throwable restoreRemoteException(CrossServerMessage message) {
@@ -229,6 +231,23 @@ public final class CrossServerMessenger {
         } finally {
             deleteEntry(entryId);
             processingEntries.remove(entryId.toString());
+        }
+    }
+
+    private void sendAndDeleteAsync(StreamEntryID entryId, CrossServerMessage response) {
+        CompletableFuture.runAsync(() -> sendAndDelete(entryId, response), plugin.getBukkitAsyncExecutor());
+    }
+
+    private CompletableFuture<Void> sendAsyncIfNeeded(CrossServerMessage message) {
+        if (Bukkit.isPrimaryThread()) {
+            return CompletableFuture.runAsync(() -> send(message), plugin.getBukkitAsyncExecutor());
+        }
+
+        try {
+            send(message);
+            return CompletableFuture.completedFuture(null);
+        } catch (Exception e) {
+            return CompletableFuture.failedFuture(e);
         }
     }
 

@@ -45,7 +45,9 @@ public class CoopHandler {
 
     public CompletableFuture<Void> deleteAllCoopOfPlayer(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> dataCache.getPlayerCoopedIslands(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(touchedIslands -> {
-            CompletableFuture<?>[] futures = touchedIslands.stream().map(islandUuid -> islandDistributor.removeCoop(islandUuid, playerUuid)).toArray(CompletableFuture[]::new);
+            CompletableFuture<?>[] futures = touchedIslands.stream().map(islandUuid -> {
+                return islandDistributor.removeCoop(islandUuid, playerUuid);
+            }).toArray(CompletableFuture[]::new);
             return CompletableFuture.allOf(futures);
         });
     }

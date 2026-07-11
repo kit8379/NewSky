@@ -725,12 +725,6 @@ public class DatabaseHandler {
         });
     }
 
-    public void deleteAllCoopOfPlayer(UUID playerUuid) {
-        executeUpdate("DELETE FROM " + prefix + "island_coops WHERE cooped_player = ?;", stmt -> {
-            stmt.setString(1, playerUuid.toString());
-        });
-    }
-
     public void deleteIslandUpgrade(UUID islandUuid, String upgradeId) {
         executeUpdate("DELETE FROM " + prefix + "island_upgrades WHERE island_uuid = ? AND upgrade_id = ?;", stmt -> {
             stmt.setString(1, islandUuid.toString());
