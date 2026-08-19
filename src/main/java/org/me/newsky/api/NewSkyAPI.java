@@ -6,7 +6,6 @@ import org.me.newsky.island.*;
 import org.me.newsky.message.PlayerMessageHandler;
 import org.me.newsky.model.Invitation;
 import org.me.newsky.model.IslandTop;
-import org.me.newsky.model.Upgrade;
 import org.me.newsky.uuid.UuidHandler;
 
 import java.util.*;
@@ -24,12 +23,10 @@ public class NewSkyAPI {
     private final CoopHandler coopHandler;
     private final LobbyHandler lobbyHandler;
     private final PlayerMessageHandler playerMessageHandler;
-    private final UpgradeHandler upgradeHandler;
     private final BiomeHandler biomeHandler;
-    private final LimitHandler limitHandler;
     private final UuidHandler uuidHandler;
 
-    public NewSkyAPI(NewSky plugin, CoreHandler coreHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, PlayerMessageHandler playerMessageHandler, UuidHandler uuidHandler, UpgradeHandler upgradeHandler, BiomeHandler biomeHandler, LimitHandler limitHandler) {
+    public NewSkyAPI(NewSky plugin, CoreHandler coreHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, PlayerMessageHandler playerMessageHandler, UuidHandler uuidHandler, BiomeHandler biomeHandler) {
         this.plugin = plugin;
         this.coreHandler = coreHandler;
         this.playerHandler = playerHandler;
@@ -40,10 +37,8 @@ public class NewSkyAPI {
         this.coopHandler = coopHandler;
         this.lobbyHandler = lobbyHandler;
         this.playerMessageHandler = playerMessageHandler;
-        this.upgradeHandler = upgradeHandler;
-        this.biomeHandler = biomeHandler;
-        this.limitHandler = limitHandler;
         this.uuidHandler = uuidHandler;
+        this.biomeHandler = biomeHandler;
     }
 
     @SuppressWarnings("unused")
@@ -242,87 +237,8 @@ public class NewSkyAPI {
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Upgrade> upgradeToNextLevel(UUID islandUuid, UUID playerUuid, String upgradeId) {
-        return upgradeHandler.upgradeToNextLevel(islandUuid, playerUuid, upgradeId);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Void> setUpgradeLevel(UUID islandUuid, String upgradeId, int level) {
-        return upgradeHandler.setUpgradeLevel(islandUuid, upgradeId, level);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Integer> getCurrentUpgradeLevel(UUID islandUuid, String upgradeId) {
-        return upgradeHandler.getCurrentUpgradeLevel(islandUuid, upgradeId);
-    }
-
-    @SuppressWarnings("unused")
-    public Set<String> getUpgradeIds() {
-        return upgradeHandler.getUpgradeIds();
-    }
-
-    @SuppressWarnings("unused")
-    public Set<Integer> getUpgradeLevels(String upgradeId) {
-        return upgradeHandler.getUpgradeLevels(upgradeId);
-    }
-
-    @SuppressWarnings("unused")
-    public int getNextUpgradeLevel(String upgradeId, int currentLevel) {
-        return upgradeHandler.getNextUpgradeLevel(upgradeId, currentLevel);
-    }
-
-    @SuppressWarnings("unused")
-    public int getUpgradeRequireIslandLevel(String upgradeId, int level) {
-        return upgradeHandler.getUpgradeRequireIslandLevel(upgradeId, level);
-    }
-
-    @SuppressWarnings("unused")
-    public double getUpgradePrice(String upgradeId, int level) {
-        return upgradeHandler.getUpgradePrice(upgradeId, level);
-    }
-
-    @SuppressWarnings("unused")
-    public int getTeamLimit(int level) {
-        return upgradeHandler.getTeamLimit(level);
-    }
-
-    @SuppressWarnings("unused")
-    public int getWarpLimit(int level) {
-        return upgradeHandler.getWarpLimit(level);
-    }
-
-    @SuppressWarnings("unused")
-    public int getHomeLimit(int level) {
-        return upgradeHandler.getHomeLimit(level);
-    }
-
-    @SuppressWarnings("unused")
-    public int getCoopLimit(int level) {
-        return upgradeHandler.getCoopLimit(level);
-    }
-
-    @SuppressWarnings("unused")
-    public int getIslandSize(int level) {
-        return upgradeHandler.getIslandSize(level);
-    }
-
-    @SuppressWarnings("unused")
-    public Map<String, Double> getGeneratorRates(int level) {
-        return upgradeHandler.getGeneratorRates(level);
-    }
-
-    @SuppressWarnings("unused")
-    public Set<String> getBiomeAllowList(int level) {
-        return upgradeHandler.getBiomeAllowList(level);
-    }
-
-    @SuppressWarnings("unused")
     public CompletableFuture<Void> applyChunkBiome(String worldName, int chunkX, int chunkZ, String biomeName) {
         return biomeHandler.applyChunkBiome(worldName, chunkX, chunkZ, biomeName);
-    }
-
-    public CompletableFuture<Void> calIslandBlockLimit(UUID islandUuid) {
-        return limitHandler.calIslandBlockLimit(islandUuid);
     }
 
     @SuppressWarnings("unused")

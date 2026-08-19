@@ -8,7 +8,6 @@ import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.HomeDoesNotExistException;
-import org.me.newsky.exceptions.IslandBusyException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.NoActiveServerException;
 
@@ -105,8 +104,6 @@ public class AdminHomeCommand implements SubCommand, AsyncTabComplete {
                 sender.sendMessage(config.getAdminNoIslandMessage(homePlayerName));
             } else if (cause instanceof HomeDoesNotExistException) {
                 sender.sendMessage(config.getAdminNoHomeMessage(homePlayerName, homeName));
-            } else if (cause instanceof IslandBusyException) {
-                sender.sendMessage(config.getIslandBusyMessage());
             } else if (cause instanceof NoActiveServerException) {
                 sender.sendMessage(config.getNoActiveServerMessage());
             } else {

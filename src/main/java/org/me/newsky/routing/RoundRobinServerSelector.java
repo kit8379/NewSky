@@ -1,6 +1,6 @@
 package org.me.newsky.routing;
 
-import org.me.newsky.state.ServerSelectorState;
+import org.me.newsky.cluster.ServerRegistry;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -8,17 +8,17 @@ import java.util.Map;
 
 public class RoundRobinServerSelector implements ServerSelector {
 
-    private final ServerSelectorState serverSelectorState;
+    private final ServerRegistry serverRegistry;
 
-    public RoundRobinServerSelector(ServerSelectorState serverSelectorState) {
-        this.serverSelectorState = serverSelectorState;
+    public RoundRobinServerSelector(ServerRegistry serverRegistry) {
+        this.serverRegistry = serverRegistry;
     }
 
     @Override
     public String selectServer(Map<String, String> activeServers) {
         if (activeServers.isEmpty()) return null;
 
-        long index = serverSelectorState.getRoundRobinCounter();
+        long index = serverRegistry.getRoundRobinCounter();
 
         if (index == -1) {
             return null;

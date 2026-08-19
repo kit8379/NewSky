@@ -2,8 +2,8 @@ package org.me.newsky.island;
 
 import org.bukkit.*;
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.DataCache;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.model.IslandTop;
 import org.me.newsky.util.IslandUtils;
 
@@ -16,14 +16,14 @@ public class LevelHandler {
 
     private final NewSky plugin;
     private final ConfigHandler config;
-    private final DataCache dataCache;
+    private final DatabaseHandler database;
 
     private volatile int[] pointsByMaterialOrdinal;
 
-    public LevelHandler(NewSky plugin, ConfigHandler config, DataCache dataCache) {
+    public LevelHandler(NewSky plugin, ConfigHandler config, DatabaseHandler database) {
         this.plugin = plugin;
         this.config = config;
-        this.dataCache = dataCache;
+        this.database = database;
         startup();
     }
 
@@ -98,7 +98,7 @@ public class LevelHandler {
 
             return (int) Math.round((double) totalPoints / 100.0);
         }, plugin.getBukkitAsyncExecutor()).thenApply(totalLevel -> {
-            dataCache.updateIslandLevel(islandUuid, totalLevel);
+            database.updateIslandLevel(islandUuid, totalLevel);
             plugin.debug("LevelHandler", "Calculated level for island " + islandUuid + ": " + totalLevel);
             return totalLevel;
         });
@@ -124,11 +124,11 @@ public class LevelHandler {
 
     public CompletableFuture<Integer> getIslandLevel(UUID islandUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            return dataCache.getIslandLevel(islandUuid);
+            return database.getIslandCore(islandUuid).map(DatabaseHandler.IslandCoreData::level).orElse(0);
         }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<List<IslandTop>> getTopIslandLevels(int limit) {
-        return CompletableFuture.supplyAsync(() -> dataCache.getTopIslandLevels(limit), plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> database.getTopIslandLevels(limit), plugin.getBukkitAsyncExecutor());
     }
 }

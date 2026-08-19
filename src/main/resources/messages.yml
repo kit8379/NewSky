@@ -6,7 +6,6 @@ messages:
 
   plugin-reloaded: "<green>Plugin reloaded successfully!"
   unknown-exception: "<red>An unknown error occurred while processing your request. Please try again later or contact the administrator."
-  island-busy: "<red>Island is currently busy. Please try again later!"
 
   # ================================================================================================================
   # Permissions / Sender

@@ -6,7 +6,6 @@ import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.exceptions.IslandBusyException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.NoActiveServerException;
 
@@ -111,8 +110,6 @@ public class PlayerDeleteIslandCommand implements SubCommand {
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
                 reset(playerUuid);
-            } else if (cause instanceof IslandBusyException) {
-                player.sendMessage(config.getIslandBusyMessage());
             } else if (cause instanceof NoActiveServerException) {
                 player.sendMessage(config.getNoActiveServerMessage());
             } else {

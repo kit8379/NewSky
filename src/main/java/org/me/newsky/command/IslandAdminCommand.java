@@ -42,7 +42,6 @@ public class IslandAdminCommand implements CommandExecutor, AsyncCommandTabRoute
         subCommands.add(new AdminUnbanCommand(plugin, api, config));
         subCommands.add(new AdminCoopCommand(plugin, api, config));
         subCommands.add(new AdminUncoopCommand(plugin, api, config));
-        subCommands.add(new AdminUpgradeCommand(plugin, api, config));
         subCommands.add(new AdminBiomeCommand(plugin, api, config));
         subCommands.add(new AdminLobbyCommand(plugin, api, config));
         subCommands.add(new AdminHelpCommand(config, subCommands));

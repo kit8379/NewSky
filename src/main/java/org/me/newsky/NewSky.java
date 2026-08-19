@@ -8,7 +8,6 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.json.JSONObject;
 import org.me.newsky.api.NewSkyAPI;
-import org.me.newsky.cache.DataCache;
 import org.me.newsky.command.AsyncTabCompleteListener;
 import org.me.newsky.command.IslandAdminCommand;
 import org.me.newsky.command.IslandPlayerCommand;
@@ -16,8 +15,6 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.island.*;
 import org.me.newsky.listener.*;
-import org.me.newsky.lock.IslandOperationLock;
-import org.me.newsky.lock.IslandUpgradeLock;
 import org.me.newsky.messaging.CrossServerMessenger;
 import org.me.newsky.message.PlayerMessageHandler;
 import org.me.newsky.network.IslandDistributor;
@@ -31,7 +28,7 @@ import org.me.newsky.scheduler.HeartbeatScheduler;
 import org.me.newsky.scheduler.IslandUnloadScheduler;
 import org.me.newsky.scheduler.LevelUpdateScheduler;
 import org.me.newsky.scheduler.MSPTUpdateScheduler;
-import org.me.newsky.state.*;
+import org.me.newsky.cluster.*;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.thread.BukkitAsyncExecutor;
 import org.me.newsky.util.IslandUtils;
@@ -55,14 +52,12 @@ public class NewSky extends JavaPlugin {
     private RedisHandler redisHandler;
     private DatabaseHandler databaseHandler;
     private HeartbeatScheduler heartBeatScheduler;
-    private OnlinePlayerState onlinePlayerState;
+    private OnlinePlayerRegistry onlinePlayerRegistry;
     private IslandUnloadScheduler islandUnloadScheduler;
     private LevelUpdateScheduler levelupdateSchedulerIsland;
     private MSPTUpdateScheduler msptUpdateScheduler;
     private CrossServerMessenger crossServerMessenger;
     private LevelHandler levelHandler;
-    private CobblestoneGeneratorHandler cobblestoneGeneratorHandler;
-    private LimitHandler limitHandler;
     private NewSkyAPI api;
     private BukkitAsyncExecutor bukkitAsyncExecutor;
     private Economy economy;
@@ -102,17 +97,11 @@ public class NewSky extends JavaPlugin {
             info("Database connection success!");
 
             info("Starting Redis cache state handler");
-            onlinePlayerState = new OnlinePlayerState(this, redisHandler);
-            IslandInvitationState islandInvitationState = new IslandInvitationState(this, redisHandler);
-            IslandLockState islandLockState = new IslandLockState(this, redisHandler);
-            IslandServerState islandServerState = new IslandServerState(this, redisHandler);
-            ServerHeartbeatState serverHeartbeatState = new ServerHeartbeatState(this, redisHandler);
-            ServerSelectorState serverSelectorState = new ServerSelectorState(this, redisHandler);
+            onlinePlayerRegistry = new OnlinePlayerRegistry(this, redisHandler);
+            InvitationStore invitationStore = new InvitationStore(this, redisHandler);
+            IslandRegistry islandRegistry = new IslandRegistry(this, redisHandler);
+            ServerRegistry serverRegistry = new ServerRegistry(this, redisHandler, islandRegistry);
             info("Redis cache state handler loaded");
-
-            info("Starting persistent data cache handler");
-            DataCache dataCache = new DataCache(this, redisHandler, databaseHandler);
-            info("Persistent data cache handler loaded");
 
             info("Loading island loaded snapshot");
             IslandSnapshot islandSnapshot = new IslandSnapshot(this, databaseHandler);
@@ -130,11 +119,11 @@ public class NewSky extends JavaPlugin {
             ServerSelector serverSelector;
             switch (config.getServerSelector().toLowerCase(Locale.ROOT)) {
                 case "round-robin":
-                    serverSelector = new RoundRobinServerSelector(serverSelectorState);
+                    serverSelector = new RoundRobinServerSelector(serverRegistry);
                     info("Using Round Robin server selector");
                     break;
                 case "mspt":
-                    serverSelector = new MSPTServerSelector(serverSelectorState);
+                    serverSelector = new MSPTServerSelector(serverRegistry);
                     info("Using MSPT server selector");
                     break;
                 case "random":
@@ -145,20 +134,15 @@ public class NewSky extends JavaPlugin {
             }
             info("Server selector loaded");
 
-            info("Starting distributed lock");
-            IslandOperationLock islandOperationLock = new IslandOperationLock(this, islandLockState, serverID);
-            IslandUpgradeLock islandUpgradeLock = new IslandUpgradeLock(this, islandLockState, serverID);
-            info("Distributed lock loaded");
-
             info("Starting handlers for island remote requests");
             crossServerMessenger = new CrossServerMessenger(this, redisHandler, serverID);
-            IslandOperator islandOperator = new IslandOperator(this, dataCache, worldHandler, teleportHandler, islandSnapshot, islandServerState, serverID);
-            IslandDistributor islandDistributor = new IslandDistributor(this, islandOperator, islandOperationLock, serverSelector, serverHeartbeatState, islandServerState, crossServerMessenger, worldHandler, serverID);
+            IslandOperator islandOperator = new IslandOperator(this, databaseHandler, worldHandler, teleportHandler, islandSnapshot, islandRegistry, serverID);
+            IslandDistributor islandDistributor = new IslandDistributor(this, islandOperator, serverSelector, serverRegistry, islandRegistry, crossServerMessenger, worldHandler, serverID);
             registerCrossServerHandlers(crossServerMessenger, islandOperator);
             info("All handlers for remote requests loaded");
 
             info("Starting player message handler");
-            PlayerMessageHandler playerMessageHandler = new PlayerMessageHandler(this, crossServerMessenger, onlinePlayerState, serverID);
+            PlayerMessageHandler playerMessageHandler = new PlayerMessageHandler(this, crossServerMessenger, onlinePlayerRegistry, serverID);
             info("Player message handler loaded");
 
             info("Starting economy provider");
@@ -170,19 +154,16 @@ public class NewSky extends JavaPlugin {
             info("Economy provider loaded");
 
             info("Starting main handlers for the plugin");
-            CoreHandler coreHandler = new CoreHandler(this, config, dataCache, islandDistributor);
-            PlayerHandler playerHandler = new PlayerHandler(this, config, dataCache, islandDistributor, islandInvitationState);
-            HomeHandler homeHandler = new HomeHandler(this, dataCache, islandDistributor);
-            WarpHandler warpHandler = new WarpHandler(this, dataCache, islandDistributor);
-            levelHandler = new LevelHandler(this, config, dataCache);
-            BanHandler banHandler = new BanHandler(this, dataCache, islandDistributor);
-            CoopHandler coopHandler = new CoopHandler(this, dataCache, islandDistributor);
-            UpgradeHandler upgradeHandler = new UpgradeHandler(this, config, dataCache, islandDistributor, islandUpgradeLock);
-            cobblestoneGeneratorHandler = new CobblestoneGeneratorHandler(this, upgradeHandler);
+            CoreHandler coreHandler = new CoreHandler(this, config, databaseHandler, islandDistributor);
+            PlayerHandler playerHandler = new PlayerHandler(this, config, databaseHandler, islandDistributor, invitationStore);
+            HomeHandler homeHandler = new HomeHandler(this, databaseHandler, islandDistributor);
+            WarpHandler warpHandler = new WarpHandler(this, databaseHandler, islandDistributor);
+            levelHandler = new LevelHandler(this, config, databaseHandler);
+            BanHandler banHandler = new BanHandler(this, databaseHandler, islandDistributor);
+            CoopHandler coopHandler = new CoopHandler(this, databaseHandler, islandDistributor);
             BiomeHandler biomeHandler = new BiomeHandler(this);
-            limitHandler = new LimitHandler(this, config);
             LobbyHandler lobbyHandler = new LobbyHandler(this, config, islandDistributor);
-            UuidHandler uuidHandler = new UuidHandler(this, dataCache);
+            UuidHandler uuidHandler = new UuidHandler(this, databaseHandler);
             WorldActivityHandler worldActivityHandler = new WorldActivityHandler(this);
             info("All main handlers loaded");
 
@@ -191,13 +172,13 @@ public class NewSky extends JavaPlugin {
             info("Plugin messaging loaded");
 
             info("Starting all schedulers for the plugin");
-            heartBeatScheduler = new HeartbeatScheduler(this, config, serverHeartbeatState, serverID);
-            islandUnloadScheduler = new IslandUnloadScheduler(this, config, worldHandler, worldActivityHandler, islandOperationLock, islandServerState);
+            heartBeatScheduler = new HeartbeatScheduler(this, config, serverRegistry, serverID);
+            islandUnloadScheduler = new IslandUnloadScheduler(this, config, worldHandler, worldActivityHandler, islandRegistry);
             levelupdateSchedulerIsland = new LevelUpdateScheduler(this, levelHandler);
 
             if (serverSelector instanceof MSPTServerSelector) {
                 info("MSPT server selector detected, creating MSPT update scheduler");
-                msptUpdateScheduler = new MSPTUpdateScheduler(this, config, serverSelectorState, serverID);
+                msptUpdateScheduler = new MSPTUpdateScheduler(this, config, serverRegistry, serverID);
             } else {
                 msptUpdateScheduler = null;
             }
@@ -205,21 +186,19 @@ public class NewSky extends JavaPlugin {
             info("All schedulers loaded");
 
             info("Starting API");
-            api = new NewSkyAPI(this, coreHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, playerMessageHandler, uuidHandler, upgradeHandler, biomeHandler, limitHandler);
+            api = new NewSkyAPI(this, coreHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, playerMessageHandler, uuidHandler, biomeHandler);
             info("API loaded");
 
             info("Starting listeners");
-            getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, onlinePlayerState, serverID), this);
+            getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, onlinePlayerRegistry, serverID), this);
             getServer().getPluginManager().registerEvents(new WorldLoadListener(this, config, levelupdateSchedulerIsland, islandSnapshot), this);
-            getServer().getPluginManager().registerEvents(new WorldUnloadListener(this, levelupdateSchedulerIsland, islandSnapshot, limitHandler), this);
+            getServer().getPluginManager().registerEvents(new WorldUnloadListener(this, levelupdateSchedulerIsland, islandSnapshot), this);
             getServer().getPluginManager().registerEvents(new WorldActivityListener(this, worldActivityHandler), this);
             getServer().getPluginManager().registerEvents(new TeleportRequestListener(this, teleportHandler), this);
             getServer().getPluginManager().registerEvents(new IslandProtectionListener(this, config, islandSnapshot), this);
             getServer().getPluginManager().registerEvents(new IslandAccessListener(this, config, islandSnapshot), this);
             getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config, islandSnapshot), this);
             getServer().getPluginManager().registerEvents(new UuidUpdateListener(this), this);
-            getServer().getPluginManager().registerEvents(new CobblestoneGeneratorListener(this, islandSnapshot, cobblestoneGeneratorHandler), this);
-            getServer().getPluginManager().registerEvents(new IslandLimitListener(this, config, limitHandler), this);
             info("All listeners loaded");
 
             info("Registering commands");
@@ -288,8 +267,9 @@ public class NewSky extends JavaPlugin {
         messenger.register(IslandDistributor.ACTION_ISLAND_COOP_ADD, payload -> emptyResponse(islandOperator.addCoop(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"))));
         messenger.register(IslandDistributor.ACTION_ISLAND_COOP_REMOVE, payload -> emptyResponse(islandOperator.removeCoop(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"))));
         messenger.register(IslandDistributor.ACTION_ISLAND_LOCK_SET, payload -> emptyResponse(islandOperator.setIslandLock(uuid(payload, "islandUuid"), payload.getBoolean("locked"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_LOCK_TOGGLE, payload -> islandOperator.toggleIslandLock(uuid(payload, "islandUuid")).thenApply(locked -> new JSONObject().put("locked", locked)));
         messenger.register(IslandDistributor.ACTION_ISLAND_PVP_SET, payload -> emptyResponse(islandOperator.setIslandPvp(uuid(payload, "islandUuid"), payload.getBoolean("pvp"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_UPGRADE_SET, payload -> emptyResponse(islandOperator.setUpgradeLevel(uuid(payload, "islandUuid"), payload.getString("upgradeId"), payload.getInt("level"), payload.getInt("borderSize"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_PVP_TOGGLE, payload -> islandOperator.toggleIslandPvp(uuid(payload, "islandUuid")).thenApply(pvp -> new JSONObject().put("pvp", pvp)));
         messenger.register(IslandDistributor.ACTION_ISLAND_EXPEL, payload -> emptyResponse(worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(uuid(payload, "islandUuid")), uuid(payload, "playerUuid"))));
     }
 
@@ -356,19 +336,17 @@ public class NewSky extends JavaPlugin {
         info("Plugin configs reloading...");
         config.reload();
         levelHandler.startup();
-        cobblestoneGeneratorHandler.startup();
-        limitHandler.startup();
         info("Plugin configs reloaded!");
     }
 
     @SuppressWarnings("unused")
     public CompletableFuture<Set<UUID>> getOnlinePlayersUUIDs() {
-        return CompletableFuture.supplyAsync(() -> onlinePlayerState.getOnlinePlayersUUIDs(), getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> onlinePlayerRegistry.getOnlinePlayerUuids(), getBukkitAsyncExecutor());
     }
 
     @SuppressWarnings("unused")
     public CompletableFuture<Set<String>> getOnlinePlayersNames() {
-        return CompletableFuture.supplyAsync(() -> onlinePlayerState.getOnlinePlayersNames(), getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> onlinePlayerRegistry.getOnlinePlayerNames(), getBukkitAsyncExecutor());
     }
 
     @SuppressWarnings("unused")

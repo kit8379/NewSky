@@ -6,7 +6,7 @@ import org.bukkit.entity.Player;
 import org.json.JSONObject;
 import org.me.newsky.NewSky;
 import org.me.newsky.messaging.CrossServerMessenger;
-import org.me.newsky.state.OnlinePlayerState;
+import org.me.newsky.cluster.OnlinePlayerRegistry;
 import org.me.newsky.util.ComponentUtils;
 
 import java.util.UUID;
@@ -18,13 +18,13 @@ public class PlayerMessageHandler {
 
     private final NewSky plugin;
     private final CrossServerMessenger messenger;
-    private final OnlinePlayerState onlinePlayerState;
+    private final OnlinePlayerRegistry onlinePlayerRegistry;
     private final String serverID;
 
-    public PlayerMessageHandler(NewSky plugin, CrossServerMessenger messenger, OnlinePlayerState onlinePlayerState, String serverID) {
+    public PlayerMessageHandler(NewSky plugin, CrossServerMessenger messenger, OnlinePlayerRegistry onlinePlayerRegistry, String serverID) {
         this.plugin = plugin;
         this.messenger = messenger;
-        this.onlinePlayerState = onlinePlayerState;
+        this.onlinePlayerRegistry = onlinePlayerRegistry;
         this.serverID = serverID;
 
         messenger.register(ACTION_PLAYER_MESSAGE_SEND, payload -> deliverLocal(UUID.fromString(payload.getString("uuid")), ComponentUtils.deserialize(payload.getString("component"))).thenApply(v -> new JSONObject()));
@@ -32,7 +32,7 @@ public class PlayerMessageHandler {
 
     public void sendPlayerMessage(UUID playerUuid, Component message) {
         CompletableFuture.runAsync(() -> {
-            String targetServer = onlinePlayerState.getOnlinePlayerServer(playerUuid);
+            String targetServer = onlinePlayerRegistry.getOnlinePlayerServer(playerUuid);
             if (serverID.equals(targetServer)|| targetServer == null) {
                 deliverLocal(playerUuid, message);
                 return;

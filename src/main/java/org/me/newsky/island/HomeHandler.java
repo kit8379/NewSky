@@ -1,7 +1,7 @@
 package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.DataCache;
+import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.exceptions.HomeDoesNotExistException;
 import org.me.newsky.exceptions.HomeNameNotLegalException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
@@ -18,18 +18,18 @@ import java.util.concurrent.CompletableFuture;
 public class HomeHandler {
 
     private final NewSky plugin;
-    private final DataCache dataCache;
+    private final DatabaseHandler database;
     private final IslandDistributor islandDistributor;
 
-    public HomeHandler(NewSky plugin, DataCache dataCache, IslandDistributor islandDistributor) {
+    public HomeHandler(NewSky plugin, DatabaseHandler database, IslandDistributor islandDistributor) {
         this.plugin = plugin;
-        this.dataCache = dataCache;
+        this.database = database;
         this.islandDistributor = islandDistributor;
     }
 
     public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, String worldName, double x, double y, double z, float yaw, float pitch) {
 
-        return CompletableFuture.supplyAsync(() -> dataCache.getIslandUuid(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
+        return CompletableFuture.supplyAsync(() -> database.getIslandUuid(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
@@ -55,24 +55,24 @@ public class HomeHandler {
 
             String homeLocation = x + "," + y + "," + z + "," + yaw + "," + pitch;
 
-            dataCache.updateHomePoint(islandUuid, playerUuid, normalizedHomeName, homeLocation);
+            database.updateHomePoint(islandUuid, playerUuid, normalizedHomeName, homeLocation);
 
             return CompletableFuture.completedFuture(null);
         });
     }
 
     public CompletableFuture<Void> delHome(UUID playerUuid, String homeName) {
-        return CompletableFuture.supplyAsync(() -> dataCache.getIslandUuid(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
+        return CompletableFuture.supplyAsync(() -> database.getIslandUuid(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
 
             UUID islandUuid = islandUuidOpt.get();
-            if (dataCache.getHomeLocation(islandUuid, playerUuid, homeName).isEmpty()) {
+            if (database.getIslandHomes(islandUuid, playerUuid).get(homeName) == null) {
                 throw new HomeDoesNotExistException();
             }
 
-            dataCache.deleteHomePoint(islandUuid, playerUuid, homeName);
+            database.deleteHomePoint(islandUuid, playerUuid, homeName);
 
             return CompletableFuture.completedFuture(null);
         });
@@ -80,14 +80,14 @@ public class HomeHandler {
 
     public CompletableFuture<Void> home(UUID playerUuid, String homeName, UUID targetPlayerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            return dataCache.getIslandUuid(playerUuid);
+            return database.getIslandUuid(playerUuid);
         }, plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
 
             UUID islandUuid = islandUuidOpt.get();
-            Optional<String> homeLocationOpt = dataCache.getHomeLocation(islandUuid, playerUuid, homeName);
+            Optional<String> homeLocationOpt = Optional.ofNullable(database.getIslandHomes(islandUuid, playerUuid).get(homeName));
             if (homeLocationOpt.isEmpty()) {
                 throw new HomeDoesNotExistException();
             }
@@ -101,13 +101,13 @@ public class HomeHandler {
 
     public CompletableFuture<Set<String>> getHomeNames(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            Optional<UUID> islandUuidOpt = dataCache.getIslandUuid(playerUuid);
+            Optional<UUID> islandUuidOpt = database.getIslandUuid(playerUuid);
             if (islandUuidOpt.isEmpty()) {
                 throw new IslandDoesNotExistException();
             }
 
             UUID islandUuid = islandUuidOpt.get();
-            return dataCache.getHomeNames(islandUuid, playerUuid);
+            return database.getIslandHomes(islandUuid, playerUuid).keySet();
         }, plugin.getBukkitAsyncExecutor());
     }
 }

@@ -1,7 +1,7 @@
 package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
-import org.me.newsky.cache.DataCache;
+import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.exceptions.*;
 import org.me.newsky.network.IslandDistributor;
 import org.me.newsky.util.IslandUtils;
@@ -14,12 +14,12 @@ import java.util.concurrent.CompletableFuture;
 public class WarpHandler {
 
     private final NewSky plugin;
-    private final DataCache dataCache;
+    private final DatabaseHandler database;
     private final IslandDistributor islandDistributor;
 
-    public WarpHandler(NewSky plugin, DataCache dataCache, IslandDistributor islandDistributor) {
+    public WarpHandler(NewSky plugin, DatabaseHandler database, IslandDistributor islandDistributor) {
         this.plugin = plugin;
-        this.dataCache = dataCache;
+        this.database = database;
         this.islandDistributor = islandDistributor;
     }
 
@@ -44,33 +44,33 @@ public class WarpHandler {
 
             String warpLocation = x + "," + y + "," + z + "," + yaw + "," + pitch;
 
-            dataCache.updateWarpPoint(islandUuid, playerUuid, normalizedWarpName, warpLocation);
+            database.updateWarpPoint(islandUuid, playerUuid, normalizedWarpName, warpLocation);
         }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> delWarp(UUID islandUuid, UUID playerUuid, String warpName) {
         return CompletableFuture.runAsync(() -> {
-            if (dataCache.getWarpLocation(islandUuid, playerUuid, warpName).isEmpty()) {
+            if (database.getIslandWarps(islandUuid, playerUuid).get(warpName) == null) {
                 throw new WarpDoesNotExistException();
             }
 
-            dataCache.deleteWarpPoint(islandUuid, playerUuid, warpName);
+            database.deleteWarpPoint(islandUuid, playerUuid, warpName);
         }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> warp(UUID islandUuid, UUID playerUuid, String warpName, UUID targetPlayerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            if (dataCache.isPlayerBanned(islandUuid, targetPlayerUuid)) {
+            if (database.getIslandBans(islandUuid).contains(targetPlayerUuid)) {
                 throw new PlayerBannedException();
             }
 
-            boolean isLocked = dataCache.isIslandLock(islandUuid);
-            boolean isMember = dataCache.getIslandPlayers(islandUuid).contains(targetPlayerUuid);
+            boolean isLocked = database.getIslandCore(islandUuid).map(DatabaseHandler.IslandCoreData::lock).orElse(false);
+            boolean isMember = database.getIslandPlayers(islandUuid).containsKey(targetPlayerUuid);
             if (isLocked && !isMember) {
                 throw new IslandLockedException();
             }
 
-            Optional<String> warpLocationOpt = dataCache.getWarpLocation(islandUuid, playerUuid, warpName);
+            Optional<String> warpLocationOpt = Optional.ofNullable(database.getIslandWarps(islandUuid, playerUuid).get(warpName));
             if (warpLocationOpt.isEmpty()) {
                 throw new WarpDoesNotExistException();
             }
@@ -83,6 +83,6 @@ public class WarpHandler {
     }
 
     public CompletableFuture<Set<String>> getWarpNames(UUID islandUuid, UUID playerUuid) {
-        return CompletableFuture.supplyAsync(() -> dataCache.getWarpNames(islandUuid, playerUuid), plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> database.getIslandWarps(islandUuid, playerUuid).keySet(), plugin.getBukkitAsyncExecutor());
     }
 }

@@ -1,0 +1,209 @@
+================================================================================
+TEMPORARY REMOVAL OF UPGRADE + LIMIT SYSTEMS  (NewSky plugin)
+================================================================================
+This file documents everything that was REMOVED so a future AI can re-add the
+Upgrade & Limit systems cleanly. The user plans to re-add them later.
+
+Branch/commit context: after removal of the Redis cache layer (DataCache) and
+the distributed lock (IslandOperationLock / IslandUpgradeLock / IslandLockState),
+and after refactoring the `state` package -> `org.me.newsky.cluster`
+(ClusterState base + ClusterKeys + OnlinePlayerRegistry / IslandRegistry /
+ServerRegistry / InvitationStore).
+
+WHY REMOVED: Upgrade + Limit logic was coupled into many commands and the
+split-brain / race analysis. The user wanted them fully out first, then rebuilt.
+
+================================================================================
+1) DELETED JAVA FILES (8)
+================================================================================
+  org/me/newsky/island/UpgradeHandler.java
+  org/me/newsky/island/LimitHandler.java
+  org/me/newsky/island/CobblestoneGeneratorHandler.java
+  org/me/newsky/listener/CobblestoneGeneratorListener.java
+  org/me/newsky/listener/IslandLimitListener.java
+  org/me/newsky/model/Upgrade.java
+  org/me/newsky/command/player/PlayerUpgradeCommand.java
+  org/me/newsky/command/admin/AdminUpgradeCommand.java
+
+Also deleted resource files:
+  src/main/resources/upgrades.yml
+  src/main/resources/limits.yml
+
+================================================================================
+2) UPGRADE SYSTEM — WHAT IT WAS
+================================================================================
+UpgradeHandler was the economy-driven upgrade engine (withdraw money via Vault,
+check island level, advance levels). It produced per-island upgrade levels for:
+  UPGRADE_TEAM_LIMIT   = "team-limit"      -> max island members
+  UPGRADE_WARP_LIMIT   = "warp-limit"      -> max warps per player
+  UPGRADE_HOME_LIMIT   = "home-limit"      -> max homes per player
+  UPGRADE_COOP_LIMIT   = "coop-limit"      -> max coop members
+  UPGRADE_ISLAND_SIZE  = "island-size"     -> world border size (from level)
+  UPGRADE_GENERATOR_RATES = "generator-rates" -> cobblestone generator loot table
+  UPGRADE_BIOMES       = "biomes"          -> allowed biome list per level
+
+Upgrade levels were persisted in DB table `island_upgrades`
+  (island_uuid, upgrade_id, level), PK (island_uuid, upgrade_id).
+
+CobblestoneGeneratorHandler consumed UPGRADE_GENERATOR_RATES and built a
+weighted Material loot table (weighted random) used by CobblestoneGeneratorListener.
+
+The Upgrade model (org.me.newsky.model.Upgrade) held
+  (upgradeId, oldLevel, newLevel, requireIslandLevel, price).
+
+================================================================================
+3) LIMIT SYSTEM — WHAT IT WAS
+================================================================================
+LimitHandler tracked per-island block counts and entity limits (in-memory
+ConcurrentHashMap<UUID, EnumMap<Material,Integer>>). It enforced:
+  - block placement limits (config.getBlockLimit / limits.yml -> limit.blocks.*)
+  - entity spawn limits (config.getEntityLimit / limit.entities.*)
+  - recomputed on island load via calIslandBlockLimit()
+  - tryIncrement / decrement on block place/break/burn (IslandLimitListener)
+  - canSpawnEntity on creature spawn / transform (IslandLimitListener)
+  - unload() on world unload (WorldUnloadListener)
+
+================================================================================
+4) MODIFIED FILES (what to reverse when re-adding)
+================================================================================
+[model/Island.java]
+  - Removed field `Map<String,Integer> upgrades` + getter getUpgrades().
+  - Constructor previously took 8 args ending with `Map<String,Integer> upgrades`.
+    Now: (islandUuid, lock, pvp, owner, members, coops, bans) -> 7 args.
+  -> To restore: add upgrades field/param/getter back.
+
+[DatabaseHandler.java]
+  - Removed createIslandUpgradesTable() + its call in createTables().
+  - Removed getIslandUpgrades(UUID), upsertIslandUpgrade(...), deleteIslandUpgrade(...).
+  - getIslandSnapshot(): removed the `upgrades` query + the 8th constructor arg.
+  -> Restore: re-add table create, the 3 methods, and the snapshot upgrades query.
+
+[IslandDistributor.java]
+  - Removed constant ACTION_ISLAND_UPGRADE_SET = "island.upgrade.set".
+  - Removed method setUpgradeLevel(islandUuid, upgradeId, level, borderSize)
+    (routed via runOnIslandServer -> islandOperator.setUpgradeLevel).
+
+[IslandOperator.java]
+  - Removed setUpgradeLevel(...) which called database.deleteIslandUpgrade /
+    upsertIslandUpgrade and updateBorder() (set world border size).
+  - Removed imports: org.bukkit.World, java.util.concurrent.CompletionException.
+  - createIsland()/loadIsland() previously called
+    plugin.getApi().calIslandBlockLimit(islandUuid) after updateIslandLoadedServer;
+    now only debug log. (Note: field renamed islandServerState -> islandRegistry.)
+
+[NewSkyAPI.java]
+  - Removed constructor params UpgradeHandler upgradeHandler, LimitHandler limitHandler.
+  - Removed all upgrade methods: upgradeToNextLevel, setUpgradeLevel,
+    getCurrentUpgradeLevel, getUpgradeIds, getUpgradeLevels, getNextUpgradeLevel,
+    getUpgradeRequireIslandLevel, getUpgradePrice, getTeamLimit, getWarpLimit,
+    getHomeLimit, getCoopLimit, getIslandSize(int level), getGeneratorRates,
+    getBiomeAllowList, and calIslandBlockLimit.
+  - Removed import org.me.newsky.model.Upgrade.
+  -> NOTE: config.getIslandSize() (no-arg, base size) is KEPT and now used by
+     WorldLoadListener.applyBorder + IslandProtectionListener instead of the
+     upgrade-derived size.
+
+[NewSky.java]
+  - Removed fields CobblestoneGeneratorHandler cobblestoneGeneratorHandler,
+    LimitHandler limitHandler.
+  - Removed construction of UpgradeHandler, CobblestoneGeneratorHandler,
+    LimitHandler.
+  - NewSkyAPI(...) call: removed upgradeHandler, limitHandler args (order now:
+    ..., uuidHandler, biomeHandler).
+  - Removed listener registrations:
+      new CobblestoneGeneratorListener(this, islandSnapshot, cobblestoneGeneratorHandler)
+      new IslandLimitListener(this, config, limitHandler)
+  - WorldUnloadListener(...) call: removed limitHandler arg.
+  - registerCrossServerHandlers(): removed
+      messenger.register(IslandDistributor.ACTION_ISLAND_UPGRADE_SET, ...)
+  - reload(): removed cobblestoneGeneratorHandler.startup(); limitHandler.startup();
+    now just config.reload(); levelHandler.startup();
+
+[WorldLoadListener.java]
+  - applyBorder() now uses fixed `config.getIslandSize()` instead of
+    island.getUpgrades().getOrDefault(UPGRADE_ISLAND_SIZE,1) -> getIslandSize(level).
+  - Removed import org.me.newsky.island.UpgradeHandler.
+
+[IslandProtectionListener.java]
+  - isInsideIslandBoundary() now uses fixed `config.getIslandSize()` instead of
+    upgrade-derived size. Removed UpgradeHandler + java.util.Map imports.
+
+[WorldUnloadListener.java]
+  - Removed LimitHandler field/param + limitHandler.unload(islandUuid) call.
+
+[IslandPlayerCommand.java]
+  - Removed: subCommands.add(new PlayerUpgradeCommand(plugin, api, config));
+
+[IslandAdminCommand.java]
+  - Removed: subCommands.add(new AdminUpgradeCommand(plugin, api, config));
+
+[ConfigHandler.java]
+  - Removed FileConfiguration fields `upgrades` (upgrades.yml) and `limits`
+    (limits.yml) + their load() calls in reload().
+  - Removed getters:
+      getBlockLimit, getEntityLimit,
+      getUpgradeIds, getUpgradeLevels, getUpgradeRequireIslandLevel,
+      getUpgradePrice, getUpgradeTeamLimit, getUpgradeWarpLimit,
+      getUpgradeHomeLimit, getUpgradeCoopLimit, getUpgradeIslandSize,
+      getUpgradeGeneratorRates, getUpgradeBiomes,
+      getPlayerUpgradeAliases/Permission/Syntax/Description,
+      getAdminUpgradeAliases/Permission/Syntax/Description,
+      getUpgradeUnknownValue,
+      getAdminUpgradeDetails*Message x5, getAdminUpgradeInvalidLevelMessage,
+      getAdminUpgradeSetSuccessMessage,
+      getPlayerUpgradeInvalidIdMessage, getPlayerUpgradeDetails*Message (many),
+      getPlayerUpgradeBuySuccessMessage, getPlayerUpgradeMaxedMessage,
+      getPlayerUpgradeIslandLevelTooLowMessage, getPlayerUpgradeNotEnoughMoneyMessage,
+      getPlayerTeamLimitReachedMessage, getPlayerWarpLimitReachedMessage,
+      getPlayerHomeLimitReachedMessage, getPlayerCoopLimitReachedMessage,
+      getBlockLimitReachedMessage,
+      getPlayerBiomeNotUnlockedMessage, getPlayerBiomeAllowedListMessage
+  - KEPT: getBlockLevel(material) [levels.yml], getIslandSize() [config.yml].
+
+================================================================================
+5) COMMANDS WITH LIMIT GATES REMOVED (rewrite when re-adding)
+================================================================================
+These commands previously read api.getCurrentUpgradeLevel(...UPGRADE_XXX) and
+blocked with a "limit reached" message. All gates removed; now they run directly.
+
+  PlayerInviteCommand     : removed team-limit gate.
+  PlayerAcceptInviteCommand : removed team-limit gate.
+  PlayerCoopCommand       : removed coop-limit gate.
+  PlayerSetHomeCommand    : removed home-limit gate.
+  PlayerSetWarpCommand    : removed warp-limit gate.
+  PlayerBiomeCommand      : removed biomes-upgrade gate; tab-complete now lists
+                            ALL biomes via RegistryAccess (like AdminBiomeCommand),
+                            added getAllBiomeNames() helper + imports
+                            io.papermc.paper.registry.RegistryAccess/RegistryKey.
+
+================================================================================
+6) NOT REMOVED (still active, do NOT confuse with upgrade/limit)
+================================================================================
+  - LevelHandler + LevelUpdateScheduler: island LEVEL system (levels.yml,
+    DatabaseHandler.createIslandLevelsTable, getIslandLevel/updateIslandLevel,
+    getTopIslandLevels(int limit)  <-- the `limit` here is just a query-row-limit).
+  - config.getIslandSize() (base island size) — used by border & protection.
+  - BiomeHandler (applyChunkBiome) — kept; only its upgrade gating was removed.
+  - Island.lock/pvp, members/coops/bans — unchanged.
+
+================================================================================
+7) RECOMMENDED RE-ADD ORDER (for a future AI)
+================================================================================
+ 1. model/Upgrade.java + model/Island.java (add upgrades field back).
+ 2. DatabaseHandler: island_upgrades table + getIslandUpgrades/upsert/delete +
+    snapshot query.
+ 3. UpgradeHandler (DB read + island level check + Vault withdraw + advance).
+    NOTE: upgradeToNextLevel/setUpgradeLevel previously used the removed
+    IslandUpgradeLock; re-add a proper guard (cluster claim / short lock) since
+    the old Redis lock is gone.
+ 4. NewSkyAPI + NewSky wiring + cross-server ACTION_ISLAND_UPGRADE_SET +
+    IslandDistributor.setUpgradeLevel + IslandOperator.setUpgradeLevel/updateBorder.
+ 5. LimitHandler + IslandLimitListener + calIslandBlockLimit in
+    IslandOperator.createIsland/loadIsland + WorldUnloadListener.unload.
+ 6. CobblestoneGeneratorHandler + CobblestoneGeneratorListener.
+ 7. PlayerUpgradeCommand + AdminUpgradeCommand + registrations.
+ 8. ConfigHandler getters + upgrades.yml + limits.yml (recreate files).
+ 9. Restore the limit gates in the 6 player commands + biome tab-complete gating.
+10. Border/protection: switch back from config.getIslandSize() to
+    island.getUpgrades()...UPGRADE_ISLAND_SIZE if desired.
+================================================================================

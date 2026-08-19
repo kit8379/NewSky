@@ -4,19 +4,19 @@ import org.bukkit.Bukkit;
 import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.state.ServerSelectorState;
+import org.me.newsky.cluster.ServerRegistry;
 
 public class MSPTUpdateScheduler {
 
     private final NewSky plugin;
-    private final ServerSelectorState serverSelectorState;
+    private final ServerRegistry serverRegistry;
     private final String serverID;
     private final long updateInterval;
     private BukkitTask task;
 
-    public MSPTUpdateScheduler(NewSky plugin, ConfigHandler config, ServerSelectorState serverSelectorState, String serverID) {
+    public MSPTUpdateScheduler(NewSky plugin, ConfigHandler config, ServerRegistry serverRegistry, String serverID) {
         this.plugin = plugin;
-        this.serverSelectorState = serverSelectorState;
+        this.serverRegistry = serverRegistry;
         this.serverID = serverID;
         this.updateInterval = config.getMsptUpdateInterval();
     }
@@ -45,7 +45,7 @@ public class MSPTUpdateScheduler {
         double mspt = Bukkit.getServer().getAverageTickTime();
         plugin.debug("MSPTUpdateScheduler", "Current MSPT: " + mspt);
 
-        serverSelectorState.updateServerMSPT(serverID, mspt);
+        serverRegistry.updateServerMSPT(serverID, mspt);
         plugin.debug("MSPTUpdateScheduler", "Updated Redis with MSPT: " + mspt + " for serverID: " + serverID);
     }
 }

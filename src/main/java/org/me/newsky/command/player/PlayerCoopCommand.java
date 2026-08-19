@@ -10,7 +10,6 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.CannotCoopIslandPlayerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerAlreadyCoopedException;
-import org.me.newsky.island.UpgradeHandler;
 
 import java.util.Collections;
 import java.util.List;
@@ -86,21 +85,12 @@ public class PlayerCoopCommand implements SubCommand, AsyncTabComplete {
                     return CompletableFuture.completedFuture(null);
                 }
 
-                return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_COOP_LIMIT).thenCompose(coopLimitLevel -> {
-                    int coopLimit = api.getCoopLimit(coopLimitLevel);
-
-                    return api.getCoopedPlayers(islandUuid).thenCompose(coopedPlayers -> {
-                        if (coopedPlayers.size() >= coopLimit) {
-                            player.sendMessage(config.getPlayerCoopLimitReachedMessage(coopLimit));
-                            return CompletableFuture.completedFuture(null);
-                        }
-
-                        return api.addCoop(islandUuid, targetUuid).thenRun(() -> {
-                            player.sendMessage(config.getPlayerCoopSuccessMessage(targetPlayerName));
-                            api.sendPlayerMessage(targetUuid, config.getWasCoopedToIslandMessage(player.getName()));
-                        });
+                return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> {
+                    return api.addCoop(islandUuid, targetUuid).thenRun(() -> {
+                        player.sendMessage(config.getPlayerCoopSuccessMessage(targetPlayerName));
+                        api.sendPlayerMessage(targetUuid, config.getWasCoopedToIslandMessage(player.getName()));
                     });
-                }));
+                });
             });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();

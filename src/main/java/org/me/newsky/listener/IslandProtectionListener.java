@@ -26,12 +26,10 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.inventory.InventoryHolder;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.island.UpgradeHandler;
 import org.me.newsky.model.Island;
 import org.me.newsky.util.IslandUtils;
 import snapshot.IslandSnapshot;
 
-import java.util.Map;
 import java.util.UUID;
 
 public class IslandProtectionListener implements Listener {
@@ -69,9 +67,7 @@ public class IslandProtectionListener implements Listener {
             return false;
         }
 
-        Map<String, Integer> upgrades = island.getUpgrades();
-        int islandSizeLevel = upgrades.getOrDefault(UpgradeHandler.UPGRADE_ISLAND_SIZE, 1);
-        int islandSize = plugin.getApi().getIslandSize(islandSizeLevel);
+        int islandSize = config.getIslandSize();
 
         int x = location.getBlockX();
         int z = location.getBlockZ();

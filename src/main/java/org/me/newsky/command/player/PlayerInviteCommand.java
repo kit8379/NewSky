@@ -11,7 +11,6 @@ import org.me.newsky.exceptions.InvitedAlreadyException;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
-import org.me.newsky.island.UpgradeHandler;
 
 import java.util.Collections;
 import java.util.List;
@@ -87,21 +86,12 @@ public class PlayerInviteCommand implements SubCommand, AsyncTabComplete {
 
                 UUID targetPlayerUuid = targetUuidOpt.get();
 
-                return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_TEAM_LIMIT).thenCompose(teamLimitLevel -> {
-                    int teamLimit = api.getTeamLimit(teamLimitLevel);
-
-                    return api.getIslandMembers(islandUuid).thenCompose(members -> {
-                        if (members.size() >= teamLimit) {
-                            player.sendMessage(config.getPlayerTeamLimitReachedMessage(teamLimit));
-                            return CompletableFuture.completedFuture(null);
-                        }
-
-                        return api.addPendingInvite(targetPlayerUuid, islandUuid, playerUuid, 600).thenRun(() -> {
-                            player.sendMessage(config.getPlayerInviteSentMessage(targetPlayerName));
-                            api.sendPlayerMessage(targetPlayerUuid, config.getPlayerInviteReceiveMessage(player.getName()));
-                        });
+                return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> {
+                    return api.addPendingInvite(targetPlayerUuid, islandUuid, playerUuid, 600).thenRun(() -> {
+                        player.sendMessage(config.getPlayerInviteSentMessage(targetPlayerName));
+                        api.sendPlayerMessage(targetPlayerUuid, config.getPlayerInviteReceiveMessage(player.getName()));
                     });
-                }));
+                });
             });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();

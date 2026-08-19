@@ -11,7 +11,6 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
 import org.me.newsky.exceptions.WarpNameNotLegalException;
-import org.me.newsky.island.UpgradeHandler;
 
 import java.util.Collections;
 import java.util.List;
@@ -77,20 +76,9 @@ public class PlayerSetWarpCommand implements SubCommand, AsyncTabComplete {
         float yaw = loc.getYaw();
         float pitch = loc.getPitch();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getWarpNames(islandUuid, playerUuid).thenCompose(existingWarps -> {
-            boolean overwriting = existingWarps.stream().anyMatch(n -> n.equalsIgnoreCase(warpName));
-
-            return api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_WARP_LIMIT).thenCompose(warpLimitLevel -> {
-                int warpLimit = api.getWarpLimit(warpLimitLevel);
-
-                if (!overwriting && existingWarps.size() >= warpLimit) {
-                    player.sendMessage(config.getPlayerWarpLimitReachedMessage(warpLimit));
-                    return CompletableFuture.completedFuture(null);
-                }
-
-                return api.setWarp(islandUuid, playerUuid, warpName, worldName, x, y, z, yaw, pitch).thenRun(() -> player.sendMessage(config.getPlayerSetWarpSuccessMessage(warpName)));
-            });
-        })).exceptionally(ex -> {
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> {
+            return api.setWarp(islandUuid, playerUuid, warpName, worldName, x, y, z, yaw, pitch).thenRun(() -> player.sendMessage(config.getPlayerSetWarpSuccessMessage(warpName)));
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());

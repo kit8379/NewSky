@@ -11,7 +11,6 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.HomeNameNotLegalException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
-import org.me.newsky.island.UpgradeHandler;
 
 import java.util.Collections;
 import java.util.List;
@@ -77,22 +76,11 @@ public class PlayerSetHomeCommand implements SubCommand, AsyncTabComplete {
         float yaw = loc.getYaw();
         float pitch = loc.getPitch();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getHomeNames(playerUuid).thenCompose(existingHomes -> {
-            boolean overwriting = existingHomes.stream().anyMatch(n -> n.equalsIgnoreCase(homeName));
-
-            return api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_HOME_LIMIT).thenCompose(homeLimitLevel -> {
-                int homeLimit = api.getHomeLimit(homeLimitLevel);
-
-                if (!overwriting && existingHomes.size() >= homeLimit) {
-                    player.sendMessage(config.getPlayerHomeLimitReachedMessage(homeLimit));
-                    return CompletableFuture.completedFuture(null);
-                }
-
-                return api.setHome(playerUuid, homeName, worldName, x, y, z, yaw, pitch).thenRun(() -> {
-                    player.sendMessage(config.getPlayerSetHomeSuccessMessage(homeName));
-                });
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> {
+            return api.setHome(playerUuid, homeName, worldName, x, y, z, yaw, pitch).thenRun(() -> {
+                player.sendMessage(config.getPlayerSetHomeSuccessMessage(homeName));
             });
-        })).exceptionally(ex -> {
+        }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());

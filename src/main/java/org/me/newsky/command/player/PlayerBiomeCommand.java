@@ -1,5 +1,7 @@
 package org.me.newsky.command.player;
 
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
@@ -9,7 +11,6 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.InvalidBiomeException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
-import org.me.newsky.island.UpgradeHandler;
 import org.me.newsky.util.IslandUtils;
 
 import java.util.*;
@@ -80,17 +81,7 @@ public class PlayerBiomeCommand implements SubCommand, AsyncTabComplete {
                 return CompletableFuture.completedFuture(null);
             }
 
-            return api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_BIOMES).thenCompose(biomeUpgradeLevel -> {
-                Set<String> allowedBiomes = api.getBiomeAllowList(biomeUpgradeLevel);
-
-                if (!allowedBiomes.contains(biomeName)) {
-                    player.sendMessage(config.getPlayerBiomeNotUnlockedMessage(biomeName));
-                    player.sendMessage(config.getPlayerBiomeAllowedListMessage(String.join(", ", allowedBiomes)));
-                    return CompletableFuture.completedFuture(null);
-                }
-
-                return api.applyChunkBiome(worldName, chunkX, chunkZ, biomeName).thenAccept(v -> player.sendMessage(config.getPlayerBiomeChangeSuccessMessage(biomeName)));
-            });
+            return api.applyChunkBiome(worldName, chunkX, chunkZ, biomeName).thenAccept(v -> player.sendMessage(config.getPlayerBiomeChangeSuccessMessage(biomeName)));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
@@ -115,16 +106,17 @@ public class PlayerBiomeCommand implements SubCommand, AsyncTabComplete {
         }
 
         if (args.length == 2) {
-            UUID playerUuid = player.getUniqueId();
             String prefix = args[1].toLowerCase(Locale.ROOT);
 
-            return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_BIOMES)).thenApply(biomeUpgradeLevel -> {
-                Set<String> allowedBiomes = api.getBiomeAllowList(biomeUpgradeLevel);
-
-                return allowedBiomes.stream().filter(name -> name.startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList());
-            }).exceptionally(ex -> Collections.emptyList());
+            return CompletableFuture.completedFuture(getAllBiomeNames().stream().filter(name -> name.startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()));
         }
 
         return CompletableFuture.completedFuture(Collections.emptyList());
+    }
+
+    private List<String> getAllBiomeNames() {
+        var registry = RegistryAccess.registryAccess().getRegistry(RegistryKey.BIOME);
+
+        return registry.stream().map(registry::getKey).filter(Objects::nonNull).map(key -> key.getKey()).sorted(String.CASE_INSENSITIVE_ORDER).toList();
     }
 }
