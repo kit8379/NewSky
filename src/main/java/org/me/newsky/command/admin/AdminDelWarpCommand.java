@@ -72,7 +72,7 @@ public class AdminDelWarpCommand implements SubCommand, AsyncTabComplete {
 
             UUID targetUuid = targetUuidOpt.get();
 
-            return api.getIslandUuid(targetUuid).thenCompose(islandUuid -> api.delWarp(islandUuid, targetUuid, warpName).thenRun(() -> sender.sendMessage(config.getAdminDelWarpSuccessMessage(warpPlayerName, warpName))));
+            return api.delWarp(targetUuid, warpName).thenRun(() -> sender.sendMessage(config.getAdminDelWarpSuccessMessage(warpPlayerName, warpName)));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
@@ -105,7 +105,7 @@ public class AdminDelWarpCommand implements SubCommand, AsyncTabComplete {
 
                 UUID targetUuid = uuidOpt.get();
 
-                return api.getIslandUuid(targetUuid).thenCompose(islandUuid -> api.getWarpNames(islandUuid, targetUuid).thenApply(names -> names.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())));
+                return api.getWarpNames(targetUuid).thenApply(names -> names.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()));
             }).exceptionally(ex -> Collections.emptyList());
         }
 

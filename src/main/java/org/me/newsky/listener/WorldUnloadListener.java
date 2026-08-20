@@ -28,11 +28,10 @@ public final class WorldUnloadListener implements Listener {
         World world = event.getWorld();
         String worldName = world.getName();
 
-        if (!IslandUtils.isIslandWorld(worldName)) {
+        UUID islandUuid = IslandUtils.parseIslandUuid(worldName);
+        if (islandUuid == null) {
             return;
         }
-
-        UUID islandUuid = IslandUtils.nameToUUID(worldName);
 
         levelUpdateScheduler.unregisterIsland(islandUuid);
         islandSnapshot.unload(islandUuid);

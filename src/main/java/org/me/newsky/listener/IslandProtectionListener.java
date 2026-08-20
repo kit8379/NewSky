@@ -54,12 +54,7 @@ public class IslandProtectionListener implements Listener {
             return null;
         }
 
-        String worldName = world.getName();
-        if (!IslandUtils.isIslandWorld(worldName)) {
-            return null;
-        }
-
-        return IslandUtils.nameToUUID(worldName);
+        return IslandUtils.parseIslandUuid(world.getName());
     }
 
     private boolean isInsideIslandBoundary(Island island, Location location) {

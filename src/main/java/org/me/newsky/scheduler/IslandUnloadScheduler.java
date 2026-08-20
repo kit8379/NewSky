@@ -57,7 +57,13 @@ public class IslandUnloadScheduler {
         long thresholdMillis = unloadInterval * 1000L;
 
         worldActivityHandler.getInactiveWorlds(thresholdMillis, now).forEach((worldName, timestamp) -> {
-            UUID islandUuid = IslandUtils.nameToUUID(worldName);
+            UUID islandUuid = IslandUtils.parseIslandUuid(worldName);
+
+            if (islandUuid == null) {
+                // A malformed island-prefixed name must not abort the sweep for every other world.
+                worldActivityHandler.clearWorld(worldName);
+                return;
+            }
 
             World bukkitWorld = Bukkit.getWorld(worldName);
 

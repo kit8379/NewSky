@@ -5,9 +5,11 @@ import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
+import org.me.newsky.model.Actor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.NoActiveServerException;
+import org.me.newsky.exceptions.NotIslandOwnerException;
 
 import java.util.Map;
 import java.util.UUID;
@@ -72,6 +74,8 @@ public class PlayerDeleteIslandCommand implements SubCommand {
         }
 
         api.getIslandUuid(playerUuid).thenCompose(islandUuid -> {
+            // Advisory pre-check only, so a non-owner is refused before walking through both confirm
+            // stages. The enforced check lives in the delete transaction (NotIslandOwnerException).
             return api.getIslandOwner(islandUuid).thenCompose(ownerUuid -> {
                 if (!ownerUuid.equals(playerUuid)) {
                     player.sendMessage(config.getPlayerDeleteNotOwnerMessage());
@@ -98,7 +102,7 @@ public class PlayerDeleteIslandCommand implements SubCommand {
                 if (stage == 2) {
                     reset(playerUuid);
 
-                    return api.deleteIsland(islandUuid).thenRun(() -> {
+                    return api.deleteIsland(islandUuid, new Actor.Player(playerUuid)).thenRun(() -> {
                         api.sendPlayerMessage(playerUuid, config.getPlayerDeleteSuccessMessage());
                     });
                 }
@@ -109,6 +113,9 @@ public class PlayerDeleteIslandCommand implements SubCommand {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
+                reset(playerUuid);
+            } else if (cause instanceof NotIslandOwnerException) {
+                player.sendMessage(config.getPlayerDeleteNotOwnerMessage());
                 reset(playerUuid);
             } else if (cause instanceof NoActiveServerException) {
                 player.sendMessage(config.getNoActiveServerMessage());

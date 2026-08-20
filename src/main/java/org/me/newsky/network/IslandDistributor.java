@@ -6,12 +6,11 @@ import org.me.newsky.exceptions.IslandAlreadyLoadedException;
 import org.me.newsky.exceptions.IslandNotLoadedException;
 import org.me.newsky.exceptions.NoActiveServerException;
 import org.me.newsky.messaging.CrossServerMessenger;
+import org.me.newsky.model.Actor;
 import org.me.newsky.routing.ServerSelector;
 import org.me.newsky.cluster.IslandRegistry;
 import org.me.newsky.cluster.ServerRegistry;
-import org.me.newsky.util.IslandUtils;
 import org.me.newsky.util.ServerUtil;
-import org.me.newsky.world.WorldHandler;
 
 import java.util.List;
 import java.util.Map;
@@ -33,11 +32,10 @@ public class IslandDistributor {
     public static final String ACTION_ISLAND_BAN_REMOVE = "island.ban.remove";
     public static final String ACTION_ISLAND_COOP_ADD = "island.coop.add";
     public static final String ACTION_ISLAND_COOP_REMOVE = "island.coop.remove";
-    public static final String ACTION_ISLAND_LOCK_SET = "island.lock.set";
     public static final String ACTION_ISLAND_LOCK_TOGGLE = "island.lock.toggle";
-    public static final String ACTION_ISLAND_PVP_SET = "island.pvp.set";
     public static final String ACTION_ISLAND_PVP_TOGGLE = "island.pvp.toggle";
     public static final String ACTION_ISLAND_EXPEL = "island.expel";
+    public static final String ACTION_ISLAND_SNAPSHOT_REFRESH = "island.snapshot.refresh";
 
     private final NewSky plugin;
     private final IslandOperator islandOperator;
@@ -45,17 +43,15 @@ public class IslandDistributor {
     private final ServerRegistry serverRegistry;
     private final IslandRegistry islandRegistry;
     private final CrossServerMessenger messenger;
-    private final WorldHandler worldHandler;
     private final String serverID;
 
-    public IslandDistributor(NewSky plugin, IslandOperator islandOperator, ServerSelector serverSelector, ServerRegistry serverRegistry, IslandRegistry islandRegistry, CrossServerMessenger messenger, WorldHandler worldHandler, String serverID) {
+    public IslandDistributor(NewSky plugin, IslandOperator islandOperator, ServerSelector serverSelector, ServerRegistry serverRegistry, IslandRegistry islandRegistry, CrossServerMessenger messenger, String serverID) {
         this.plugin = plugin;
         this.islandOperator = islandOperator;
         this.serverSelector = serverSelector;
         this.serverRegistry = serverRegistry;
         this.islandRegistry = islandRegistry;
         this.messenger = messenger;
-        this.worldHandler = worldHandler;
         this.serverID = serverID;
     }
 
@@ -69,25 +65,50 @@ public class IslandDistributor {
             return CompletableFuture.completedFuture(alreadyLoadedServer);
         }
 
-        String targetServer = selectServer(serverRegistry.getActiveGameServers());
-        if (targetServer == null) {
+        String candidate = selectServer(serverRegistry.getActiveGameServers());
+        if (candidate == null) {
             return CompletableFuture.failedFuture(new NoActiveServerException());
         }
 
-        if (targetServer.equals(serverID)) {
-            return islandOperator.loadIsland(islandUuid).thenApply(v -> targetServer);
+        // Claim the host before loading. Without the claim two servers can both observe an unclaimed
+        // island, pick different hosts, and load the same world twice on top of one storage backend.
+        boolean claimed = islandRegistry.claimIslandLoadedServer(islandUuid, candidate);
+        String host = claimed ? candidate : getServerByIsland(islandUuid);
+        if (host == null) {
+            return CompletableFuture.failedFuture(new NoActiveServerException());
         }
 
-        JSONObject payload = new JSONObject();
-        payload.put("islandUuid", islandUuid.toString());
-        return messenger.requestVoid(targetServer, ACTION_ISLAND_LOAD, payload).thenApply(v -> targetServer);
+        // Winner and losers alike dispatch the load to the claimed host, which de-duplicates them
+        // locally. That way every caller only continues once the world is really loaded.
+        return dispatchLoad(islandUuid, host, claimed).thenApply(v -> host);
+    }
+
+    private CompletableFuture<Void> dispatchLoad(UUID islandUuid, String host, boolean claimedByUs) {
+        CompletableFuture<Void> load;
+
+        if (host.equals(serverID)) {
+            load = islandOperator.loadIsland(islandUuid);
+        } else {
+            JSONObject payload = new JSONObject();
+            payload.put("islandUuid", islandUuid.toString());
+            load = messenger.requestVoid(host, ACTION_ISLAND_LOAD, payload);
+        }
+
+        return load.exceptionallyCompose(e -> {
+            // Only the caller that took the claim may release it, otherwise a failing loser would
+            // strip the claim out from under the winner while it is still loading.
+            if (claimedByUs) {
+                islandRegistry.removeIslandLoadedServer(islandUuid);
+            }
+            return CompletableFuture.failedFuture(e);
+        });
     }
 
     // =====================================================================================
     // Island lifecycle
     // =====================================================================================
 
-    public CompletableFuture<Void> createIsland(UUID islandUuid, UUID ownerUuid, String homeLocation) {
+    public CompletableFuture<Void> createIsland(UUID islandUuid, UUID ownerUuid) {
         String targetServer = selectServer(serverRegistry.getActiveGameServers());
         if (targetServer == null) {
             return CompletableFuture.failedFuture(new NoActiveServerException());
@@ -96,33 +117,27 @@ public class IslandDistributor {
         JSONObject payload = new JSONObject();
         payload.put("islandUuid", islandUuid.toString());
         payload.put("ownerUuid", ownerUuid.toString());
-        payload.put("homeLocation", homeLocation);
 
         if (targetServer.equals(serverID)) {
-            return islandOperator.createIsland(islandUuid, ownerUuid, homeLocation);
+            return islandOperator.createIsland(islandUuid, ownerUuid);
         }
 
         return messenger.requestVoid(targetServer, ACTION_ISLAND_CREATE, payload);
     }
 
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
-        String islandServer = getServerByIsland(islandUuid);
-        if (islandServer != null) {
-            return CompletableFuture.failedFuture(new IslandAlreadyLoadedException());
-        }
-
-        String targetServer = selectServer(serverRegistry.getActiveGameServers());
-        if (targetServer == null) {
+        String candidate = selectServer(serverRegistry.getActiveGameServers());
+        if (candidate == null) {
             return CompletableFuture.failedFuture(new NoActiveServerException());
         }
 
-        if (targetServer.equals(serverID)) {
-            return islandOperator.loadIsland(islandUuid);
+        // Losing the claim is exactly the "already loaded" case, and deciding it this way makes two
+        // simultaneous load requests resolve atomically instead of both proceeding.
+        if (!islandRegistry.claimIslandLoadedServer(islandUuid, candidate)) {
+            return CompletableFuture.failedFuture(new IslandAlreadyLoadedException());
         }
 
-        JSONObject payload = new JSONObject();
-        payload.put("islandUuid", islandUuid.toString());
-        return messenger.requestVoid(targetServer, ACTION_ISLAND_LOAD, payload);
+        return dispatchLoad(islandUuid, candidate, true);
     }
 
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
@@ -140,14 +155,15 @@ public class IslandDistributor {
         return messenger.requestVoid(islandServer, ACTION_ISLAND_UNLOAD, payload);
     }
 
-    public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
+    public CompletableFuture<Void> deleteIsland(UUID islandUuid, Actor actor) {
         String islandServer = getServerByIsland(islandUuid);
         if (islandServer == null || islandServer.equals(serverID)) {
-            return islandOperator.deleteIsland(islandUuid);
+            return islandOperator.deleteIsland(islandUuid, actor);
         }
 
         JSONObject payload = new JSONObject();
         payload.put("islandUuid", islandUuid.toString());
+        payload.put(Actor.FIELD, Actor.toJson(actor));
         return messenger.requestVoid(islandServer, ACTION_ISLAND_DELETE, payload);
     }
 
@@ -183,106 +199,106 @@ public class IslandDistributor {
         return messenger.requestVoid(lobbyServer, ACTION_ISLAND_TELEPORT_PREPARE, payload).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, lobbyServer));
     }
 
-    public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role, String homeLocation) {
+    public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role) {
         JSONObject payload = new JSONObject();
         payload.put("islandUuid", islandUuid.toString());
         payload.put("playerUuid", playerUuid.toString());
         payload.put("role", role);
-        payload.put("homeLocation", homeLocation);
         return runOnIslandServer(islandUuid, ACTION_ISLAND_MEMBER_ADD, payload, () -> {
-            return islandOperator.addMember(islandUuid, playerUuid, role, homeLocation);
+            return islandOperator.addMember(islandUuid, playerUuid, role);
         });
     }
 
-    public CompletableFuture<Void> removeMember(UUID islandUuid, UUID playerUuid) {
-        JSONObject payload = new JSONObject();
-        payload.put("islandUuid", islandUuid.toString());
+    public CompletableFuture<Void> removeMember(UUID islandUuid, Actor actor, UUID playerUuid) {
+        JSONObject payload = islandActorPayload(islandUuid, actor);
         payload.put("playerUuid", playerUuid.toString());
-        return runOnIslandServer(islandUuid, ACTION_ISLAND_MEMBER_REMOVE, payload, () -> islandOperator.removeMember(islandUuid, playerUuid));
+        return runOnIslandServer(islandUuid, ACTION_ISLAND_MEMBER_REMOVE, payload, () -> islandOperator.removeMember(islandUuid, actor, playerUuid));
     }
 
-    public CompletableFuture<Void> setOwner(UUID islandUuid, UUID oldOwnerUuid, UUID newOwnerUuid) {
-        JSONObject payload = new JSONObject();
-        payload.put("islandUuid", islandUuid.toString());
-        payload.put("oldOwnerUuid", oldOwnerUuid.toString());
+    public CompletableFuture<Void> setOwner(UUID islandUuid, Actor actor, UUID newOwnerUuid) {
+        JSONObject payload = islandActorPayload(islandUuid, actor);
         payload.put("newOwnerUuid", newOwnerUuid.toString());
-        return runOnIslandServer(islandUuid, ACTION_ISLAND_OWNER_SET, payload, () -> islandOperator.setOwner(islandUuid, oldOwnerUuid, newOwnerUuid));
+        return runOnIslandServer(islandUuid, ACTION_ISLAND_OWNER_SET, payload, () -> islandOperator.setOwner(islandUuid, actor, newOwnerUuid));
     }
 
-    public CompletableFuture<Void> addBan(UUID islandUuid, UUID playerUuid) {
-        JSONObject payload = new JSONObject();
-        payload.put("islandUuid", islandUuid.toString());
+    public CompletableFuture<Void> addBan(UUID islandUuid, Actor actor, UUID playerUuid) {
+        JSONObject payload = islandActorPayload(islandUuid, actor);
         payload.put("playerUuid", playerUuid.toString());
-        return runOnIslandServer(islandUuid, ACTION_ISLAND_BAN_ADD, payload, () -> islandOperator.addBan(islandUuid, playerUuid));
+        return runOnIslandServer(islandUuid, ACTION_ISLAND_BAN_ADD, payload, () -> islandOperator.addBan(islandUuid, actor, playerUuid));
     }
 
-    public CompletableFuture<Void> removeBan(UUID islandUuid, UUID playerUuid) {
-        JSONObject payload = new JSONObject();
-        payload.put("islandUuid", islandUuid.toString());
+    public CompletableFuture<Void> removeBan(UUID islandUuid, Actor actor, UUID playerUuid) {
+        JSONObject payload = islandActorPayload(islandUuid, actor);
         payload.put("playerUuid", playerUuid.toString());
-        return runOnIslandServer(islandUuid, ACTION_ISLAND_BAN_REMOVE, payload, () -> islandOperator.removeBan(islandUuid, playerUuid));
+        return runOnIslandServer(islandUuid, ACTION_ISLAND_BAN_REMOVE, payload, () -> islandOperator.removeBan(islandUuid, actor, playerUuid));
     }
 
-    public CompletableFuture<Void> addCoop(UUID islandUuid, UUID playerUuid) {
-        JSONObject payload = new JSONObject();
-        payload.put("islandUuid", islandUuid.toString());
+    public CompletableFuture<Void> addCoop(UUID islandUuid, Actor actor, UUID playerUuid) {
+        JSONObject payload = islandActorPayload(islandUuid, actor);
         payload.put("playerUuid", playerUuid.toString());
-        return runOnIslandServer(islandUuid, ACTION_ISLAND_COOP_ADD, payload, () -> islandOperator.addCoop(islandUuid, playerUuid));
+        return runOnIslandServer(islandUuid, ACTION_ISLAND_COOP_ADD, payload, () -> islandOperator.addCoop(islandUuid, actor, playerUuid));
     }
 
-    public CompletableFuture<Void> removeCoop(UUID islandUuid, UUID playerUuid) {
-        JSONObject payload = new JSONObject();
-        payload.put("islandUuid", islandUuid.toString());
+    public CompletableFuture<Void> removeCoop(UUID islandUuid, Actor actor, UUID playerUuid) {
+        JSONObject payload = islandActorPayload(islandUuid, actor);
         payload.put("playerUuid", playerUuid.toString());
-        return runOnIslandServer(islandUuid, ACTION_ISLAND_COOP_REMOVE, payload, () -> islandOperator.removeCoop(islandUuid, playerUuid));
+        return runOnIslandServer(islandUuid, ACTION_ISLAND_COOP_REMOVE, payload, () -> islandOperator.removeCoop(islandUuid, actor, playerUuid));
     }
 
-    public CompletableFuture<Void> setIslandLock(UUID islandUuid, boolean locked) {
-        JSONObject payload = new JSONObject();
-        payload.put("islandUuid", islandUuid.toString());
-        payload.put("locked", locked);
-        return runOnIslandServer(islandUuid, ACTION_ISLAND_LOCK_SET, payload, () -> islandOperator.setIslandLock(islandUuid, locked));
-    }
-
-    public CompletableFuture<Void> setIslandPvp(UUID islandUuid, boolean pvp) {
-        JSONObject payload = new JSONObject();
-        payload.put("islandUuid", islandUuid.toString());
-        payload.put("pvp", pvp);
-        return runOnIslandServer(islandUuid, ACTION_ISLAND_PVP_SET, payload, () -> islandOperator.setIslandPvp(islandUuid, pvp));
-    }
-
-    public CompletableFuture<Boolean> toggleIslandLock(UUID islandUuid) {
+    public CompletableFuture<Boolean> toggleIslandLock(UUID islandUuid, Actor actor) {
         String islandServer = getServerByIsland(islandUuid);
         if (islandServer == null || islandServer.equals(serverID)) {
-            return islandOperator.toggleIslandLock(islandUuid);
+            return islandOperator.toggleIslandLock(islandUuid, actor);
         }
 
-        JSONObject payload = new JSONObject();
-        payload.put("islandUuid", islandUuid.toString());
-        return messenger.request(islandServer, ACTION_ISLAND_LOCK_TOGGLE, payload).thenApply(resp -> resp.getBoolean("locked"));
+        return messenger.request(islandServer, ACTION_ISLAND_LOCK_TOGGLE, islandActorPayload(islandUuid, actor)).thenApply(resp -> resp.getBoolean("locked"));
     }
 
-    public CompletableFuture<Boolean> toggleIslandPvp(UUID islandUuid) {
+    public CompletableFuture<Boolean> toggleIslandPvp(UUID islandUuid, Actor actor) {
         String islandServer = getServerByIsland(islandUuid);
         if (islandServer == null || islandServer.equals(serverID)) {
-            return islandOperator.toggleIslandPvp(islandUuid);
+            return islandOperator.toggleIslandPvp(islandUuid, actor);
         }
 
-        JSONObject payload = new JSONObject();
-        payload.put("islandUuid", islandUuid.toString());
-        return messenger.request(islandServer, ACTION_ISLAND_PVP_TOGGLE, payload).thenApply(resp -> resp.getBoolean("pvp"));
+        return messenger.request(islandServer, ACTION_ISLAND_PVP_TOGGLE, islandActorPayload(islandUuid, actor)).thenApply(resp -> resp.getBoolean("pvp"));
     }
 
     public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
         JSONObject payload = new JSONObject();
         payload.put("islandUuid", islandUuid.toString());
         payload.put("playerUuid", playerUuid.toString());
-        return runOnIslandServer(islandUuid, ACTION_ISLAND_EXPEL, payload, () -> worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(islandUuid), playerUuid));
+        return runOnIslandServer(islandUuid, ACTION_ISLAND_EXPEL, payload, () -> islandOperator.expelPlayer(islandUuid, playerUuid));
+    }
+
+    /**
+     * Refreshes the island's snapshot on whichever server hosts it. A no-op for unloaded islands:
+     * they have no snapshot anywhere.
+     */
+    public CompletableFuture<Void> refreshIslandSnapshot(UUID islandUuid) {
+        String islandServer = getServerByIsland(islandUuid);
+        if (islandServer == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        if (islandServer.equals(serverID)) {
+            return islandOperator.refreshSnapshot(islandUuid);
+        }
+
+        JSONObject payload = new JSONObject();
+        payload.put("islandUuid", islandUuid.toString());
+        return messenger.requestVoid(islandServer, ACTION_ISLAND_SNAPSHOT_REFRESH, payload);
     }
 
     // =====================================================================================
     // Internal helpers
     // =====================================================================================
+
+    private JSONObject islandActorPayload(UUID islandUuid, Actor actor) {
+        JSONObject payload = new JSONObject();
+        payload.put("islandUuid", islandUuid.toString());
+        payload.put(Actor.FIELD, Actor.toJson(actor));
+        return payload;
+    }
 
     private CompletableFuture<Void> runOnIslandServer(UUID islandUuid, String action, JSONObject payload, LocalOperation localOperation) {
         String islandServer = getServerByIsland(islandUuid);

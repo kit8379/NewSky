@@ -28,86 +28,50 @@ public class HomeHandler {
     }
 
     public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, String worldName, double x, double y, double z, float yaw, float pitch) {
-
-        return CompletableFuture.supplyAsync(() -> database.getIslandUuid(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
-            if (islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException();
-            }
-
-            UUID islandUuid = islandUuidOpt.get();
-
-            if (!worldName.equals(IslandUtils.UUIDToName(islandUuid))) {
+        return CompletableFuture.runAsync(() -> {
+            // The island is derived from the world the point lives in. Membership of that island is
+            // enforced by the island_homes to island_players foreign key, so no lookup is needed here.
+            UUID islandUuid = IslandUtils.parseIslandUuid(worldName);
+            if (islandUuid == null) {
                 throw new LocationNotInIslandException();
             }
 
             String normalizedHomeName = homeName.toLowerCase(Locale.ROOT);
-
-            if (normalizedHomeName.isEmpty() || normalizedHomeName.length() > 32) {
+            if (!IslandUtils.isLegalPointName(normalizedHomeName)) {
                 throw new HomeNameNotLegalException();
-            }
-
-            for (int i = 0; i < normalizedHomeName.length(); i++) {
-                char c = normalizedHomeName.charAt(i);
-                if (!(c >= 'a' && c <= 'z') && !(c >= '0' && c <= '9') && c != '_' && c != '-') {
-                    throw new HomeNameNotLegalException();
-                }
             }
 
             String homeLocation = x + "," + y + "," + z + "," + yaw + "," + pitch;
 
             database.updateHomePoint(islandUuid, playerUuid, normalizedHomeName, homeLocation);
-
-            return CompletableFuture.completedFuture(null);
-        });
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> delHome(UUID playerUuid, String homeName) {
-        return CompletableFuture.supplyAsync(() -> database.getIslandUuid(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
-            if (islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException();
-            }
-
-            UUID islandUuid = islandUuidOpt.get();
-            if (database.getIslandHomes(islandUuid, playerUuid).get(homeName) == null) {
-                throw new HomeDoesNotExistException();
-            }
+        return CompletableFuture.runAsync(() -> {
+            UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
 
             database.deleteHomePoint(islandUuid, playerUuid, homeName);
-
-            return CompletableFuture.completedFuture(null);
-        });
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> home(UUID playerUuid, String homeName, UUID targetPlayerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            return database.getIslandUuid(playerUuid);
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(islandUuidOpt -> {
-            if (islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException();
-            }
+            UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
+            String homeLocation = Optional.ofNullable(database.getIslandHomes(islandUuid, playerUuid).get(homeName)).orElseThrow(HomeDoesNotExistException::new);
 
-            UUID islandUuid = islandUuidOpt.get();
-            Optional<String> homeLocationOpt = Optional.ofNullable(database.getIslandHomes(islandUuid, playerUuid).get(homeName));
-            if (homeLocationOpt.isEmpty()) {
-                throw new HomeDoesNotExistException();
-            }
-
-            String homeWorld = IslandUtils.UUIDToName(islandUuid);
-            String homeLocation = homeLocationOpt.get();
-
-            return islandDistributor.teleportIsland(islandUuid, targetPlayerUuid, homeWorld, homeLocation);
-        });
+            return new HomeTarget(islandUuid, homeLocation);
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(target -> islandDistributor.teleportIsland(target.islandUuid(), targetPlayerUuid, IslandUtils.UUIDToName(target.islandUuid()), target.homeLocation()));
     }
 
     public CompletableFuture<Set<String>> getHomeNames(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            Optional<UUID> islandUuidOpt = database.getIslandUuid(playerUuid);
-            if (islandUuidOpt.isEmpty()) {
-                throw new IslandDoesNotExistException();
-            }
+            UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
 
-            UUID islandUuid = islandUuidOpt.get();
             return database.getIslandHomes(islandUuid, playerUuid).keySet();
         }, plugin.getBukkitAsyncExecutor());
+    }
+
+    private record HomeTarget(UUID islandUuid, String homeLocation) {
     }
 }

@@ -17,6 +17,7 @@ import org.me.newsky.island.*;
 import org.me.newsky.listener.*;
 import org.me.newsky.messaging.CrossServerMessenger;
 import org.me.newsky.message.PlayerMessageHandler;
+import org.me.newsky.model.Actor;
 import org.me.newsky.network.IslandDistributor;
 import org.me.newsky.network.IslandOperator;
 import org.me.newsky.redis.RedisHandler;
@@ -31,7 +32,6 @@ import org.me.newsky.scheduler.MSPTUpdateScheduler;
 import org.me.newsky.cluster.*;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.thread.BukkitAsyncExecutor;
-import org.me.newsky.util.IslandUtils;
 import org.me.newsky.uuid.UuidHandler;
 import org.me.newsky.world.WorldActivityHandler;
 import org.me.newsky.world.WorldHandler;
@@ -137,7 +137,7 @@ public class NewSky extends JavaPlugin {
             info("Starting handlers for island remote requests");
             crossServerMessenger = new CrossServerMessenger(this, redisHandler, serverID);
             IslandOperator islandOperator = new IslandOperator(this, databaseHandler, worldHandler, teleportHandler, islandSnapshot, islandRegistry, serverID);
-            IslandDistributor islandDistributor = new IslandDistributor(this, islandOperator, serverSelector, serverRegistry, islandRegistry, crossServerMessenger, worldHandler, serverID);
+            IslandDistributor islandDistributor = new IslandDistributor(this, islandOperator, serverSelector, serverRegistry, islandRegistry, crossServerMessenger, serverID);
             registerCrossServerHandlers(crossServerMessenger, islandOperator);
             info("All handlers for remote requests loaded");
 
@@ -154,14 +154,14 @@ public class NewSky extends JavaPlugin {
             info("Economy provider loaded");
 
             info("Starting main handlers for the plugin");
-            CoreHandler coreHandler = new CoreHandler(this, config, databaseHandler, islandDistributor);
-            PlayerHandler playerHandler = new PlayerHandler(this, config, databaseHandler, islandDistributor, invitationStore);
+            CoreHandler coreHandler = new CoreHandler(this, databaseHandler, islandDistributor);
+            PlayerHandler playerHandler = new PlayerHandler(this, databaseHandler, islandDistributor, invitationStore, onlinePlayerRegistry);
             HomeHandler homeHandler = new HomeHandler(this, databaseHandler, islandDistributor);
             WarpHandler warpHandler = new WarpHandler(this, databaseHandler, islandDistributor);
             levelHandler = new LevelHandler(this, config, databaseHandler);
             BanHandler banHandler = new BanHandler(this, databaseHandler, islandDistributor);
-            CoopHandler coopHandler = new CoopHandler(this, databaseHandler, islandDistributor);
-            BiomeHandler biomeHandler = new BiomeHandler(this);
+            CoopHandler coopHandler = new CoopHandler(this, databaseHandler, islandDistributor, onlinePlayerRegistry);
+            BiomeHandler biomeHandler = new BiomeHandler(this, databaseHandler);
             LobbyHandler lobbyHandler = new LobbyHandler(this, config, islandDistributor);
             UuidHandler uuidHandler = new UuidHandler(this, databaseHandler);
             WorldActivityHandler worldActivityHandler = new WorldActivityHandler(this);
@@ -254,23 +254,22 @@ public class NewSky extends JavaPlugin {
     }
 
     private void registerCrossServerHandlers(CrossServerMessenger messenger, IslandOperator islandOperator) {
-        messenger.register(IslandDistributor.ACTION_ISLAND_CREATE, payload -> emptyResponse(islandOperator.createIsland(uuid(payload, "islandUuid"), uuid(payload, "ownerUuid"), payload.getString("homeLocation"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_CREATE, payload -> emptyResponse(islandOperator.createIsland(uuid(payload, "islandUuid"), uuid(payload, "ownerUuid"))));
         messenger.register(IslandDistributor.ACTION_ISLAND_LOAD, payload -> emptyResponse(islandOperator.loadIsland(uuid(payload, "islandUuid"))));
         messenger.register(IslandDistributor.ACTION_ISLAND_UNLOAD, payload -> emptyResponse(islandOperator.unloadIsland(uuid(payload, "islandUuid"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_DELETE, payload -> emptyResponse(islandOperator.deleteIsland(uuid(payload, "islandUuid"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_DELETE, payload -> emptyResponse(islandOperator.deleteIsland(uuid(payload, "islandUuid"), Actor.fromJson(payload))));
         messenger.register(IslandDistributor.ACTION_ISLAND_TELEPORT_PREPARE, payload -> emptyResponse(islandOperator.prepareTeleport(uuid(payload, "playerUuid"), payload.getString("teleportWorld"), payload.getString("teleportLocation"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_MEMBER_ADD, payload -> emptyResponse(islandOperator.addMember(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"), payload.getString("role"), payload.getString("homeLocation"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_MEMBER_REMOVE, payload -> emptyResponse(islandOperator.removeMember(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_OWNER_SET, payload -> emptyResponse(islandOperator.setOwner(uuid(payload, "islandUuid"), uuid(payload, "oldOwnerUuid"), uuid(payload, "newOwnerUuid"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_BAN_ADD, payload -> emptyResponse(islandOperator.addBan(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_BAN_REMOVE, payload -> emptyResponse(islandOperator.removeBan(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_COOP_ADD, payload -> emptyResponse(islandOperator.addCoop(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_COOP_REMOVE, payload -> emptyResponse(islandOperator.removeCoop(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_LOCK_SET, payload -> emptyResponse(islandOperator.setIslandLock(uuid(payload, "islandUuid"), payload.getBoolean("locked"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_LOCK_TOGGLE, payload -> islandOperator.toggleIslandLock(uuid(payload, "islandUuid")).thenApply(locked -> new JSONObject().put("locked", locked)));
-        messenger.register(IslandDistributor.ACTION_ISLAND_PVP_SET, payload -> emptyResponse(islandOperator.setIslandPvp(uuid(payload, "islandUuid"), payload.getBoolean("pvp"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_PVP_TOGGLE, payload -> islandOperator.toggleIslandPvp(uuid(payload, "islandUuid")).thenApply(pvp -> new JSONObject().put("pvp", pvp)));
-        messenger.register(IslandDistributor.ACTION_ISLAND_EXPEL, payload -> emptyResponse(worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(uuid(payload, "islandUuid")), uuid(payload, "playerUuid"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_MEMBER_ADD, payload -> emptyResponse(islandOperator.addMember(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"), payload.getString("role"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_MEMBER_REMOVE, payload -> emptyResponse(islandOperator.removeMember(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_OWNER_SET, payload -> emptyResponse(islandOperator.setOwner(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "newOwnerUuid"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_BAN_ADD, payload -> emptyResponse(islandOperator.addBan(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_BAN_REMOVE, payload -> emptyResponse(islandOperator.removeBan(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_COOP_ADD, payload -> emptyResponse(islandOperator.addCoop(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_COOP_REMOVE, payload -> emptyResponse(islandOperator.removeCoop(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_LOCK_TOGGLE, payload -> islandOperator.toggleIslandLock(uuid(payload, "islandUuid"), Actor.fromJson(payload)).thenApply(locked -> new JSONObject().put("locked", locked)));
+        messenger.register(IslandDistributor.ACTION_ISLAND_PVP_TOGGLE, payload -> islandOperator.toggleIslandPvp(uuid(payload, "islandUuid"), Actor.fromJson(payload)).thenApply(pvp -> new JSONObject().put("pvp", pvp)));
+        messenger.register(IslandDistributor.ACTION_ISLAND_EXPEL, payload -> emptyResponse(islandOperator.expelPlayer(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_SNAPSHOT_REFRESH, payload -> emptyResponse(islandOperator.refreshSnapshot(uuid(payload, "islandUuid"))));
     }
 
     private CompletableFuture<JSONObject> emptyResponse(CompletableFuture<Void> future) {

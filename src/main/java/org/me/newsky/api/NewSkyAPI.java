@@ -4,6 +4,7 @@ import net.kyori.adventure.text.Component;
 import org.me.newsky.NewSky;
 import org.me.newsky.island.*;
 import org.me.newsky.message.PlayerMessageHandler;
+import org.me.newsky.model.Actor;
 import org.me.newsky.model.Invitation;
 import org.me.newsky.model.IslandTop;
 import org.me.newsky.uuid.UuidHandler;
@@ -47,8 +48,8 @@ public class NewSkyAPI {
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> deleteIsland(UUID islandUuid) {
-        return coreHandler.deleteIsland(islandUuid);
+    public CompletableFuture<Void> deleteIsland(UUID islandUuid, Actor actor) {
+        return coreHandler.deleteIsland(islandUuid, actor);
     }
 
     @SuppressWarnings("unused")
@@ -67,8 +68,8 @@ public class NewSkyAPI {
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> removeMember(UUID islandUuid, UUID playerUuid) {
-        return playerHandler.removeMember(islandUuid, playerUuid);
+    public CompletableFuture<Void> removeMember(UUID islandUuid, Actor actor, UUID playerUuid) {
+        return playerHandler.removeMember(islandUuid, actor, playerUuid);
     }
 
     @SuppressWarnings("unused")
@@ -87,8 +88,8 @@ public class NewSkyAPI {
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> setOwner(UUID islandUuid, UUID newOwnerPlayerUuid) {
-        return playerHandler.setOwner(islandUuid, newOwnerPlayerUuid);
+    public CompletableFuture<Void> setOwner(UUID islandUuid, Actor actor, UUID newOwnerPlayerUuid) {
+        return playerHandler.setOwner(islandUuid, actor, newOwnerPlayerUuid);
     }
 
     @SuppressWarnings("unused")
@@ -107,43 +108,43 @@ public class NewSkyAPI {
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> setWarp(UUID islandUuid, UUID playerUuid, String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
-        return warpHandler.setWarp(islandUuid, playerUuid, warpName, worldName, x, y, z, yaw, pitch);
+    public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
+        return warpHandler.setWarp(playerUuid, warpName, worldName, x, y, z, yaw, pitch);
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> delWarp(UUID islandUuid, UUID playerUuid, String warpName) {
-        return warpHandler.delWarp(islandUuid, playerUuid, warpName);
+    public CompletableFuture<Void> delWarp(UUID playerUuid, String warpName) {
+        return warpHandler.delWarp(playerUuid, warpName);
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> warp(UUID islandUuid, UUID playerUuid, String warpName, UUID targetPlayerUuid) {
-        return warpHandler.warp(islandUuid, playerUuid, warpName, targetPlayerUuid);
+    public CompletableFuture<Void> warp(UUID warpPlayerUuid, String warpName, UUID targetPlayerUuid) {
+        return warpHandler.warp(warpPlayerUuid, warpName, targetPlayerUuid);
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
-        return playerHandler.expelPlayer(islandUuid, playerUuid);
+    public CompletableFuture<Void> expelPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
+        return playerHandler.expelPlayer(islandUuid, actor, playerUuid);
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> banPlayer(UUID islandUuid, UUID playerUuid) {
-        return banHandler.banPlayer(islandUuid, playerUuid);
+    public CompletableFuture<Void> banPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
+        return banHandler.banPlayer(islandUuid, actor, playerUuid);
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> unbanPlayer(UUID islandUuid, UUID playerUuid) {
-        return banHandler.unbanPlayer(islandUuid, playerUuid);
+    public CompletableFuture<Void> unbanPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
+        return banHandler.unbanPlayer(islandUuid, actor, playerUuid);
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> addCoop(UUID islandUuid, UUID playerUuid) {
-        return coopHandler.coopPlayer(islandUuid, playerUuid);
+    public CompletableFuture<Void> addCoop(UUID islandUuid, Actor actor, UUID playerUuid) {
+        return coopHandler.coopPlayer(islandUuid, actor, playerUuid);
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> removeCoop(UUID islandUuid, UUID playerUuid) {
-        return coopHandler.unCoopPlayer(islandUuid, playerUuid);
+    public CompletableFuture<Void> removeCoop(UUID islandUuid, Actor actor, UUID playerUuid) {
+        return coopHandler.unCoopPlayer(islandUuid, actor, playerUuid);
     }
 
     @SuppressWarnings("unused")
@@ -152,13 +153,13 @@ public class NewSkyAPI {
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Boolean> toggleIslandLock(UUID islandUuid) {
-        return coreHandler.toggleIslandLock(islandUuid);
+    public CompletableFuture<Boolean> toggleIslandLock(UUID islandUuid, Actor actor) {
+        return coreHandler.toggleIslandLock(islandUuid, actor);
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Boolean> toggleIslandPvp(UUID islandUuid) {
-        return coreHandler.toggleIslandPvp(islandUuid);
+    public CompletableFuture<Boolean> toggleIslandPvp(UUID islandUuid, Actor actor) {
+        return coreHandler.toggleIslandPvp(islandUuid, actor);
     }
 
     @SuppressWarnings("unused")
@@ -202,8 +203,8 @@ public class NewSkyAPI {
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Set<String>> getWarpNames(UUID islandUuid, UUID playerUuid) {
-        return warpHandler.getWarpNames(islandUuid, playerUuid);
+    public CompletableFuture<Set<String>> getWarpNames(UUID playerUuid) {
+        return warpHandler.getWarpNames(playerUuid);
     }
 
     @SuppressWarnings("unused")
@@ -239,6 +240,11 @@ public class NewSkyAPI {
     @SuppressWarnings("unused")
     public CompletableFuture<Void> applyChunkBiome(String worldName, int chunkX, int chunkZ, String biomeName) {
         return biomeHandler.applyChunkBiome(worldName, chunkX, chunkZ, biomeName);
+    }
+
+    @SuppressWarnings("unused")
+    public CompletableFuture<Void> applyPlayerChunkBiome(UUID playerUuid, String worldName, int chunkX, int chunkZ, String biomeName) {
+        return biomeHandler.applyPlayerChunkBiome(playerUuid, worldName, chunkX, chunkZ, biomeName);
     }
 
     @SuppressWarnings("unused")

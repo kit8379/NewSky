@@ -11,7 +11,7 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.InvalidBiomeException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
-import org.me.newsky.util.IslandUtils;
+import org.me.newsky.exceptions.LocationNotInIslandException;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -75,17 +75,12 @@ public class PlayerBiomeCommand implements SubCommand, AsyncTabComplete {
         int chunkX = player.getLocation().getChunk().getX();
         int chunkZ = player.getLocation().getChunk().getZ();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> {
-            if (!IslandUtils.UUIDToName(islandUuid).equals(worldName)) {
-                player.sendMessage(config.getPlayerBiomeMustInOwnIslandMessage());
-                return CompletableFuture.completedFuture(null);
-            }
-
-            return api.applyChunkBiome(worldName, chunkX, chunkZ, biomeName).thenAccept(v -> player.sendMessage(config.getPlayerBiomeChangeSuccessMessage(biomeName)));
-        }).exceptionally(ex -> {
+        api.applyPlayerChunkBiome(playerUuid, worldName, chunkX, chunkZ, biomeName).thenRun(() -> player.sendMessage(config.getPlayerBiomeChangeSuccessMessage(biomeName))).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
+            } else if (cause instanceof LocationNotInIslandException) {
+                player.sendMessage(config.getPlayerBiomeMustInOwnIslandMessage());
             } else if (cause instanceof InvalidBiomeException) {
                 player.sendMessage(config.getPlayerBiomeInvalidMessage(biomeName));
             } else {

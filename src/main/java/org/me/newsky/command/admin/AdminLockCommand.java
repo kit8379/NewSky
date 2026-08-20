@@ -5,6 +5,7 @@ import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
+import org.me.newsky.model.Actor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 
@@ -67,7 +68,7 @@ public class AdminLockCommand implements SubCommand, AsyncTabComplete {
                 return CompletableFuture.completedFuture(null);
             }
 
-            return api.getIslandUuid(targetUuidOpt.get()).thenCompose(api::toggleIslandLock).thenAccept(isLocked -> {
+            return api.getIslandUuid(targetUuidOpt.get()).thenCompose(islandUuid -> api.toggleIslandLock(islandUuid, new Actor.Bypass(sender.getName()))).thenAccept(isLocked -> {
                 if (isLocked) {
                     sender.sendMessage(config.getAdminLockSuccessMessage(targetPlayerName));
                 } else {

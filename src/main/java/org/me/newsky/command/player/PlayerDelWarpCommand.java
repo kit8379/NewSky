@@ -70,7 +70,7 @@ public class PlayerDelWarpCommand implements SubCommand, AsyncTabComplete {
         String warpName = args[1];
         UUID playerUuid = player.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.delWarp(islandUuid, playerUuid, warpName).thenRun(() -> player.sendMessage(config.getPlayerDelWarpSuccessMessage(warpName)))).exceptionally(ex -> {
+        api.delWarp(playerUuid, warpName).thenRun(() -> player.sendMessage(config.getPlayerDelWarpSuccessMessage(warpName))).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
@@ -95,6 +95,6 @@ public class PlayerDelWarpCommand implements SubCommand, AsyncTabComplete {
         String prefix = args[1].toLowerCase(Locale.ROOT);
         UUID playerUuid = player.getUniqueId();
 
-        return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getWarpNames(islandUuid, playerUuid).thenApply(warpNames -> warpNames.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()))).exceptionally(ex -> Collections.emptyList());
+        return api.getWarpNames(playerUuid).thenApply(warpNames -> warpNames.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())).exceptionally(ex -> Collections.emptyList());
     }
 }

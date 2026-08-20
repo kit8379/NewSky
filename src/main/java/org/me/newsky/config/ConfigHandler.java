@@ -1399,6 +1399,10 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.player-delete-not-owner"));
     }
 
+    public Component getPlayerNotIslandOwnerMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-not-island-owner"));
+    }
+
     public Component getPlayerSetHomeSuccessMessage(String home) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-set-home-success")).replace("{home}", home));
     }

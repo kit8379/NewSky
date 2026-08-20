@@ -8,17 +8,35 @@ import org.bukkit.Registry;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.me.newsky.NewSky;
+import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.exceptions.InvalidBiomeException;
+import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.exceptions.LocationNotInIslandException;
 import org.me.newsky.exceptions.WorldNotFoundException;
+import org.me.newsky.util.IslandUtils;
 
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public final class BiomeHandler {
 
     private final NewSky plugin;
+    private final DatabaseHandler database;
 
-    public BiomeHandler(NewSky plugin) {
+    public BiomeHandler(NewSky plugin, DatabaseHandler database) {
         this.plugin = plugin;
+        this.database = database;
+    }
+
+    public CompletableFuture<Void> applyPlayerChunkBiome(UUID playerUuid, String worldName, int chunkX, int chunkZ, String biomeName) {
+        return CompletableFuture.runAsync(() -> {
+            // Players may only re-biome their own island; admins use applyChunkBiome directly.
+            UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
+
+            if (!IslandUtils.UUIDToName(islandUuid).equals(worldName)) {
+                throw new LocationNotInIslandException();
+            }
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> applyChunkBiome(worldName, chunkX, chunkZ, biomeName));
     }
 
     public CompletableFuture<Void> applyChunkBiome(String worldName, int chunkX, int chunkZ, String biomeName) {

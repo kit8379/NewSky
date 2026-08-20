@@ -33,11 +33,10 @@ public class WorldLoadListener implements Listener {
         World world = event.getWorld();
         String name = world.getName();
 
-        if (!IslandUtils.isIslandWorld(name)) {
+        UUID islandUuid = IslandUtils.parseIslandUuid(name);
+        if (islandUuid == null) {
             return;
         }
-
-        UUID islandUuid = IslandUtils.nameToUUID(name);
 
         applyGameRules(world);
         applyBorder(world, islandUuid);

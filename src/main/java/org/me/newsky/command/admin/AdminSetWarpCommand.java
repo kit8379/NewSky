@@ -8,7 +8,6 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
 import org.me.newsky.exceptions.WarpNameNotLegalException;
 
@@ -88,12 +87,10 @@ public class AdminSetWarpCommand implements SubCommand, AsyncTabComplete {
 
             UUID targetUuid = targetUuidOpt.get();
 
-            return api.getIslandUuid(targetUuid).thenCompose(islandUuid -> api.setWarp(islandUuid, targetUuid, warpName, worldName, x, y, z, yaw, pitch).thenRun(() -> sender.sendMessage(config.getAdminSetWarpSuccessMessage(warpPlayerName, warpName))));
+            return api.setWarp(targetUuid, warpName, worldName, x, y, z, yaw, pitch).thenRun(() -> sender.sendMessage(config.getAdminSetWarpSuccessMessage(warpPlayerName, warpName)));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
-            if (cause instanceof IslandDoesNotExistException) {
-                sender.sendMessage(config.getAdminNoIslandMessage(warpPlayerName));
-            } else if (cause instanceof LocationNotInIslandException) {
+            if (cause instanceof LocationNotInIslandException) {
                 sender.sendMessage(config.getAdminMustInIslandSetWarpMessage(warpPlayerName));
             } else if (cause instanceof WarpNameNotLegalException) {
                 sender.sendMessage(config.getWarpNameNotLegalMessage());
@@ -123,7 +120,7 @@ public class AdminSetWarpCommand implements SubCommand, AsyncTabComplete {
 
                 UUID targetUuid = uuidOpt.get();
 
-                return api.getIslandUuid(targetUuid).thenCompose(islandUuid -> api.getWarpNames(islandUuid, targetUuid).thenApply(warps -> warps.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())));
+                return api.getWarpNames(targetUuid).thenApply(warps -> warps.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()));
             }).exceptionally(ex -> Collections.emptyList());
         }
 

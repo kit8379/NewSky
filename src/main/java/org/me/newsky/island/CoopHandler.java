@@ -1,10 +1,9 @@
 package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
+import org.me.newsky.cluster.OnlinePlayerRegistry;
 import org.me.newsky.database.DatabaseHandler;
-import org.me.newsky.exceptions.CannotCoopIslandPlayerException;
-import org.me.newsky.exceptions.PlayerAlreadyCoopedException;
-import org.me.newsky.exceptions.PlayerNotCoopedException;
+import org.me.newsky.model.Actor;
 import org.me.newsky.network.IslandDistributor;
 
 import java.util.Set;
@@ -16,39 +15,28 @@ public class CoopHandler {
     private final NewSky plugin;
     private final DatabaseHandler database;
     private final IslandDistributor islandDistributor;
+    private final OnlinePlayerRegistry onlinePlayerRegistry;
 
-    public CoopHandler(NewSky plugin, DatabaseHandler database, IslandDistributor islandDistributor) {
+    public CoopHandler(NewSky plugin, DatabaseHandler database, IslandDistributor islandDistributor, OnlinePlayerRegistry onlinePlayerRegistry) {
         this.plugin = plugin;
         this.database = database;
         this.islandDistributor = islandDistributor;
+        this.onlinePlayerRegistry = onlinePlayerRegistry;
     }
 
-    public CompletableFuture<Void> coopPlayer(UUID islandUuid, UUID playerUuid) {
-        return CompletableFuture.runAsync(() -> {
-            if (database.getIslandCoops(islandUuid).contains(playerUuid)) {
-                throw new PlayerAlreadyCoopedException();
-            }
-
-            if (database.getIslandPlayers(islandUuid).containsKey(playerUuid)) {
-                throw new CannotCoopIslandPlayerException();
-            }
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.addCoop(islandUuid, playerUuid));
+    public CompletableFuture<Void> coopPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
+        // Coop grants trust to someone currently visiting, so it only applies to online players.
+        return CompletableFuture.runAsync(() -> onlinePlayerRegistry.requireOnline(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.addCoop(islandUuid, actor, playerUuid));
     }
 
-    public CompletableFuture<Void> unCoopPlayer(UUID islandUuid, UUID playerUuid) {
-        return CompletableFuture.runAsync(() -> {
-            if (!database.getIslandCoops(islandUuid).contains(playerUuid)) {
-                throw new PlayerNotCoopedException();
-            }
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.removeCoop(islandUuid, playerUuid));
+    public CompletableFuture<Void> unCoopPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
+        return islandDistributor.removeCoop(islandUuid, actor, playerUuid);
     }
 
     public CompletableFuture<Void> deleteAllCoopOfPlayer(UUID playerUuid) {
-        return CompletableFuture.supplyAsync(() -> database.getPlayerCoopedIslands(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(touchedIslands -> {
-            CompletableFuture<?>[] futures = touchedIslands.stream().map(islandUuid -> {
-                return islandDistributor.removeCoop(islandUuid, playerUuid);
-            }).toArray(CompletableFuture[]::new);
-            return CompletableFuture.allOf(futures);
+        return CompletableFuture.supplyAsync(() -> database.deleteAllCoopsOfPlayer(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(touchedIslands -> {
+            CompletableFuture<?>[] refreshes = touchedIslands.stream().map(islandDistributor::refreshIslandSnapshot).toArray(CompletableFuture[]::new);
+            return CompletableFuture.allOf(refreshes);
         });
     }
 

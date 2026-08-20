@@ -5,6 +5,7 @@ import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
+import org.me.newsky.model.Actor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerNotBannedException;
@@ -80,7 +81,7 @@ public class AdminUnbanCommand implements SubCommand, AsyncTabComplete {
 
                 UUID targetPlayerUuid = targetUuidOpt.get();
 
-                return api.getIslandUuid(islandOwnerUuid).thenCompose(islandUuid -> api.unbanPlayer(islandUuid, targetPlayerUuid).thenRun(() -> {
+                return api.getIslandUuid(islandOwnerUuid).thenCompose(islandUuid -> api.unbanPlayer(islandUuid, new Actor.Bypass(sender.getName()), targetPlayerUuid).thenRun(() -> {
                     sender.sendMessage(config.getAdminUnbanSuccessMessage(islandOwnerName, banPlayerName));
                     api.sendPlayerMessage(targetPlayerUuid, config.getWasUnbannedFromIslandMessage(islandOwnerName));
                 }));

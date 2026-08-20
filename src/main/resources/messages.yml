@@ -53,6 +53,7 @@ messages:
   player-delete-not-owner: "<red>Only the island owner can delete the island!"
   player-cannot-leave-as-owner: "<red>You can't leave the island as its owner!"
   player-already-owner: "<red>You are already the owner of this island!"
+  player-not-island-owner: "<red>Only the island owner can do that!"
 
   # ================================================================================================================
   # Island - Create / Delete

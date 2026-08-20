@@ -2,9 +2,7 @@ package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.database.DatabaseHandler;
-import org.me.newsky.exceptions.CannotBanIslandPlayerException;
-import org.me.newsky.exceptions.PlayerAlreadyBannedException;
-import org.me.newsky.exceptions.PlayerNotBannedException;
+import org.me.newsky.model.Actor;
 import org.me.newsky.network.IslandDistributor;
 
 import java.util.Set;
@@ -23,24 +21,12 @@ public class BanHandler {
         this.islandDistributor = islandDistributor;
     }
 
-    public CompletableFuture<Void> banPlayer(UUID islandUuid, UUID playerUuid) {
-        return CompletableFuture.runAsync(() -> {
-            if (database.getIslandBans(islandUuid).contains(playerUuid)) {
-                throw new PlayerAlreadyBannedException();
-            }
-
-            if (database.getIslandPlayers(islandUuid).containsKey(playerUuid)) {
-                throw new CannotBanIslandPlayerException();
-            }
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.addBan(islandUuid, playerUuid));
+    public CompletableFuture<Void> banPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
+        return islandDistributor.addBan(islandUuid, actor, playerUuid);
     }
 
-    public CompletableFuture<Void> unbanPlayer(UUID islandUuid, UUID playerUuid) {
-        return CompletableFuture.runAsync(() -> {
-            if (!database.getIslandBans(islandUuid).contains(playerUuid)) {
-                throw new PlayerNotBannedException();
-            }
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.removeBan(islandUuid, playerUuid));
+    public CompletableFuture<Void> unbanPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
+        return islandDistributor.removeBan(islandUuid, actor, playerUuid);
     }
 
     public CompletableFuture<Boolean> isPlayerBanned(UUID islandUuid, UUID playerUuid) {

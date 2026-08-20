@@ -6,8 +6,10 @@ import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
+import org.me.newsky.model.Actor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.CannotExpelIslandPlayerException;
+import org.me.newsky.exceptions.PlayerNotOnlineException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 
 import java.util.Collections;
@@ -70,26 +72,21 @@ public class PlayerExpelCommand implements SubCommand, AsyncTabComplete {
         String targetPlayerName = args[1];
         UUID playerUuid = player.getUniqueId();
 
-        api.getOnlinePlayersNames().thenCompose(onlinePlayerNames -> {
-            if (!onlinePlayerNames.contains(targetPlayerName)) {
-                player.sendMessage(config.getPlayerNotOnlineMessage(targetPlayerName));
+        api.getPlayerUuid(targetPlayerName).thenCompose(targetUuidOpt -> {
+            if (targetUuidOpt.isEmpty()) {
+                player.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
                 return CompletableFuture.completedFuture(null);
             }
 
-            return api.getPlayerUuid(targetPlayerName).thenCompose(targetUuidOpt -> {
-                if (targetUuidOpt.isEmpty()) {
-                    player.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
-                    return CompletableFuture.completedFuture(null);
-                }
+            UUID targetPlayerUuid = targetUuidOpt.get();
 
-                UUID targetPlayerUuid = targetUuidOpt.get();
-
-                return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.expelPlayer(islandUuid, targetPlayerUuid).thenRun(() -> player.sendMessage(config.getPlayerExpelSuccessMessage(targetPlayerName))));
-            });
+            return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.expelPlayer(islandUuid, new Actor.Player(playerUuid), targetPlayerUuid).thenRun(() -> player.sendMessage(config.getPlayerExpelSuccessMessage(targetPlayerName))));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
+            } else if (cause instanceof PlayerNotOnlineException) {
+                player.sendMessage(config.getPlayerNotOnlineMessage(targetPlayerName));
             } else if (cause instanceof CannotExpelIslandPlayerException) {
                 player.sendMessage(config.getPlayerCannotExpelIslandPlayerMessage());
             } else {
