@@ -38,6 +38,7 @@ public class HeartbeatScheduler {
         plugin.debug("HeartbeatScheduler", "Starting heartbeat task with interval: " + heartbeatInterval + " seconds, ttl: " + heartbeatTtlSeconds + " seconds.");
         heartbeatTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
             serverRegistry.updateActiveServer(serverID, config.isLobbyOnly(), heartbeatTtlSeconds);
+            serverRegistry.reapDeadServerClaims();
             plugin.debug("HeartbeatScheduler", "Sent heartbeat for server: " + serverID);
             plugin.debug("HeartbeatScheduler", "Active servers: " + serverRegistry.getActiveServers());
         }, 0L, heartbeatInterval * 20L);

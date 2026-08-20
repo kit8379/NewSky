@@ -36,6 +36,15 @@ public class ServerRegistry extends ClusterState {
         }, "Failed to update active server for: " + serverName);
     }
 
+    /**
+     * Reaps island claims left behind by servers that died without a clean shutdown. Driven by
+     * every server's heartbeat tick; the per-claim removal is atomic inside Redis, so concurrent
+     * sweeps and a rebooting claim holder are all safe.
+     */
+    public void reapDeadServerClaims() {
+        islandRegistry.removeMappingsOfDeadServers();
+    }
+
     public void removeActiveServer(String serverName) {
         run(jedis -> {
             Pipeline pipeline = jedis.pipelined();

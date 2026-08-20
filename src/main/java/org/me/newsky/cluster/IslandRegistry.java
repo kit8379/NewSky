@@ -3,6 +3,7 @@ package org.me.newsky.cluster;
 import org.me.newsky.NewSky;
 import org.me.newsky.redis.RedisHandler;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -36,6 +37,47 @@ public class IslandRegistry extends ClusterState {
 
     public Optional<String> getIslandLoadedServer(UUID islandUuid) {
         return execute(jedis -> Optional.ofNullable(jedis.hget(ClusterKeys.islandServer(), islandUuid.toString())), "Failed to get island loaded server for: " + islandUuid);
+    }
+
+    /**
+     * Reaps island claims held by servers that crashed without cleaning up after themselves.
+     * A clean shutdown or restart removes its own mappings; only an unclean death leaves claims
+     * behind, and those islands would otherwise route into a dead inbox forever.
+     * <p>
+     * The liveness check and the removal run atomically inside Redis, so a server that comes
+     * back and re-claims an island between our read and our delete cannot lose its fresh claim.
+     *
+     * @return the number of claims reaped
+     */
+    public int removeMappingsOfDeadServers() {
+        // KEYS[1] = island->server hash, KEYS[2] = the server's heartbeat key
+        // ARGV[1] = island uuid,          ARGV[2] = the server the claim pointed at
+        String releaseIfDead = "if redis.call('hget', KEYS[1], ARGV[1]) == ARGV[2] and redis.call('exists', KEYS[2]) == 0 then return redis.call('hdel', KEYS[1], ARGV[1]) else return 0 end";
+
+        return execute(jedis -> {
+            Map<String, String> mappings = jedis.hgetAll(ClusterKeys.islandServer());
+            if (mappings.isEmpty()) {
+                return 0;
+            }
+
+            int reaped = 0;
+            for (Map.Entry<String, String> entry : mappings.entrySet()) {
+                String islandUuid = entry.getKey();
+                String serverName = entry.getValue();
+
+                if (jedis.exists(ClusterKeys.serverHeartbeat(serverName))) {
+                    continue;
+                }
+
+                Object removed = jedis.eval(releaseIfDead, List.of(ClusterKeys.islandServer(), ClusterKeys.serverHeartbeat(serverName)), List.of(islandUuid, serverName));
+                if (Long.valueOf(1L).equals(removed)) {
+                    plugin.warning("Reaped island claim " + islandUuid + " held by dead server " + serverName);
+                    reaped++;
+                }
+            }
+
+            return reaped;
+        }, "Failed to reap island claims of dead servers");
     }
 
     /**
