@@ -329,7 +329,7 @@ public class DatabaseHandler {
      * refreshed. Splitting this into a bare listing plus a broader delete would silently drop
      * rows the listing never saw, leaving their hosts' snapshots stale forever.
      */
-    public Set<UUID> deleteAllCoopsOfPlayer(UUID playerUuid) {
+    public Set<UUID> removeAllCoops(UUID playerUuid) {
         return inTransaction(connection -> {
             Set<UUID> touched = new HashSet<>();
 
@@ -521,7 +521,7 @@ public class DatabaseHandler {
     // Writes (transaction-protected where multi-statement)
     // ================================================================================================================
 
-    public void addIslandData(UUID islandUuid, UUID ownerUuid) {
+    public void createIsland(UUID islandUuid, UUID ownerUuid) {
         try {
             inTransaction(connection -> {
                 if (playerHasIsland(connection, ownerUuid)) {
@@ -554,7 +554,7 @@ public class DatabaseHandler {
         }
     }
 
-    public void addIslandPlayer(UUID islandUuid, UUID playerUuid, String role) {
+    public void addMember(UUID islandUuid, UUID playerUuid, String role) {
         try {
             inTransaction(connection -> {
                 lockIsland(connection, islandUuid);
@@ -600,7 +600,7 @@ public class DatabaseHandler {
         }
     }
 
-    public void updateHomePoint(UUID islandUuid, UUID playerUuid, String homeName, String homeLocation) {
+    public void setHome(UUID islandUuid, UUID playerUuid, String homeName, String homeLocation) {
         try {
             executeUpdate("INSERT INTO " + prefix + "island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) " + "ON DUPLICATE KEY UPDATE island_uuid = VALUES(island_uuid), home_location = VALUES(home_location);", stmt -> {
             stmt.setString(1, playerUuid.toString());
@@ -613,7 +613,7 @@ public class DatabaseHandler {
         }
     }
 
-    public void updateWarpPoint(UUID islandUuid, UUID playerUuid, String warpName, String warpLocation) {
+    public void setWarp(UUID islandUuid, UUID playerUuid, String warpName, String warpLocation) {
         try {
             executeUpdate("INSERT INTO " + prefix + "island_warps (player_uuid, island_uuid, warp_name, warp_location) VALUES (?, ?, ?, ?) " + "ON DUPLICATE KEY UPDATE island_uuid = VALUES(island_uuid), warp_location = VALUES(warp_location);", stmt -> {
             stmt.setString(1, playerUuid.toString());
@@ -626,11 +626,11 @@ public class DatabaseHandler {
         }
     }
 
-    public boolean toggleIslandLock(UUID islandUuid, Actor actor) {
+    public boolean toggleLock(UUID islandUuid, Actor actor) {
         return toggleBooleanColumn(islandUuid, actor, "`lock`");
     }
 
-    public boolean toggleIslandPvp(UUID islandUuid, Actor actor) {
+    public boolean togglePvp(UUID islandUuid, Actor actor) {
         return toggleBooleanColumn(islandUuid, actor, "pvp");
     }
 
@@ -664,7 +664,7 @@ public class DatabaseHandler {
         });
     }
 
-    public void updateIslandOwner(UUID islandUuid, Actor actor, UUID newOwnerUuid) {
+    public void setOwner(UUID islandUuid, Actor actor, UUID newOwnerUuid) {
         inTransaction(connection -> {
             lockIsland(connection, islandUuid);
             requireRole(connection, islandUuid, actor, RequiredRole.OWNER);
@@ -701,7 +701,7 @@ public class DatabaseHandler {
         });
     }
 
-    public void updateBanPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
+    public void addBan(UUID islandUuid, Actor actor, UUID playerUuid) {
         try {
             inTransaction(connection -> {
                 lockIsland(connection, islandUuid);
@@ -725,7 +725,7 @@ public class DatabaseHandler {
         }
     }
 
-    public void updateCoopPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
+    public void addCoop(UUID islandUuid, Actor actor, UUID playerUuid) {
         try {
             inTransaction(connection -> {
                 lockIsland(connection, islandUuid);
@@ -749,7 +749,7 @@ public class DatabaseHandler {
         }
     }
 
-    public void updateIslandLevel(UUID islandUuid, int level) {
+    public void setIslandLevel(UUID islandUuid, int level) {
         executeUpdate("INSERT INTO " + prefix + "island_levels (island_uuid, level) VALUES (?, ?) " + "ON DUPLICATE KEY UPDATE level = ?;", stmt -> {
             stmt.setString(1, islandUuid.toString());
             stmt.setInt(2, level);
@@ -757,7 +757,7 @@ public class DatabaseHandler {
         });
     }
 
-    public void updatePlayerName(UUID uuid, String name) {
+    public void setPlayerName(UUID uuid, String name) {
         if (name == null || name.isEmpty()) {
             throw new IllegalArgumentException("Player name cannot be null or empty");
         }
@@ -784,7 +784,7 @@ public class DatabaseHandler {
         });
     }
 
-    public void deleteIslandPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
+    public void removeMember(UUID islandUuid, Actor actor, UUID playerUuid) {
         inTransaction(connection -> {
             lockIsland(connection, islandUuid);
             requireRole(connection, islandUuid, actor, RequiredRole.MEMBER);
@@ -808,7 +808,7 @@ public class DatabaseHandler {
         });
     }
 
-    public void deleteHomePoint(UUID islandUuid, UUID playerUuid, String homeName) {
+    public void deleteHome(UUID islandUuid, UUID playerUuid, String homeName) {
         int deleted = executeUpdate("DELETE FROM " + prefix + "island_homes WHERE island_uuid = ? AND player_uuid = ? AND home_name = ?;", stmt -> {
             stmt.setString(1, islandUuid.toString());
             stmt.setString(2, playerUuid.toString());
@@ -820,7 +820,7 @@ public class DatabaseHandler {
         }
     }
 
-    public void deleteWarpPoint(UUID islandUuid, UUID playerUuid, String warpName) {
+    public void deleteWarp(UUID islandUuid, UUID playerUuid, String warpName) {
         int deleted = executeUpdate("DELETE FROM " + prefix + "island_warps WHERE island_uuid = ? AND player_uuid = ? AND warp_name = ?;", stmt -> {
             stmt.setString(1, islandUuid.toString());
             stmt.setString(2, playerUuid.toString());
@@ -832,7 +832,7 @@ public class DatabaseHandler {
         }
     }
 
-    public void deleteBanPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
+    public void removeBan(UUID islandUuid, Actor actor, UUID playerUuid) {
         inTransaction(connection -> {
             lockIsland(connection, islandUuid);
             requireRole(connection, islandUuid, actor, RequiredRole.MEMBER);
@@ -850,7 +850,7 @@ public class DatabaseHandler {
         });
     }
 
-    public void deleteCoopPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
+    public void removeCoop(UUID islandUuid, Actor actor, UUID playerUuid) {
         inTransaction(connection -> {
             lockIsland(connection, islandUuid);
             requireRole(connection, islandUuid, actor, RequiredRole.MEMBER);

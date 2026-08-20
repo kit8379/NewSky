@@ -9,7 +9,6 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.WarpDoesNotExistException;
-import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -71,7 +70,7 @@ public class PlayerDelWarpCommand implements SubCommand, AsyncTabComplete {
         String warpName = args[1];
         UUID playerUuid = player.getUniqueId();
 
-        api.delWarp(new Actor.Player(playerUuid), playerUuid, warpName).thenRun(() -> player.sendMessage(config.getPlayerDelWarpSuccessMessage(warpName))).exceptionally(ex -> {
+        api.player(playerUuid).deleteWarp(warpName).thenRun(() -> player.sendMessage(config.getPlayerDelWarpSuccessMessage(warpName))).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());

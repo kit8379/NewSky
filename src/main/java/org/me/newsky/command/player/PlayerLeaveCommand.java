@@ -9,7 +9,6 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.CannotRemoveOwnerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
-import org.me.newsky.model.Actor;
 
 import java.util.UUID;
 
@@ -61,9 +60,7 @@ public class PlayerLeaveCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> {
-            return api.removeMember(new Actor.Player(playerUuid), islandUuid, playerUuid);
-        }).thenRun(() -> {
+        api.player(playerUuid).leave().thenRun(() -> {
             api.sendPlayerMessage(playerUuid, config.getPlayerLeaveSuccessMessage());
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();

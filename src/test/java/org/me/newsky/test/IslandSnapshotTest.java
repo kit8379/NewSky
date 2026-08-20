@@ -1,7 +1,7 @@
 package org.me.newsky.test;
 
 import org.me.newsky.model.Island;
-import snapshot.IslandSnapshot;
+import org.me.newsky.snapshot.IslandSnapshot;
 
 import java.util.Set;
 import java.util.UUID;

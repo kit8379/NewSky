@@ -9,7 +9,6 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.CannotCoopIslandPlayerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerAlreadyCoopedException;
-import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -78,7 +77,7 @@ public class AdminCoopCommand implements SubCommand, AsyncTabComplete {
                 }
 
                 return api.getIslandUuid(ownerUuidOpt.get()).thenCompose(islandUuid -> {
-                    return api.addCoop(new Actor.Bypass(sender.getName()), islandUuid, targetUuidOpt.get());
+                    return api.admin(sender).addCoop(islandUuid, targetUuidOpt.get());
                 }).thenRun(() -> {
                     sender.sendMessage(config.getAdminCoopSuccessMessage(ownerName, targetName));
                     api.sendPlayerMessage(targetUuidOpt.get(), config.getWasCoopedToIslandMessage(ownerName));

@@ -1,10 +1,10 @@
 package org.me.newsky.api;
 
 import net.kyori.adventure.text.Component;
+import org.bukkit.command.CommandSender;
 import org.me.newsky.NewSky;
 import org.me.newsky.island.*;
 import org.me.newsky.message.PlayerMessageHandler;
-import org.me.newsky.model.Actor;
 import org.me.newsky.model.Invitation;
 import org.me.newsky.model.IslandTop;
 import org.me.newsky.uuid.UuidHandler;
@@ -13,20 +13,18 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * The plugin's public surface. Two halves, and the signature tells you which one you are in:
+ * The plugin's public surface. One rule, no exceptions:
  * <ul>
- *   <li><b>Writes take an {@link Actor} as their first parameter</b> - always, without exception.
- *       Each one's javadoc names the rule it enforces: OWNER or MEMBER (an island role, checked
- *       inside the write transaction under the island row lock), SELF (the actor must be the
- *       player being acted on), or BYPASS (operator, console or internal task only).</li>
- *   <li><b>Reads take no Actor</b> - island state is not secret, and a read changes nothing.</li>
+ *   <li><b>Writes go through {@link #player(UUID)} or {@link #admin(CommandSender)}</b>. The
+ *       player handle acts as that player only, on that player's own island only - anything else
+ *       is unrepresentable, not merely checked. The admin handle acts on arbitrary targets and
+ *       carries the sender's name into logs and cross-server payloads.</li>
+ *   <li><b>Reads live on this class</b> - island state is not secret, and a read changes
+ *       nothing.</li>
  * </ul>
- * Two operations write without taking an Actor, and both say so where they are declared: they
- * recompute derived data rather than acting on anyone's rights.
- * <p>
- * Pass {@code new Actor.Player(uuid)} from a player command and
- * {@code new Actor.Bypass(sender.getName())} from an admin command or internal task; naming the
- * bypass is what makes skipping the rules deliberate and visible in logs.
+ * Internal machinery (quit cleanup, schedulers, join listeners) does not pass through this API:
+ * it calls its handler directly. What you see here is exactly the surface commands and other
+ * plugins are meant to use.
  */
 public class NewSkyAPI {
 
@@ -59,136 +57,23 @@ public class NewSkyAPI {
     }
 
     // ================================================================================================================
-    // Writes - Actor first, every time. The javadoc names the rule.
+    // Write entry points
     // ================================================================================================================
 
+    /** Act as this player: own identity, own island, player rules apply. */
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> createIsland(Actor actor, UUID ownerPlayerUuid) {
-        return coreHandler.createIsland(actor, ownerPlayerUuid);
+    public PlayerActions player(UUID playerUuid) {
+        return new PlayerActions(playerUuid, coreHandler, playerHandler, homeHandler, warpHandler, banHandler, coopHandler, biomeHandler);
     }
 
+    /** Act as an operator: arbitrary targets, no player rules, the sender's name goes to logs. */
     @SuppressWarnings("unused")
-    public CompletableFuture<Void> deleteIsland(Actor actor, UUID islandUuid) {
-        return coreHandler.deleteIsland(actor, islandUuid);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Void> loadIsland(Actor actor, UUID islandUuid) {
-        return coreHandler.loadIsland(actor, islandUuid);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Void> unloadIsland(Actor actor, UUID islandUuid) {
-        return coreHandler.unloadIsland(actor, islandUuid);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Void> addMember(Actor actor, UUID islandUuid, UUID playerUuid, String role) {
-        return playerHandler.addMember(actor, islandUuid, playerUuid, role);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Void> removeMember(Actor actor, UUID islandUuid, UUID playerUuid) {
-        return playerHandler.removeMember(actor, islandUuid, playerUuid);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Void> setOwner(Actor actor, UUID islandUuid, UUID newOwnerPlayerUuid) {
-        return playerHandler.setOwner(actor, islandUuid, newOwnerPlayerUuid);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Void> addPendingInvite(Actor actor, UUID islandUuid, UUID inviteeUuid, int ttlSeconds) {
-        return playerHandler.addPendingInvite(actor, islandUuid, inviteeUuid, ttlSeconds);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Void> removePendingInvite(Actor actor, UUID inviteeUuid) {
-        return playerHandler.removePendingInvite(actor, inviteeUuid);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Optional<Invitation>> consumePendingInvite(Actor actor, UUID inviteeUuid) {
-        return playerHandler.consumePendingInvite(actor, inviteeUuid);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Void> expelPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {
-        return playerHandler.expelPlayer(actor, islandUuid, playerUuid);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Void> banPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {
-        return banHandler.banPlayer(actor, islandUuid, playerUuid);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Void> unbanPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {
-        return banHandler.unbanPlayer(actor, islandUuid, playerUuid);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Void> addCoop(Actor actor, UUID islandUuid, UUID playerUuid) {
-        return coopHandler.coopPlayer(actor, islandUuid, playerUuid);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Void> removeCoop(Actor actor, UUID islandUuid, UUID playerUuid) {
-        return coopHandler.unCoopPlayer(actor, islandUuid, playerUuid);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Void> removeAllCoopOfPlayer(Actor actor, UUID playerUuid) {
-        return coopHandler.deleteAllCoopOfPlayer(actor, playerUuid);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Boolean> toggleIslandLock(Actor actor, UUID islandUuid) {
-        return coreHandler.toggleIslandLock(actor, islandUuid);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Boolean> toggleIslandPvp(Actor actor, UUID islandUuid) {
-        return coreHandler.toggleIslandPvp(actor, islandUuid);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Void> setHome(Actor actor, UUID playerUuid, String homeName, String worldName, double x, double y, double z, float yaw, float pitch) {
-        return homeHandler.setHome(actor, playerUuid, homeName, worldName, x, y, z, yaw, pitch);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Void> delHome(Actor actor, UUID playerUuid, String homeName) {
-        return homeHandler.delHome(actor, playerUuid, homeName);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Void> home(Actor actor, UUID playerUuid, String homeName, UUID targetPlayerUuid) {
-        return homeHandler.home(actor, playerUuid, homeName, targetPlayerUuid);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Void> setWarp(Actor actor, UUID playerUuid, String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
-        return warpHandler.setWarp(actor, playerUuid, warpName, worldName, x, y, z, yaw, pitch);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Void> delWarp(Actor actor, UUID playerUuid, String warpName) {
-        return warpHandler.delWarp(actor, playerUuid, warpName);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Void> warp(Actor actor, UUID warpPlayerUuid, String warpName, UUID targetPlayerUuid) {
-        return warpHandler.warp(actor, warpPlayerUuid, warpName, targetPlayerUuid);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Void> applyChunkBiome(Actor actor, String worldName, int chunkX, int chunkZ, String biomeName) {
-        return biomeHandler.applyChunkBiome(actor, worldName, chunkX, chunkZ, biomeName);
+    public AdminActions admin(CommandSender sender) {
+        return new AdminActions(sender.getName(), coreHandler, playerHandler, homeHandler, warpHandler, banHandler, coopHandler, biomeHandler);
     }
 
     // ================================================================================================================
-    // Reads - no Actor, ever
+    // Reads
     // ================================================================================================================
 
     @SuppressWarnings("unused")
@@ -212,8 +97,8 @@ public class NewSkyAPI {
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Optional<Invitation>> getPendingInvite(UUID playerUuid) {
-        return playerHandler.getPendingInvite(playerUuid);
+    public CompletableFuture<Optional<Invitation>> getInvite(UUID playerUuid) {
+        return playerHandler.getInvite(playerUuid);
     }
 
     @SuppressWarnings("unused")
@@ -242,8 +127,8 @@ public class NewSkyAPI {
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Set<UUID>> getBannedPlayers(UUID islandUuid) {
-        return banHandler.getBannedPlayers(islandUuid);
+    public CompletableFuture<Set<UUID>> getIslandBans(UUID islandUuid) {
+        return banHandler.getIslandBans(islandUuid);
     }
 
     @SuppressWarnings("unused")
@@ -252,8 +137,8 @@ public class NewSkyAPI {
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Set<UUID>> getCoopedPlayers(UUID islandUuid) {
-        return coopHandler.getCoopedPlayers(islandUuid);
+    public CompletableFuture<Set<UUID>> getIslandCoops(UUID islandUuid) {
+        return coopHandler.getIslandCoops(islandUuid);
     }
 
     @SuppressWarnings("unused")
@@ -292,9 +177,10 @@ public class NewSkyAPI {
     }
 
     // ================================================================================================================
-    // Live-player actions and derived data - no island state, so no Actor
+    // Live-player actions - no island state, so neither handle applies
     // ================================================================================================================
 
+    /** Moves a player to a lobby server. Touches no island state; also the fail-closed bounce. */
     @SuppressWarnings("unused")
     public CompletableFuture<Void> lobby(UUID playerUuid) {
         return lobbyHandler.lobby(playerUuid);
@@ -303,15 +189,5 @@ public class NewSkyAPI {
     @SuppressWarnings("unused")
     public void sendPlayerMessage(UUID playerUuid, Component message) {
         playerMessageHandler.sendPlayerMessage(playerUuid, message);
-    }
-
-    @SuppressWarnings("unused")
-    public CompletableFuture<Integer> calIslandLevel(UUID islandUuid) {
-        return levelHandler.calIslandLevel(islandUuid);
-    }
-
-    @SuppressWarnings("all")
-    public CompletableFuture<Void> updatePlayerUuid(UUID uuid, String name) {
-        return uuidHandler.updatePlayerUuid(uuid, name);
     }
 }

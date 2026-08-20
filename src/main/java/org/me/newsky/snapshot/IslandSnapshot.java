@@ -1,4 +1,4 @@
-package snapshot;
+package org.me.newsky.snapshot;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.database.DatabaseHandler;

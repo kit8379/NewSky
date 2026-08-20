@@ -141,7 +141,7 @@ public final class RedisEdgeCaseTest {
         }
     }
 
-    // Mirrors InvitationStore.addIslandInvite: SET NX EX. 32 racing inviters, exactly one stored.
+    // Mirrors InvitationStore.addInvite: SET NX EX. 32 racing inviters, exactly one stored.
     private static void inviteSetIfAbsentRace(JedisPool pool, String prefix) throws Exception {
         String inviteKey = prefix + "invitation:" + UUID.randomUUID();
         int contenders = 32;
@@ -161,7 +161,7 @@ public final class RedisEdgeCaseTest {
         }
     }
 
-    // Mirrors InvitationStore.consumeIslandInvite: GETDEL. 32 racing accepts, exactly one redeems.
+    // Mirrors InvitationStore.consumeInvite: GETDEL. 32 racing accepts, exactly one redeems.
     private static void inviteDoubleAcceptRace(JedisPool pool, String prefix) throws Exception {
         String inviteKey = prefix + "invitation:" + UUID.randomUUID();
         try (Jedis jedis = pool.getResource()) {

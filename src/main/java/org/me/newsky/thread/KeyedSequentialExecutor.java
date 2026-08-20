@@ -1,4 +1,4 @@
-package org.me.newsky.util;
+package org.me.newsky.thread;
 
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;

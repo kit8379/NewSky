@@ -10,7 +10,6 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.CannotBanIslandPlayerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerAlreadyBannedException;
-import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -80,7 +79,7 @@ public class PlayerBanCommand implements SubCommand, AsyncTabComplete {
 
             UUID targetUuid = targetUuidOpt.get();
 
-            return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.banPlayer(new Actor.Player(playerUuid), islandUuid, targetUuid)).thenRun(() -> {
+            return api.player(playerUuid).banPlayer(targetUuid).thenRun(() -> {
                 player.sendMessage(config.getPlayerBanSuccessMessage(targetNameInput));
                 api.sendPlayerMessage(targetUuid, config.getWasBannedFromIslandMessage(player.getName()));
             });

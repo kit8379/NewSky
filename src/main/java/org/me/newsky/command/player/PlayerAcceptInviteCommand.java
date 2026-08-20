@@ -7,7 +7,6 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.NoActiveServerException;
-import org.me.newsky.model.Actor;
 import org.me.newsky.model.Invitation;
 
 import java.util.UUID;
@@ -61,8 +60,9 @@ public class PlayerAcceptInviteCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        // Consume is an atomic read-and-delete, so a double-sent accept redeems the invite once.
-        api.consumePendingInvite(new Actor.Player(playerUuid), playerUuid).thenCompose(optionalInvite -> {
+        // acceptInvite consumes atomically and joins in one call, so a double-sent accept redeems
+        // the invite once and membership always follows a redeemed invitation.
+        api.player(playerUuid).acceptInvite().thenCompose(optionalInvite -> {
             if (optionalInvite.isEmpty()) {
                 player.sendMessage(config.getPlayerNoPendingInviteMessage());
                 return CompletableFuture.completedFuture(null);
@@ -72,17 +72,16 @@ public class PlayerAcceptInviteCommand implements SubCommand {
             UUID islandUuid = invite.getIslandUuid();
             UUID inviterUuid = invite.getInviterUuid();
 
-            return api.addMember(new Actor.Player(playerUuid), islandUuid, playerUuid, "member").thenCompose(v -> {
-                player.sendMessage(config.getPlayerInviteAcceptedMessage());
-                api.sendPlayerMessage(inviterUuid, config.getPlayerInviteAcceptedNotifyMessage(player.getName()));
-                return api.getIslandMembers(islandUuid);
-            }).thenCompose(membersAfterJoin -> {
+            player.sendMessage(config.getPlayerInviteAcceptedMessage());
+            api.sendPlayerMessage(inviterUuid, config.getPlayerInviteAcceptedNotifyMessage(player.getName()));
+
+            return api.getIslandMembers(islandUuid).thenCompose(membersAfterJoin -> {
                 for (UUID uuid : membersAfterJoin) {
                     if (!uuid.equals(playerUuid) && !uuid.equals(inviterUuid)) {
                         api.sendPlayerMessage(uuid, config.getNewMemberNotificationMessage(player.getName()));
                     }
                 }
-                return api.home(new Actor.Player(playerUuid), playerUuid, "default", playerUuid);
+                return api.player(playerUuid).home("default");
             });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();

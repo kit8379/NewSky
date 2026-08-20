@@ -62,7 +62,7 @@ public class PlayerCoopListCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(api::getCoopedPlayers).thenCompose(coopedPlayers -> {
+        api.getIslandUuid(playerUuid).thenCompose(api::getIslandCoops).thenCompose(coopedPlayers -> {
             if (coopedPlayers.isEmpty()) {
                 player.sendMessage(config.getNoCoopedPlayersMessage());
                 return CompletableFuture.completedFuture(null);
@@ -71,7 +71,7 @@ public class PlayerCoopListCommand implements SubCommand {
             return api.getPlayerNames(coopedPlayers).thenAccept(nameMap -> {
                 List<String> playerNames = coopedPlayers.stream().map(uuid -> nameMap.getOrDefault(uuid, uuid.toString())).sorted(String.CASE_INSENSITIVE_ORDER).toList();
 
-                TextComponent.Builder coopedList = Component.text().append(config.getCoopedPlayersHeaderMessage());
+                TextComponent.Builder coopedList = Component.text().append(config.getIslandCoopsHeaderMessage());
 
                 for (String playerName : playerNames) {
                     coopedList.append(Component.text("\n"));

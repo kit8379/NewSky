@@ -8,7 +8,6 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.NoActiveServerException;
-import org.me.newsky.model.Actor;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -81,7 +80,7 @@ public class AdminDeleteIslandCommand implements SubCommand, AsyncTabComplete {
 
             confirmationTimes.remove(targetUuid);
 
-            return api.getIslandUuid(targetUuid).thenCompose(islandUuid -> api.deleteIsland(new Actor.Bypass(sender.getName()), islandUuid)).thenRun(() -> sender.sendMessage(config.getAdminDeleteSuccessMessage(targetPlayerName)));
+            return api.getIslandUuid(targetUuid).thenCompose(islandUuid -> api.admin(sender).deleteIsland(islandUuid)).thenRun(() -> sender.sendMessage(config.getAdminDeleteSuccessMessage(targetPlayerName)));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {

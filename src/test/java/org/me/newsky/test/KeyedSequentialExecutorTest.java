@@ -1,6 +1,6 @@
 package org.me.newsky.test;
 
-import org.me.newsky.util.KeyedSequentialExecutor;
+import org.me.newsky.thread.KeyedSequentialExecutor;
 
 import java.util.ArrayList;
 import java.util.List;

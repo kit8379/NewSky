@@ -35,7 +35,7 @@ import org.me.newsky.thread.BukkitAsyncExecutor;
 import org.me.newsky.uuid.UuidHandler;
 import org.me.newsky.world.WorldActivityHandler;
 import org.me.newsky.world.WorldHandler;
-import snapshot.IslandSnapshot;
+import org.me.newsky.snapshot.IslandSnapshot;
 
 import java.lang.reflect.Constructor;
 import java.util.Collections;
@@ -198,7 +198,8 @@ public class NewSky extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new IslandProtectionListener(this, config, islandSnapshot), this);
             getServer().getPluginManager().registerEvents(new IslandAccessListener(this, config, islandSnapshot), this);
             getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config, islandSnapshot), this);
-            getServer().getPluginManager().registerEvents(new UuidUpdateListener(this), this);
+            getServer().getPluginManager().registerEvents(new UuidUpdateListener(this, uuidHandler), this);
+            getServer().getPluginManager().registerEvents(new IslandCoopListener(this, coopHandler, onlinePlayerRegistry), this);
             info("All listeners loaded");
 
             info("Registering commands");
@@ -266,10 +267,10 @@ public class NewSky extends JavaPlugin {
         messenger.register(IslandDistributor.ACTION_ISLAND_BAN_REMOVE, payload -> emptyResponse(islandOperator.removeBan(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
         messenger.register(IslandDistributor.ACTION_ISLAND_COOP_ADD, payload -> emptyResponse(islandOperator.addCoop(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
         messenger.register(IslandDistributor.ACTION_ISLAND_COOP_REMOVE, payload -> emptyResponse(islandOperator.removeCoop(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_LOCK_TOGGLE, payload -> islandOperator.toggleIslandLock(uuid(payload, "islandUuid"), Actor.fromJson(payload)).thenApply(locked -> new JSONObject().put("locked", locked)));
-        messenger.register(IslandDistributor.ACTION_ISLAND_PVP_TOGGLE, payload -> islandOperator.toggleIslandPvp(uuid(payload, "islandUuid"), Actor.fromJson(payload)).thenApply(pvp -> new JSONObject().put("pvp", pvp)));
+        messenger.register(IslandDistributor.ACTION_ISLAND_LOCK_TOGGLE, payload -> islandOperator.toggleLock(uuid(payload, "islandUuid"), Actor.fromJson(payload)).thenApply(locked -> new JSONObject().put("locked", locked)));
+        messenger.register(IslandDistributor.ACTION_ISLAND_PVP_TOGGLE, payload -> islandOperator.togglePvp(uuid(payload, "islandUuid"), Actor.fromJson(payload)).thenApply(pvp -> new JSONObject().put("pvp", pvp)));
         messenger.register(IslandDistributor.ACTION_ISLAND_EXPEL, payload -> emptyResponse(islandOperator.expelPlayer(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_SNAPSHOT_REFRESH, payload -> emptyResponse(islandOperator.refreshSnapshot(uuid(payload, "islandUuid"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_SNAPSHOT_REFRESH, payload -> emptyResponse(islandOperator.refreshIslandSnapshot(uuid(payload, "islandUuid"))));
     }
 
     private CompletableFuture<JSONObject> emptyResponse(CompletableFuture<Void> future) {

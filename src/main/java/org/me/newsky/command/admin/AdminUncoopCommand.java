@@ -8,7 +8,6 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerNotCoopedException;
-import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -81,7 +80,7 @@ public class AdminUncoopCommand implements SubCommand, AsyncTabComplete {
 
                 UUID targetUuid = targetUuidOpt.get();
 
-                return api.getIslandUuid(ownerUuid).thenCompose(islandUuid -> api.removeCoop(new Actor.Bypass(sender.getName()), islandUuid, targetUuid).thenRun(() -> {
+                return api.getIslandUuid(ownerUuid).thenCompose(islandUuid -> api.admin(sender).removeCoop(islandUuid, targetUuid).thenRun(() -> {
                     sender.sendMessage(config.getAdminUncoopSuccessMessage(ownerName, targetName));
                     api.sendPlayerMessage(targetUuid, config.getWasUncoopedFromIslandMessage(ownerName));
                 }));
@@ -118,7 +117,7 @@ public class AdminUncoopCommand implements SubCommand, AsyncTabComplete {
                     return CompletableFuture.completedFuture(Collections.<String>emptyList());
                 }
 
-                return api.getIslandUuid(ownerUuidOpt.get()).thenCompose(islandUuid -> api.getCoopedPlayers(islandUuid).thenCompose(coopedPlayers -> {
+                return api.getIslandUuid(ownerUuidOpt.get()).thenCompose(islandUuid -> api.getIslandCoops(islandUuid).thenCompose(coopedPlayers -> {
                     if (coopedPlayers.isEmpty()) {
                         return CompletableFuture.completedFuture(Collections.<String>emptyList());
                     }

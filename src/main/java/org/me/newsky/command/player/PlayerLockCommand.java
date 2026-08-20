@@ -7,7 +7,6 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
-import org.me.newsky.model.Actor;
 
 import java.util.UUID;
 
@@ -59,7 +58,7 @@ public class PlayerLockCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.toggleIslandLock(new Actor.Player(playerUuid), islandUuid)).thenAccept(isLocked -> {
+        api.player(playerUuid).toggleLock().thenAccept(isLocked -> {
             if (isLocked) {
                 player.sendMessage(config.getPlayerLockSuccessMessage());
             } else {

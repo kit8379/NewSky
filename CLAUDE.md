@@ -1,34 +1,42 @@
 # NewSky — Architecture Rules
 
-## The API shape rule: Actor first on every write
+## The API shape rule: writes enter through a handle, reads live on the root
 
-`NewSkyAPI` has exactly two halves, and the signature says which one you are looking at:
+`NewSkyAPI` exposes exactly one way to write, with no exceptions and no footnotes:
 
-- **Every write takes an `Actor` as its first parameter.** No exceptions to remember — if it
-  changes island or player state, the actor is there, and its javadoc names the one rule it
-  enforces.
-- **Every read takes no `Actor`.** Island state is not secret and a read changes nothing.
+- **`api.player(uuid)`** — act *as that player*. SELF is structural, not checked: there is no
+  parameter to name anyone else as actor or subject. Island-scoped operations resolve **the
+  player's own island internally** (a player has exactly one — unique key on `player_uuid`), so
+  targeting another island is unrepresentable and the resolution is fresher than any caller's.
+  Operator-only operations do not exist on this handle.
+- **`api.admin(sender)`** — act as an operator on arbitrary targets. The sender's name rides
+  along as `Actor.Bypass` into logs and cross-server payloads; that name is the only
+  accountability a bypass has, which is why it is required.
+- **Reads take no identity** — island state is not secret and a read changes nothing.
 
-Only two writes are Actor-less, and both say why at the declaration: `calIslandLevel` and
-`updatePlayerUuid` recompute derived/system data that nobody's rights decide.
+Internal machinery (quit cleanup, schedulers, join listeners) does **not** pass through the API:
+it calls its handler directly (`CoopHandler.removeAllCoops`, `UuidHandler`,
+`LevelHandler`). If an operation has no external caller, it does not belong on the API.
 
-The four rules, and where each is enforced — the split is not stylistic, it follows the
-three-layer rule below:
+Underneath, every handler write still takes an `Actor` first, and the rules live where the state
+they read lives — this split is not stylistic, it follows the three-layer rule below:
 
 | Rule | Meaning | Enforced |
 |---|---|---|
 | OWNER | island owner only | in the write transaction, after the row lock |
 | MEMBER | any island member | in the write transaction, after the row lock |
-| SELF | actor must be the player acted on | `Actor.requireSelf`, at the API boundary |
-| BYPASS | operator, console, internal task | `Actor.requireBypass`, at the API boundary |
+| SELF | actor must be the player acted on | structurally by `PlayerActions`; `Actor.requireSelf` in handlers as backstop |
+| BYPASS | operator, console | structurally by handle split; `Actor.requireBypass` in handlers as backstop |
 
-SELF and BYPASS belong at the boundary precisely *because* they are identity comparisons with
-zero I/O: unlike a role, they read no shared state and therefore cannot be stale. Roles must
-stay in the transaction for exactly the opposite reason.
+SELF and BYPASS can live at the boundary precisely *because* they are identity comparisons with
+zero I/O: they read no shared state and therefore cannot be stale. Roles must stay in the
+transaction for exactly the opposite reason.
 
-When adding an API method: pick the rule first, put `Actor` first, name the rule in the javadoc.
-Never add a write whose actor is accepted and ignored — a parameter that looks enforced but is
-not is worse than none, because callers stop checking.
+When adding an operation: player-facing → `PlayerActions` (own island resolved inside);
+operator-facing → `AdminActions`; internal-only → handler only, never the API. The handler
+method takes `Actor` first and its javadoc names the rule. Never add a write whose actor is
+accepted and ignored — a parameter that looks enforced but is not is worse than none, because
+callers stop checking.
 
 ## The three-layer rule: where every check lives
 
@@ -85,8 +93,8 @@ step. It is a courtesy, not a defense — the transaction still enforces.
   world/filesystem. An orphaned world file is unreachable garbage; an island row pointing at
   a deleted world is a live bug. (`deleteIsland` follows this.)
 - **Island load placement**: claimed atomically via `HSETNX` before loading
-  (`IslandRegistry.claimIslandLoadedServer`); the host re-verifies the claim at the point of
-  load (`claimOrConfirmIslandLoadedServer`) so a stale or replayed load request cannot put the
+  (`IslandRegistry.claimHost`); the host re-verifies the claim at the point of
+  load (`claimOrConfirmHost`) so a stale or replayed load request cannot put the
   world on a second server. A claim is released **only by its holder, inside that island's
   local lifecycle chain**, and always by compare-and-delete — never an unconditional `HDEL`,
   and never by a caller reacting to a timeout (the host may still be loading). A dangling

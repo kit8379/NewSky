@@ -18,22 +18,22 @@ public class InvitationStore extends ClusterState {
     }
 
     /**
-     * Adds an invite only if the invitee has none pending. Set-if-absent runs atomically in
+     * Adds an invitation only if the invitee has none pending. Set-if-absent runs atomically in
      * Redis: two inviters racing for the same invitee resolve to exactly one stored invite
      * instead of the second silently overwriting the first.
      *
      * @return true if the invite was stored, false if one was already pending
      */
-    public boolean addIslandInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {
+    public boolean addInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {
         String value = islandUuid + ":" + inviterUuid;
         return execute(jedis -> jedis.set(ClusterKeys.invitation(inviteeUuid), value, SetParams.setParams().nx().ex(ttlSeconds)) != null, "Failed to add island invite for: " + inviteeUuid);
     }
 
-    public void removeIslandInvite(UUID inviteeUuid) {
+    public void removeInvite(UUID inviteeUuid) {
         run(jedis -> jedis.del(ClusterKeys.invitation(inviteeUuid)), "Failed to remove island invite for: " + inviteeUuid);
     }
 
-    public Optional<Invitation> getIslandInvite(UUID inviteeUuid) {
+    public Optional<Invitation> getInvite(UUID inviteeUuid) {
         return execute(jedis -> parseInvitation(inviteeUuid, jedis.get(ClusterKeys.invitation(inviteeUuid))), "Failed to get island invite for: " + inviteeUuid);
     }
 
@@ -41,7 +41,7 @@ public class InvitationStore extends ClusterState {
      * Atomically reads and deletes the invite, so two concurrent accepts can never both redeem
      * the same invitation.
      */
-    public Optional<Invitation> consumeIslandInvite(UUID inviteeUuid) {
+    public Optional<Invitation> consumeInvite(UUID inviteeUuid) {
         return execute(jedis -> parseInvitation(inviteeUuid, jedis.getDel(ClusterKeys.invitation(inviteeUuid))), "Failed to consume island invite for: " + inviteeUuid);
     }
 

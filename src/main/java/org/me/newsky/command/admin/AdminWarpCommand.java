@@ -8,7 +8,6 @@ import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.*;
-import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -86,7 +85,7 @@ public class AdminWarpCommand implements SubCommand, AsyncTabComplete {
             UUID warpPlayerUuid = warpPlayerUuidOpt.get();
 
             if (teleportPlayerName == null) {
-                return api.warp(new Actor.Bypass(sender.getName()), warpPlayerUuid, warpName, finalSenderUuid).thenRun(() -> {
+                return api.admin(sender).warp(warpPlayerUuid, warpName, finalSenderUuid).thenRun(() -> {
                     api.sendPlayerMessage(finalSenderUuid, config.getWarpSuccessMessage(warpPlayerName, warpName));
                 });
             }
@@ -99,7 +98,7 @@ public class AdminWarpCommand implements SubCommand, AsyncTabComplete {
 
                 UUID teleportPlayerUuid = teleportPlayerUuidOpt.get();
 
-                return api.warp(new Actor.Bypass(sender.getName()), warpPlayerUuid, warpName, teleportPlayerUuid).thenRun(() -> api.sendPlayerMessage(teleportPlayerUuid, config.getWarpSuccessMessage(warpPlayerName, warpName)));
+                return api.admin(sender).warp(warpPlayerUuid, warpName, teleportPlayerUuid).thenRun(() -> api.sendPlayerMessage(teleportPlayerUuid, config.getWarpSuccessMessage(warpPlayerName, warpName)));
             });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();

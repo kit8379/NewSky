@@ -11,7 +11,6 @@ import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
 import org.me.newsky.exceptions.NotIslandOwnerException;
 import org.me.newsky.exceptions.PlayerAlreadyOwnerException;
-import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -81,7 +80,7 @@ public class PlayerSetOwnerCommand implements SubCommand, AsyncTabComplete {
 
             UUID targetPlayerUuid = targetUuidOpt.get();
 
-            return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.setOwner(new Actor.Player(playerUuid), islandUuid, targetPlayerUuid).thenRun(() -> player.sendMessage(config.getPlayerSetOwnerSuccessMessage(targetPlayerName))));
+            return api.player(playerUuid).setOwner(targetPlayerUuid).thenRun(() -> player.sendMessage(config.getPlayerSetOwnerSuccessMessage(targetPlayerName)));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {

@@ -7,7 +7,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.me.newsky.NewSky;
 import org.me.newsky.cluster.OnlinePlayerRegistry;
-import org.me.newsky.util.KeyedSequentialExecutor;
+import org.me.newsky.thread.KeyedSequentialExecutor;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;

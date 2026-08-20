@@ -44,18 +44,18 @@ public class WarpHandler {
 
             String warpLocation = x + "," + y + "," + z + "," + yaw + "," + pitch;
 
-            database.updateWarpPoint(islandUuid, playerUuid, normalizedWarpName, warpLocation);
+            database.setWarp(islandUuid, playerUuid, normalizedWarpName, warpLocation);
         }, plugin.getBukkitAsyncExecutor());
     }
 
     /** SELF: warps belong to a player. */
-    public CompletableFuture<Void> delWarp(Actor actor, UUID playerUuid, String warpName) {
+    public CompletableFuture<Void> deleteWarp(Actor actor, UUID playerUuid, String warpName) {
         actor.requireSelf(playerUuid);
 
         return CompletableFuture.runAsync(() -> {
             UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
 
-            database.deleteWarpPoint(islandUuid, playerUuid, warpName);
+            database.deleteWarp(islandUuid, playerUuid, warpName);
         }, plugin.getBukkitAsyncExecutor());
     }
 
@@ -63,7 +63,7 @@ public class WarpHandler {
      * SELF on the traveller only. Unlike a home, a warp is meant to be visited by others, so the
      * warp's owner may be anyone; what a player may not do is send somebody else through it.
      */
-    public CompletableFuture<Void> warp(Actor actor, UUID warpPlayerUuid, String warpName, UUID targetPlayerUuid) {
+    public CompletableFuture<Void> teleportToWarp(Actor actor, UUID warpPlayerUuid, String warpName, UUID targetPlayerUuid) {
         actor.requireSelf(targetPlayerUuid);
 
         return CompletableFuture.supplyAsync(() -> {

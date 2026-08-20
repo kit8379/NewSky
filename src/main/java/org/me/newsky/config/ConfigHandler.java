@@ -1574,7 +1574,7 @@ public class ConfigHandler {
     }
 
     // Ban
-    public Component getBannedPlayersHeaderMessage() {
+    public Component getIslandBansHeaderMessage() {
         return ColorUtils.colorize(messages.getString("messages.banned-players-header"));
     }
 
@@ -1587,7 +1587,7 @@ public class ConfigHandler {
     }
 
     // Coop
-    public Component getCoopedPlayersHeaderMessage() {
+    public Component getIslandCoopsHeaderMessage() {
         return ColorUtils.colorize(messages.getString("messages.cooped-players-header"));
     }
 

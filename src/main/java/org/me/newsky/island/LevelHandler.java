@@ -38,9 +38,9 @@ public class LevelHandler {
         this.pointsByMaterialOrdinal = table;
     }
 
-    public CompletableFuture<Integer> calIslandLevel(UUID islandUuid) {
+    public CompletableFuture<Integer> recalculateIslandLevel(UUID islandUuid) {
         if (!Bukkit.isPrimaryThread()) {
-            return CompletableFuture.completedFuture(null).thenComposeAsync(v -> calIslandLevel(islandUuid), Bukkit.getScheduler().getMainThreadExecutor(plugin));
+            return CompletableFuture.completedFuture(null).thenComposeAsync(v -> recalculateIslandLevel(islandUuid), Bukkit.getScheduler().getMainThreadExecutor(plugin));
         }
 
         String islandName = IslandUtils.UUIDToName(islandUuid);
@@ -98,7 +98,7 @@ public class LevelHandler {
 
             return (int) Math.round((double) totalPoints / 100.0);
         }, plugin.getBukkitAsyncExecutor()).thenApply(totalLevel -> {
-            database.updateIslandLevel(islandUuid, totalLevel);
+            database.setIslandLevel(islandUuid, totalLevel);
             plugin.debug("LevelHandler", "Calculated level for island " + islandUuid + ": " + totalLevel);
             return totalLevel;
         });

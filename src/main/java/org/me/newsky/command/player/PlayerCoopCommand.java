@@ -11,7 +11,6 @@ import org.me.newsky.exceptions.CannotCoopIslandPlayerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerAlreadyCoopedException;
 import org.me.newsky.exceptions.PlayerNotOnlineException;
-import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -81,11 +80,9 @@ public class PlayerCoopCommand implements SubCommand, AsyncTabComplete {
 
             UUID targetUuid = targetUuidOpt.get();
 
-            return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> {
-                return api.addCoop(new Actor.Player(playerUuid), islandUuid, targetUuid).thenRun(() -> {
-                    player.sendMessage(config.getPlayerCoopSuccessMessage(targetPlayerName));
-                    api.sendPlayerMessage(targetUuid, config.getWasCoopedToIslandMessage(player.getName()));
-                });
+            return api.player(playerUuid).addCoop(targetUuid).thenRun(() -> {
+                player.sendMessage(config.getPlayerCoopSuccessMessage(targetPlayerName));
+                api.sendPlayerMessage(targetUuid, config.getWasCoopedToIslandMessage(player.getName()));
             });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();

@@ -10,7 +10,6 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.HomeDoesNotExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.NoActiveServerException;
-import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -97,7 +96,7 @@ public class AdminHomeCommand implements SubCommand, AsyncTabComplete {
                     return CompletableFuture.completedFuture(null);
                 }
 
-                return api.home(new Actor.Bypass(sender.getName()), homePlayerUuidOpt.get(), homeName, teleportPlayerUuid).thenRun(() -> api.sendPlayerMessage(teleportPlayerUuid, config.getAdminHomeSuccessMessage(homePlayerName, homeName)));
+                return api.admin(sender).home(homePlayerUuidOpt.get(), homeName, teleportPlayerUuid).thenRun(() -> api.sendPlayerMessage(teleportPlayerUuid, config.getAdminHomeSuccessMessage(homePlayerName, homeName)));
             });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();

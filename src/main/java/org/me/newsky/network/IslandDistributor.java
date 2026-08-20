@@ -76,7 +76,7 @@ public class IslandDistributor {
 
         // Claim the host before loading. Without the claim two servers can both observe an unclaimed
         // island, pick different hosts, and load the same world twice on top of one storage backend.
-        boolean claimed = islandRegistry.claimIslandLoadedServer(islandUuid, candidate);
+        boolean claimed = islandRegistry.claimHost(islandUuid, candidate);
         String host = claimed ? candidate : getServerByIsland(islandUuid);
         if (host == null) {
             return CompletableFuture.failedFuture(new NoActiveServerException());
@@ -132,7 +132,7 @@ public class IslandDistributor {
 
         // Losing the claim is exactly the "already loaded" case, and deciding it this way makes two
         // simultaneous load requests resolve atomically instead of both proceeding.
-        if (!islandRegistry.claimIslandLoadedServer(islandUuid, candidate)) {
+        if (!islandRegistry.claimHost(islandUuid, candidate)) {
             return CompletableFuture.failedFuture(new IslandAlreadyLoadedException());
         }
 
@@ -263,19 +263,19 @@ public class IslandDistributor {
         return runOnIslandServer(islandUuid, ACTION_ISLAND_COOP_REMOVE, payload, () -> islandOperator.removeCoop(islandUuid, actor, playerUuid));
     }
 
-    public CompletableFuture<Boolean> toggleIslandLock(UUID islandUuid, Actor actor) {
+    public CompletableFuture<Boolean> toggleLock(UUID islandUuid, Actor actor) {
         String islandServer = getServerByIsland(islandUuid);
         if (islandServer == null || islandServer.equals(serverID)) {
-            return islandOperator.toggleIslandLock(islandUuid, actor).thenCompose(locked -> propagateSnapshotAfterLocalWrite(islandUuid).thenApply(v -> locked));
+            return islandOperator.toggleLock(islandUuid, actor).thenCompose(locked -> propagateSnapshotAfterLocalWrite(islandUuid).thenApply(v -> locked));
         }
 
         return messenger.request(islandServer, ACTION_ISLAND_LOCK_TOGGLE, islandActorPayload(islandUuid, actor)).thenApply(resp -> resp.getBoolean("locked"));
     }
 
-    public CompletableFuture<Boolean> toggleIslandPvp(UUID islandUuid, Actor actor) {
+    public CompletableFuture<Boolean> togglePvp(UUID islandUuid, Actor actor) {
         String islandServer = getServerByIsland(islandUuid);
         if (islandServer == null || islandServer.equals(serverID)) {
-            return islandOperator.toggleIslandPvp(islandUuid, actor).thenCompose(pvp -> propagateSnapshotAfterLocalWrite(islandUuid).thenApply(v -> pvp));
+            return islandOperator.togglePvp(islandUuid, actor).thenCompose(pvp -> propagateSnapshotAfterLocalWrite(islandUuid).thenApply(v -> pvp));
         }
 
         return messenger.request(islandServer, ACTION_ISLAND_PVP_TOGGLE, islandActorPayload(islandUuid, actor)).thenApply(resp -> resp.getBoolean("pvp"));
@@ -295,7 +295,7 @@ public class IslandDistributor {
         }
 
         if (islandServer.equals(serverID)) {
-            return islandOperator.refreshSnapshot(islandUuid);
+            return islandOperator.refreshIslandSnapshot(islandUuid);
         }
 
         JSONObject payload = new JSONObject();
@@ -368,7 +368,7 @@ public class IslandDistributor {
     }
 
     private String getServerByIsland(UUID islandUuid) {
-        return islandRegistry.getIslandLoadedServer(islandUuid).orElse(null);
+        return islandRegistry.getHost(islandUuid).orElse(null);
     }
 
     @FunctionalInterface

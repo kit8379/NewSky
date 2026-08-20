@@ -10,7 +10,6 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.CannotRemoveOwnerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
-import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -85,10 +84,10 @@ public class PlayerRemoveMemberCommand implements SubCommand, AsyncTabComplete {
                 return CompletableFuture.completedFuture(null);
             }
 
-            return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.removeMember(new Actor.Player(playerUuid), islandUuid, targetPlayerUuid).thenRun(() -> {
+            return api.player(playerUuid).removeMember(targetPlayerUuid).thenRun(() -> {
                 player.sendMessage(config.getPlayerRemoveMemberSuccessMessage(targetPlayerName));
                 api.sendPlayerMessage(targetPlayerUuid, config.getWasRemovedFromIslandMessage(player.getName()));
-            }));
+            });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {

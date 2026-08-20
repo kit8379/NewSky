@@ -9,7 +9,6 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.NoActiveServerException;
 import org.me.newsky.exceptions.NotIslandOwnerException;
-import org.me.newsky.model.Actor;
 
 import java.util.Map;
 import java.util.UUID;
@@ -102,7 +101,7 @@ public class PlayerDeleteIslandCommand implements SubCommand {
                 if (stage == 2) {
                     reset(playerUuid);
 
-                    return api.deleteIsland(new Actor.Player(playerUuid), islandUuid).thenRun(() -> {
+                    return api.player(playerUuid).deleteIsland().thenRun(() -> {
                         api.sendPlayerMessage(playerUuid, config.getPlayerDeleteSuccessMessage());
                     });
                 }

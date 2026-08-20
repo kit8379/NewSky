@@ -44,7 +44,7 @@ public class ServerRegistry extends ClusterState {
      * inside Redis, so concurrent sweeps and a rebooting owner are all safe.
      */
     public void reapDeadServerClaims() {
-        islandRegistry.removeMappingsOfDeadServers();
+        islandRegistry.reapHostsOfDeadServers();
         onlinePlayerRegistry.removePlayersOfDeadServers();
     }
 
@@ -57,7 +57,7 @@ public class ServerRegistry extends ClusterState {
             pipeline.sync();
         }, "Failed to remove active server: " + serverName);
 
-        islandRegistry.removeServerMappings(serverName);
+        islandRegistry.releaseHostsOf(serverName);
         onlinePlayerRegistry.removePlayersOfServer(serverName);
         plugin.debug("ServerRegistry", "Cleaned up all state data for server: " + serverName);
     }

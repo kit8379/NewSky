@@ -8,7 +8,6 @@ import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.*;
-import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -79,7 +78,7 @@ public class PlayerWarpCommand implements SubCommand, AsyncTabComplete {
 
             UUID targetUuid = targetUuidOpt.get();
 
-            return api.warp(new Actor.Player(playerUuid), targetUuid, warpName, playerUuid).thenRun(() -> api.sendPlayerMessage(playerUuid, config.getWarpSuccessMessage(targetName, warpName)));
+            return api.player(playerUuid).warp(targetUuid, warpName).thenRun(() -> api.sendPlayerMessage(playerUuid, config.getWarpSuccessMessage(targetName, warpName)));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {

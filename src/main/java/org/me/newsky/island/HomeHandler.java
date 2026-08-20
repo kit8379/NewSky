@@ -47,18 +47,18 @@ public class HomeHandler {
 
             String homeLocation = x + "," + y + "," + z + "," + yaw + "," + pitch;
 
-            database.updateHomePoint(islandUuid, playerUuid, normalizedHomeName, homeLocation);
+            database.setHome(islandUuid, playerUuid, normalizedHomeName, homeLocation);
         }, plugin.getBukkitAsyncExecutor());
     }
 
     /** SELF: homes belong to a player. */
-    public CompletableFuture<Void> delHome(Actor actor, UUID playerUuid, String homeName) {
+    public CompletableFuture<Void> deleteHome(Actor actor, UUID playerUuid, String homeName) {
         actor.requireSelf(playerUuid);
 
         return CompletableFuture.runAsync(() -> {
             UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
 
-            database.deleteHomePoint(islandUuid, playerUuid, homeName);
+            database.deleteHome(islandUuid, playerUuid, homeName);
         }, plugin.getBukkitAsyncExecutor());
     }
 
@@ -66,7 +66,7 @@ public class HomeHandler {
      * SELF: using someone else's home as a teleport destination - or sending a third party to it -
      * is an operator action. A player may only travel to their own homes.
      */
-    public CompletableFuture<Void> home(Actor actor, UUID playerUuid, String homeName, UUID targetPlayerUuid) {
+    public CompletableFuture<Void> teleportToHome(Actor actor, UUID playerUuid, String homeName, UUID targetPlayerUuid) {
         actor.requireSelf(playerUuid);
         actor.requireSelf(targetPlayerUuid);
 

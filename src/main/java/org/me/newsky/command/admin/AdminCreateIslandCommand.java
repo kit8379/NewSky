@@ -8,7 +8,6 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.NoActiveServerException;
-import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -69,7 +68,7 @@ public class AdminCreateIslandCommand implements SubCommand, AsyncTabComplete {
                 return CompletableFuture.completedFuture(null);
             }
 
-            return api.createIsland(new Actor.Bypass(sender.getName()), targetUuidOpt.get()).thenRun(() -> {
+            return api.admin(sender).createIsland(targetUuidOpt.get()).thenRun(() -> {
                 sender.sendMessage(config.getAdminCreateSuccessMessage(targetPlayerName));
             });
         }).exceptionally(ex -> {

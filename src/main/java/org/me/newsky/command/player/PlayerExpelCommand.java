@@ -10,7 +10,6 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.CannotExpelIslandPlayerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerNotOnlineException;
-import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -80,7 +79,7 @@ public class PlayerExpelCommand implements SubCommand, AsyncTabComplete {
 
             UUID targetPlayerUuid = targetUuidOpt.get();
 
-            return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.expelPlayer(new Actor.Player(playerUuid), islandUuid, targetPlayerUuid).thenRun(() -> player.sendMessage(config.getPlayerExpelSuccessMessage(targetPlayerName))));
+            return api.player(playerUuid).expelPlayer(targetPlayerUuid).thenRun(() -> player.sendMessage(config.getPlayerExpelSuccessMessage(targetPlayerName)));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {

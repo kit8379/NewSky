@@ -7,7 +7,6 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
-import org.me.newsky.model.Actor;
 
 import java.util.UUID;
 
@@ -59,7 +58,7 @@ public class PlayerPvpCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.toggleIslandPvp(new Actor.Player(playerUuid), islandUuid)).thenAccept(isPvpEnabled -> {
+        api.player(playerUuid).togglePvp().thenAccept(isPvpEnabled -> {
             if (isPvpEnabled) {
                 player.sendMessage(config.getPlayerPvpEnableSuccessMessage());
             } else {

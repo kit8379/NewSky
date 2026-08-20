@@ -45,13 +45,13 @@ public class CoreHandler {
     }
 
     /** MEMBER, enforced in the toggle transaction. */
-    public CompletableFuture<Boolean> toggleIslandLock(Actor actor, UUID islandUuid) {
-        return islandDistributor.toggleIslandLock(islandUuid, actor);
+    public CompletableFuture<Boolean> toggleLock(Actor actor, UUID islandUuid) {
+        return islandDistributor.toggleLock(islandUuid, actor);
     }
 
     /** MEMBER, enforced in the toggle transaction. */
-    public CompletableFuture<Boolean> toggleIslandPvp(Actor actor, UUID islandUuid) {
-        return islandDistributor.toggleIslandPvp(islandUuid, actor);
+    public CompletableFuture<Boolean> togglePvp(Actor actor, UUID islandUuid) {
+        return islandDistributor.togglePvp(islandUuid, actor);
     }
 
     public CompletableFuture<Boolean> isIslandLock(UUID islandUuid) {

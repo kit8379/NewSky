@@ -10,7 +10,6 @@ import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.InvalidBiomeException;
-import org.me.newsky.model.Actor;
 import org.me.newsky.util.IslandUtils;
 
 import java.util.Collections;
@@ -82,7 +81,7 @@ public class AdminBiomeCommand implements SubCommand, AsyncTabComplete {
         int chunkX = player.getLocation().getChunk().getX();
         int chunkZ = player.getLocation().getChunk().getZ();
 
-        api.applyChunkBiome(new Actor.Bypass(sender.getName()), worldName, chunkX, chunkZ, biomeName).thenRun(() -> {
+        api.admin(sender).applyBiome(worldName, chunkX, chunkZ, biomeName).thenRun(() -> {
             player.sendMessage(config.getAdminBiomeChangeSuccessMessage(biomeName));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();

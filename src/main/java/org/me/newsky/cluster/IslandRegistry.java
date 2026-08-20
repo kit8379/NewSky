@@ -41,7 +41,7 @@ public class IslandRegistry extends ClusterState {
      *
      * @return true if the claim was taken by this call, false if another server already holds it
      */
-    public boolean claimIslandLoadedServer(UUID islandUuid, String serverName) {
+    public boolean claimHost(UUID islandUuid, String serverName) {
         return execute(jedis -> jedis.hsetnx(ClusterKeys.islandServer(), islandUuid.toString(), serverName) == 1L, "Failed to claim island loaded server for: " + islandUuid);
     }
 
@@ -52,7 +52,7 @@ public class IslandRegistry extends ClusterState {
      *
      * @return true if this server holds the claim after the call, false if another server does
      */
-    public boolean claimOrConfirmIslandLoadedServer(UUID islandUuid, String serverName) {
+    public boolean claimOrConfirmHost(UUID islandUuid, String serverName) {
         return execute(jedis -> {
             Object result = jedis.eval(CLAIM_OR_CONFIRM, List.of(ClusterKeys.islandServer()), List.of(islandUuid.toString(), serverName));
             return Long.valueOf(1L).equals(result);
@@ -64,11 +64,11 @@ public class IslandRegistry extends ClusterState {
      * failure paths without knowing whether the claim survived: a claim re-taken by another
      * server is left untouched.
      */
-    public void releaseIslandLoadedServer(UUID islandUuid, String serverName) {
+    public void releaseHost(UUID islandUuid, String serverName) {
         run(jedis -> jedis.eval(RELEASE_IF_HELD_BY, List.of(ClusterKeys.islandServer()), List.of(islandUuid.toString(), serverName)), "Failed to release island loaded server for: " + islandUuid);
     }
 
-    public Optional<String> getIslandLoadedServer(UUID islandUuid) {
+    public Optional<String> getHost(UUID islandUuid) {
         return execute(jedis -> Optional.ofNullable(jedis.hget(ClusterKeys.islandServer(), islandUuid.toString())), "Failed to get island loaded server for: " + islandUuid);
     }
 
@@ -82,7 +82,7 @@ public class IslandRegistry extends ClusterState {
      *
      * @return the number of claims reaped
      */
-    public int removeMappingsOfDeadServers() {
+    public int reapHostsOfDeadServers() {
         return execute(jedis -> {
             Map<String, String> mappings = jedis.hgetAll(ClusterKeys.islandServer());
             if (mappings.isEmpty()) {
@@ -115,7 +115,7 @@ public class IslandRegistry extends ClusterState {
      * gone, so between the listing and the delete another server may reap and re-claim an
      * island - its fresh claim must survive this sweep.
      */
-    public void removeServerMappings(String serverName) {
+    public void releaseHostsOf(String serverName) {
         run(jedis -> {
             Map<String, String> mappings = jedis.hgetAll(ClusterKeys.islandServer());
             if (mappings.isEmpty()) {
