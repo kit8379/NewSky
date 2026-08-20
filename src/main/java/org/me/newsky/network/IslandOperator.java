@@ -7,9 +7,12 @@ import org.me.newsky.NewSky;
 import org.me.newsky.cluster.IslandRegistry;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.exceptions.CannotExpelIslandPlayerException;
+import org.me.newsky.exceptions.IslandAlreadyLoadedException;
+import org.me.newsky.exceptions.WorldNotFoundException;
 import org.me.newsky.model.Actor;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.util.IslandUtils;
+import org.me.newsky.util.KeyedSequentialExecutor;
 import org.me.newsky.util.LocationUtils;
 import org.me.newsky.world.WorldHandler;
 import snapshot.IslandSnapshot;
@@ -33,6 +36,11 @@ public class IslandOperator {
 
     private final Map<UUID, CompletableFuture<Void>> loadsInFlight = new ConcurrentHashMap<>();
 
+    // Serializes create/load/unload/delete per island on this server. Without it, an unload
+    // finishing after a concurrent re-load could release the claim the re-load just took, leaving
+    // the world loaded here while another server is free to claim and load it a second time.
+    private final KeyedSequentialExecutor<UUID> lifecycleChains = new KeyedSequentialExecutor<>();
+
     public IslandOperator(NewSky plugin, DatabaseHandler database, WorldHandler worldHandler, TeleportHandler teleportHandler, IslandSnapshot islandSnapshot, IslandRegistry islandRegistry, String serverID) {
         this.plugin = plugin;
         this.database = database;
@@ -44,20 +52,28 @@ public class IslandOperator {
     }
 
     public CompletableFuture<Void> createIsland(UUID islandUuid, UUID ownerUuid) {
+        return serialized(islandUuid, () -> doCreateIsland(islandUuid, ownerUuid));
+    }
+
+    private CompletableFuture<Void> doCreateIsland(UUID islandUuid, UUID ownerUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
         AtomicBoolean databaseCreated = new AtomicBoolean(false);
 
         return CompletableFuture.runAsync(() -> {
             database.addIslandData(islandUuid, ownerUuid);
             databaseCreated.set(true);
+
+            // The UUID is fresh, so only a stale replayed request can contest this claim - and a
+            // replay losing here is exactly the point: creation must not proceed unclaimed.
+            if (!islandRegistry.claimIslandLoadedServer(islandUuid, serverID)) {
+                throw new IslandAlreadyLoadedException();
+            }
         }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> {
             return islandSnapshot.load(islandUuid);
         }).thenCompose(v -> {
             return worldHandler.createWorld(islandName);
         }).thenRun(() -> {
-            islandRegistry.updateIslandLoadedServer(islandUuid, serverID);
-        }).thenRun(() -> {
-            plugin.debug("IslandOperator", "Created island and updated loaded server for UUID: " + islandUuid + " on server: " + serverID);
+            plugin.debug("IslandOperator", "Created island " + islandUuid + " on server: " + serverID);
         }).exceptionallyCompose(e -> {
             if (!databaseCreated.get()) {
                 return CompletableFuture.failedFuture(e);
@@ -79,7 +95,7 @@ public class IslandOperator {
             return inFlight;
         }
 
-        doLoadIsland(islandUuid).whenComplete((result, error) -> {
+        serialized(islandUuid, () -> doLoadIsland(islandUuid)).whenComplete((result, error) -> {
             loadsInFlight.remove(islandUuid, gate);
 
             if (error != null) {
@@ -95,26 +111,48 @@ public class IslandOperator {
     private CompletableFuture<Void> doLoadIsland(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        return islandSnapshot.load(islandUuid).thenCompose(v -> {
-            return worldHandler.loadWorld(islandName);
-        }).thenRun(() -> {
-            islandRegistry.updateIslandLoadedServer(islandUuid, serverID);
-        }).thenRun(() -> {
-            plugin.debug("IslandOperator", "Loaded island and updated loaded server for UUID: " + islandUuid + " on server: " + serverID);
+        // The claim is re-verified here, at the point of effect: a load request can arrive
+        // arbitrarily late (backed-up inbox, replay after restart), and by then the claim may
+        // point at another server that is already hosting the world. Loading anyway would put
+        // the same world on two servers at once.
+        return CompletableFuture.supplyAsync(() -> islandRegistry.claimOrConfirmIslandLoadedServer(islandUuid, serverID), plugin.getBukkitAsyncExecutor()).thenCompose(claimHeld -> {
+            if (!claimHeld) {
+                throw new IslandAlreadyLoadedException();
+            }
+
+            return islandSnapshot.load(islandUuid).thenCompose(v -> {
+                return worldHandler.loadWorld(islandName);
+            }).thenRunAsync(() -> {
+                plugin.debug("IslandOperator", "Loaded island " + islandUuid + " on server: " + serverID);
+            }, plugin.getBukkitAsyncExecutor()).exceptionallyComposeAsync(e -> {
+                // The claim's holder owns its release. Running inside the per-island chain, this
+                // cannot race a queued re-load: the chain orders this release before that load's
+                // claim, and the compare-and-delete never touches another server's fresh claim.
+                islandRegistry.releaseIslandLoadedServer(islandUuid, serverID);
+                return CompletableFuture.failedFuture(e);
+            }, plugin.getBukkitAsyncExecutor());
         });
     }
 
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
+        return serialized(islandUuid, () -> doUnloadIsland(islandUuid));
+    }
+
+    private CompletableFuture<Void> doUnloadIsland(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        return worldHandler.unloadWorld(islandName).thenRun(() -> {
-            islandRegistry.removeIslandLoadedServer(islandUuid);
+        return worldHandler.unloadWorld(islandName).thenRunAsync(() -> {
+            islandRegistry.releaseIslandLoadedServer(islandUuid, serverID);
             islandSnapshot.unload(islandUuid);
-            plugin.debug("IslandOperator", "Removed island loaded server for UUID: " + islandUuid);
-        });
+            plugin.debug("IslandOperator", "Released island loaded server for UUID: " + islandUuid);
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> deleteIsland(UUID islandUuid, Actor actor) {
+        return serialized(islandUuid, () -> doDeleteIsland(islandUuid, actor));
+    }
+
+    private CompletableFuture<Void> doDeleteIsland(UUID islandUuid, Actor actor) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         // Rows go first: the ownership check and the delete share one transaction, so a refused
@@ -123,15 +161,15 @@ public class IslandOperator {
         return CompletableFuture.runAsync(() -> database.deleteIsland(islandUuid, actor), plugin.getBukkitAsyncExecutor()).thenCompose(v -> worldHandler.deleteWorld(islandName).exceptionally(e -> {
             plugin.severe("Island rows deleted but the world could not be removed, leaving an orphaned world: " + islandName, e);
             return null;
-        })).thenRun(() -> {
-            islandRegistry.removeIslandLoadedServer(islandUuid);
+        })).thenRunAsync(() -> {
+            islandRegistry.releaseIslandLoadedServer(islandUuid, serverID);
             islandSnapshot.unload(islandUuid);
             plugin.debug("IslandOperator", "Deleted island and released loaded server for UUID: " + islandUuid);
-        });
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> prepareTeleport(UUID playerUuid, String teleportWorld, String teleportLocation) {
-        return CompletableFuture.runAsync(() -> {
+        return ensureTeleportWorldLoaded(teleportWorld).thenCompose(v -> CompletableFuture.runAsync(() -> {
             Location location = LocationUtils.stringToLocation(teleportWorld, teleportLocation);
             Player player = Bukkit.getPlayer(playerUuid);
             if (player != null) {
@@ -140,9 +178,31 @@ public class IslandOperator {
             }
 
             teleportHandler.addPendingTeleport(playerUuid, location);
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRunAsync(() -> {
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin))).thenRunAsync(() -> {
             plugin.debug("IslandOperator", "Teleported player " + playerUuid + " to location: " + teleportLocation + " in world: " + teleportWorld);
         }, plugin.getBukkitAsyncExecutor());
+    }
+
+    /**
+     * Self-heal at the point of effect: the routing that sent this teleport here read the claim
+     * registry, but the world can be gone by arrival (unloaded in between, or a claim left
+     * dangling by a crash mid-handshake). Re-loading the island here - where the claim either
+     * confirms or the load refuses - repairs the dangling case instead of bouncing every
+     * teleport to this island forever.
+     */
+    private CompletableFuture<Void> ensureTeleportWorldLoaded(String worldName) {
+        return CompletableFuture.supplyAsync(() -> Bukkit.getWorld(worldName) != null, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenCompose(loaded -> {
+            if (loaded) {
+                return CompletableFuture.completedFuture(null);
+            }
+
+            UUID islandUuid = IslandUtils.parseIslandUuid(worldName);
+            if (islandUuid == null) {
+                return CompletableFuture.failedFuture(new WorldNotFoundException());
+            }
+
+            return loadIsland(islandUuid);
+        });
     }
 
     /**
@@ -225,7 +285,15 @@ public class IslandOperator {
         // The snapshot is refreshed even when the mutation fails, because a mutation can fail after
         // having written something (or after another server wrote), and skipping the reload would
         // leave this server serving a snapshot it already knows to be behind.
-        return CompletableFuture.supplyAsync(mutation, plugin.getBukkitAsyncExecutor()).handle((result, error) -> islandSnapshot.reload(islandUuid).thenCompose(v -> error == null ? CompletableFuture.completedFuture(result) : CompletableFuture.<T>failedFuture(error))).thenCompose(future -> future);
+        return CompletableFuture.supplyAsync(mutation, plugin.getBukkitAsyncExecutor()).handle((result, error) -> islandSnapshot.reload(islandUuid).thenCompose(v -> error == null ? CompletableFuture.completedFuture(result) : CompletableFuture.failedFuture(error))).thenCompose(future -> future);
+    }
+
+    /**
+     * Runs one lifecycle operation at a time per island on this server. Operations for different
+     * islands run freely in parallel; a failed operation never blocks the ones queued behind it.
+     */
+    private <T> CompletableFuture<T> serialized(UUID islandUuid, Supplier<CompletableFuture<T>> operation) {
+        return lifecycleChains.submit(islandUuid, operation);
     }
 
     private CompletableFuture<Void> cleanupFailedCreate(UUID islandUuid, String islandName) {
@@ -239,7 +307,7 @@ public class IslandOperator {
                 plugin.severe("Failed to cleanup database after island create failure: " + islandUuid, e);
             }
 
-            islandRegistry.removeIslandLoadedServer(islandUuid);
+            islandRegistry.releaseIslandLoadedServer(islandUuid, serverID);
             islandSnapshot.unload(islandUuid);
         }, plugin.getBukkitAsyncExecutor());
     }

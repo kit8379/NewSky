@@ -9,6 +9,7 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.HomeDoesNotExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -73,7 +74,7 @@ public class PlayerDelHomeCommand implements SubCommand, AsyncTabComplete {
             return true;
         }
 
-        api.delHome(player.getUniqueId(), homeName).thenRun(() -> {
+        api.delHome(new Actor.Player(player.getUniqueId()), player.getUniqueId(), homeName).thenRun(() -> {
             player.sendMessage(config.getPlayerDelHomeSuccessMessage(homeName));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();

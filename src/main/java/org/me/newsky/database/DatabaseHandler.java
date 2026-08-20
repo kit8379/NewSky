@@ -869,7 +869,10 @@ public class DatabaseHandler {
     }
 
     public Island getIslandSnapshot(UUID islandUuid) {
-        return withConnection(connection -> {
+        // One transaction so the four reads share a single consistent view: read piecemeal on
+        // autocommit, a concurrent owner transfer or delete committing between the statements
+        // produces a torn snapshot (e.g. an island row with no owner) that fails the whole refresh.
+        return inTransaction(connection -> {
             boolean lock;
             boolean pvp;
 

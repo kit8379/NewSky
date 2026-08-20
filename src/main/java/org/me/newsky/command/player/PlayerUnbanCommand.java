@@ -6,10 +6,10 @@ import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.model.Actor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerNotBannedException;
+import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -79,7 +79,7 @@ public class PlayerUnbanCommand implements SubCommand, AsyncTabComplete {
 
             UUID targetPlayerUuid = targetUuidOpt.get();
 
-            return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.unbanPlayer(islandUuid, new Actor.Player(playerUuid), targetPlayerUuid).thenRun(() -> {
+            return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.unbanPlayer(new Actor.Player(playerUuid), islandUuid, targetPlayerUuid).thenRun(() -> {
                 player.sendMessage(config.getPlayerUnbanSuccessMessage(targetPlayerName));
                 api.sendPlayerMessage(targetPlayerUuid, config.getWasUnbannedFromIslandMessage(player.getName()));
             }));

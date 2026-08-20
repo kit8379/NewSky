@@ -8,6 +8,7 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandNotLoadedException;
+import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -71,7 +72,7 @@ public class AdminUnloadCommand implements SubCommand, AsyncTabComplete {
 
             UUID targetUuid = targetUuidOpt.get();
 
-            return api.getIslandUuid(targetUuid).thenCompose(api::unloadIsland).thenRun(() -> sender.sendMessage(config.getIslandUnloadSuccessMessage(targetPlayerName)));
+            return api.getIslandUuid(targetUuid).thenCompose(islandUuid -> api.unloadIsland(new Actor.Bypass(sender.getName()), islandUuid)).thenRun(() -> sender.sendMessage(config.getIslandUnloadSuccessMessage(targetPlayerName)));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {

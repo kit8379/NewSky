@@ -21,11 +21,11 @@ public class BanHandler {
         this.islandDistributor = islandDistributor;
     }
 
-    public CompletableFuture<Void> banPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
+    public CompletableFuture<Void> banPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {
         return islandDistributor.addBan(islandUuid, actor, playerUuid);
     }
 
-    public CompletableFuture<Void> unbanPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
+    public CompletableFuture<Void> unbanPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {
         return islandDistributor.removeBan(islandUuid, actor, playerUuid);
     }
 

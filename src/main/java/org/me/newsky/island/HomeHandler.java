@@ -6,6 +6,7 @@ import org.me.newsky.exceptions.HomeDoesNotExistException;
 import org.me.newsky.exceptions.HomeNameNotLegalException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
+import org.me.newsky.model.Actor;
 import org.me.newsky.network.IslandDistributor;
 import org.me.newsky.util.IslandUtils;
 
@@ -27,7 +28,10 @@ public class HomeHandler {
         this.islandDistributor = islandDistributor;
     }
 
-    public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, String worldName, double x, double y, double z, float yaw, float pitch) {
+    /** SELF: homes belong to a player. Island membership is enforced by the foreign key below. */
+    public CompletableFuture<Void> setHome(Actor actor, UUID playerUuid, String homeName, String worldName, double x, double y, double z, float yaw, float pitch) {
+        actor.requireSelf(playerUuid);
+
         return CompletableFuture.runAsync(() -> {
             // The island is derived from the world the point lives in. Membership of that island is
             // enforced by the island_homes to island_players foreign key, so no lookup is needed here.
@@ -47,7 +51,10 @@ public class HomeHandler {
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    public CompletableFuture<Void> delHome(UUID playerUuid, String homeName) {
+    /** SELF: homes belong to a player. */
+    public CompletableFuture<Void> delHome(Actor actor, UUID playerUuid, String homeName) {
+        actor.requireSelf(playerUuid);
+
         return CompletableFuture.runAsync(() -> {
             UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
 
@@ -55,7 +62,14 @@ public class HomeHandler {
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    public CompletableFuture<Void> home(UUID playerUuid, String homeName, UUID targetPlayerUuid) {
+    /**
+     * SELF: using someone else's home as a teleport destination - or sending a third party to it -
+     * is an operator action. A player may only travel to their own homes.
+     */
+    public CompletableFuture<Void> home(Actor actor, UUID playerUuid, String homeName, UUID targetPlayerUuid) {
+        actor.requireSelf(playerUuid);
+        actor.requireSelf(targetPlayerUuid);
+
         return CompletableFuture.supplyAsync(() -> {
             UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
             String homeLocation = Optional.ofNullable(database.getIslandHomes(islandUuid, playerUuid).get(homeName)).orElseThrow(HomeDoesNotExistException::new);

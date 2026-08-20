@@ -32,21 +32,29 @@ public class PlayerHandler {
         this.onlinePlayerRegistry = onlinePlayerRegistry;
     }
 
-    public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role) {
-        // Conflict checks and the new member's home seeding both happen inside the insert
-        // transaction, under the island lock.
+    /**
+     * SELF: a player joins an island for themselves, having accepted its invitation; admins add
+     * anyone with a Bypass. There is deliberately no island role rule here - the joiner is not a
+     * member yet, so the authorization is the invitation, consumed by the accept command before
+     * this call. Conflict checks and home seeding happen inside the insert transaction.
+     */
+    public CompletableFuture<Void> addMember(Actor actor, UUID islandUuid, UUID playerUuid, String role) {
+        actor.requireSelf(playerUuid);
         return islandDistributor.addMember(islandUuid, playerUuid, role);
     }
 
-    public CompletableFuture<Void> removeMember(UUID islandUuid, Actor actor, UUID playerUuid) {
+    /** MEMBER, enforced in the delete transaction. */
+    public CompletableFuture<Void> removeMember(Actor actor, UUID islandUuid, UUID playerUuid) {
         return islandDistributor.removeMember(islandUuid, actor, playerUuid);
     }
 
-    public CompletableFuture<Void> setOwner(UUID islandUuid, Actor actor, UUID newOwnerUuid) {
+    /** OWNER, enforced in the transfer transaction. */
+    public CompletableFuture<Void> setOwner(Actor actor, UUID islandUuid, UUID newOwnerUuid) {
         return islandDistributor.setOwner(islandUuid, actor, newOwnerUuid);
     }
 
-    public CompletableFuture<Void> expelPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
+    /** MEMBER, enforced again on the island's host at the moment of the kick. */
+    public CompletableFuture<Void> expelPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {
         return CompletableFuture.runAsync(() -> {
             onlinePlayerRegistry.requireOnline(playerUuid);
 
@@ -62,7 +70,16 @@ public class PlayerHandler {
         }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.expelPlayer(islandUuid, playerUuid));
     }
 
-    public CompletableFuture<Void> addPendingInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {
+    /**
+     * SELF: an invitation is a personal vouch, so it is recorded against the actor who issued it.
+     * A Bypass has no player identity and therefore cannot invite - console and operators add
+     * members directly with {@link #addMember} instead.
+     */
+    public CompletableFuture<Void> addPendingInvite(Actor actor, UUID islandUuid, UUID inviteeUuid, int ttlSeconds) {
+        if (!(actor instanceof Actor.Player inviter)) {
+            return CompletableFuture.failedFuture(new ActorNotAuthorizedException());
+        }
+
         return CompletableFuture.runAsync(() -> {
             onlinePlayerRegistry.requireOnline(inviteeUuid);
 
@@ -76,21 +93,26 @@ public class PlayerHandler {
                 throw new IslandAlreadyExistException();
             }
 
-            Optional<Invitation> existingInvite = invitationStore.getIslandInvite(inviteeUuid);
-            if (existingInvite.isPresent()) {
+            if (!invitationStore.addIslandInvite(inviteeUuid, islandUuid, inviter.uuid(), ttlSeconds)) {
                 throw new InvitedAlreadyException();
             }
-
-            invitationStore.addIslandInvite(inviteeUuid, islandUuid, inviterUuid, ttlSeconds);
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    public CompletableFuture<Void> removePendingInvite(UUID playerUuid) {
-        return CompletableFuture.runAsync(() -> invitationStore.removeIslandInvite(playerUuid), plugin.getBukkitAsyncExecutor());
+    /** SELF: a player may only discard their own pending invitation. */
+    public CompletableFuture<Void> removePendingInvite(Actor actor, UUID inviteeUuid) {
+        actor.requireSelf(inviteeUuid);
+        return CompletableFuture.runAsync(() -> invitationStore.removeIslandInvite(inviteeUuid), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Optional<Invitation>> getPendingInvite(UUID playerUuid) {
         return CompletableFuture.supplyAsync(() -> invitationStore.getIslandInvite(playerUuid), plugin.getBukkitAsyncExecutor());
+    }
+
+    /** SELF: a player may only redeem their own invitation. */
+    public CompletableFuture<Optional<Invitation>> consumePendingInvite(Actor actor, UUID inviteeUuid) {
+        actor.requireSelf(inviteeUuid);
+        return CompletableFuture.supplyAsync(() -> invitationStore.consumeIslandInvite(inviteeUuid), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<UUID> getIslandOwner(UUID islandUuid) {

@@ -6,6 +6,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.me.newsky.NewSky;
+import org.me.newsky.model.Actor;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -31,7 +32,7 @@ public class IslandCoopListener implements Listener {
                     return CompletableFuture.completedFuture(null);
                 }
 
-                return plugin.getApi().removeAllCoopOfPlayer(playerUuid).thenRun(() -> {
+                return plugin.getApi().removeAllCoopOfPlayer(new Actor.Bypass("coop cleanup on quit"), playerUuid).thenRun(() -> {
                     plugin.debug("IslandCoopListener", "Removed all coop entries for player " + playerName + " on quit.");
                 });
             }).exceptionally(ex -> {

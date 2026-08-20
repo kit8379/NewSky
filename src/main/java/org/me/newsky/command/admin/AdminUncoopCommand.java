@@ -5,10 +5,10 @@ import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.model.Actor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerNotCoopedException;
+import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -81,7 +81,7 @@ public class AdminUncoopCommand implements SubCommand, AsyncTabComplete {
 
                 UUID targetUuid = targetUuidOpt.get();
 
-                return api.getIslandUuid(ownerUuid).thenCompose(islandUuid -> api.removeCoop(islandUuid, new Actor.Bypass(sender.getName()), targetUuid).thenRun(() -> {
+                return api.getIslandUuid(ownerUuid).thenCompose(islandUuid -> api.removeCoop(new Actor.Bypass(sender.getName()), islandUuid, targetUuid).thenRun(() -> {
                     sender.sendMessage(config.getAdminUncoopSuccessMessage(ownerName, targetName));
                     api.sendPlayerMessage(targetUuid, config.getWasUncoopedFromIslandMessage(ownerName));
                 }));

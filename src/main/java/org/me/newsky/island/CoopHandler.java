@@ -24,16 +24,24 @@ public class CoopHandler {
         this.onlinePlayerRegistry = onlinePlayerRegistry;
     }
 
-    public CompletableFuture<Void> coopPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
+    /** MEMBER, enforced in the coop transaction. */
+    public CompletableFuture<Void> coopPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {
         // Coop grants trust to someone currently visiting, so it only applies to online players.
         return CompletableFuture.runAsync(() -> onlinePlayerRegistry.requireOnline(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.addCoop(islandUuid, actor, playerUuid));
     }
 
-    public CompletableFuture<Void> unCoopPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
+    /** MEMBER, enforced in the uncoop transaction. */
+    public CompletableFuture<Void> unCoopPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {
         return islandDistributor.removeCoop(islandUuid, actor, playerUuid);
     }
 
-    public CompletableFuture<Void> deleteAllCoopOfPlayer(UUID playerUuid) {
+    /**
+     * BYPASS: wiping every coop a player holds spans islands the actor has no role on, so it is
+     * an internal cleanup task (run when they disconnect), never a player-facing operation.
+     */
+    public CompletableFuture<Void> deleteAllCoopOfPlayer(Actor actor, UUID playerUuid) {
+        actor.requireBypass();
+
         return CompletableFuture.supplyAsync(() -> database.deleteAllCoopsOfPlayer(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(touchedIslands -> {
             CompletableFuture<?>[] refreshes = touchedIslands.stream().map(islandDistributor::refreshIslandSnapshot).toArray(CompletableFuture[]::new);
             return CompletableFuture.allOf(refreshes);

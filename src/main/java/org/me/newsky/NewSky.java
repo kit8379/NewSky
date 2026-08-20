@@ -8,6 +8,7 @@ import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.json.JSONObject;
 import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.cluster.*;
 import org.me.newsky.command.AsyncTabCompleteListener;
 import org.me.newsky.command.IslandAdminCommand;
 import org.me.newsky.command.IslandPlayerCommand;
@@ -15,8 +16,8 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.island.*;
 import org.me.newsky.listener.*;
-import org.me.newsky.messaging.CrossServerMessenger;
 import org.me.newsky.message.PlayerMessageHandler;
+import org.me.newsky.messaging.CrossServerMessenger;
 import org.me.newsky.model.Actor;
 import org.me.newsky.network.IslandDistributor;
 import org.me.newsky.network.IslandOperator;
@@ -29,7 +30,6 @@ import org.me.newsky.scheduler.HeartbeatScheduler;
 import org.me.newsky.scheduler.IslandUnloadScheduler;
 import org.me.newsky.scheduler.LevelUpdateScheduler;
 import org.me.newsky.scheduler.MSPTUpdateScheduler;
-import org.me.newsky.cluster.*;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.thread.BukkitAsyncExecutor;
 import org.me.newsky.uuid.UuidHandler;
@@ -100,7 +100,7 @@ public class NewSky extends JavaPlugin {
             onlinePlayerRegistry = new OnlinePlayerRegistry(this, redisHandler);
             InvitationStore invitationStore = new InvitationStore(this, redisHandler);
             IslandRegistry islandRegistry = new IslandRegistry(this, redisHandler);
-            ServerRegistry serverRegistry = new ServerRegistry(this, redisHandler, islandRegistry);
+            ServerRegistry serverRegistry = new ServerRegistry(this, redisHandler, islandRegistry, onlinePlayerRegistry);
             info("Redis cache state handler loaded");
 
             info("Loading island loaded snapshot");
@@ -173,7 +173,7 @@ public class NewSky extends JavaPlugin {
 
             info("Starting all schedulers for the plugin");
             heartBeatScheduler = new HeartbeatScheduler(this, config, serverRegistry, serverID);
-            islandUnloadScheduler = new IslandUnloadScheduler(this, config, worldHandler, worldActivityHandler, islandRegistry);
+            islandUnloadScheduler = new IslandUnloadScheduler(this, config, islandOperator, worldActivityHandler);
             levelupdateSchedulerIsland = new LevelUpdateScheduler(this, levelHandler);
 
             if (serverSelector instanceof MSPTServerSelector) {
@@ -191,7 +191,7 @@ public class NewSky extends JavaPlugin {
 
             info("Starting listeners");
             getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, onlinePlayerRegistry, serverID), this);
-            getServer().getPluginManager().registerEvents(new WorldLoadListener(this, config, levelupdateSchedulerIsland, islandSnapshot), this);
+            getServer().getPluginManager().registerEvents(new WorldLoadListener(this, config, levelupdateSchedulerIsland, islandSnapshot, worldActivityHandler), this);
             getServer().getPluginManager().registerEvents(new WorldUnloadListener(this, levelupdateSchedulerIsland, islandSnapshot), this);
             getServer().getPluginManager().registerEvents(new WorldActivityListener(this, worldActivityHandler), this);
             getServer().getPluginManager().registerEvents(new TeleportRequestListener(this, teleportHandler), this);

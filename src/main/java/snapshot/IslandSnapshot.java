@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 
 /**
  * Per-server cache of the islands hosted here, read on every block break, PvP hit and world change.
@@ -19,15 +20,42 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class IslandSnapshot {
 
-    private final NewSky plugin;
-    private final DatabaseHandler database;
+    /**
+     * Blocking read of one island's snapshot row set. Returns null when the island has no rows.
+     * Exists so {@code IslandSnapshotTest} can drive the ordering rules below with a controlled
+     * reader instead of a live database.
+     */
+    @FunctionalInterface
+    public interface Reader {
+        Island read(UUID islandUuid);
+    }
+
+    @FunctionalInterface
+    public interface ErrorSink {
+        void error(String message, Throwable error);
+    }
+
+    private final Executor executor;
+    private final Reader reader;
+    private final ErrorSink errorSink;
 
     private final Map<UUID, Island> islands = new ConcurrentHashMap<>();
     private final Map<UUID, CompletableFuture<Void>> loadChains = new ConcurrentHashMap<>();
 
+    // Bumped on every unload. A read caches its result only if the generation it was enqueued
+    // under is still current: without this, a read left over from before an unload could pass a
+    // bare "is the island hosted" check (a newer load re-created the chain) and overwrite that
+    // newer load's fresher result with its stale one.
+    private final Map<UUID, Long> unloadGenerations = new ConcurrentHashMap<>();
+
     public IslandSnapshot(NewSky plugin, DatabaseHandler database) {
-        this.plugin = plugin;
-        this.database = database;
+        this(plugin.getBukkitAsyncExecutor(), database::getIslandSnapshot, plugin::severe);
+    }
+
+    public IslandSnapshot(Executor executor, Reader reader, ErrorSink errorSink) {
+        this.executor = executor;
+        this.reader = reader;
+        this.errorSink = errorSink;
     }
 
     /**
@@ -44,9 +72,11 @@ public class IslandSnapshot {
      * read cached, which would turn a momentary staleness into a permanent one.
      */
     public CompletableFuture<Void> load(UUID islandUuid) {
+        long generation = currentGeneration(islandUuid);
+
         return loadChains.compute(islandUuid, (uuid, previous) -> {
             CompletableFuture<Void> settled = previous == null ? CompletableFuture.completedFuture(null) : previous.handle((result, error) -> null);
-            return settled.thenCompose(v -> read(uuid));
+            return settled.thenCompose(v -> read(uuid, generation));
         });
     }
 
@@ -63,12 +93,17 @@ public class IslandSnapshot {
     }
 
     public void unload(UUID islandUuid) {
+        unloadGenerations.merge(islandUuid, 1L, Long::sum);
         islands.remove(islandUuid);
         loadChains.remove(islandUuid);
     }
 
-    private CompletableFuture<Void> read(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> database.getIslandSnapshot(islandUuid), plugin.getBukkitAsyncExecutor()).thenAccept(island -> {
+    private long currentGeneration(UUID islandUuid) {
+        return unloadGenerations.getOrDefault(islandUuid, 0L);
+    }
+
+    private CompletableFuture<Void> read(UUID islandUuid, long generation) {
+        return CompletableFuture.supplyAsync(() -> reader.read(islandUuid), executor).thenAccept(island -> {
             if (island == null) {
                 // The island genuinely has no row any more, so the cached copy has to go: listeners
                 // must stop enforcing rules from a snapshot with nothing behind it.
@@ -76,18 +111,24 @@ public class IslandSnapshot {
                 throw new IllegalStateException("Island snapshot does not exist: " + islandUuid);
             }
 
-            if (!loadChains.containsKey(islandUuid)) {
-                // Unloaded while this read was in flight; caching it now would resurrect an island
-                // this server no longer hosts.
+            if (currentGeneration(islandUuid) != generation) {
+                // Unloaded (and possibly reloaded) while this read was in flight; caching it now
+                // would resurrect a stale snapshot on an island this read no longer speaks for.
                 return;
             }
 
             islands.put(islandUuid, island);
+
+            if (currentGeneration(islandUuid) != generation) {
+                // An unload slipped in between the check and the put; whichever of the two
+                // removals runs last wins, so the resurrected entry cannot survive.
+                islands.remove(islandUuid, island);
+            }
         }).exceptionallyCompose(error -> {
             // A failed read deliberately leaves the previous snapshot in place. It is at most one
             // write out of date, while dropping it would make the island look non-existent to every
             // listener. The next write reloads it.
-            plugin.severe("Failed to load island snapshot: " + islandUuid, error);
+            errorSink.error("Failed to load island snapshot: " + islandUuid, error);
             return CompletableFuture.failedFuture(error);
         });
     }

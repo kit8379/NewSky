@@ -9,6 +9,7 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.model.Island;
 import org.me.newsky.scheduler.LevelUpdateScheduler;
 import org.me.newsky.util.IslandUtils;
+import org.me.newsky.world.WorldActivityHandler;
 import snapshot.IslandSnapshot;
 
 import java.util.Map;
@@ -20,12 +21,14 @@ public class WorldLoadListener implements Listener {
     private final ConfigHandler config;
     private final LevelUpdateScheduler levelUpdateScheduler;
     private final IslandSnapshot islandSnapshot;
+    private final WorldActivityHandler worldActivityHandler;
 
-    public WorldLoadListener(NewSky plugin, ConfigHandler config, LevelUpdateScheduler levelUpdateScheduler, IslandSnapshot islandSnapshot) {
+    public WorldLoadListener(NewSky plugin, ConfigHandler config, LevelUpdateScheduler levelUpdateScheduler, IslandSnapshot islandSnapshot, WorldActivityHandler worldActivityHandler) {
         this.plugin = plugin;
         this.config = config;
         this.levelUpdateScheduler = levelUpdateScheduler;
         this.islandSnapshot = islandSnapshot;
+        this.worldActivityHandler = worldActivityHandler;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -41,6 +44,7 @@ public class WorldLoadListener implements Listener {
         applyGameRules(world);
         applyBorder(world, islandUuid);
         registerLevelUpdate(islandUuid);
+        worldActivityHandler.worldLoaded(name, System.currentTimeMillis());
     }
 
     @SuppressWarnings("unchecked")

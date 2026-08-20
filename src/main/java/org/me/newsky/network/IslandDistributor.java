@@ -2,20 +2,21 @@ package org.me.newsky.network;
 
 import org.json.JSONObject;
 import org.me.newsky.NewSky;
+import org.me.newsky.cluster.IslandRegistry;
+import org.me.newsky.cluster.ServerRegistry;
 import org.me.newsky.exceptions.IslandAlreadyLoadedException;
 import org.me.newsky.exceptions.IslandNotLoadedException;
 import org.me.newsky.exceptions.NoActiveServerException;
 import org.me.newsky.messaging.CrossServerMessenger;
 import org.me.newsky.model.Actor;
 import org.me.newsky.routing.ServerSelector;
-import org.me.newsky.cluster.IslandRegistry;
-import org.me.newsky.cluster.ServerRegistry;
 import org.me.newsky.util.ServerUtil;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 public class IslandDistributor {
@@ -36,6 +37,9 @@ public class IslandDistributor {
     public static final String ACTION_ISLAND_PVP_TOGGLE = "island.pvp.toggle";
     public static final String ACTION_ISLAND_EXPEL = "island.expel";
     public static final String ACTION_ISLAND_SNAPSHOT_REFRESH = "island.snapshot.refresh";
+
+    private static final int SNAPSHOT_REFRESH_ATTEMPTS = 3;
+    private static final long SNAPSHOT_REFRESH_RETRY_SECONDS = 2L;
 
     private final NewSky plugin;
     private final IslandOperator islandOperator;
@@ -80,28 +84,23 @@ public class IslandDistributor {
 
         // Winner and losers alike dispatch the load to the claimed host, which de-duplicates them
         // locally. That way every caller only continues once the world is really loaded.
-        return dispatchLoad(islandUuid, host, claimed).thenApply(v -> host);
+        return dispatchLoad(islandUuid, host).thenApply(v -> host);
     }
 
-    private CompletableFuture<Void> dispatchLoad(UUID islandUuid, String host, boolean claimedByUs) {
-        CompletableFuture<Void> load;
-
+    // No release on failure in here, deliberately. A claim is only ever released by its holder,
+    // inside the holder's per-island chain: from out here a "failure" may be a timeout while
+    // the host is still loading, or arrive after the host (or a retry) has already re-claimed,
+    // and releasing then would let a second server load the same world. A claim left dangling
+    // because the request never reached the host self-heals: the next teleport routed to the
+    // host re-loads the island at the point of effect.
+    private CompletableFuture<Void> dispatchLoad(UUID islandUuid, String host) {
         if (host.equals(serverID)) {
-            load = islandOperator.loadIsland(islandUuid);
-        } else {
-            JSONObject payload = new JSONObject();
-            payload.put("islandUuid", islandUuid.toString());
-            load = messenger.requestVoid(host, ACTION_ISLAND_LOAD, payload);
+            return islandOperator.loadIsland(islandUuid);
         }
 
-        return load.exceptionallyCompose(e -> {
-            // Only the caller that took the claim may release it, otherwise a failing loser would
-            // strip the claim out from under the winner while it is still loading.
-            if (claimedByUs) {
-                islandRegistry.removeIslandLoadedServer(islandUuid);
-            }
-            return CompletableFuture.failedFuture(e);
-        });
+        JSONObject payload = new JSONObject();
+        payload.put("islandUuid", islandUuid.toString());
+        return messenger.requestVoid(host, ACTION_ISLAND_LOAD, payload);
     }
 
     // =====================================================================================
@@ -137,7 +136,7 @@ public class IslandDistributor {
             return CompletableFuture.failedFuture(new IslandAlreadyLoadedException());
         }
 
-        return dispatchLoad(islandUuid, candidate, true);
+        return dispatchLoad(islandUuid, candidate);
     }
 
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
@@ -158,13 +157,32 @@ public class IslandDistributor {
     public CompletableFuture<Void> deleteIsland(UUID islandUuid, Actor actor) {
         String islandServer = getServerByIsland(islandUuid);
         if (islandServer == null || islandServer.equals(serverID)) {
-            return islandOperator.deleteIsland(islandUuid, actor);
+            // A load racing this delete can finish after the rows are gone and leave a ghost world
+            // hosted somewhere; the post-delete check evicts it. Best-effort: the rows are already
+            // deleted, so the delete itself has succeeded no matter what the ghost unload does.
+            return islandOperator.deleteIsland(islandUuid, actor).thenCompose(v -> unloadGhostAfterDelete(islandUuid));
         }
 
         JSONObject payload = new JSONObject();
         payload.put("islandUuid", islandUuid.toString());
         payload.put(Actor.FIELD, Actor.toJson(actor));
         return messenger.requestVoid(islandServer, ACTION_ISLAND_DELETE, payload);
+    }
+
+    private CompletableFuture<Void> unloadGhostAfterDelete(UUID islandUuid) {
+        return CompletableFuture.runAsync(() -> {
+            String islandServer = getServerByIsland(islandUuid);
+            if (islandServer == null || islandServer.equals(serverID)) {
+                return;
+            }
+
+            JSONObject payload = new JSONObject();
+            payload.put("islandUuid", islandUuid.toString());
+            messenger.requestVoid(islandServer, ACTION_ISLAND_UNLOAD, payload).exceptionally(e -> {
+                plugin.severe("Failed to unload ghost world of deleted island " + islandUuid + " on " + islandServer, e);
+                return null;
+            });
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> teleportIsland(UUID islandUuid, UUID playerUuid, String teleportWorld, String teleportLocation) {
@@ -248,7 +266,7 @@ public class IslandDistributor {
     public CompletableFuture<Boolean> toggleIslandLock(UUID islandUuid, Actor actor) {
         String islandServer = getServerByIsland(islandUuid);
         if (islandServer == null || islandServer.equals(serverID)) {
-            return islandOperator.toggleIslandLock(islandUuid, actor);
+            return islandOperator.toggleIslandLock(islandUuid, actor).thenCompose(locked -> propagateSnapshotAfterLocalWrite(islandUuid).thenApply(v -> locked));
         }
 
         return messenger.request(islandServer, ACTION_ISLAND_LOCK_TOGGLE, islandActorPayload(islandUuid, actor)).thenApply(resp -> resp.getBoolean("locked"));
@@ -257,7 +275,7 @@ public class IslandDistributor {
     public CompletableFuture<Boolean> toggleIslandPvp(UUID islandUuid, Actor actor) {
         String islandServer = getServerByIsland(islandUuid);
         if (islandServer == null || islandServer.equals(serverID)) {
-            return islandOperator.toggleIslandPvp(islandUuid, actor);
+            return islandOperator.toggleIslandPvp(islandUuid, actor).thenCompose(pvp -> propagateSnapshotAfterLocalWrite(islandUuid).thenApply(v -> pvp));
         }
 
         return messenger.request(islandServer, ACTION_ISLAND_PVP_TOGGLE, islandActorPayload(islandUuid, actor)).thenApply(resp -> resp.getBoolean("pvp"));
@@ -270,10 +288,6 @@ public class IslandDistributor {
         return runOnIslandServer(islandUuid, ACTION_ISLAND_EXPEL, payload, () -> islandOperator.expelPlayer(islandUuid, playerUuid));
     }
 
-    /**
-     * Refreshes the island's snapshot on whichever server hosts it. A no-op for unloaded islands:
-     * they have no snapshot anywhere.
-     */
     public CompletableFuture<Void> refreshIslandSnapshot(UUID islandUuid) {
         String islandServer = getServerByIsland(islandUuid);
         if (islandServer == null) {
@@ -303,10 +317,50 @@ public class IslandDistributor {
     private CompletableFuture<Void> runOnIslandServer(UUID islandUuid, String action, JSONObject payload, LocalOperation localOperation) {
         String islandServer = getServerByIsland(islandUuid);
         if (islandServer == null || islandServer.equals(serverID)) {
-            return localOperation.run();
+            return localOperation.run().thenCompose(v -> propagateSnapshotAfterLocalWrite(islandUuid));
         }
 
         return messenger.requestVoid(islandServer, action, payload);
+    }
+
+    /**
+     * Closes the routing race around locally executed writes. The "no host, run locally" decision
+     * is made before the write commits; a concurrent load may have claimed the island and read its
+     * snapshot before that commit, in which case nothing would ever tell the new host about the
+     * write. Re-checking the claim after the commit closes the window completely: a host claimed
+     * after this check reads its snapshot after the claim, and therefore after the commit.
+     * <p>
+     * Why converge-after rather than mutual exclusion: forbidding the overlap outright would need
+     * the claim to double as a write token, making Redis a hard dependency of every write, letting
+     * writes block or bounce loads, and turning a writer crash into a minutes-long lockout. This
+     * way the overlap stays harmless instead: the write always lands in the database, and the only
+     * best-effort part is this notification - so it retries before giving up.
+     */
+    private CompletableFuture<Void> propagateSnapshotAfterLocalWrite(UUID islandUuid) {
+        return CompletableFuture.runAsync(() -> sendSnapshotRefresh(islandUuid, 1), plugin.getBukkitAsyncExecutor());
+    }
+
+    private void sendSnapshotRefresh(UUID islandUuid, int attempt) {
+        // Re-resolved on every attempt: the host may have unloaded (nothing left to refresh) or
+        // moved between attempts, and a retry must chase the island, not the original server.
+        String islandServer = getServerByIsland(islandUuid);
+        if (islandServer == null || islandServer.equals(serverID)) {
+            return;
+        }
+
+        JSONObject payload = new JSONObject();
+        payload.put("islandUuid", islandUuid.toString());
+
+        messenger.requestVoid(islandServer, ACTION_ISLAND_SNAPSHOT_REFRESH, payload).exceptionally(e -> {
+            if (attempt >= SNAPSHOT_REFRESH_ATTEMPTS) {
+                plugin.severe("Giving up on snapshot refresh for island " + islandUuid + " on " + islandServer + " after " + attempt + " attempts; its snapshot stays stale until the next write", e);
+                return null;
+            }
+
+            long delaySeconds = SNAPSHOT_REFRESH_RETRY_SECONDS * attempt;
+            CompletableFuture.runAsync(() -> sendSnapshotRefresh(islandUuid, attempt + 1), CompletableFuture.delayedExecutor(delaySeconds, TimeUnit.SECONDS, plugin.getBukkitAsyncExecutor()));
+            return null;
+        });
     }
 
     private String selectServer(Map<String, String> servers) {

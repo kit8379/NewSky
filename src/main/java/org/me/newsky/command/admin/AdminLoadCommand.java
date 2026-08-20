@@ -9,6 +9,7 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandAlreadyLoadedException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.NoActiveServerException;
+import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -69,7 +70,7 @@ public class AdminLoadCommand implements SubCommand, AsyncTabComplete {
                 return CompletableFuture.completedFuture(null);
             }
 
-            return api.getIslandUuid(targetUuidOpt.get()).thenCompose(api::loadIsland).thenRun(() -> sender.sendMessage(config.getIslandLoadSuccessMessage(targetPlayerName)));
+            return api.getIslandUuid(targetUuidOpt.get()).thenCompose(islandUuid -> api.loadIsland(new Actor.Bypass(sender.getName()), islandUuid)).thenRun(() -> sender.sendMessage(config.getIslandLoadSuccessMessage(targetPlayerName)));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {

@@ -9,6 +9,7 @@ import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.LocationNotInIslandException;
+import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -83,7 +84,7 @@ public class AdminSetHomeCommand implements SubCommand, AsyncTabComplete {
                 return CompletableFuture.completedFuture(null);
             }
 
-            return api.setHome(targetUuidOpt.get(), homeName, worldName, x, y, z, yaw, pitch).thenRun(() -> sender.sendMessage(config.getAdminSetHomeSuccessMessage(homePlayerName, homeName)));
+            return api.setHome(new Actor.Bypass(sender.getName()), targetUuidOpt.get(), homeName, worldName, x, y, z, yaw, pitch).thenRun(() -> sender.sendMessage(config.getAdminSetHomeSuccessMessage(homePlayerName, homeName)));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof LocationNotInIslandException) {

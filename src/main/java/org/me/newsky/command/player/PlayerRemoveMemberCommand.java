@@ -6,11 +6,11 @@ import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.model.Actor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.CannotRemoveOwnerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
+import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -85,7 +85,7 @@ public class PlayerRemoveMemberCommand implements SubCommand, AsyncTabComplete {
                 return CompletableFuture.completedFuture(null);
             }
 
-            return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.removeMember(islandUuid, new Actor.Player(playerUuid), targetPlayerUuid).thenRun(() -> {
+            return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.removeMember(new Actor.Player(playerUuid), islandUuid, targetPlayerUuid).thenRun(() -> {
                 player.sendMessage(config.getPlayerRemoveMemberSuccessMessage(targetPlayerName));
                 api.sendPlayerMessage(targetPlayerUuid, config.getWasRemovedFromIslandMessage(player.getName()));
             }));

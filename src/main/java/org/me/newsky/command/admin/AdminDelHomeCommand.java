@@ -8,6 +8,7 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.HomeDoesNotExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -74,7 +75,7 @@ public class AdminDelHomeCommand implements SubCommand, AsyncTabComplete {
                 return CompletableFuture.completedFuture(null);
             }
 
-            return api.delHome(targetUuidOpt.get(), homeName).thenRun(() -> sender.sendMessage(config.getAdminDelHomeSuccessMessage(homePlayerName, homeName)));
+            return api.delHome(new Actor.Bypass(sender.getName()), targetUuidOpt.get(), homeName).thenRun(() -> sender.sendMessage(config.getAdminDelHomeSuccessMessage(homePlayerName, homeName)));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
 

@@ -21,27 +21,36 @@ public class CoreHandler {
         this.islandDistributor = islandDistributor;
     }
 
-    public CompletableFuture<Void> createIsland(UUID ownerUuid) {
+    /** SELF: a player may only create their own island. */
+    public CompletableFuture<Void> createIsland(Actor actor, UUID ownerUuid) {
+        actor.requireSelf(ownerUuid);
         return islandDistributor.createIsland(UUID.randomUUID(), ownerUuid);
     }
 
-    public CompletableFuture<Void> deleteIsland(UUID islandUuid, Actor actor) {
+    /** OWNER, enforced in the delete transaction. */
+    public CompletableFuture<Void> deleteIsland(Actor actor, UUID islandUuid) {
         return islandDistributor.deleteIsland(islandUuid, actor);
     }
 
-    public CompletableFuture<Void> loadIsland(UUID islandUuid) {
+    /** BYPASS: world placement is an operational concern, not a player-facing one. */
+    public CompletableFuture<Void> loadIsland(Actor actor, UUID islandUuid) {
+        actor.requireBypass();
         return islandDistributor.loadIsland(islandUuid);
     }
 
-    public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
+    /** BYPASS: world placement is an operational concern, not a player-facing one. */
+    public CompletableFuture<Void> unloadIsland(Actor actor, UUID islandUuid) {
+        actor.requireBypass();
         return islandDistributor.unloadIsland(islandUuid);
     }
 
-    public CompletableFuture<Boolean> toggleIslandLock(UUID islandUuid, Actor actor) {
+    /** MEMBER, enforced in the toggle transaction. */
+    public CompletableFuture<Boolean> toggleIslandLock(Actor actor, UUID islandUuid) {
         return islandDistributor.toggleIslandLock(islandUuid, actor);
     }
 
-    public CompletableFuture<Boolean> toggleIslandPvp(UUID islandUuid, Actor actor) {
+    /** MEMBER, enforced in the toggle transaction. */
+    public CompletableFuture<Boolean> toggleIslandPvp(Actor actor, UUID islandUuid) {
         return islandDistributor.toggleIslandPvp(islandUuid, actor);
     }
 

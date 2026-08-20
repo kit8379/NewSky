@@ -10,6 +10,7 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.HomeDoesNotExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.NoActiveServerException;
+import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -67,7 +68,7 @@ public class PlayerHomeCommand implements SubCommand, AsyncTabComplete {
         String homeName = (args.length >= 2) ? args[1] : "default";
         UUID playerUuid = player.getUniqueId();
 
-        api.home(playerUuid, homeName, playerUuid).thenRun(() -> {
+        api.home(new Actor.Player(playerUuid), playerUuid, homeName, playerUuid).thenRun(() -> {
             api.sendPlayerMessage(playerUuid, config.getPlayerHomeSuccessMessage(homeName));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();

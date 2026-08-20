@@ -8,6 +8,7 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.NoActiveServerException;
+import org.me.newsky.model.Actor;
 
 import java.util.UUID;
 
@@ -56,10 +57,10 @@ public class PlayerCreateIslandCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.createIsland(playerUuid).thenRun(() -> {
+        api.createIsland(new Actor.Player(playerUuid), playerUuid).thenRun(() -> {
             player.sendMessage(config.getPlayerCreateSuccessMessage());
         }).thenCompose(v -> {
-            return api.home(playerUuid, "default", playerUuid);
+            return api.home(new Actor.Player(playerUuid), playerUuid, "default", playerUuid);
         }).thenRun(() -> {
             api.sendPlayerMessage(playerUuid, config.getPlayerHomeSuccessMessage("default"));
         }).exceptionally(ex -> {

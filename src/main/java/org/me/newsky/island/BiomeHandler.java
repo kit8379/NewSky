@@ -13,6 +13,7 @@ import org.me.newsky.exceptions.InvalidBiomeException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
 import org.me.newsky.exceptions.WorldNotFoundException;
+import org.me.newsky.model.Actor;
 import org.me.newsky.util.IslandUtils;
 
 import java.util.UUID;
@@ -28,20 +29,28 @@ public final class BiomeHandler {
         this.database = database;
     }
 
-    public CompletableFuture<Void> applyPlayerChunkBiome(UUID playerUuid, String worldName, int chunkX, int chunkZ, String biomeName) {
+    /**
+     * SELF, scoped by island: a player may only re-biome the world of the island they belong to,
+     * while a Bypass may re-biome any loaded world. One method for both callers - the actor is
+     * what distinguishes them.
+     */
+    public CompletableFuture<Void> applyChunkBiome(Actor actor, String worldName, int chunkX, int chunkZ, String biomeName) {
+        if (!(actor instanceof Actor.Player player)) {
+            return applyBiome(worldName, chunkX, chunkZ, biomeName);
+        }
+
         return CompletableFuture.runAsync(() -> {
-            // Players may only re-biome their own island; admins use applyChunkBiome directly.
-            UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
+            UUID islandUuid = database.getIslandUuid(player.uuid()).orElseThrow(IslandDoesNotExistException::new);
 
             if (!IslandUtils.UUIDToName(islandUuid).equals(worldName)) {
                 throw new LocationNotInIslandException();
             }
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> applyChunkBiome(worldName, chunkX, chunkZ, biomeName));
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> applyBiome(worldName, chunkX, chunkZ, biomeName));
     }
 
-    public CompletableFuture<Void> applyChunkBiome(String worldName, int chunkX, int chunkZ, String biomeName) {
+    private CompletableFuture<Void> applyBiome(String worldName, int chunkX, int chunkZ, String biomeName) {
         if (!Bukkit.isPrimaryThread()) {
-            return CompletableFuture.completedFuture(null).thenComposeAsync(v -> applyChunkBiome(worldName, chunkX, chunkZ, biomeName), Bukkit.getScheduler().getMainThreadExecutor(plugin));
+            return CompletableFuture.completedFuture(null).thenComposeAsync(v -> applyBiome(worldName, chunkX, chunkZ, biomeName), Bukkit.getScheduler().getMainThreadExecutor(plugin));
         }
 
         World world = Bukkit.getWorld(worldName);

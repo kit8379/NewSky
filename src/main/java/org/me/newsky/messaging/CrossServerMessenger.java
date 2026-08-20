@@ -6,6 +6,7 @@ import org.me.newsky.NewSky;
 import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.StreamEntryID;
+import redis.clients.jedis.params.XAddParams;
 import redis.clients.jedis.params.XReadParams;
 import redis.clients.jedis.resps.StreamEntry;
 
@@ -21,6 +22,15 @@ public final class CrossServerMessenger {
     private static final String STREAM_PREFIX = "newsky:messaging:inbox:";
     private static final String FIELD_MESSAGE = "message";
     private static final long REQUEST_TIMEOUT_SECONDS = 30L;
+    // A request older than the requester's timeout (plus clock-skew slack) has nobody waiting for
+    // it any more; executing it late would replay non-idempotent operations (lock toggles, loads)
+    // against state that has long moved on.
+    private static final long STALE_REQUEST_MILLIS = (REQUEST_TIMEOUT_SECONDS + 5L) * 1000L;
+    // Backstop only: unclogs the inbox window if a handler future never completes. Far above any
+    // legitimate operation so it can never masquerade as a real failure verdict.
+    private static final long HANDLER_TIMEOUT_SECONDS = 600L;
+    // Caps every inbox so streams of dead or renamed servers cannot grow without bound.
+    private static final long INBOX_MAX_LEN = 10_000L;
     private static final int READ_BLOCK_MILLIS = 1000;
     private static final int READ_COUNT = 10;
 
@@ -66,6 +76,15 @@ public final class CrossServerMessenger {
     public void start() {
         if (running) {
             return;
+        }
+
+        // Everything in the inbox predates this boot: its requesters have timed out, and replaying
+        // stale loads or toggles against the current cluster state is actively harmful.
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.del(inboxKey(serverID));
+            plugin.debug("CrossServerMessenger", "Cleared stale inbox for " + serverID);
+        } catch (Exception e) {
+            plugin.severe("Failed to clear stale inbox for " + serverID, e);
         }
 
         running = true;
@@ -137,6 +156,12 @@ public final class CrossServerMessenger {
             }
 
             if (CrossServerMessage.TYPE_REQUEST.equals(message.getType())) {
+                if (message.getTimestamp() > 0 && System.currentTimeMillis() - message.getTimestamp() > STALE_REQUEST_MILLIS) {
+                    plugin.warning("Dropping stale cross-server request " + message.getAction() + " from " + message.getSource() + " (age exceeds requester timeout)");
+                    deleteEntry(entry.getID());
+                    return true;
+                }
+
                 handleRequest(entry.getID(), message);
                 return true;
             }
@@ -159,7 +184,7 @@ public final class CrossServerMessenger {
         }
 
         try {
-            handler.handle(message.getPayload()).whenCompleteAsync((payload, throwable) -> {
+            handler.handle(message.getPayload()).orTimeout(HANDLER_TIMEOUT_SECONDS, TimeUnit.SECONDS).whenCompleteAsync((payload, throwable) -> {
                 CrossServerMessage response;
                 if (throwable == null) {
                     response = CrossServerMessage.successResponse(message, payload == null ? new JSONObject() : payload);
@@ -253,7 +278,7 @@ public final class CrossServerMessenger {
 
     private void send(CrossServerMessage message) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.xadd(inboxKey(message.getTarget()), StreamEntryID.NEW_ENTRY, Map.of(FIELD_MESSAGE, message.toJson()));
+            jedis.xadd(inboxKey(message.getTarget()), XAddParams.xAddParams().maxLen(INBOX_MAX_LEN).approximateTrimming(), Map.of(FIELD_MESSAGE, message.toJson()));
             plugin.debug("CrossServerMessenger", "Sent " + message.getType() + " " + message.getAction() + " to " + message.getTarget());
         }
     }

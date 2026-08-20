@@ -6,6 +6,7 @@ import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.model.Actor;
 import org.me.newsky.model.Invitation;
 
 import java.util.UUID;
@@ -68,7 +69,7 @@ public class PlayerRejectInviteCommand implements SubCommand {
             Invitation invite = optionalInvite.get();
             UUID inviterUuid = invite.getInviterUuid();
 
-            return api.removePendingInvite(playerUuid).thenRun(() -> {
+            return api.removePendingInvite(new Actor.Player(playerUuid), playerUuid).thenRun(() -> {
                 player.sendMessage(config.getPlayerInviteRejectedMessage());
                 api.sendPlayerMessage(inviterUuid, config.getPlayerInviteRejectedNotifyMessage(player.getName()));
             });

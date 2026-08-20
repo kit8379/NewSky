@@ -3,6 +3,7 @@ package org.me.newsky.island;
 import org.me.newsky.NewSky;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.exceptions.*;
+import org.me.newsky.model.Actor;
 import org.me.newsky.network.IslandDistributor;
 import org.me.newsky.util.IslandUtils;
 
@@ -24,7 +25,10 @@ public class WarpHandler {
         this.islandDistributor = islandDistributor;
     }
 
-    public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
+    /** SELF: warps belong to a player. Island membership is enforced by the foreign key below. */
+    public CompletableFuture<Void> setWarp(Actor actor, UUID playerUuid, String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
+        actor.requireSelf(playerUuid);
+
         return CompletableFuture.runAsync(() -> {
             // The island is derived from the world the point lives in. Membership of that island is
             // enforced by the island_warps to island_players foreign key, so no lookup is needed here.
@@ -44,7 +48,10 @@ public class WarpHandler {
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    public CompletableFuture<Void> delWarp(UUID playerUuid, String warpName) {
+    /** SELF: warps belong to a player. */
+    public CompletableFuture<Void> delWarp(Actor actor, UUID playerUuid, String warpName) {
+        actor.requireSelf(playerUuid);
+
         return CompletableFuture.runAsync(() -> {
             UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
 
@@ -52,7 +59,13 @@ public class WarpHandler {
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    public CompletableFuture<Void> warp(UUID warpPlayerUuid, String warpName, UUID targetPlayerUuid) {
+    /**
+     * SELF on the traveller only. Unlike a home, a warp is meant to be visited by others, so the
+     * warp's owner may be anyone; what a player may not do is send somebody else through it.
+     */
+    public CompletableFuture<Void> warp(Actor actor, UUID warpPlayerUuid, String warpName, UUID targetPlayerUuid) {
+        actor.requireSelf(targetPlayerUuid);
+
         return CompletableFuture.supplyAsync(() -> {
             UUID islandUuid = database.getIslandUuid(warpPlayerUuid).orElseThrow(IslandDoesNotExistException::new);
 

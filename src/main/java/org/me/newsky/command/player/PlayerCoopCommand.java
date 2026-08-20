@@ -6,12 +6,12 @@ import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.model.Actor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.CannotCoopIslandPlayerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerAlreadyCoopedException;
 import org.me.newsky.exceptions.PlayerNotOnlineException;
+import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -82,7 +82,7 @@ public class PlayerCoopCommand implements SubCommand, AsyncTabComplete {
             UUID targetUuid = targetUuidOpt.get();
 
             return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> {
-                return api.addCoop(islandUuid, new Actor.Player(playerUuid), targetUuid).thenRun(() -> {
+                return api.addCoop(new Actor.Player(playerUuid), islandUuid, targetUuid).thenRun(() -> {
                     player.sendMessage(config.getPlayerCoopSuccessMessage(targetPlayerName));
                     api.sendPlayerMessage(targetUuid, config.getWasCoopedToIslandMessage(player.getName()));
                 });

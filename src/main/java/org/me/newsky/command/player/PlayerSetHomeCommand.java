@@ -10,6 +10,7 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.HomeNameNotLegalException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
+import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -75,7 +76,7 @@ public class PlayerSetHomeCommand implements SubCommand, AsyncTabComplete {
         float yaw = loc.getYaw();
         float pitch = loc.getPitch();
 
-        api.setHome(playerUuid, homeName, worldName, x, y, z, yaw, pitch).thenRun(() -> {
+        api.setHome(new Actor.Player(playerUuid), playerUuid, homeName, worldName, x, y, z, yaw, pitch).thenRun(() -> {
             player.sendMessage(config.getPlayerSetHomeSuccessMessage(homeName));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();

@@ -5,29 +5,26 @@ import org.bukkit.World;
 import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.cluster.IslandRegistry;
+import org.me.newsky.network.IslandOperator;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.world.WorldActivityHandler;
-import org.me.newsky.world.WorldHandler;
 
 import java.util.UUID;
 
 public class IslandUnloadScheduler {
 
     private final NewSky plugin;
-    private final WorldHandler worldHandler;
+    private final IslandOperator islandOperator;
     private final WorldActivityHandler worldActivityHandler;
-    private final IslandRegistry islandRegistry;
 
     private final long unloadInterval;
 
     private BukkitTask task;
 
-    public IslandUnloadScheduler(NewSky plugin, ConfigHandler config, WorldHandler worldHandler, WorldActivityHandler worldActivityHandler, IslandRegistry islandRegistry) {
+    public IslandUnloadScheduler(NewSky plugin, ConfigHandler config, IslandOperator islandOperator, WorldActivityHandler worldActivityHandler) {
         this.plugin = plugin;
-        this.worldHandler = worldHandler;
+        this.islandOperator = islandOperator;
         this.worldActivityHandler = worldActivityHandler;
-        this.islandRegistry = islandRegistry;
         this.unloadInterval = config.getIslandUnloadInterval();
     }
 
@@ -73,9 +70,10 @@ public class IslandUnloadScheduler {
                 return;
             }
 
-            worldHandler.unloadWorld(worldName).thenRun(() -> {
+            // Through the operator, so the unload runs on the island's lifecycle chain: it can
+            // never interleave with a concurrent load and release the claim that load just took.
+            islandOperator.unloadIsland(islandUuid).thenRun(() -> {
                 worldActivityHandler.clearWorld(worldName);
-                islandRegistry.removeIslandLoadedServer(islandUuid);
                 plugin.debug("IslandUnloadScheduler", "Unloaded world: " + worldName);
             }).exceptionally(ex -> {
                 plugin.severe("Failed to unload world: " + worldName, ex);

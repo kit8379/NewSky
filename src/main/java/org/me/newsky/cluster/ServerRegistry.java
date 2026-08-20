@@ -17,10 +17,12 @@ import java.util.Map;
 public class ServerRegistry extends ClusterState {
 
     private final IslandRegistry islandRegistry;
+    private final OnlinePlayerRegistry onlinePlayerRegistry;
 
-    public ServerRegistry(NewSky plugin, RedisHandler redisHandler, IslandRegistry islandRegistry) {
+    public ServerRegistry(NewSky plugin, RedisHandler redisHandler, IslandRegistry islandRegistry, OnlinePlayerRegistry onlinePlayerRegistry) {
         super(plugin, redisHandler);
         this.islandRegistry = islandRegistry;
+        this.onlinePlayerRegistry = onlinePlayerRegistry;
     }
 
     public void updateActiveServer(String serverName, boolean lobby, int ttlSeconds) {
@@ -37,12 +39,13 @@ public class ServerRegistry extends ClusterState {
     }
 
     /**
-     * Reaps island claims left behind by servers that died without a clean shutdown. Driven by
-     * every server's heartbeat tick; the per-claim removal is atomic inside Redis, so concurrent
-     * sweeps and a rebooting claim holder are all safe.
+     * Reaps state left behind by servers that died without a clean shutdown: island claims and
+     * online player entries. Driven by every server's heartbeat tick; each removal is atomic
+     * inside Redis, so concurrent sweeps and a rebooting owner are all safe.
      */
     public void reapDeadServerClaims() {
         islandRegistry.removeMappingsOfDeadServers();
+        onlinePlayerRegistry.removePlayersOfDeadServers();
     }
 
     public void removeActiveServer(String serverName) {
@@ -55,6 +58,7 @@ public class ServerRegistry extends ClusterState {
         }, "Failed to remove active server: " + serverName);
 
         islandRegistry.removeServerMappings(serverName);
+        onlinePlayerRegistry.removePlayersOfServer(serverName);
         plugin.debug("ServerRegistry", "Cleaned up all state data for server: " + serverName);
     }
 

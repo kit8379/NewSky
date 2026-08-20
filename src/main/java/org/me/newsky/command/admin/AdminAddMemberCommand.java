@@ -9,6 +9,7 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
+import org.me.newsky.model.Actor;
 
 import java.util.Collections;
 import java.util.List;
@@ -81,7 +82,7 @@ public class AdminAddMemberCommand implements SubCommand, AsyncTabComplete {
                 UUID islandOwnerUuid = islandOwnerUuidOpt.get();
 
                 return api.getIslandUuid(islandOwnerUuid).thenCompose(islandUuid -> {
-                    return api.addMember(islandUuid, targetMemberUuid, "member");
+                    return api.addMember(new Actor.Bypass(sender.getName()), islandUuid, targetMemberUuid, "member");
                 }).thenRun(() -> {
                     sender.sendMessage(config.getAdminAddMemberSuccessMessage(targetMemberName, islandOwnerName));
                     api.sendPlayerMessage(targetMemberUuid, config.getWasAddedToIslandMessage(islandOwnerName));

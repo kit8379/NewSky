@@ -12,6 +12,7 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.InvalidBiomeException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
+import org.me.newsky.model.Actor;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -75,7 +76,7 @@ public class PlayerBiomeCommand implements SubCommand, AsyncTabComplete {
         int chunkX = player.getLocation().getChunk().getX();
         int chunkZ = player.getLocation().getChunk().getZ();
 
-        api.applyPlayerChunkBiome(playerUuid, worldName, chunkX, chunkZ, biomeName).thenRun(() -> player.sendMessage(config.getPlayerBiomeChangeSuccessMessage(biomeName))).exceptionally(ex -> {
+        api.applyChunkBiome(new Actor.Player(playerUuid), worldName, chunkX, chunkZ, biomeName).thenRun(() -> player.sendMessage(config.getPlayerBiomeChangeSuccessMessage(biomeName))).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
