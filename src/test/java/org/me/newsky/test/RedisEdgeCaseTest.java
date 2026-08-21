@@ -43,8 +43,10 @@ public final class RedisEdgeCaseTest {
             try {
                 reaperSparesLiveAndRemovesDead(pool, prefix);
                 reaperSparesResurrectedAndReclaimed(pool, prefix);
+                legacyClaimSurvivesRollingUpgradeWhileHostLives(pool, prefix);
                 heartbeatExpiryFlipsReaperVerdict(pool, prefix);
                 onlineReapSparesPlayersWhoRejoinedElsewhere(pool, prefix);
+                durableCoopCleanupLeaseAndRejoinSemantics(pool, prefix);
                 inviteSetIfAbsentRace(pool, prefix);
                 inviteDoubleAcceptRace(pool, prefix);
                 inboxLengthIsCapped(pool, prefix);
@@ -60,16 +62,17 @@ public final class RedisEdgeCaseTest {
     private static void reaperSparesLiveAndRemovesDead(JedisPool pool, String prefix) {
         String claimKey = prefix + "island:server";
         String island = UUID.randomUUID().toString();
+        IslandRegistry.HostClaim live = new IslandRegistry.HostClaim("server-live", UUID.randomUUID().toString());
 
         try (Jedis jedis = pool.getResource()) {
-            jedis.hset(claimKey, island, "server-live");
-            jedis.set(prefix + "hb:server-live", "1");
+            jedis.hset(claimKey, island, live.encoded());
+            jedis.set(prefix + "hb:server-live", live.instanceId());
 
-            Object liveVerdict = jedis.eval(IslandRegistry.RELEASE_IF_DEAD, List.of(claimKey, prefix + "hb:server-live"), List.of(island, "server-live"));
+            Object liveVerdict = jedis.eval(IslandRegistry.RELEASE_IF_DEAD, List.of(claimKey, prefix + "hb:server-live"), List.of(island, live.encoded(), live.instanceId()));
             Check.that(Long.valueOf(0L).equals(liveVerdict), "reaper spares a claim whose holder is heartbeating");
 
             jedis.del(prefix + "hb:server-live");
-            Object deadVerdict = jedis.eval(IslandRegistry.RELEASE_IF_DEAD, List.of(claimKey, prefix + "hb:server-live"), List.of(island, "server-live"));
+            Object deadVerdict = jedis.eval(IslandRegistry.RELEASE_IF_DEAD, List.of(claimKey, prefix + "hb:server-live"), List.of(island, live.encoded(), live.instanceId()));
             Check.that(Long.valueOf(1L).equals(deadVerdict), "reaper removes the claim once the heartbeat is gone");
             Check.that(jedis.hget(claimKey, island) == null, "dead server's claim is gone");
         }
@@ -82,19 +85,22 @@ public final class RedisEdgeCaseTest {
         String claimKey = prefix + "island:server";
 
         try (Jedis jedis = pool.getResource()) {
+            IslandRegistry.HostClaim oldA = new IslandRegistry.HostClaim("server-a", UUID.randomUUID().toString());
+            IslandRegistry.HostClaim freshC = new IslandRegistry.HostClaim("server-c", UUID.randomUUID().toString());
             // (a) claim listed as dead-server-a's, but by eval time it belongs to fresh server-c
             String islandA = UUID.randomUUID().toString();
-            jedis.hset(claimKey, islandA, "server-c");
-            jedis.set(prefix + "hb:server-c", "1");
-            Object reclaimed = jedis.eval(IslandRegistry.RELEASE_IF_DEAD, List.of(claimKey, prefix + "hb:server-a"), List.of(islandA, "server-a"));
+            jedis.hset(claimKey, islandA, freshC.encoded());
+            jedis.set(prefix + "hb:server-c", freshC.instanceId());
+            Object reclaimed = jedis.eval(IslandRegistry.RELEASE_IF_DEAD, List.of(claimKey, prefix + "hb:server-a"), List.of(islandA, oldA.encoded(), oldA.instanceId()));
             Check.that(Long.valueOf(0L).equals(reclaimed), "stale reap attempt cannot delete a claim re-taken by another server");
-            Check.that("server-c".equals(jedis.hget(claimKey, islandA)), "the fresh claim survives the stale reap");
+            Check.that(freshC.encoded().equals(jedis.hget(claimKey, islandA)), "the fresh claim survives the stale reap");
 
             // (b) holder unchanged but its heartbeat is back by eval time
             String islandB = UUID.randomUUID().toString();
-            jedis.hset(claimKey, islandB, "server-b");
-            jedis.set(prefix + "hb:server-b", "1");
-            Object resurrected = jedis.eval(IslandRegistry.RELEASE_IF_DEAD, List.of(claimKey, prefix + "hb:server-b"), List.of(islandB, "server-b"));
+            IslandRegistry.HostClaim serverB = new IslandRegistry.HostClaim("server-b", UUID.randomUUID().toString());
+            jedis.hset(claimKey, islandB, serverB.encoded());
+            jedis.set(prefix + "hb:server-b", serverB.instanceId());
+            Object resurrected = jedis.eval(IslandRegistry.RELEASE_IF_DEAD, List.of(claimKey, prefix + "hb:server-b"), List.of(islandB, serverB.encoded(), serverB.instanceId()));
             Check.that(Long.valueOf(0L).equals(resurrected), "a server that came back alive keeps its claim");
         }
     }
@@ -103,41 +109,126 @@ public final class RedisEdgeCaseTest {
         String claimKey = prefix + "island:server";
         String island = UUID.randomUUID().toString();
         String hbKey = prefix + "hb:server-ttl";
+        IslandRegistry.HostClaim server = new IslandRegistry.HostClaim("server-ttl", UUID.randomUUID().toString());
 
         try (Jedis jedis = pool.getResource()) {
-            jedis.hset(claimKey, island, "server-ttl");
-            jedis.setex(hbKey, 1L, "1");
+            jedis.hset(claimKey, island, server.encoded());
+            jedis.setex(hbKey, 1L, server.instanceId());
 
-            Object whileAlive = jedis.eval(IslandRegistry.RELEASE_IF_DEAD, List.of(claimKey, hbKey), List.of(island, "server-ttl"));
+            Object whileAlive = jedis.eval(IslandRegistry.RELEASE_IF_DEAD, List.of(claimKey, hbKey), List.of(island, server.encoded(), server.instanceId()));
             Check.that(Long.valueOf(0L).equals(whileAlive), "claim survives while the heartbeat TTL is running");
 
             Thread.sleep(1500);
 
-            Object afterExpiry = jedis.eval(IslandRegistry.RELEASE_IF_DEAD, List.of(claimKey, hbKey), List.of(island, "server-ttl"));
+            Object afterExpiry = jedis.eval(IslandRegistry.RELEASE_IF_DEAD, List.of(claimKey, hbKey), List.of(island, server.encoded(), server.instanceId()));
             Check.that(Long.valueOf(1L).equals(afterExpiry), "claim is reaped once the heartbeat TTL expires");
+        }
+    }
+
+    private static void legacyClaimSurvivesRollingUpgradeWhileHostLives(JedisPool pool, String prefix) {
+        String claims = prefix + "legacy-claims";
+        String heartbeat = prefix + "hb:legacy-server";
+        String island = UUID.randomUUID().toString();
+        try (Jedis jedis = pool.getResource()) {
+            jedis.hset(claims, island, "legacy-server");
+            jedis.set(heartbeat, String.valueOf(System.currentTimeMillis()));
+            Object live = jedis.eval(IslandRegistry.RELEASE_LEGACY_IF_DEAD,
+                    List.of(claims, heartbeat), List.of(island, "legacy-server"));
+            Check.that(Long.valueOf(0L).equals(live), "rolling upgrade preserves a legacy claim while its old host is alive");
+
+            jedis.del(heartbeat);
+            Object dead = jedis.eval(IslandRegistry.RELEASE_LEGACY_IF_DEAD,
+                    List.of(claims, heartbeat), List.of(island, "legacy-server"));
+            Check.that(Long.valueOf(1L).equals(dead), "legacy claim becomes reapable after its old heartbeat disappears");
         }
     }
 
     private static void onlineReapSparesPlayersWhoRejoinedElsewhere(JedisPool pool, String prefix) {
         String serversKey = prefix + "online:servers";
         String playersKey = prefix + "online:players";
+        String cleanupKey = prefix + "coop-cleanup-reaped";
+        String cleanupLeases = prefix + "coop-cleanup-reaped-leases";
 
         try (Jedis jedis = pool.getResource()) {
+            IslandRegistry.HostClaim serverA = new IslandRegistry.HostClaim("server-a", UUID.randomUUID().toString());
+            IslandRegistry.HostClaim serverB = new IslandRegistry.HostClaim("server-b", UUID.randomUUID().toString());
             // Player stuck on crashed server-a: reaped.
             String stuck = UUID.randomUUID().toString();
-            jedis.hset(serversKey, stuck, "server-a");
+            jedis.hset(serversKey, stuck, serverA.encoded());
             jedis.hset(playersKey, stuck, "Stuck");
-            Object reaped = jedis.eval(OnlinePlayerRegistry.REMOVE_IF_ON_DEAD_SERVER, List.of(serversKey, playersKey, prefix + "hb:server-a"), List.of(stuck, "server-a"));
+            Object reaped = jedis.eval(OnlinePlayerRegistry.REMOVE_IF_ON_DEAD_SERVER,
+                    List.of(serversKey, playersKey, prefix + "hb:server-a", cleanupKey, cleanupLeases),
+                    List.of(stuck, serverA.encoded(), serverA.instanceId(), "1"));
             Check.that(Long.valueOf(1L).equals(reaped), "player stranded on a dead server is reaped");
             Check.that(jedis.hget(playersKey, stuck) == null, "stranded player no longer shows online");
+            Check.that(jedis.zscore(cleanupKey, stuck) != null, "crash reaping durably queues the player's coop cleanup");
 
             // Player listed on dead server-a but rejoined on server-b before the eval: spared.
             String rejoined = UUID.randomUUID().toString();
-            jedis.hset(serversKey, rejoined, "server-b");
+            jedis.hset(serversKey, rejoined, serverB.encoded());
             jedis.hset(playersKey, rejoined, "Rejoined");
-            Object spared = jedis.eval(OnlinePlayerRegistry.REMOVE_IF_ON_DEAD_SERVER, List.of(serversKey, playersKey, prefix + "hb:server-a"), List.of(rejoined, "server-a"));
+            Object spared = jedis.eval(OnlinePlayerRegistry.REMOVE_IF_ON_DEAD_SERVER,
+                    List.of(serversKey, playersKey, prefix + "hb:server-a", cleanupKey, cleanupLeases),
+                    List.of(rejoined, serverA.encoded(), serverA.instanceId(), "1"));
             Check.that(Long.valueOf(0L).equals(spared), "player who rejoined elsewhere is spared by the reap");
             Check.that("Rejoined".equals(jedis.hget(playersKey, rejoined)), "rejoined player stays online");
+        }
+    }
+
+    private static void durableCoopCleanupLeaseAndRejoinSemantics(JedisPool pool, String prefix) {
+        String queue = prefix + "coop-cleanup";
+        String players = prefix + "online-players";
+        String servers = prefix + "online-servers";
+        String leases = prefix + "coop-cleanup-leases";
+        String offline = UUID.randomUUID().toString();
+        String rejoined = UUID.randomUUID().toString();
+        long now = System.currentTimeMillis();
+
+        try (Jedis jedis = pool.getResource()) {
+            jedis.zadd(queue, now - 1, offline);
+            Object claimed = jedis.eval(OnlinePlayerRegistry.CLAIM_DUE_COOP_CLEANUP,
+                    List.of(queue, players, leases), List.of(offline, String.valueOf(now), String.valueOf(now + 30_000), "worker-a"));
+            Check.that(Long.valueOf(1L).equals(claimed), "an offline due cleanup receives a retry lease");
+
+            Object duplicateWorker = jedis.eval(OnlinePlayerRegistry.CLAIM_DUE_COOP_CLEANUP,
+                    List.of(queue, players, leases), List.of(offline, String.valueOf(now), String.valueOf(now + 30_000), "worker-b"));
+            Check.that(Long.valueOf(0L).equals(duplicateWorker), "the lease prevents concurrent cleanup workers");
+
+            jedis.zadd(queue, now - 1, rejoined);
+            jedis.hset(players, rejoined, "Rejoined");
+            Object vetoed = jedis.eval(OnlinePlayerRegistry.CLAIM_DUE_COOP_CLEANUP,
+                    List.of(queue, players, leases), List.of(rejoined, String.valueOf(now), String.valueOf(now + 30_000), "worker-c"));
+            Check.that(Long.valueOf(-1L).equals(vetoed) && jedis.zscore(queue, rejoined) == null,
+                    "a rejoined player is atomically removed from the cleanup queue");
+
+            jedis.zadd(queue, now - 1, rejoined);
+            IslandRegistry.HostClaim instance = new IslandRegistry.HostClaim("server-b", UUID.randomUUID().toString());
+            jedis.eval(OnlinePlayerRegistry.REGISTER_ONLINE, List.of(servers, players, queue, leases),
+                    List.of(rejoined, instance.encoded(), "Rejoined"));
+            Check.that(jedis.zscore(queue, rejoined) == null && instance.encoded().equals(jedis.hget(servers, rejoined)),
+                    "online registration and cleanup cancellation commit atomically");
+
+            String rapidReconnect = UUID.randomUUID().toString();
+            long newQuitDue = now + 3_000;
+            jedis.zadd(queue, now + 30_000, rapidReconnect); // old worker already owns this lease
+            jedis.hset(leases, rapidReconnect, "old-worker-token");
+            jedis.zrem(queue, rapidReconnect);          // player rejoins and cancels old work
+            jedis.hdel(leases, rapidReconnect);
+            jedis.zadd(queue, newQuitDue, rapidReconnect); // then quits again: a distinct job
+            Object staleAck = jedis.eval(OnlinePlayerRegistry.COMPLETE_COOP_CLEANUP_IF_LEASED,
+                    List.of(queue, leases), List.of(rapidReconnect, "old-worker-token"));
+            Check.that(Long.valueOf(0L).equals(staleAck)
+                            && Double.valueOf(newQuitDue).equals(jedis.zscore(queue, rapidReconnect)),
+                    "a late worker acknowledgement cannot erase a newer quit cleanup job");
+
+            Object reclaimed = jedis.eval(OnlinePlayerRegistry.CLAIM_DUE_COOP_CLEANUP,
+                    List.of(queue, players, leases),
+                    List.of(rapidReconnect, String.valueOf(newQuitDue), String.valueOf(now + 60_000), "new-worker-token"));
+            Check.that(Long.valueOf(1L).equals(reclaimed), "the newer quit job receives an independent lease token");
+            Object currentAck = jedis.eval(OnlinePlayerRegistry.COMPLETE_COOP_CLEANUP_IF_LEASED,
+                    List.of(queue, leases), List.of(rapidReconnect, "new-worker-token"));
+            Check.that(Long.valueOf(1L).equals(currentAck) && jedis.zscore(queue, rapidReconnect) == null,
+                    "the worker holding the current lease can acknowledge its own job");
         }
     }
 

@@ -43,6 +43,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 
 public class NewSky extends JavaPlugin {
@@ -57,10 +58,12 @@ public class NewSky extends JavaPlugin {
     private LevelUpdateScheduler levelupdateSchedulerIsland;
     private MSPTUpdateScheduler msptUpdateScheduler;
     private CrossServerMessenger crossServerMessenger;
+    private IslandOperator islandOperator;
     private LevelHandler levelHandler;
     private NewSkyAPI api;
     private BukkitAsyncExecutor bukkitAsyncExecutor;
     private Economy economy;
+    private final AtomicBoolean clusterFenceTriggered = new AtomicBoolean();
 
     @Override
     public void onEnable() {
@@ -85,8 +88,10 @@ public class NewSky extends JavaPlugin {
 
             info("Start loading server ID now...");
             String serverID = config.getServerName();
+            IslandRegistry.HostClaim serverInstance = new IslandRegistry.HostClaim(serverID, UUID.randomUUID().toString());
             info("Server ID loaded success!");
             info("This Server ID: " + serverID);
+            info("This Server Instance: " + serverInstance.instanceId());
 
             info("Start connecting to Redis now...");
             redisHandler = new RedisHandler(this, config);
@@ -136,7 +141,7 @@ public class NewSky extends JavaPlugin {
 
             info("Starting handlers for island remote requests");
             crossServerMessenger = new CrossServerMessenger(this, redisHandler, serverID);
-            IslandOperator islandOperator = new IslandOperator(this, databaseHandler, worldHandler, teleportHandler, islandSnapshot, islandRegistry, serverID);
+            islandOperator = new IslandOperator(this, databaseHandler, worldHandler, teleportHandler, islandSnapshot, islandRegistry, serverInstance);
             IslandDistributor islandDistributor = new IslandDistributor(this, islandOperator, serverSelector, serverRegistry, islandRegistry, crossServerMessenger, serverID);
             registerCrossServerHandlers(crossServerMessenger, islandOperator);
             info("All handlers for remote requests loaded");
@@ -172,7 +177,7 @@ public class NewSky extends JavaPlugin {
             info("Plugin messaging loaded");
 
             info("Starting all schedulers for the plugin");
-            heartBeatScheduler = new HeartbeatScheduler(this, config, serverRegistry, serverID);
+            heartBeatScheduler = new HeartbeatScheduler(this, config, serverRegistry, serverInstance, this::selfFenceClusterLease);
             islandUnloadScheduler = new IslandUnloadScheduler(this, config, islandOperator, worldActivityHandler);
             levelupdateSchedulerIsland = new LevelUpdateScheduler(this, levelHandler);
 
@@ -190,7 +195,7 @@ public class NewSky extends JavaPlugin {
             info("API loaded");
 
             info("Starting listeners");
-            getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, onlinePlayerRegistry, serverID), this);
+            getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, onlinePlayerRegistry, serverInstance), this);
             getServer().getPluginManager().registerEvents(new WorldLoadListener(this, config, levelupdateSchedulerIsland, islandSnapshot, worldActivityHandler), this);
             getServer().getPluginManager().registerEvents(new WorldUnloadListener(this, levelupdateSchedulerIsland, islandSnapshot), this);
             getServer().getPluginManager().registerEvents(new WorldActivityListener(this, worldActivityHandler), this);
@@ -223,9 +228,9 @@ public class NewSky extends JavaPlugin {
             getServer().getPluginManager().registerEvents(asyncTabCompleteListener, this);
             info("All commands registered");
 
-            // Order matters: the heartbeat's startup cleanup sweeps claims left under this server's
-            // name by a previous life. The messenger must not accept work before that sweep, or a
-            // fresh claim taken by an early load request would be swept away from under its world.
+            // Order matters: registration proves this boot owns the configured server name and
+            // atomically retires the previous boot's inbox before the messenger accepts work.
+            // Claims are incarnation-fenced and are never swept merely because a name restarted.
             heartBeatScheduler.start();
             crossServerMessenger.start();
             islandUnloadScheduler.start();
@@ -270,8 +275,8 @@ public class NewSky extends JavaPlugin {
         messenger.register(IslandDistributor.ACTION_ISLAND_BAN_REMOVE, payload -> emptyResponse(islandOperator.removeBan(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
         messenger.register(IslandDistributor.ACTION_ISLAND_COOP_ADD, payload -> emptyResponse(islandOperator.addCoop(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
         messenger.register(IslandDistributor.ACTION_ISLAND_COOP_REMOVE, payload -> emptyResponse(islandOperator.removeCoop(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_LOCK_TOGGLE, payload -> islandOperator.toggleLock(uuid(payload, "islandUuid"), Actor.fromJson(payload)).thenApply(locked -> new JSONObject().put("locked", locked)));
-        messenger.register(IslandDistributor.ACTION_ISLAND_PVP_TOGGLE, payload -> islandOperator.togglePvp(uuid(payload, "islandUuid"), Actor.fromJson(payload)).thenApply(pvp -> new JSONObject().put("pvp", pvp)));
+        messenger.register(IslandDistributor.ACTION_ISLAND_LOCK_TOGGLE, payload -> islandOperator.toggleLock(uuid(payload, "islandUuid"), Actor.fromJson(payload), operationUuid(payload)).thenApply(locked -> new JSONObject().put("locked", locked)));
+        messenger.register(IslandDistributor.ACTION_ISLAND_PVP_TOGGLE, payload -> islandOperator.togglePvp(uuid(payload, "islandUuid"), Actor.fromJson(payload), operationUuid(payload)).thenApply(pvp -> new JSONObject().put("pvp", pvp)));
         messenger.register(IslandDistributor.ACTION_ISLAND_EXPEL, payload -> emptyResponse(islandOperator.expelPlayer(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
     }
 
@@ -286,6 +291,11 @@ public class NewSky extends JavaPlugin {
 
     private UUID uuid(JSONObject payload, String key) {
         return UUID.fromString(payload.getString(key));
+    }
+
+    private UUID operationUuid(JSONObject payload) {
+        String value = payload.optString("operationId", null);
+        return value == null || value.isEmpty() ? UUID.randomUUID() : UUID.fromString(value);
     }
 
     private PluginCommand createCommand(String name) {
@@ -310,8 +320,10 @@ public class NewSky extends JavaPlugin {
         // request could otherwise re-claim and re-load a world on a dying server. The heartbeat's
         // cleanup runs after the worlds are gone so it also releases claims taken by requests that
         // slipped in before the messenger stopped.
+        boolean inFlightOperations = islandOperator != null && islandOperator.stopAcceptingOperations();
+
         if (crossServerMessenger != null) {
-            crossServerMessenger.stop();
+            inFlightOperations |= crossServerMessenger.stop();
         }
 
         if (msptUpdateScheduler != null) {
@@ -327,11 +339,11 @@ public class NewSky extends JavaPlugin {
         }
 
         if (worldHandler != null) {
-            worldHandler.unloadAllWorldsOnShutdown();
+            worldHandler.unloadAllWorldsOnShutdown(!clusterFenceTriggered.get());
         }
 
         if (heartBeatScheduler != null) {
-            heartBeatScheduler.stop();
+            heartBeatScheduler.stop(!inFlightOperations);
         }
 
         if (redisHandler != null) {
@@ -340,6 +352,30 @@ public class NewSky extends JavaPlugin {
 
         if (databaseHandler != null) {
             databaseHandler.close();
+        }
+    }
+
+    /**
+     * Losing the Redis lease is a correctness event, not merely an availability warning. Disable
+     * the plugin on the main thread so its normal shutdown unloads every island before another
+     * server is allowed to keep serving a newly acquired claim.
+     */
+    private void selfFenceClusterLease() {
+        if (!clusterFenceTriggered.compareAndSet(false, true)) {
+            return;
+        }
+
+        Runnable disable = () -> {
+            if (isEnabled()) {
+                getLogger().severe("Disabling NewSky because this JVM can no longer prove ownership of its island leases.");
+                getServer().getPluginManager().disablePlugin(this);
+            }
+        };
+
+        if (Bukkit.isPrimaryThread()) {
+            disable.run();
+        } else {
+            getServer().getScheduler().runTask(this, disable);
         }
     }
 

@@ -34,6 +34,8 @@ public final class SnapshotPropagationTest {
 
     private static final String WRITER = "server-writer";
     private static final String LOADER = "server-loader";
+    private static final IslandRegistry.HostClaim WRITER_CLAIM = new IslandRegistry.HostClaim(WRITER, UUID.randomUUID().toString());
+    private static final IslandRegistry.HostClaim LOADER_CLAIM = new IslandRegistry.HostClaim(LOADER, UUID.randomUUID().toString());
 
     /** Stand-in for the island rows: a version that only ever moves forward. */
     private static final class Database {
@@ -77,16 +79,22 @@ public final class SnapshotPropagationTest {
 
         String prefix = "newsky:test:" + UUID.randomUUID() + ":";
         String claimKey = prefix + "island:server";
+        String writerHeartbeat = prefix + "heartbeat:" + WRITER;
+        String loaderHeartbeat = prefix + "heartbeat:" + LOADER;
 
         JedisPoolConfig poolConfig = new JedisPoolConfig();
         poolConfig.setMaxTotal(16);
 
         try (JedisPool pool = new JedisPool(poolConfig, host, port)) {
             try {
-                int withAuthority = runRace(pool, claimKey, iterations, true);
+                try (Jedis jedis = pool.getResource()) {
+                    jedis.set(writerHeartbeat, WRITER_CLAIM.instanceId());
+                    jedis.set(loaderHeartbeat, LOADER_CLAIM.instanceId());
+                }
+                int withAuthority = runRace(pool, claimKey, writerHeartbeat, loaderHeartbeat, iterations, true);
                 Check.that(withAuthority == 0, iterations + " races under write authority left no host stale (violations=" + withAuthority + ")");
 
-                int withoutAuthority = runRace(pool, claimKey, iterations, false);
+                int withoutAuthority = runRace(pool, claimKey, writerHeartbeat, loaderHeartbeat, iterations, false);
                 Check.that(withoutAuthority > 0, "negative control: without write authority the same race does strand a stale host (violations=" + withoutAuthority + ")");
 
                 System.out.println("SnapshotPropagationTest: ALL PASS (iterations=" + iterations + ", stale-with-authority=" + withAuthority + ", stale-without-authority=" + withoutAuthority + ")");
@@ -98,7 +106,7 @@ public final class SnapshotPropagationTest {
         }
     }
 
-    private static int runRace(JedisPool pool, String claimKey, int iterations, boolean writeAuthority) throws Exception {
+    private static int runRace(JedisPool pool, String claimKey, String writerHeartbeat, String loaderHeartbeat, int iterations, boolean writeAuthority) throws Exception {
         ExecutorService threads = Executors.newFixedThreadPool(2);
         AtomicInteger violations = new AtomicInteger();
 
@@ -119,13 +127,15 @@ public final class SnapshotPropagationTest {
                         if (writeAuthority) {
                             String authority;
                             try (Jedis jedis = pool.getResource()) {
-                                authority = String.valueOf(jedis.eval(IslandRegistry.ACQUIRE_WRITE_AUTHORITY, List.of(claimKey), List.of(island, WRITER)));
+                                authority = String.valueOf(jedis.eval(IslandRegistry.ACQUIRE_WRITE_AUTHORITY,
+                                        List.of(claimKey, writerHeartbeat),
+                                        List.of(island, WRITER_CLAIM.encoded(), WRITER_CLAIM.instanceId())));
                             }
 
                             if ("claimed".equals(authority)) {
                                 database.commitWrite();
                                 try (Jedis jedis = pool.getResource()) {
-                                    jedis.eval(IslandRegistry.RELEASE_IF_HELD_BY, List.of(claimKey), List.of(island, WRITER));
+                                    jedis.eval(IslandRegistry.RELEASE_IF_HELD_BY, List.of(claimKey), List.of(island, WRITER_CLAIM.encoded()));
                                 }
                             } else {
                                 // OTHER: routed to the claim holder, which commits and applies
@@ -142,7 +152,7 @@ public final class SnapshotPropagationTest {
                             holder = jedis.hget(claimKey, island);
                         }
                         database.commitWrite();
-                        if (holder != null && !holder.equals(WRITER)) {
+                        if (holder != null && !holder.equals(WRITER_CLAIM.encoded())) {
                             loaderHost.seedOrApply(database);
                         }
                     } catch (Exception e) {
@@ -163,7 +173,10 @@ public final class SnapshotPropagationTest {
                         while (System.nanoTime() < deadline) {
                             boolean claimed;
                             try (Jedis jedis = pool.getResource()) {
-                                claimed = jedis.hsetnx(claimKey, island, LOADER) == 1L;
+                                Object verdict = jedis.eval(IslandRegistry.CLAIM_IF_LIVE,
+                                        List.of(claimKey, loaderHeartbeat),
+                                        List.of(island, LOADER_CLAIM.encoded(), LOADER_CLAIM.instanceId()));
+                                claimed = Long.valueOf(1L).equals(verdict);
                             }
 
                             if (claimed) {
@@ -175,7 +188,7 @@ public final class SnapshotPropagationTest {
                             try (Jedis jedis = pool.getResource()) {
                                 holder = jedis.hget(claimKey, island);
                             }
-                            if (holder == null || holder.equals(WRITER)) {
+                            if (holder == null || holder.equals(WRITER_CLAIM.encoded())) {
                                 Thread.onSpinWait(); // writer's temporary claim; wait for release
                                 continue;
                             }
@@ -199,7 +212,7 @@ public final class SnapshotPropagationTest {
                     finalHolder = jedis.hget(claimKey, island);
                 }
 
-                if (LOADER.equals(finalHolder) && loaderHost.snapshot() >= 0 && loaderHost.snapshot() < database.version.get()) {
+                if (LOADER_CLAIM.encoded().equals(finalHolder) && loaderHost.snapshot() >= 0 && loaderHost.snapshot() < database.version.get()) {
                     violations.incrementAndGet();
                 }
             }

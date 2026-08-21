@@ -74,14 +74,20 @@ public class IslandDistributor {
             return CompletableFuture.completedFuture(alreadyLoadedServer);
         }
 
-        String candidate = selectServer(serverRegistry.getActiveGameServers());
+        Map<String, String> activeServers = serverRegistry.getActiveGameServers();
+        String candidate = selectClaimCapableServer(activeServers);
         if (candidate == null) {
+            return CompletableFuture.failedFuture(new NoActiveServerException());
+        }
+
+        String candidateInstance = activeServers.get(candidate);
+        if (candidateInstance == null) {
             return CompletableFuture.failedFuture(new NoActiveServerException());
         }
 
         // Claim the host before loading. Without the claim two servers can both observe an unclaimed
         // island, pick different hosts, and load the same world twice on top of one storage backend.
-        boolean claimed = islandRegistry.claimHost(islandUuid, candidate);
+        boolean claimed = islandRegistry.claimHost(islandUuid, new IslandRegistry.HostClaim(candidate, candidateInstance));
         String host = claimed ? candidate : getServerByIsland(islandUuid);
         if (host == null) {
             return CompletableFuture.failedFuture(new NoActiveServerException());
@@ -113,7 +119,7 @@ public class IslandDistributor {
     // =====================================================================================
 
     public CompletableFuture<Void> createIsland(UUID islandUuid, UUID ownerUuid) {
-        String targetServer = selectServer(serverRegistry.getActiveGameServers());
+        String targetServer = selectClaimCapableServer(serverRegistry.getActiveGameServers());
         if (targetServer == null) {
             return CompletableFuture.failedFuture(new NoActiveServerException());
         }
@@ -130,14 +136,20 @@ public class IslandDistributor {
     }
 
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
-        String candidate = selectServer(serverRegistry.getActiveGameServers());
+        Map<String, String> activeServers = serverRegistry.getActiveGameServers();
+        String candidate = selectClaimCapableServer(activeServers);
         if (candidate == null) {
+            return CompletableFuture.failedFuture(new NoActiveServerException());
+        }
+
+        String candidateInstance = activeServers.get(candidate);
+        if (candidateInstance == null) {
             return CompletableFuture.failedFuture(new NoActiveServerException());
         }
 
         // Losing the claim is exactly the "already loaded" case, and deciding it this way makes two
         // simultaneous load requests resolve atomically instead of both proceeding.
-        if (!islandRegistry.claimHost(islandUuid, candidate)) {
+        if (!islandRegistry.claimHost(islandUuid, new IslandRegistry.HostClaim(candidate, candidateInstance))) {
             return CompletableFuture.failedFuture(new IslandAlreadyLoadedException());
         }
 
@@ -244,11 +256,17 @@ public class IslandDistributor {
     }
 
     public CompletableFuture<Boolean> toggleLock(UUID islandUuid, Actor actor) {
-        return routeWrite(islandUuid, ACTION_ISLAND_LOCK_TOGGLE, islandActorPayload(islandUuid, actor), () -> islandOperator.toggleLock(islandUuid, actor), response -> response.getBoolean("locked"));
+        UUID operationId = UUID.randomUUID();
+        JSONObject payload = islandActorPayload(islandUuid, actor).put("operationId", operationId.toString());
+        return routeWrite(islandUuid, ACTION_ISLAND_LOCK_TOGGLE, payload,
+                () -> islandOperator.toggleLock(islandUuid, actor, operationId), response -> response.getBoolean("locked"));
     }
 
     public CompletableFuture<Boolean> togglePvp(UUID islandUuid, Actor actor) {
-        return routeWrite(islandUuid, ACTION_ISLAND_PVP_TOGGLE, islandActorPayload(islandUuid, actor), () -> islandOperator.togglePvp(islandUuid, actor), response -> response.getBoolean("pvp"));
+        UUID operationId = UUID.randomUUID();
+        JSONObject payload = islandActorPayload(islandUuid, actor).put("operationId", operationId.toString());
+        return routeWrite(islandUuid, ACTION_ISLAND_PVP_TOGGLE, payload,
+                () -> islandOperator.togglePvp(islandUuid, actor, operationId), response -> response.getBoolean("pvp"));
     }
 
     /**
@@ -318,6 +336,18 @@ public class IslandDistributor {
 
     private String selectServer(Map<String, String> servers) {
         return serverSelector.selectServer(servers);
+    }
+
+    private String selectClaimCapableServer(Map<String, String> servers) {
+        Map<String, String> incarnationAware = servers.entrySet().stream().filter(entry -> {
+            try {
+                UUID.fromString(entry.getValue());
+                return true;
+            } catch (RuntimeException legacyHeartbeat) {
+                return false;
+            }
+        }).collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        return selectServer(incarnationAware);
     }
 
     private String getServerByIsland(UUID islandUuid) {

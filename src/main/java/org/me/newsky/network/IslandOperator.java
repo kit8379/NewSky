@@ -25,7 +25,9 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
@@ -37,23 +39,37 @@ public class IslandOperator {
     private final TeleportHandler teleportHandler;
     private final IslandSnapshot islandSnapshot;
     private final IslandRegistry islandRegistry;
-    private final String serverID;
+    private final IslandRegistry.HostClaim hostClaim;
+    private final UUID writeEpoch;
 
     private final Map<UUID, CompletableFuture<Void>> loadsInFlight = new ConcurrentHashMap<>();
+    private final AtomicBoolean acceptingOperations = new AtomicBoolean(true);
+    private final AtomicInteger activeOperations = new AtomicInteger();
+    private final Object admissionLock = new Object();
 
     // Serializes create/load/unload/delete per island on this server. Without it, an unload
     // finishing after a concurrent re-load could release the claim the re-load just took, leaving
     // the world loaded here while another server is free to claim and load it a second time.
     private final KeyedSequentialExecutor<UUID> lifecycleChains = new KeyedSequentialExecutor<>();
 
-    public IslandOperator(NewSky plugin, DatabaseHandler database, WorldHandler worldHandler, TeleportHandler teleportHandler, IslandSnapshot islandSnapshot, IslandRegistry islandRegistry, String serverID) {
+    private record VersionedResult<T>(T value, long version) {
+    }
+
+    private static final class FencedIslandClaimException extends IllegalStateException {
+        private FencedIslandClaimException(UUID islandUuid) {
+            super("Island claim was fenced during lifecycle operation: " + islandUuid);
+        }
+    }
+
+    public IslandOperator(NewSky plugin, DatabaseHandler database, WorldHandler worldHandler, TeleportHandler teleportHandler, IslandSnapshot islandSnapshot, IslandRegistry islandRegistry, IslandRegistry.HostClaim hostClaim) {
         this.plugin = plugin;
         this.database = database;
         this.worldHandler = worldHandler;
         this.teleportHandler = teleportHandler;
         this.islandSnapshot = islandSnapshot;
         this.islandRegistry = islandRegistry;
-        this.serverID = serverID;
+        this.hostClaim = hostClaim;
+        this.writeEpoch = UUID.fromString(hostClaim.instanceId());
     }
 
     public CompletableFuture<Void> createIsland(UUID islandUuid, UUID ownerUuid) {
@@ -62,29 +78,34 @@ public class IslandOperator {
 
     private CompletableFuture<Void> doCreateIsland(UUID islandUuid, UUID ownerUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
+        AtomicBoolean claimTaken = new AtomicBoolean(false);
         AtomicBoolean databaseCreated = new AtomicBoolean(false);
 
         return CompletableFuture.runAsync(() -> {
-            database.createIsland(islandUuid, ownerUuid);
-            databaseCreated.set(true);
-
-            // The UUID is fresh, so only a stale replayed request can contest this claim - and a
-            // replay losing here is exactly the point: creation must not proceed unclaimed.
-            if (!islandRegistry.claimHost(islandUuid, serverID)) {
+            // Claim before publishing the database row. Once createIsland commits, owner lookups
+            // expose the UUID to every server; claiming afterwards leaves a window in which a
+            // teleport can claim/load it elsewhere and our failure cleanup deletes that live data.
+            if (!islandRegistry.claimHost(islandUuid, hostClaim)) {
                 throw new IslandAlreadyLoadedException();
             }
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> {
+            claimTaken.set(true);
+
+            database.createIsland(islandUuid, ownerUuid, writeEpoch);
+            databaseCreated.set(true);
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> requireLiveClaim(islandUuid)).thenCompose(v -> {
             return islandSnapshot.load(islandUuid);
         }).thenCompose(v -> {
             return worldHandler.createWorld(islandName);
-        }).thenRun(() -> {
-            plugin.debug("IslandOperator", "Created island " + islandUuid + " on server: " + serverID);
+        }).thenCompose(v -> requireLiveClaim(islandUuid))
+                .thenRunAsync(() -> database.markIslandReady(islandUuid, writeEpoch), plugin.getBukkitAsyncExecutor())
+                .thenCompose(v -> requireLiveClaim(islandUuid)).thenRun(() -> {
+            plugin.debug("IslandOperator", "Created island " + islandUuid + " on server instance: " + hostClaim.encoded());
         }).exceptionallyCompose(e -> {
-            if (!databaseCreated.get()) {
+            if (!claimTaken.get()) {
                 return CompletableFuture.failedFuture(e);
             }
 
-            return cleanupFailedCreate(islandUuid, islandName).thenCompose(v -> CompletableFuture.failedFuture(e));
+            return cleanupFailedCreate(islandUuid, islandName, databaseCreated.get()).thenCompose(v -> CompletableFuture.failedFuture(e));
         });
     }
 
@@ -120,36 +141,91 @@ public class IslandOperator {
         // arbitrarily late (backed-up inbox, replay after restart), and by then the claim may
         // point at another server that is already hosting the world. Loading anyway would put
         // the same world on two servers at once.
-        return CompletableFuture.supplyAsync(() -> islandRegistry.claimOrConfirmHost(islandUuid, serverID), plugin.getBukkitAsyncExecutor()).thenCompose(claimHeld -> {
+        return CompletableFuture.supplyAsync(() -> Bukkit.getWorld(islandName) != null,
+                Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenCompose(alreadyLoaded ->
+                CompletableFuture.supplyAsync(() -> islandRegistry.claimOrConfirmHost(islandUuid, hostClaim), plugin.getBukkitAsyncExecutor()).thenCompose(claimHeld -> {
             if (!claimHeld) {
                 throw new IslandAlreadyLoadedException();
             }
 
-            return islandSnapshot.load(islandUuid).thenCompose(v -> {
-                return worldHandler.loadWorld(islandName);
-            }).thenRunAsync(() -> {
-                plugin.debug("IslandOperator", "Loaded island " + islandUuid + " on server: " + serverID);
+            CompletableFuture<Void> prepared = CompletableFuture.runAsync(
+                            () -> database.bindWriteEpoch(islandUuid, writeEpoch), plugin.getBukkitAsyncExecutor())
+                    // Redis and MySQL cannot share one transaction. Re-checking the live claim
+                    // after binding the durable epoch closes the hand-off window before any world
+                    // or snapshot side effect begins; the transaction itself checks the epoch too.
+                    .thenCompose(v -> requireLiveClaim(islandUuid));
+            CompletableFuture<Boolean> provisioning = prepared.thenCompose(v -> CompletableFuture.supplyAsync(
+                    () -> database.isIslandProvisioning(islandUuid), plugin.getBukkitAsyncExecutor()));
+
+            if (alreadyLoaded) {
+                return provisioning.thenCompose(resumeCreate -> islandSnapshot.get(islandUuid) == null
+                                ? islandSnapshot.load(islandUuid)
+                                : CompletableFuture.completedFuture(null))
+                        .thenCompose(v -> requireLiveClaim(islandUuid))
+                        .thenCompose(v -> provisioning.thenCompose(resumeCreate ->
+                                markReadyIfProvisioning(islandUuid, resumeCreate)))
+                        .thenRun(() ->
+                                plugin.debug("IslandOperator", "Island already loaded and claim re-confirmed: " + islandUuid))
+                        .exceptionallyCompose(e -> {
+                            if (unwrap(e) instanceof FencedIslandClaimException) {
+                                return unloadAfterFailedLoad(islandUuid, islandName)
+                                        .thenCompose(v -> CompletableFuture.failedFuture(e));
+                            }
+                            return CompletableFuture.failedFuture(e);
+                        });
+            }
+
+            return provisioning.thenCompose(resumeCreate -> islandSnapshot.load(islandUuid)
+                    .thenCompose(v -> resumeCreate
+                            ? worldHandler.resumeProvisioningWorld(islandName)
+                            : worldHandler.loadWorld(islandName))
+                    .thenCompose(v -> requireLiveClaim(islandUuid))
+                    .thenCompose(v -> markReadyIfProvisioning(islandUuid, resumeCreate))).thenRunAsync(() -> {
+                plugin.debug("IslandOperator", "Loaded island " + islandUuid + " on server instance: " + hostClaim.encoded());
             }, plugin.getBukkitAsyncExecutor()).exceptionallyComposeAsync(e -> {
                 // The claim's holder owns its release. Running inside the per-island chain, this
                 // cannot race a queued re-load: the chain orders this release before that load's
                 // claim, and the compare-and-delete never touches another server's fresh claim.
-                islandRegistry.releaseHost(islandUuid, serverID);
-                return CompletableFuture.failedFuture(e);
+                return unloadAfterFailedLoad(islandUuid, islandName).thenCompose(v -> CompletableFuture.failedFuture(e));
             }, plugin.getBukkitAsyncExecutor());
-        });
+        }));
     }
 
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
         return serialized(islandUuid, () -> doUnloadIsland(islandUuid));
     }
 
+    /** Idle unload variant whose final eligibility check executes inside the lifecycle slot. */
+    public CompletableFuture<Boolean> unloadIslandIfIdle(UUID islandUuid, BooleanSupplier stillIdle) {
+        return serialized(islandUuid, () -> doUnloadIslandIfIdle(islandUuid, stillIdle));
+    }
+
     private CompletableFuture<Void> doUnloadIsland(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        return worldHandler.unloadWorld(islandName).thenRunAsync(() -> {
-            islandRegistry.releaseHost(islandUuid, serverID);
+        return CompletableFuture.supplyAsync(() -> islandRegistry.holdsLiveClaim(islandUuid, hostClaim),
+                plugin.getBukkitAsyncExecutor()).thenCompose(live -> live
+                ? worldHandler.unloadWorld(islandName)
+                : worldHandler.unloadWorldFromBukkit(islandName)).thenRunAsync(() -> {
+            islandRegistry.releaseHost(islandUuid, hostClaim);
             islandSnapshot.unload(islandUuid);
             plugin.debug("IslandOperator", "Released island loaded server for UUID: " + islandUuid);
+        }, plugin.getBukkitAsyncExecutor());
+    }
+
+    private CompletableFuture<Boolean> doUnloadIslandIfIdle(UUID islandUuid, BooleanSupplier stillIdle) {
+        String islandName = IslandUtils.UUIDToName(islandUuid);
+
+        return CompletableFuture.supplyAsync(() -> islandRegistry.holdsLiveClaim(islandUuid, hostClaim),
+                plugin.getBukkitAsyncExecutor()).thenCompose(live -> live
+                ? worldHandler.unloadWorldIfIdle(islandName, stillIdle)
+                : worldHandler.unloadWorldFromBukkit(islandName).thenApply(v -> true)).thenApplyAsync(unloaded -> {
+            if (unloaded) {
+                islandRegistry.releaseHost(islandUuid, hostClaim);
+                islandSnapshot.unload(islandUuid);
+                plugin.debug("IslandOperator", "Released idle island host for UUID: " + islandUuid);
+            }
+            return unloaded;
         }, plugin.getBukkitAsyncExecutor());
     }
 
@@ -164,12 +240,17 @@ public class IslandOperator {
         // from under a world it is hosting. Then rows before world: the ownership check and the
         // delete share one transaction, so a refused delete changes nothing, and a world that
         // fails to delete afterwards is only unreachable garbage no island row points at.
-        return CompletableFuture.supplyAsync(() -> islandRegistry.acquireWriteAuthority(islandUuid, serverID), plugin.getBukkitAsyncExecutor()).thenCompose(authority -> {
+        return CompletableFuture.supplyAsync(() -> islandRegistry.acquireWriteAuthority(islandUuid, hostClaim), plugin.getBukkitAsyncExecutor()).thenCompose(authority -> {
             if (authority == IslandRegistry.WriteAuthority.OTHER) {
                 throw new WrongIslandHostException();
             }
+            if (authority == IslandRegistry.WriteAuthority.FENCED) {
+                throw new IllegalStateException("This server instance has lost its cluster lease");
+            }
 
-            return CompletableFuture.runAsync(() -> database.deleteIsland(islandUuid, actor), plugin.getBukkitAsyncExecutor()).thenCompose(v -> worldHandler.deleteWorld(islandName).exceptionally(e -> {
+            return CompletableFuture.runAsync(() -> database.bindWriteEpoch(islandUuid, writeEpoch), plugin.getBukkitAsyncExecutor())
+                    .thenCompose(v -> requireLiveClaim(islandUuid))
+                    .thenRunAsync(() -> database.deleteIsland(islandUuid, actor, writeEpoch), plugin.getBukkitAsyncExecutor()).thenCompose(v -> worldHandler.deleteWorld(islandName).exceptionally(e -> {
                 plugin.severe("Island rows deleted but the world could not be removed, leaving an orphaned world: " + islandName, e);
                 return null;
             })).thenRunAsync(() -> {
@@ -256,56 +337,56 @@ public class IslandOperator {
     }
 
     public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role, UUID vouchedBy) {
-        return authorizedWrite(islandUuid, () -> {
-            database.addMember(islandUuid, playerUuid, role, vouchedBy);
-            return null;
-        }, result -> island -> island.withMemberAdded(playerUuid));
+        return authorizedWrite(islandUuid,
+                () -> new VersionedResult<>(null, database.addMember(islandUuid, playerUuid, role, vouchedBy, writeEpoch)),
+                result -> island -> island.withMemberAdded(playerUuid));
     }
 
     public CompletableFuture<Void> removeMember(UUID islandUuid, Actor actor, UUID playerUuid) {
-        return this.<Void>authorizedWrite(islandUuid, () -> {
-            database.removeMember(islandUuid, actor, playerUuid);
-            return null;
-        }, result -> island -> island.withMemberRemoved(playerUuid)).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(islandUuid), playerUuid));
+        return this.<Void>authorizedWrite(islandUuid,
+                () -> new VersionedResult<>(null, database.removeMember(islandUuid, actor, playerUuid, writeEpoch)),
+                result -> island -> island.withMemberRemoved(playerUuid)).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(islandUuid), playerUuid));
     }
 
     public CompletableFuture<Void> setOwner(UUID islandUuid, Actor actor, UUID newOwnerUuid) {
-        return authorizedWrite(islandUuid, () -> {
-            database.setOwner(islandUuid, actor, newOwnerUuid);
-            return null;
-        }, result -> island -> island.withOwner(newOwnerUuid));
+        return authorizedWrite(islandUuid,
+                () -> new VersionedResult<>(null, database.setOwner(islandUuid, actor, newOwnerUuid, writeEpoch)),
+                result -> island -> island.withOwner(newOwnerUuid));
     }
 
     public CompletableFuture<Void> addBan(UUID islandUuid, Actor actor, UUID playerUuid) {
-        return this.<Void>authorizedWrite(islandUuid, () -> {
-            database.addBan(islandUuid, actor, playerUuid);
-            return null;
-        }, result -> island -> island.withBanAdded(playerUuid)).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(islandUuid), playerUuid));
+        return this.<Void>authorizedWrite(islandUuid,
+                () -> new VersionedResult<>(null, database.addBan(islandUuid, actor, playerUuid, writeEpoch)),
+                result -> island -> island.withBanAdded(playerUuid)).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(islandUuid), playerUuid));
     }
 
     public CompletableFuture<Void> removeBan(UUID islandUuid, Actor actor, UUID playerUuid) {
-        return authorizedWrite(islandUuid, () -> {
-            database.removeBan(islandUuid, actor, playerUuid);
-            return null;
-        }, result -> island -> island.withBanRemoved(playerUuid));
+        return authorizedWrite(islandUuid,
+                () -> new VersionedResult<>(null, database.removeBan(islandUuid, actor, playerUuid, writeEpoch)),
+                result -> island -> island.withBanRemoved(playerUuid));
     }
 
     public CompletableFuture<Void> addCoop(UUID islandUuid, Actor actor, UUID playerUuid) {
-        return authorizedWrite(islandUuid, () -> {
-            database.addCoop(islandUuid, actor, playerUuid);
-            return null;
-        }, result -> island -> island.withCoopAdded(playerUuid));
+        return authorizedWrite(islandUuid,
+                () -> new VersionedResult<>(null, database.addCoop(islandUuid, actor, playerUuid, writeEpoch)),
+                result -> island -> island.withCoopAdded(playerUuid));
     }
 
     public CompletableFuture<Void> removeCoop(UUID islandUuid, Actor actor, UUID playerUuid) {
-        return this.<Void>authorizedWrite(islandUuid, () -> {
-            database.removeCoop(islandUuid, actor, playerUuid);
-            return null;
-        }, result -> island -> island.withCoopRemoved(playerUuid)).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(islandUuid), playerUuid));
+        return this.<Void>authorizedWrite(islandUuid,
+                () -> new VersionedResult<>(null, database.removeCoop(islandUuid, actor, playerUuid, writeEpoch)),
+                result -> island -> island.withCoopRemoved(playerUuid)).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(islandUuid), playerUuid));
     }
 
     public CompletableFuture<Boolean> toggleLock(UUID islandUuid, Actor actor) {
-        return this.<Boolean>authorizedWrite(islandUuid, () -> database.toggleLock(islandUuid, actor), locked -> island -> island.withLock(locked)).thenCompose(locked -> {
+        return toggleLock(islandUuid, actor, UUID.randomUUID());
+    }
+
+    public CompletableFuture<Boolean> toggleLock(UUID islandUuid, Actor actor, UUID operationId) {
+        return this.<Boolean>authorizedWrite(islandUuid, () -> {
+            DatabaseHandler.VersionedBoolean mutation = database.toggleLockVersioned(islandUuid, actor, operationId, writeEpoch);
+            return new VersionedResult<>(mutation.value(), mutation.version());
+        }, locked -> island -> island.withLock(locked)).thenCompose(locked -> {
             if (!locked) {
                 return CompletableFuture.completedFuture(false);
             }
@@ -315,7 +396,14 @@ public class IslandOperator {
     }
 
     public CompletableFuture<Boolean> togglePvp(UUID islandUuid, Actor actor) {
-        return authorizedWrite(islandUuid, () -> database.togglePvp(islandUuid, actor), pvp -> island -> island.withPvp(pvp));
+        return togglePvp(islandUuid, actor, UUID.randomUUID());
+    }
+
+    public CompletableFuture<Boolean> togglePvp(UUID islandUuid, Actor actor, UUID operationId) {
+        return authorizedWrite(islandUuid, () -> {
+            DatabaseHandler.VersionedBoolean mutation = database.togglePvpVersioned(islandUuid, actor, operationId, writeEpoch);
+            return new VersionedResult<>(mutation.value(), mutation.version());
+        }, pvp -> island -> island.withPvp(pvp));
     }
 
     private CompletableFuture<Void> removeNonMembersFromWorld(UUID islandUuid) {
@@ -341,13 +429,19 @@ public class IslandOperator {
      * Running inside the chain also keeps delta order equal to commit order: two writes to one
      * island cannot commit in one order and apply in the other.
      */
-    private <T> CompletableFuture<T> authorizedWrite(UUID islandUuid, Supplier<T> committedWrite, Function<T, UnaryOperator<Island>> deltaFor) {
-        return serialized(islandUuid, () -> CompletableFuture.supplyAsync(() -> islandRegistry.acquireWriteAuthority(islandUuid, serverID), plugin.getBukkitAsyncExecutor()).thenCompose(authority -> {
+    private <T> CompletableFuture<T> authorizedWrite(UUID islandUuid, Supplier<VersionedResult<T>> committedWrite, Function<T, UnaryOperator<Island>> deltaFor) {
+        return serialized(islandUuid, () -> CompletableFuture.supplyAsync(() -> islandRegistry.acquireWriteAuthority(islandUuid, hostClaim), plugin.getBukkitAsyncExecutor()).thenCompose(authority -> {
             if (authority == IslandRegistry.WriteAuthority.OTHER) {
                 throw new WrongIslandHostException();
             }
+            if (authority == IslandRegistry.WriteAuthority.FENCED) {
+                throw new IllegalStateException("This server instance has lost its cluster lease");
+            }
 
-            CompletableFuture<T> write = CompletableFuture.supplyAsync(committedWrite, plugin.getBukkitAsyncExecutor()).thenCompose(result -> islandSnapshot.apply(islandUuid, deltaFor.apply(result)).thenApply(v -> result));
+            CompletableFuture<T> write = CompletableFuture.runAsync(() -> database.bindWriteEpoch(islandUuid, writeEpoch),
+                    plugin.getBukkitAsyncExecutor()).thenCompose(v -> requireLiveClaim(islandUuid))
+                    .thenCompose(v -> CompletableFuture.supplyAsync(committedWrite, plugin.getBukkitAsyncExecutor())).thenCompose(result ->
+                    islandSnapshot.applyVersioned(islandUuid, result.version(), deltaFor.apply(result.value())).thenApply(v -> result.value()));
 
             if (authority == IslandRegistry.WriteAuthority.HOST) {
                 return write;
@@ -359,7 +453,7 @@ public class IslandOperator {
 
     private void releaseClaimQuietly(UUID islandUuid) {
         try {
-            islandRegistry.releaseHost(islandUuid, serverID);
+            islandRegistry.releaseHost(islandUuid, hostClaim);
         } catch (Exception e) {
             // The write itself succeeded; a failed release only leaves a claim pointing at this
             // live server, which self-heals: the next teleport routed here loads the island.
@@ -367,26 +461,104 @@ public class IslandOperator {
         }
     }
 
+    private CompletableFuture<Void> requireLiveClaim(UUID islandUuid) {
+        return CompletableFuture.supplyAsync(() -> islandRegistry.holdsLiveClaim(islandUuid, hostClaim),
+                plugin.getBukkitAsyncExecutor()).thenAccept(live -> {
+            if (!live) {
+                throw new FencedIslandClaimException(islandUuid);
+            }
+        });
+    }
+
+    private CompletableFuture<Void> markReadyIfProvisioning(UUID islandUuid, boolean provisioning) {
+        if (!provisioning) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return CompletableFuture.runAsync(() -> database.markIslandReady(islandUuid, writeEpoch),
+                        plugin.getBukkitAsyncExecutor())
+                .thenCompose(v -> requireLiveClaim(islandUuid));
+    }
+
+    private Throwable unwrap(Throwable error) {
+        Throwable current = error;
+        while ((current instanceof java.util.concurrent.CompletionException
+                || current instanceof java.util.concurrent.ExecutionException) && current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current;
+    }
+
+    private CompletableFuture<Void> unloadAfterFailedLoad(UUID islandUuid, String islandName) {
+        // A fenced instance must not save into shared storage: a newer host may already own and
+        // persist this same world. Only remove the local Bukkit instance and exact old claim.
+        return worldHandler.unloadWorldFromBukkit(islandName).exceptionally(error -> {
+            plugin.severe("Failed to locally unload world after failed/fenced load: " + islandUuid, error);
+            return null;
+        }).thenRunAsync(() -> {
+            islandSnapshot.unload(islandUuid);
+            islandRegistry.releaseHost(islandUuid, hostClaim);
+        }, plugin.getBukkitAsyncExecutor());
+    }
+
     /**
      * Runs one lifecycle operation at a time per island on this server. Operations for different
      * islands run freely in parallel; a failed operation never blocks the ones queued behind it.
      */
     private <T> CompletableFuture<T> serialized(UUID islandUuid, Supplier<CompletableFuture<T>> operation) {
-        return lifecycleChains.submit(islandUuid, operation);
+        synchronized (admissionLock) {
+            if (!acceptingOperations.get()) {
+                return CompletableFuture.failedFuture(new IllegalStateException("Island operator is shutting down"));
+            }
+            activeOperations.incrementAndGet();
+        }
+        CompletableFuture<T> future = lifecycleChains.submit(islandUuid, operation);
+        future.whenComplete((result, error) -> activeOperations.decrementAndGet());
+        return future;
     }
 
-    private CompletableFuture<Void> cleanupFailedCreate(UUID islandUuid, String islandName) {
-        return worldHandler.deleteWorld(islandName).exceptionally(e -> {
-            plugin.severe("Failed to cleanup world after island create failure: " + islandUuid, e);
-            return null;
-        }).thenRunAsync(() -> {
-            try {
-                database.deleteIsland(islandUuid, new Actor.Bypass("island create cleanup"));
-            } catch (Exception e) {
-                plugin.severe("Failed to cleanup database after island create failure: " + islandUuid, e);
-            }
+    /**
+     * Closes admission atomically and reports whether already-admitted work still exists. When it
+     * does, shutdown leaves the heartbeat/claims to expire instead of releasing them underneath
+     * a database commit that may still be finishing.
+     */
+    public boolean stopAcceptingOperations() {
+        synchronized (admissionLock) {
+            acceptingOperations.set(false);
+            return activeOperations.get() > 0;
+        }
+    }
 
-            islandRegistry.releaseHost(islandUuid, serverID);
+    private CompletableFuture<Void> cleanupFailedCreate(UUID islandUuid, String islandName, boolean databaseCreated) {
+        // Cleanup authority is the durable MySQL epoch, not a Redis observation. The create may
+        // have committed just before its lease expired. In that case requiring the old Redis claim
+        // would strand an owner-visible row with no world forever. Conversely, if a new host has
+        // already rebound the row, deleteIsland's FOR UPDATE epoch check refuses this cleanup.
+        CompletableFuture<Boolean> rowsDeleted;
+        if (databaseCreated) {
+            rowsDeleted = CompletableFuture.supplyAsync(() -> {
+                try {
+                    database.deleteIsland(islandUuid, new Actor.Bypass("island create cleanup"), writeEpoch);
+                    return true;
+                } catch (Exception e) {
+                    plugin.severe("Failed or fenced database cleanup after island create failure: " + islandUuid, e);
+                    return false;
+                }
+            }, plugin.getBukkitAsyncExecutor());
+        } else {
+            rowsDeleted = CompletableFuture.completedFuture(false);
+        }
+
+        return rowsDeleted.thenCompose(deleted -> deleted
+                ? worldHandler.deleteWorld(islandName).exceptionally(e -> {
+                    plugin.severe("Island rows were cleaned but failed to delete create's orphaned world: " + islandUuid, e);
+                    return null;
+                })
+                : worldHandler.unloadWorldFromBukkit(islandName).exceptionally(e -> {
+                    plugin.severe("Failed to locally unload world after fenced island create: " + islandUuid, e);
+                    return null;
+                })).thenRunAsync(() -> {
+
+            islandRegistry.releaseHost(islandUuid, hostClaim);
             islandSnapshot.unload(islandUuid);
         }, plugin.getBukkitAsyncExecutor());
     }

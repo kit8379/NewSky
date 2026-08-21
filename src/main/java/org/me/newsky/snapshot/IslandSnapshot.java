@@ -128,6 +128,40 @@ public class IslandSnapshot {
         return done;
     }
 
+    /**
+     * Applies a delta only at the exact next durable database version. A duplicate/late delta is
+     * ignored; a version gap triggers a full consistent read. This turns unexpected out-of-band
+     * writes or a missed completion callback into bounded reconciliation instead of permanent
+     * enforcement staleness.
+     */
+    public CompletableFuture<Void> applyVersioned(UUID islandUuid, long committedVersion, UnaryOperator<Island> delta) {
+        CompletableFuture<Void> chained = chains.computeIfPresent(islandUuid, (uuid, previous) ->
+                previous.handle((result, error) -> null).thenCompose(v -> {
+                    Island current = islands.get(uuid);
+                    if (current == null || committedVersion <= current.getStateVersion()) {
+                        return CompletableFuture.completedFuture(null);
+                    }
+
+                    if (committedVersion == current.getStateVersion() + 1) {
+                        try {
+                            islands.computeIfPresent(uuid, (key, value) ->
+                                    delta.apply(value).withStateVersion(committedVersion));
+                            return CompletableFuture.completedFuture(null);
+                        } catch (Throwable t) {
+                            errorSink.error("Failed to apply versioned snapshot delta for island: " + islandUuid, t);
+                            return CompletableFuture.failedFuture(t);
+                        }
+                    }
+
+                    errorSink.error("Snapshot version gap for island " + islandUuid + ": memory="
+                            + current.getStateVersion() + ", committed=" + committedVersion + "; reconciling",
+                            new IllegalStateException("Snapshot delta sequence contains a gap"));
+                    return read(uuid, currentGeneration(uuid));
+                }));
+
+        return chained == null ? CompletableFuture.completedFuture(null) : chained;
+    }
+
     public void unload(UUID islandUuid) {
         unloadGenerations.merge(islandUuid, 1L, Long::sum);
         islands.remove(islandUuid);

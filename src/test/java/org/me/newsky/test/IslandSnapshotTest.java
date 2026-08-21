@@ -40,6 +40,7 @@ public final class IslandSnapshotTest {
         applyIsNoOpWhenNotHosted();
         applyQueuesBehindInFlightSeed();
         deltasApplyInOrder();
+        versionedDeltasIgnoreDuplicatesAndReconcileGaps();
         failedSeedKeepsPreviousSnapshot();
         deletedIslandDropsOutOfCache();
         deltaRunMatchesReferenceModel();
@@ -269,6 +270,39 @@ public final class IslandSnapshotTest {
             snapshot.apply(ISLAND, island -> island.withBanAdded(target)).get(10, TimeUnit.SECONDS);
 
             Check.that(snapshot.get(ISLAND).getBans().contains(target), "401 opposing deltas applied strictly in submission order (final add wins)");
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    private static void versionedDeltasIgnoreDuplicatesAndReconcileGaps() throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        try {
+            UUID firstBan = UUID.randomUUID();
+            UUID reconciledBan = UUID.randomUUID();
+            AtomicInteger reads = new AtomicInteger();
+            AtomicReference<Island> database = new AtomicReference<>(
+                    new Island(ISLAND, false, false, OWNER, Set.of(), Set.of(), Set.of(), 1L));
+            IslandSnapshot snapshot = new IslandSnapshot(executor, uuid -> {
+                reads.incrementAndGet();
+                return database.get();
+            }, (m, e) -> {
+            });
+
+            snapshot.load(ISLAND).get(5, TimeUnit.SECONDS);
+            snapshot.applyVersioned(ISLAND, 2L, island -> island.withBanAdded(firstBan)).get(5, TimeUnit.SECONDS);
+            Check.that(snapshot.get(ISLAND).getStateVersion() == 2L && snapshot.get(ISLAND).getBans().contains(firstBan),
+                    "the exact next durable version applies its delta");
+
+            snapshot.applyVersioned(ISLAND, 2L, island -> island.withBanRemoved(firstBan)).get(5, TimeUnit.SECONDS);
+            Check.that(snapshot.get(ISLAND).getBans().contains(firstBan), "a duplicate version is ignored instead of replayed");
+
+            database.set(new Island(ISLAND, true, false, OWNER, Set.of(), Set.of(), Set.of(reconciledBan), 4L));
+            snapshot.applyVersioned(ISLAND, 4L, island -> island.withLock(false)).get(5, TimeUnit.SECONDS);
+            Check.that(snapshot.get(ISLAND).getStateVersion() == 4L && snapshot.get(ISLAND).isLock()
+                            && snapshot.get(ISLAND).getBans().contains(reconciledBan),
+                    "a version gap reconciles from one consistent database snapshot");
+            Check.that(reads.get() == 2, "only the seed and version-gap reconciliation read the database (reads=" + reads + ")");
         } finally {
             executor.shutdownNow();
         }

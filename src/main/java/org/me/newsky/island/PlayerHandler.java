@@ -126,16 +126,34 @@ public class PlayerHandler {
 
             // The inviter's membership is re-verified inside the add-member transaction, under
             // the island lock - an invitation is a vouch and dies with the voucher's membership.
-            return addMember(actor, islandUuid, inviteeUuid, "member", inviterUuid).thenApply(v -> invite).exceptionallyCompose(error -> {
-                if (!(unwrap(error) instanceof InviterNotMemberException)) {
-                    try {
-                        invitationStore.addInvite(inviteeUuid, islandUuid, inviterUuid, REINSTATED_INVITE_TTL_SECONDS);
-                    } catch (Exception reinstateFailure) {
-                        plugin.severe("Failed to reinstate invitation for " + inviteeUuid + " after a failed accept", reinstateFailure);
-                    }
-                }
-                return CompletableFuture.failedFuture(error);
-            });
+            return addMember(actor, islandUuid, inviteeUuid, "member", inviterUuid).thenApply(v -> invite).exceptionallyCompose(error ->
+                    // A remote timeout is ambiguous: the host may have committed membership and
+                    // lost only its response. Reconcile against MySQL before restoring the token,
+                    // otherwise the same invite can be redeemed again or appear valid after the
+                    // player already joined.
+                    CompletableFuture.supplyAsync(() -> database.getIslandUuid(inviteeUuid), plugin.getBukkitAsyncExecutor()).thenCompose(currentIsland -> {
+                        if (currentIsland.filter(islandUuid::equals).isPresent()) {
+                            plugin.warning("Invitation accept response was ambiguous, but membership committed for " + inviteeUuid);
+                            return CompletableFuture.completedFuture(invite);
+                        }
+
+                        // Membership elsewhere makes this invitation permanently obsolete. A dead
+                        // voucher is also permanently invalid; neither case should be reinstated.
+                        Throwable cause = unwrap(error);
+                        if (currentIsland.isEmpty() && !(cause instanceof InviterNotMemberException)
+                                && !(cause instanceof java.util.concurrent.TimeoutException)) {
+                            try {
+                                invitationStore.addInvite(inviteeUuid, islandUuid, inviterUuid, REINSTATED_INVITE_TTL_SECONDS);
+                            } catch (Exception reinstateFailure) {
+                                plugin.severe("Failed to reinstate invitation for " + inviteeUuid + " after a failed accept", reinstateFailure);
+                            }
+                        }
+                        if (cause instanceof java.util.concurrent.TimeoutException) {
+                            plugin.warning("Not reinstating invitation after an ambiguous remote timeout for " + inviteeUuid
+                                    + "; a late membership commit must not leave a second redeemable token");
+                        }
+                        return CompletableFuture.failedFuture(error);
+                    }));
         });
     }
 

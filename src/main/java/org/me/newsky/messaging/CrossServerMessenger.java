@@ -3,6 +3,7 @@ package org.me.newsky.messaging;
 import org.bukkit.Bukkit;
 import org.json.JSONObject;
 import org.me.newsky.NewSky;
+import org.me.newsky.cluster.ClusterKeys;
 import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.StreamEntryID;
@@ -19,7 +20,6 @@ import java.util.concurrent.TimeUnit;
 
 public final class CrossServerMessenger {
 
-    private static final String STREAM_PREFIX = "newsky:messaging:inbox:";
     private static final String FIELD_MESSAGE = "message";
     private static final long REQUEST_TIMEOUT_SECONDS = 30L;
     // A request older than the requester's timeout (plus clock-skew slack) has nobody waiting for
@@ -39,7 +39,7 @@ public final class CrossServerMessenger {
     private final String serverID;
     private final Map<String, CrossServerMessageHandler> handlers = new ConcurrentHashMap<>();
     private final Map<String, CompletableFuture<JSONObject>> pendingRequests = new ConcurrentHashMap<>();
-    private final Set<String> processingEntries = ConcurrentHashMap.newKeySet();
+    private final Set<CompletableFuture<?>> activeHandlers = ConcurrentHashMap.newKeySet();
 
     private volatile boolean running;
 
@@ -78,32 +78,34 @@ public final class CrossServerMessenger {
             return;
         }
 
-        // Everything in the inbox predates this boot: its requesters have timed out, and replaying
-        // stale loads or toggles against the current cluster state is actively harmful.
-        try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.del(inboxKey(serverID));
-            plugin.debug("CrossServerMessenger", "Cleared stale inbox for " + serverID);
-        } catch (Exception e) {
-            plugin.severe("Failed to clear stale inbox for " + serverID, e);
-        }
-
         running = true;
         CompletableFuture.runAsync(this::consumeLoop, plugin.getBukkitAsyncExecutor());
         plugin.debug("CrossServerMessenger", "Started Redis Stream consumer for " + serverID);
     }
 
-    public void stop() {
+    public boolean stop() {
         running = false;
         pendingRequests.forEach((id, future) -> future.completeExceptionally(new IllegalStateException("Cross-server messenger stopped")));
         pendingRequests.clear();
+        if (!activeHandlers.isEmpty()) {
+            plugin.warning("CrossServerMessenger stopped intake with " + activeHandlers.size() + " request handler(s) still completing");
+        }
+        return !activeHandlers.isEmpty();
     }
 
     private void consumeLoop() {
-        while (running && plugin.isEnabled()) {
-            boolean skippedOnly = true;
+        // XREAD returns entries strictly newer than the supplied ID. Advancing this cursor before
+        // dispatch makes the inbox explicitly at-most-once for this boot: an XDEL or response-send
+        // failure can cause a caller timeout, but can never replay a committed toggle/mutation.
+        // The heartbeat registration atomically clears the previous boot's inbox before this
+        // incarnation becomes visible, so a crashed boot's entries are never replayed either.
+        // Jedis MINIMUM_ID serializes as "-", which Redis accepts for XRANGE but rejects for
+        // XREAD. The explicit 0-0 ID means "all entries newer than the beginning of the stream".
+        StreamEntryID lastReadId = new StreamEntryID(0L, 0L);
 
+        while (running && plugin.isEnabled()) {
             try (Jedis jedis = redisHandler.getJedis()) {
-                List<Map.Entry<String, List<StreamEntry>>> streams = jedis.xread(XReadParams.xReadParams().block(READ_BLOCK_MILLIS).count(READ_COUNT), Collections.singletonMap(inboxKey(serverID), StreamEntryID.MINIMUM_ID));
+                List<Map.Entry<String, List<StreamEntry>>> streams = jedis.xread(XReadParams.xReadParams().block(READ_BLOCK_MILLIS).count(READ_COUNT), Collections.singletonMap(inboxKey(serverID), lastReadId));
 
                 if (streams == null || streams.isEmpty()) {
                     continue;
@@ -111,9 +113,8 @@ public final class CrossServerMessenger {
 
                 for (Map.Entry<String, List<StreamEntry>> stream : streams) {
                     for (StreamEntry entry : stream.getValue()) {
-                        if (processEntry(entry)) {
-                            skippedOnly = false;
-                        }
+                        lastReadId = entry.getID();
+                        processEntry(entry);
                     }
                 }
             } catch (Exception e) {
@@ -123,56 +124,48 @@ public final class CrossServerMessenger {
                 }
             }
 
-            if (skippedOnly) {
-                sleepQuietly(50L);
-            }
         }
     }
 
-    private boolean processEntry(StreamEntry entry) {
+    private void processEntry(StreamEntry entry) {
         String entryId = entry.getID().toString();
-        if (!processingEntries.add(entryId)) {
-            return false;
-        }
 
         try {
             String raw = entry.getFields().get(FIELD_MESSAGE);
             if (raw == null || raw.isEmpty()) {
                 deleteEntry(entry.getID());
-                return true;
+                return;
             }
 
             CrossServerMessage message = CrossServerMessage.fromJson(raw);
             if (!serverID.equals(message.getTarget())) {
                 plugin.warning("Dropping cross-server message targeted to " + message.getTarget() + " from inbox " + serverID);
                 deleteEntry(entry.getID());
-                return true;
+                return;
             }
 
             if (CrossServerMessage.TYPE_RESPONSE.equals(message.getType())) {
                 handleResponse(message);
                 deleteEntry(entry.getID());
-                return true;
+                return;
             }
 
             if (CrossServerMessage.TYPE_REQUEST.equals(message.getType())) {
                 if (message.getTimestamp() > 0 && System.currentTimeMillis() - message.getTimestamp() > STALE_REQUEST_MILLIS) {
                     plugin.warning("Dropping stale cross-server request " + message.getAction() + " from " + message.getSource() + " (age exceeds requester timeout)");
                     deleteEntry(entry.getID());
-                    return true;
+                    return;
                 }
 
                 handleRequest(entry.getID(), message);
-                return true;
+                return;
             }
 
             plugin.warning("Dropping unknown cross-server message type: " + message.getType());
             deleteEntry(entry.getID());
-            return true;
         } catch (Exception e) {
             plugin.severe("Failed to process cross-server stream entry " + entryId, e);
             deleteEntry(entry.getID());
-            return true;
         }
     }
 
@@ -184,7 +177,10 @@ public final class CrossServerMessenger {
         }
 
         try {
-            handler.handle(message.getPayload()).orTimeout(HANDLER_TIMEOUT_SECONDS, TimeUnit.SECONDS).whenCompleteAsync((payload, throwable) -> {
+            CompletableFuture<JSONObject> handling = handler.handle(message.getPayload()).orTimeout(HANDLER_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            activeHandlers.add(handling);
+            handling.whenCompleteAsync((payload, throwable) -> {
+                activeHandlers.remove(handling);
                 CrossServerMessage response;
                 if (throwable == null) {
                     response = CrossServerMessage.successResponse(message, payload == null ? new JSONObject() : payload);
@@ -255,7 +251,6 @@ public final class CrossServerMessenger {
             plugin.severe("Failed to send cross-server response for " + response.getCorrelationId(), e);
         } finally {
             deleteEntry(entryId);
-            processingEntries.remove(entryId.toString());
         }
     }
 
@@ -288,13 +283,11 @@ public final class CrossServerMessenger {
             jedis.xdel(inboxKey(serverID), entryId);
         } catch (Exception e) {
             plugin.severe("Failed to delete cross-server stream entry " + entryId, e);
-        } finally {
-            processingEntries.remove(entryId.toString());
         }
     }
 
     private String inboxKey(String serverName) {
-        return STREAM_PREFIX + serverName;
+        return ClusterKeys.messagingInbox(serverName);
     }
 
     private void sleepQuietly(long millis) {

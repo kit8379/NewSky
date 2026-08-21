@@ -11,6 +11,7 @@ import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
 import org.me.newsky.exceptions.NotIslandOwnerException;
 import org.me.newsky.exceptions.PlayerAlreadyBannedException;
+import org.me.newsky.exceptions.WrongIslandHostException;
 import org.me.newsky.model.Actor;
 import org.me.newsky.model.Island;
 
@@ -61,18 +62,25 @@ public final class DatabaseTransactionTest {
         hikariConfig.setMaximumPoolSize(24);
 
         try (HikariDataSource dataSource = new HikariDataSource(hikariConfig)) {
+            try (Connection legacy = dataSource.getConnection(); Statement statement = legacy.createStatement()) {
+                statement.executeUpdate("CREATE TABLE newsky_islands (island_uuid CHAR(36) NOT NULL, `lock` BOOLEAN NOT NULL DEFAULT FALSE, pvp BOOLEAN NOT NULL DEFAULT FALSE, PRIMARY KEY (island_uuid)) ENGINE=InnoDB");
+            }
             database = new DatabaseHandler(dataSource, "newsky_", "0,64,0,0,0", (message, error) -> {
             });
 
+            legacyIslandSchemaMigratesOnline(dataSource);
             createSeedsOwnerAndDefaultHome();
             racingCreatesForOneOwnerProduceExactlyOneIsland();
             addMemberSeedsHomeAndClearsBanAndCoop();
+            enforcementStateVersionsAdvanceInCommitOrder();
+            durableWriteEpochFencesOldHostTransactions();
             addMemberRefusesNonMemberRoles();
             invitationVouchIsReVerifiedInTheJoinTransaction();
             membershipConflictsAreRefused();
             roleRulesRunInsideTheTransaction();
             racingOwnershipTransfersKeepExactlyOneOwner();
             racingTogglesNeverLoseAnUpdate();
+            duplicateToggleOperationIsAppliedExactlyOnce();
             banRules();
             pointWritesEnforceMembershipByForeignKey();
             deleteCascadesEverything();
@@ -84,11 +92,35 @@ public final class DatabaseTransactionTest {
         }
     }
 
+    private static void legacyIslandSchemaMigratesOnline(HikariDataSource dataSource) throws Exception {
+        try (Connection connection = dataSource.getConnection()) {
+            boolean version;
+            boolean epoch;
+            boolean provisioning;
+            try (var columns = connection.getMetaData().getColumns(connection.getCatalog(), null, "newsky_islands", null)) {
+                version = false;
+                epoch = false;
+                provisioning = false;
+                while (columns.next()) {
+                    version |= "state_version".equalsIgnoreCase(columns.getString("COLUMN_NAME"));
+                    epoch |= "write_epoch".equalsIgnoreCase(columns.getString("COLUMN_NAME"));
+                    provisioning |= "provision_state".equalsIgnoreCase(columns.getString("COLUMN_NAME"));
+                }
+            }
+            Check.that(version && epoch && provisioning,
+                    "legacy islands table gains state_version, write_epoch and provision_state during startup");
+        }
+    }
+
     private static void createSeedsOwnerAndDefaultHome() {
         UUID island = UUID.randomUUID();
         UUID owner = UUID.randomUUID();
 
         database.createIsland(island, owner);
+        Check.that(database.isIslandProvisioning(island), "new island starts in recoverable provisioning state");
+        database.markIslandReady(island, null);
+        Check.that(!database.isIslandProvisioning(island), "provisioning completion is durable");
+        database.markIslandReady(island, null);
 
         Island snapshot = database.getIslandSnapshot(island);
         Check.that(owner.equals(snapshot.getOwner()), "create seeds the owner row");
@@ -149,6 +181,71 @@ public final class DatabaseTransactionTest {
         Check.that(!snapshot.getBans().contains(joiner), "joining cleared the joiner's ban row");
         Check.that(!snapshot.getCoops().contains(joiner), "joining cleared the joiner's coop row");
         Check.that(database.getIslandHomes(island, joiner).containsKey("default"), "joining seeded the joiner's default home");
+    }
+
+    private static void enforcementStateVersionsAdvanceInCommitOrder() {
+        UUID island = UUID.randomUUID();
+        UUID owner = UUID.randomUUID();
+        Actor actor = new Actor.Player(owner);
+        database.createIsland(island, owner);
+
+        long coopVersion = database.addCoop(island, actor, UUID.randomUUID());
+        long banVersion = database.addBan(island, actor, UUID.randomUUID());
+        DatabaseHandler.VersionedBoolean toggle = database.toggleLockVersioned(island, actor);
+
+        Check.that(coopVersion == 1L && banVersion == 2L && toggle.version() == 3L,
+                "enforcement mutations receive consecutive durable versions in commit order");
+        Check.that(database.getIslandSnapshot(island).getStateVersion() == 3L,
+                "the consistent snapshot carries the latest durable version");
+    }
+
+    private static void duplicateToggleOperationIsAppliedExactlyOnce() {
+        UUID island = UUID.randomUUID();
+        UUID owner = UUID.randomUUID();
+        UUID operationId = UUID.randomUUID();
+        Actor actor = new Actor.Player(owner);
+        database.createIsland(island, owner);
+
+        DatabaseHandler.VersionedBoolean first = database.toggleLockVersioned(island, actor, operationId);
+        DatabaseHandler.VersionedBoolean replay = database.toggleLockVersioned(island, actor, operationId);
+
+        Check.that(first.value() && replay.value(), "a replay returns the original toggle result");
+        Check.that(first.version() == replay.version() && database.getIslandSnapshot(island).getStateVersion() == first.version(),
+                "a replay does not create a second durable version");
+        Check.that(database.getIslandSnapshot(island).isLock(), "a duplicate operation toggles state exactly once");
+    }
+
+    private static void durableWriteEpochFencesOldHostTransactions() {
+        UUID island = UUID.randomUUID();
+        UUID owner = UUID.randomUUID();
+        UUID oldEpoch = UUID.randomUUID();
+        UUID newEpoch = UUID.randomUUID();
+        UUID target = UUID.randomUUID();
+        Actor actor = new Actor.Player(owner);
+        database.createIsland(island, owner, oldEpoch);
+
+        database.bindWriteEpoch(island, newEpoch);
+        boolean fenced = false;
+        try {
+            database.addBan(island, actor, target, oldEpoch);
+        } catch (WrongIslandHostException expected) {
+            fenced = true;
+        }
+
+        Check.that(fenced, "a transaction from the previous host epoch is refused under the island row lock");
+        Check.that(!database.getIslandSnapshot(island).getBans().contains(target), "the fenced old transaction changes no rows");
+        boolean readyFenced = false;
+        try {
+            database.markIslandReady(island, oldEpoch);
+        } catch (WrongIslandHostException expected) {
+            readyFenced = true;
+        }
+        Check.that(readyFenced && database.isIslandProvisioning(island),
+                "the old host cannot publish a provisioning island after epoch takeover");
+        database.markIslandReady(island, newEpoch);
+        Check.that(!database.isIslandProvisioning(island), "the current host can complete crash recovery");
+        database.addBan(island, actor, target, newEpoch);
+        Check.that(database.getIslandSnapshot(island).getBans().contains(target), "the current host epoch may commit normally");
     }
 
     private static void addMemberRefusesNonMemberRoles() {

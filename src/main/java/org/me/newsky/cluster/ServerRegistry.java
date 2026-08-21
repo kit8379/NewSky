@@ -2,10 +2,10 @@ package org.me.newsky.cluster;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.redis.RedisHandler;
-import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.params.ScanParams;
 import redis.clients.jedis.resps.ScanResult;
 
+import java.util.List;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -16,6 +16,21 @@ import java.util.Map;
  */
 public class ServerRegistry extends ClusterState {
 
+    // One proxy server name may only have one live JVM incarnation. The same script also renews
+    // an existing registration owned by this incarnation, so a restarted process cannot take over
+    // until the old lease has expired or shut down cleanly.
+    public static final String RENEW_INSTANCE = "local held = redis.call('get', KEYS[1]) "
+            + "if held and held ~= ARGV[1] then return 0 end "
+            + "if not held then redis.call('del', KEYS[3]) end "
+            + "redis.call('setex', KEYS[1], ARGV[2], ARGV[1]) "
+            + "if ARGV[3] == '1' then redis.call('del', KEYS[2]) else redis.call('setex', KEYS[2], ARGV[2], ARGV[1]) end "
+            + "return 1";
+
+    // A late shutdown from an old process must not erase the heartbeat or metrics of a newer
+    // process using the same configured server name.
+    public static final String REMOVE_INSTANCE_IF_CURRENT = "if redis.call('get', KEYS[1]) ~= ARGV[1] then return 0 end "
+            + "redis.call('del', KEYS[1]) redis.call('del', KEYS[2]) redis.call('hdel', KEYS[3], ARGV[2]) return 1";
+
     private final IslandRegistry islandRegistry;
     private final OnlinePlayerRegistry onlinePlayerRegistry;
 
@@ -25,17 +40,13 @@ public class ServerRegistry extends ClusterState {
         this.onlinePlayerRegistry = onlinePlayerRegistry;
     }
 
-    public void updateActiveServer(String serverName, boolean lobby, int ttlSeconds) {
-        String timestamp = String.valueOf(System.currentTimeMillis());
-        run(jedis -> {
-            jedis.setex(ClusterKeys.serverHeartbeat(serverName), ttlSeconds, timestamp);
-
-            if (lobby) {
-                jedis.del(ClusterKeys.gameServerHeartbeat(serverName));
-            } else {
-                jedis.setex(ClusterKeys.gameServerHeartbeat(serverName), ttlSeconds, timestamp);
-            }
-        }, "Failed to update active server for: " + serverName);
+    public boolean updateActiveServer(IslandRegistry.HostClaim instance, boolean lobby, int ttlSeconds) {
+        return execute(jedis -> {
+            Object result = jedis.eval(RENEW_INSTANCE,
+                    List.of(ClusterKeys.serverHeartbeat(instance.serverName()), ClusterKeys.gameServerHeartbeat(instance.serverName()), ClusterKeys.messagingInbox(instance.serverName())),
+                    List.of(instance.instanceId(), String.valueOf(ttlSeconds), lobby ? "1" : "0"));
+            return Long.valueOf(1L).equals(result);
+        }, "Failed to update active server for: " + instance.encoded());
     }
 
     /**
@@ -48,18 +59,14 @@ public class ServerRegistry extends ClusterState {
         onlinePlayerRegistry.removePlayersOfDeadServers();
     }
 
-    public void removeActiveServer(String serverName) {
-        run(jedis -> {
-            Pipeline pipeline = jedis.pipelined();
-            pipeline.del(ClusterKeys.serverHeartbeat(serverName));
-            pipeline.del(ClusterKeys.gameServerHeartbeat(serverName));
-            pipeline.hdel(ClusterKeys.serverMspt(), serverName);
-            pipeline.sync();
-        }, "Failed to remove active server: " + serverName);
+    public void removeActiveServer(IslandRegistry.HostClaim instance) {
+        run(jedis -> jedis.eval(REMOVE_INSTANCE_IF_CURRENT,
+                List.of(ClusterKeys.serverHeartbeat(instance.serverName()), ClusterKeys.gameServerHeartbeat(instance.serverName()), ClusterKeys.serverMspt()),
+                List.of(instance.instanceId(), instance.serverName())), "Failed to remove active server: " + instance.encoded());
 
-        islandRegistry.releaseHostsOf(serverName);
-        onlinePlayerRegistry.removePlayersOfServer(serverName);
-        plugin.debug("ServerRegistry", "Cleaned up all state data for server: " + serverName);
+        islandRegistry.releaseHostsOf(instance);
+        onlinePlayerRegistry.removePlayersOfServer(instance);
+        plugin.debug("ServerRegistry", "Cleaned up state data for server instance: " + instance.encoded());
     }
 
     public Map<String, String> getActiveServers() {

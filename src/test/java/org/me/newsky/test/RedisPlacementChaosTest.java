@@ -62,6 +62,7 @@ public final class RedisPlacementChaosTest {
         final Object[] lifecycle = new Object[ISLANDS];
         final ReentrantReadWriteLock crashLock = new ReentrantReadWriteLock();
         volatile boolean alive = true;
+        volatile String instanceId = UUID.randomUUID().toString();
 
         SimServer(String name) {
             this.name = name;
@@ -69,6 +70,10 @@ public final class RedisPlacementChaosTest {
                 loaded[i] = new AtomicBoolean(false);
                 lifecycle[i] = new Object();
             }
+        }
+
+        String encoded() {
+            return instanceId + ":" + name;
         }
     }
 
@@ -114,7 +119,7 @@ public final class RedisPlacementChaosTest {
             for (int i = 0; i < SERVERS; i++) {
                 servers[i] = new SimServer("server-" + i);
                 serversByName.put(servers[i].name, servers[i]);
-                jedis.set(heartbeatPrefix + servers[i].name, "1");
+                jedis.set(heartbeatPrefix + servers[i].name, servers[i].instanceId);
             }
         }
 
@@ -166,14 +171,16 @@ public final class RedisPlacementChaosTest {
     // load to whoever holds it.
     private static void teleportDriver(int island, ThreadLocalRandom rnd) {
         try (Jedis jedis = pool.getResource()) {
-            String holder = jedis.hget(claimKey, islandIds[island]);
-            if (holder == null) {
+            String encodedHolder = jedis.hget(claimKey, islandIds[island]);
+            if (encodedHolder == null) {
                 SimServer candidate = servers[rnd.nextInt(SERVERS)];
-                jedis.hsetnx(claimKey, islandIds[island], candidate.name);
-                holder = jedis.hget(claimKey, islandIds[island]);
+                jedis.eval(IslandRegistry.CLAIM_IF_LIVE,
+                        List.of(claimKey, heartbeatPrefix + candidate.name),
+                        List.of(islandIds[island], candidate.encoded(), candidate.instanceId));
+                encodedHolder = jedis.hget(claimKey, islandIds[island]);
             }
-            if (holder != null) {
-                SimServer host = serversByName.get(holder);
+            if (encodedHolder != null) {
+                SimServer host = serversByName.get(IslandRegistry.HostClaim.decode(encodedHolder).serverName());
                 if (host != null) {
                     deliverLoad(host, island);
                 }
@@ -194,7 +201,9 @@ public final class RedisPlacementChaosTest {
             synchronized (host.lifecycle[island]) {
                 Object verdict;
                 try (Jedis jedis = pool.getResource()) {
-                    verdict = jedis.eval(IslandRegistry.CLAIM_OR_CONFIRM, List.of(claimKey), List.of(islandIds[island], host.name));
+                    verdict = jedis.eval(IslandRegistry.CLAIM_OR_CONFIRM,
+                            List.of(claimKey, heartbeatPrefix + host.name),
+                            List.of(islandIds[island], host.encoded(), host.instanceId));
                 }
 
                 if (!Long.valueOf(1L).equals(verdict)) {
@@ -220,15 +229,15 @@ public final class RedisPlacementChaosTest {
     // IslandOperator.doUnloadIsland: world goes away first, then the claim is released by
     // compare-and-delete, all inside the island's lifecycle slot.
     private static void unloadDriver(int island) {
-        String holder;
+        String encodedHolder;
         try (Jedis jedis = pool.getResource()) {
-            holder = jedis.hget(claimKey, islandIds[island]);
+            encodedHolder = jedis.hget(claimKey, islandIds[island]);
         }
-        if (holder == null) {
+        if (encodedHolder == null) {
             return;
         }
 
-        SimServer host = serversByName.get(holder);
+        SimServer host = serversByName.get(IslandRegistry.HostClaim.decode(encodedHolder).serverName());
         if (host == null) {
             return;
         }
@@ -246,7 +255,7 @@ public final class RedisPlacementChaosTest {
 
                 host.loaded[island].set(false);
                 try (Jedis jedis = pool.getResource()) {
-                    jedis.eval(IslandRegistry.RELEASE_IF_HELD_BY, List.of(claimKey), List.of(islandIds[island], host.name));
+                    jedis.eval(IslandRegistry.RELEASE_IF_HELD_BY, List.of(claimKey), List.of(islandIds[island], host.encoded()));
                 }
                 unloads.incrementAndGet();
             }
@@ -261,10 +270,13 @@ public final class RedisPlacementChaosTest {
         try (Jedis jedis = pool.getResource()) {
             Map<String, String> mappings = jedis.hgetAll(claimKey);
             for (Map.Entry<String, String> entry : mappings.entrySet()) {
-                if (jedis.exists(heartbeatPrefix + entry.getValue())) {
+                IslandRegistry.HostClaim claim = IslandRegistry.HostClaim.decode(entry.getValue());
+                if (claim.instanceId().equals(jedis.get(heartbeatPrefix + claim.serverName()))) {
                     continue;
                 }
-                Object removed = jedis.eval(IslandRegistry.RELEASE_IF_DEAD, List.of(claimKey, heartbeatPrefix + entry.getValue()), List.of(entry.getKey(), entry.getValue()));
+                Object removed = jedis.eval(IslandRegistry.RELEASE_IF_DEAD,
+                        List.of(claimKey, heartbeatPrefix + claim.serverName()),
+                        List.of(entry.getKey(), entry.getValue(), claim.instanceId()));
                 if (Long.valueOf(1L).equals(removed)) {
                     reaps.incrementAndGet();
                 }
@@ -308,13 +320,15 @@ public final class RedisPlacementChaosTest {
             }
 
             try (Jedis jedis = pool.getResource()) {
+                String oldEncoded = server.encoded();
                 Map<String, String> mappings = jedis.hgetAll(claimKey);
                 for (Map.Entry<String, String> entry : mappings.entrySet()) {
-                    if (server.name.equals(entry.getValue())) {
-                        jedis.eval(IslandRegistry.RELEASE_IF_HELD_BY, List.of(claimKey), List.of(entry.getKey(), server.name));
+                    if (oldEncoded.equals(entry.getValue())) {
+                        jedis.eval(IslandRegistry.RELEASE_IF_HELD_BY, List.of(claimKey), List.of(entry.getKey(), oldEncoded));
                     }
                 }
-                jedis.set(heartbeatPrefix + server.name, "1");
+                server.instanceId = UUID.randomUUID().toString();
+                jedis.set(heartbeatPrefix + server.name, server.instanceId);
             }
             server.alive = true;
             restarts.incrementAndGet();
@@ -366,7 +380,9 @@ public final class RedisPlacementChaosTest {
                 Check.that(loaders.size() <= 1, "island " + island + " has at most one loader at rest (loaders=" + loaders.size() + ")");
                 if (loaders.size() == 1) {
                     String holder = jedis.hget(claimKey, islandIds[island]);
-                    Check.that(loaders.get(0).name.equals(holder), "island " + island + "'s claim matches its loader at rest (claim=" + holder + ", loader=" + loaders.get(0).name + ")");
+                    IslandRegistry.HostClaim claim = IslandRegistry.HostClaim.decode(holder);
+                    Check.that(loaders.get(0).name.equals(claim.serverName()) && loaders.get(0).instanceId.equals(claim.instanceId()),
+                            "island " + island + "'s claim matches its loader incarnation at rest (claim=" + holder + ", loader=" + loaders.get(0).encoded() + ")");
                 }
             }
         }

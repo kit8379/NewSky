@@ -52,12 +52,16 @@ public class CoopHandler {
         Actor cleanup = new Actor.Bypass("system");
 
         return CompletableFuture.supplyAsync(() -> database.getCoopIslands(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(islands -> {
-            CompletableFuture<?>[] removals = islands.stream().map(islandUuid -> islandDistributor.removeCoop(islandUuid, cleanup, playerUuid).exceptionally(error -> {
-                Throwable cause = error instanceof CompletionException && error.getCause() != null ? error.getCause() : error;
-                if (!(cause instanceof PlayerNotCoopedException) && !(cause instanceof IslandDoesNotExistException)) {
-                    plugin.severe("Failed to remove coop of " + playerUuid + " on island " + islandUuid + " during quit cleanup", error);
+            CompletableFuture<?>[] removals = islands.stream().map(islandUuid -> islandDistributor.removeCoop(islandUuid, cleanup, playerUuid).exceptionallyCompose(error -> {
+                Throwable cause = error;
+                while (cause instanceof CompletionException && cause.getCause() != null) {
+                    cause = cause.getCause();
                 }
-                return null;
+                if (cause instanceof PlayerNotCoopedException || cause instanceof IslandDoesNotExistException) {
+                    return CompletableFuture.completedFuture(null);
+                }
+                plugin.severe("Failed to remove coop of " + playerUuid + " on island " + islandUuid + " during quit cleanup", error);
+                return CompletableFuture.failedFuture(error);
             })).toArray(CompletableFuture[]::new);
 
             return CompletableFuture.allOf(removals);

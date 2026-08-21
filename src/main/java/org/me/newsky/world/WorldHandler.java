@@ -18,6 +18,7 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 
 public class WorldHandler {
@@ -90,6 +91,20 @@ public class WorldHandler {
         }
     }
 
+    /**
+     * Resumes a create that crashed after committing its provisioning row. A saved world may
+     * already exist when the crash happened late; otherwise the same deterministic world name is
+     * created from the template. Established islands never use this blank-world recovery path.
+     */
+    public CompletableFuture<Void> resumeProvisioningWorld(String worldName) {
+        try {
+            return slimeLoader.worldExists(worldName) ? loadWorld(worldName) : createWorld(worldName);
+        } catch (Exception e) {
+            plugin.severe("Failed to inspect provisioning world: " + worldName, e);
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
     public CompletableFuture<Void> unloadWorld(String worldName) {
         plugin.debug("WorldHandler", "Unloading world: " + worldName);
 
@@ -108,6 +123,42 @@ public class WorldHandler {
             }, plugin.getBukkitAsyncExecutor());
         } catch (Exception e) {
             plugin.severe("Failed to unload slime world: " + worldName, e);
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    /**
+     * Saves and unloads a world only when the supplied idle predicate still holds and Bukkit sees
+     * no players. Both checks and the unload execute in one main-thread turn, so a scheduled idle
+     * candidate can never kick somebody who entered while it waited behind an island lifecycle
+     * operation.
+     *
+     * @return true when the world is absent after the call, false when activity vetoed the unload
+     */
+    public CompletableFuture<Boolean> unloadWorldIfIdle(String worldName, BooleanSupplier stillIdle) {
+        plugin.debug("WorldHandler", "Conditionally unloading idle world: " + worldName);
+
+        try {
+            SlimeWorld world = asp.getLoadedWorld(worldName);
+            if (world != null) {
+                asp.saveWorld(world);
+            }
+
+            return CompletableFuture.supplyAsync(() -> {
+                World bukkitWorld = Bukkit.getWorld(worldName);
+                if (bukkitWorld == null) {
+                    return true;
+                }
+                if (!stillIdle.getAsBoolean() || !bukkitWorld.getPlayers().isEmpty()) {
+                    return false;
+                }
+                if (!Bukkit.unloadWorld(bukkitWorld, false)) {
+                    throw new IllegalStateException("Failed to unload world from Bukkit: " + worldName);
+                }
+                return true;
+            }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
+        } catch (Exception e) {
+            plugin.severe("Failed to conditionally unload slime world: " + worldName, e);
             return CompletableFuture.failedFuture(e);
         }
     }
@@ -195,12 +246,17 @@ public class WorldHandler {
         }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
     }
 
-    public void unloadAllWorldsOnShutdown() {
+    public void unloadAllWorldsOnShutdown(boolean saveWorlds) {
         plugin.debug("WorldHandler", "Unloading all worlds on shutdown...");
         List<SlimeWorldInstance> loadedWorlds = asp.getLoadedWorlds();
         for (SlimeWorldInstance worldInstance : loadedWorlds) {
             try {
-                asp.saveWorld(worldInstance);
+                if (saveWorlds) {
+                    asp.saveWorld(worldInstance);
+                } else {
+                    plugin.warning("Skipping save for fenced world " + worldInstance.getName()
+                            + " because this JVM no longer owns its cluster lease");
+                }
                 for (Player player : worldInstance.getBukkitWorld().getPlayers()) {
                     plugin.debug("WorldHandler", "Teleporting player: " + player.getName());
                     player.teleport(Bukkit.getWorlds().getFirst().getSpawnLocation());

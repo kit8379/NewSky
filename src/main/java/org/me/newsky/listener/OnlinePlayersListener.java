@@ -6,6 +6,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.me.newsky.NewSky;
+import org.me.newsky.cluster.IslandRegistry;
 import org.me.newsky.cluster.OnlinePlayerRegistry;
 import org.me.newsky.thread.KeyedSequentialExecutor;
 
@@ -16,16 +17,16 @@ public class OnlinePlayersListener implements Listener {
 
     private final NewSky plugin;
     private final OnlinePlayerRegistry onlinePlayerRegistry;
-    private final String serverID;
+    private final IslandRegistry.HostClaim serverInstance;
 
     // Registry updates for one player must reach Redis in event order: a relog fires quit then
     // join, and two unordered async tasks could apply them reversed, deleting the fresh entry.
     private final KeyedSequentialExecutor<UUID> updateChains = new KeyedSequentialExecutor<>();
 
-    public OnlinePlayersListener(NewSky plugin, OnlinePlayerRegistry onlinePlayerRegistry, String serverID) {
+    public OnlinePlayersListener(NewSky plugin, OnlinePlayerRegistry onlinePlayerRegistry, IslandRegistry.HostClaim serverInstance) {
         this.plugin = plugin;
         this.onlinePlayerRegistry = onlinePlayerRegistry;
-        this.serverID = serverID;
+        this.serverInstance = serverInstance;
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -34,8 +35,8 @@ public class OnlinePlayersListener implements Listener {
         String playerName = event.getPlayer().getName();
 
         enqueue(playerUuid, () -> {
-            onlinePlayerRegistry.addOnlinePlayer(playerUuid, playerName, serverID);
-            plugin.debug("OnlinePlayersListener", "Player " + playerName + " joined on server " + serverID);
+            onlinePlayerRegistry.addOnlinePlayer(playerUuid, playerName, serverInstance);
+            plugin.debug("OnlinePlayersListener", "Player " + playerName + " joined on server " + serverInstance.serverName());
         });
     }
 
@@ -45,8 +46,8 @@ public class OnlinePlayersListener implements Listener {
         String playerName = event.getPlayer().getName();
 
         enqueue(playerUuid, () -> {
-            onlinePlayerRegistry.removeOnlinePlayer(playerUuid, serverID);
-            plugin.debug("OnlinePlayersListener", "Player " + playerName + " quit from server " + serverID);
+            onlinePlayerRegistry.removeOnlinePlayer(playerUuid, serverInstance);
+            plugin.debug("OnlinePlayersListener", "Player " + playerName + " quit from server " + serverInstance.serverName());
         });
     }
 

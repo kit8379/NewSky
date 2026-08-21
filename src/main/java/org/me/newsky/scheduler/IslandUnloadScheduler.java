@@ -86,11 +86,17 @@ public class IslandUnloadScheduler {
                     return;
                 }
 
-                // Through the operator, so the unload runs on the island's lifecycle chain: it can
-                // never interleave with a concurrent load and release the claim that load just took.
-                islandOperator.unloadIsland(islandUuid).thenRun(() -> {
-                    worldActivityHandler.clearWorld(worldName);
-                    plugin.debug("IslandUnloadScheduler", "Unloaded world: " + worldName);
+                // The predicate is evaluated again inside the island lifecycle slot, in the same
+                // main-thread turn as Bukkit's unload. The checks above are only an inexpensive
+                // early veto; they are not the correctness boundary.
+                islandOperator.unloadIslandIfIdle(islandUuid,
+                        () -> worldActivityHandler.isStillInactive(worldName, thresholdMillis, System.currentTimeMillis())).thenAccept(unloaded -> {
+                    if (unloaded) {
+                        worldActivityHandler.clearWorld(worldName);
+                        plugin.debug("IslandUnloadScheduler", "Unloaded world: " + worldName);
+                    } else {
+                        plugin.debug("IslandUnloadScheduler", "World became active while queued for unload: " + worldName);
+                    }
                 }).exceptionally(ex -> {
                     plugin.severe("Failed to unload world: " + worldName, ex);
                     return null;

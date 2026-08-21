@@ -35,6 +35,10 @@ public class DatabaseHandler {
     public record IslandCoreData(boolean lock, boolean pvp, int level, Optional<UUID> owner) {
     }
 
+    /** Value plus the durable version committed in the same island transaction. */
+    public record VersionedBoolean(boolean value, long version) {
+    }
+
     public DatabaseHandler(NewSky plugin, ConfigHandler config) {
         this(buildDataSource(config), config.getMySQLTablePrefix(), config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch(), plugin::severe);
     }
@@ -161,6 +165,7 @@ public class DatabaseHandler {
 
     private void createTables() {
         createIslandDataTable();
+        createIslandOperationsTable();
         createIslandPlayersTable();
         createIslandHomesTable();
         createIslandWarpsTable();
@@ -171,12 +176,75 @@ public class DatabaseHandler {
     }
 
     private void createIslandDataTable() {
-        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "islands (" + "island_uuid CHAR(36) NOT NULL," + "`lock` BOOLEAN NOT NULL DEFAULT FALSE," + "pvp BOOLEAN NOT NULL DEFAULT FALSE," + "PRIMARY KEY (island_uuid)" + ") ENGINE=InnoDB;", stmt -> {
+        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "islands (" + "island_uuid CHAR(36) NOT NULL," + "`lock` BOOLEAN NOT NULL DEFAULT FALSE," + "pvp BOOLEAN NOT NULL DEFAULT FALSE," + "state_version BIGINT NOT NULL DEFAULT 0," + "write_epoch CHAR(36) NULL," + "provision_state VARCHAR(16) NOT NULL DEFAULT 'ready'," + "PRIMARY KEY (island_uuid)" + ") ENGINE=InnoDB;", stmt -> {
         });
+        ensureIslandStateVersionColumn();
+        ensureIslandWriteEpochColumn();
+        ensureIslandProvisionStateColumn();
+    }
+
+    /** Online migration for installations created before versioned snapshots were introduced. */
+    private void ensureIslandStateVersionColumn() {
+        ensureIslandColumn("state_version", "BIGINT NOT NULL DEFAULT 0");
+    }
+
+    private void ensureIslandWriteEpochColumn() {
+        ensureIslandColumn("write_epoch", "CHAR(36) NULL");
+    }
+
+    private void ensureIslandProvisionStateColumn() {
+        // Existing installations contain established worlds, so their migration default is ready.
+        // New creates explicitly start provisioning and can be resumed after a process crash.
+        ensureIslandColumn("provision_state", "VARCHAR(16) NOT NULL DEFAULT 'ready'");
+    }
+
+    private void ensureIslandColumn(String columnName, String definition) {
+        try (Connection connection = getConnection()) {
+            if (hasColumn(connection, prefix + "islands", columnName)) {
+                return;
+            }
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "ALTER TABLE " + prefix + "islands ADD COLUMN " + columnName + " " + definition)) {
+                statement.executeUpdate();
+            } catch (SQLException concurrentMigration) {
+                // Multiple servers may start together. If another one added the column between
+                // our metadata read and ALTER, the desired postcondition is already satisfied.
+                if (!hasColumn(connection, prefix + "islands", columnName)) {
+                    throw concurrentMigration;
+                }
+            }
+        } catch (SQLException e) {
+            errorSink.error("Failed to migrate islands." + columnName + ".", e);
+            throw new RuntimeException(e);
+        }
+    }
+
+    private boolean hasColumn(Connection connection, String tableName, String columnName) throws SQLException {
+        try (ResultSet columns = connection.getMetaData().getColumns(connection.getCatalog(), null, tableName, columnName)) {
+            return columns.next();
+        }
     }
 
     private void createIslandPlayersTable() {
         executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_players (" + "player_uuid CHAR(36) NOT NULL," + "island_uuid CHAR(36) NOT NULL," + "role VARCHAR(56) NOT NULL," + "PRIMARY KEY (player_uuid, island_uuid)," + "UNIQUE KEY uq_island_players_player_uuid (player_uuid)," + "KEY idx_island_players_island_uuid (island_uuid)," + "KEY idx_island_players_island_role (island_uuid, role)," + "CONSTRAINT fk_island_players_island " + "FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid) " + "ON DELETE CASCADE" + ") ENGINE=InnoDB;", stmt -> {
+        });
+    }
+
+    private void createIslandOperationsTable() {
+        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_operations ("
+                + "operation_id CHAR(36) NOT NULL,"
+                + "island_uuid CHAR(36) NOT NULL,"
+                + "action VARCHAR(64) NOT NULL,"
+                + "boolean_result BOOLEAN NOT NULL,"
+                + "state_version BIGINT NOT NULL,"
+                + "created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,"
+                + "PRIMARY KEY (operation_id),"
+                + "KEY idx_island_operations_created (created_at),"
+                + "CONSTRAINT fk_island_operations_island FOREIGN KEY (island_uuid) REFERENCES "
+                + prefix + "islands(island_uuid) ON DELETE CASCADE"
+                + ") ENGINE=InnoDB;", stmt -> {
+        });
+        executeUpdate("DELETE FROM " + prefix + "island_operations WHERE created_at < (CURRENT_TIMESTAMP - INTERVAL 7 DAY)", stmt -> {
         });
     }
 
@@ -513,6 +581,10 @@ public class DatabaseHandler {
     // ================================================================================================================
 
     public void createIsland(UUID islandUuid, UUID ownerUuid) {
+        createIsland(islandUuid, ownerUuid, null);
+    }
+
+    public void createIsland(UUID islandUuid, UUID ownerUuid, UUID writeEpoch) {
         try {
             inTransaction(connection -> {
                 if (playerHasIsland(connection, ownerUuid)) {
@@ -521,8 +593,9 @@ public class DatabaseHandler {
 
                 String homePoint = islandSpawnLocation();
 
-                executeUpdate(connection, "INSERT INTO " + prefix + "islands (island_uuid) VALUES (?);", stmt -> {
+                executeUpdate(connection, "INSERT INTO " + prefix + "islands (island_uuid, write_epoch, provision_state) VALUES (?, ?, 'provisioning');", stmt -> {
                     stmt.setString(1, islandUuid.toString());
+                    stmt.setString(2, writeEpoch == null ? null : writeEpoch.toString());
                 });
 
                 executeUpdate(connection, "INSERT INTO " + prefix + "island_players (player_uuid, island_uuid, role) VALUES (?, ?, ?);", stmt -> {
@@ -551,14 +624,18 @@ public class DatabaseHandler {
      * {@code vouchedBy} is present (an invitation redemption), the voucher's membership is
      * re-verified under the island lock: an invitation dies with its issuer's membership.
      */
-    public void addMember(UUID islandUuid, UUID playerUuid, String role, UUID vouchedBy) {
+    public long addMember(UUID islandUuid, UUID playerUuid, String role, UUID vouchedBy) {
+        return addMember(islandUuid, playerUuid, role, vouchedBy, null);
+    }
+
+    public long addMember(UUID islandUuid, UUID playerUuid, String role, UUID vouchedBy, UUID expectedWriteEpoch) {
         if (!"member".equals(role)) {
             throw new IllegalArgumentException("Only the member role can be granted; ownership moves via setOwner");
         }
 
         try {
-            inTransaction(connection -> {
-                lockIsland(connection, islandUuid);
+            return inTransaction(connection -> {
+                lockIsland(connection, islandUuid, expectedWriteEpoch);
 
                 if (vouchedBy != null && getIslandRole(connection, islandUuid, vouchedBy).isEmpty()) {
                     throw new InviterNotMemberException();
@@ -598,7 +675,7 @@ public class DatabaseHandler {
                     stmt.setString(2, playerUuid.toString());
                 });
 
-                return null;
+                return bumpStateVersion(connection, islandUuid);
             });
         } catch (ConstraintViolationException e) {
             throw new IslandAlreadyExistException();
@@ -632,20 +709,45 @@ public class DatabaseHandler {
     }
 
     public boolean toggleLock(UUID islandUuid, Actor actor) {
-        return toggleBooleanColumn(islandUuid, actor, "`lock`");
+        return toggleLockVersioned(islandUuid, actor).value();
     }
 
     public boolean togglePvp(UUID islandUuid, Actor actor) {
-        return toggleBooleanColumn(islandUuid, actor, "pvp");
+        return togglePvpVersioned(islandUuid, actor).value();
     }
 
-    private boolean toggleBooleanColumn(UUID islandUuid, Actor actor, String column) {
+    public VersionedBoolean toggleLockVersioned(UUID islandUuid, Actor actor) {
+        return toggleLockVersioned(islandUuid, actor, UUID.randomUUID());
+    }
+
+    public VersionedBoolean togglePvpVersioned(UUID islandUuid, Actor actor) {
+        return togglePvpVersioned(islandUuid, actor, UUID.randomUUID());
+    }
+
+    public VersionedBoolean toggleLockVersioned(UUID islandUuid, Actor actor, UUID operationId) {
+        return toggleLockVersioned(islandUuid, actor, operationId, null);
+    }
+
+    public VersionedBoolean togglePvpVersioned(UUID islandUuid, Actor actor, UUID operationId) {
+        return togglePvpVersioned(islandUuid, actor, operationId, null);
+    }
+
+    public VersionedBoolean toggleLockVersioned(UUID islandUuid, Actor actor, UUID operationId, UUID expectedWriteEpoch) {
+        return toggleBooleanColumnVersioned(islandUuid, actor, "`lock`", "island.lock.toggle", operationId, expectedWriteEpoch);
+    }
+
+    public VersionedBoolean togglePvpVersioned(UUID islandUuid, Actor actor, UUID operationId, UUID expectedWriteEpoch) {
+        return toggleBooleanColumnVersioned(islandUuid, actor, "pvp", "island.pvp.toggle", operationId, expectedWriteEpoch);
+    }
+
+    private VersionedBoolean toggleBooleanColumnVersioned(UUID islandUuid, Actor actor, String column, String action, UUID operationId, UUID expectedWriteEpoch) {
         return inTransaction(connection -> {
             boolean current;
+            long currentStateVersion;
 
             // This select is the island lock as well as the value read, so the role check has to
             // come after it: checking first would read the role without holding the lock.
-            try (PreparedStatement stmt = connection.prepareStatement("SELECT " + column + " FROM " + prefix + "islands WHERE island_uuid = ? FOR UPDATE")) {
+            try (PreparedStatement stmt = connection.prepareStatement("SELECT " + column + ", state_version, write_epoch FROM " + prefix + "islands WHERE island_uuid = ? FOR UPDATE")) {
                 stmt.setString(1, islandUuid.toString());
 
                 try (ResultSet rs = stmt.executeQuery()) {
@@ -653,7 +755,19 @@ public class DatabaseHandler {
                         throw new IslandDoesNotExistException();
                     }
                     current = rs.getBoolean(1);
+                    currentStateVersion = rs.getLong("state_version");
+                    if (expectedWriteEpoch != null && !expectedWriteEpoch.toString().equals(rs.getString("write_epoch"))) {
+                        throw new WrongIslandHostException();
+                    }
                 }
+            }
+
+            VersionedBoolean replay = getToggleOperation(connection, operationId, islandUuid, action);
+            if (replay != null) {
+                // The result belongs to the original operation, but snapshot reconciliation must
+                // compare against today's database version. If later writes exist this produces a
+                // version gap and forces a consistent re-read rather than applying an old delta.
+                return new VersionedBoolean(replay.value(), currentStateVersion);
             }
 
             requireRole(connection, islandUuid, actor, RequiredRole.MEMBER);
@@ -665,13 +779,26 @@ public class DatabaseHandler {
                 stmt.setString(2, islandUuid.toString());
             });
 
-            return next;
+            VersionedBoolean committed = new VersionedBoolean(next, bumpStateVersion(connection, islandUuid));
+            executeUpdate(connection, "INSERT INTO " + prefix
+                    + "island_operations (operation_id, island_uuid, action, boolean_result, state_version) VALUES (?, ?, ?, ?, ?)", stmt -> {
+                stmt.setString(1, operationId.toString());
+                stmt.setString(2, islandUuid.toString());
+                stmt.setString(3, action);
+                stmt.setBoolean(4, committed.value());
+                stmt.setLong(5, committed.version());
+            });
+            return committed;
         });
     }
 
-    public void setOwner(UUID islandUuid, Actor actor, UUID newOwnerUuid) {
-        inTransaction(connection -> {
-            lockIsland(connection, islandUuid);
+    public long setOwner(UUID islandUuid, Actor actor, UUID newOwnerUuid) {
+        return setOwner(islandUuid, actor, newOwnerUuid, null);
+    }
+
+    public long setOwner(UUID islandUuid, Actor actor, UUID newOwnerUuid, UUID expectedWriteEpoch) {
+        return inTransaction(connection -> {
+            lockIsland(connection, islandUuid, expectedWriteEpoch);
             requireRole(connection, islandUuid, actor, RequiredRole.OWNER);
 
             UUID oldOwnerUuid = getIslandOwner(connection, islandUuid).orElseThrow(IslandDoesNotExistException::new);
@@ -702,14 +829,18 @@ public class DatabaseHandler {
                 throw new IslandPlayerDoesNotExistException();
             }
 
-            return null;
+            return bumpStateVersion(connection, islandUuid);
         });
     }
 
-    public void addBan(UUID islandUuid, Actor actor, UUID playerUuid) {
+    public long addBan(UUID islandUuid, Actor actor, UUID playerUuid) {
+        return addBan(islandUuid, actor, playerUuid, null);
+    }
+
+    public long addBan(UUID islandUuid, Actor actor, UUID playerUuid, UUID expectedWriteEpoch) {
         try {
-            inTransaction(connection -> {
-                lockIsland(connection, islandUuid);
+            return inTransaction(connection -> {
+                lockIsland(connection, islandUuid, expectedWriteEpoch);
                 requireRole(connection, islandUuid, actor, RequiredRole.MEMBER);
 
                 int inserted = executeUpdate(connection, "INSERT INTO " + prefix + "island_bans (island_uuid, banned_player) " + "SELECT ?, ? FROM DUAL " + "WHERE NOT EXISTS (" + "SELECT 1 FROM " + prefix + "island_players " + "WHERE island_uuid = ? AND player_uuid = ?" + ");", stmt -> {
@@ -723,17 +854,21 @@ public class DatabaseHandler {
                     throw new CannotBanIslandPlayerException();
                 }
 
-                return null;
+                return bumpStateVersion(connection, islandUuid);
             });
         } catch (ConstraintViolationException e) {
             throw new PlayerAlreadyBannedException();
         }
     }
 
-    public void addCoop(UUID islandUuid, Actor actor, UUID playerUuid) {
+    public long addCoop(UUID islandUuid, Actor actor, UUID playerUuid) {
+        return addCoop(islandUuid, actor, playerUuid, null);
+    }
+
+    public long addCoop(UUID islandUuid, Actor actor, UUID playerUuid, UUID expectedWriteEpoch) {
         try {
-            inTransaction(connection -> {
-                lockIsland(connection, islandUuid);
+            return inTransaction(connection -> {
+                lockIsland(connection, islandUuid, expectedWriteEpoch);
                 requireRole(connection, islandUuid, actor, RequiredRole.MEMBER);
 
                 int inserted = executeUpdate(connection, "INSERT INTO " + prefix + "island_coops (island_uuid, cooped_player) " + "SELECT ?, ? FROM DUAL " + "WHERE NOT EXISTS (" + "SELECT 1 FROM " + prefix + "island_players " + "WHERE island_uuid = ? AND player_uuid = ?" + ");", stmt -> {
@@ -747,7 +882,7 @@ public class DatabaseHandler {
                     throw new CannotCoopIslandPlayerException();
                 }
 
-                return null;
+                return bumpStateVersion(connection, islandUuid);
             });
         } catch (ConstraintViolationException e) {
             throw new PlayerAlreadyCoopedException();
@@ -777,8 +912,12 @@ public class DatabaseHandler {
     }
 
     public void deleteIsland(UUID islandUuid, Actor actor) {
+        deleteIsland(islandUuid, actor, null);
+    }
+
+    public void deleteIsland(UUID islandUuid, Actor actor, UUID expectedWriteEpoch) {
         inTransaction(connection -> {
-            lockIsland(connection, islandUuid);
+            lockIsland(connection, islandUuid, expectedWriteEpoch);
             requireRole(connection, islandUuid, actor, RequiredRole.OWNER);
 
             executeUpdate(connection, "DELETE FROM " + prefix + "islands WHERE island_uuid = ?;", stmt -> {
@@ -789,9 +928,13 @@ public class DatabaseHandler {
         });
     }
 
-    public void removeMember(UUID islandUuid, Actor actor, UUID playerUuid) {
-        inTransaction(connection -> {
-            lockIsland(connection, islandUuid);
+    public long removeMember(UUID islandUuid, Actor actor, UUID playerUuid) {
+        return removeMember(islandUuid, actor, playerUuid, null);
+    }
+
+    public long removeMember(UUID islandUuid, Actor actor, UUID playerUuid, UUID expectedWriteEpoch) {
+        return inTransaction(connection -> {
+            lockIsland(connection, islandUuid, expectedWriteEpoch);
             requireRole(connection, islandUuid, actor, RequiredRole.MEMBER);
 
             int deleted = executeUpdate(connection, "DELETE FROM " + prefix + "island_players WHERE player_uuid = ? AND island_uuid = ? AND role <> ?;", stmt -> {
@@ -809,7 +952,7 @@ public class DatabaseHandler {
                 throw new IslandPlayerDoesNotExistException();
             }
 
-            return null;
+            return bumpStateVersion(connection, islandUuid);
         });
     }
 
@@ -837,9 +980,13 @@ public class DatabaseHandler {
         }
     }
 
-    public void removeBan(UUID islandUuid, Actor actor, UUID playerUuid) {
-        inTransaction(connection -> {
-            lockIsland(connection, islandUuid);
+    public long removeBan(UUID islandUuid, Actor actor, UUID playerUuid) {
+        return removeBan(islandUuid, actor, playerUuid, null);
+    }
+
+    public long removeBan(UUID islandUuid, Actor actor, UUID playerUuid, UUID expectedWriteEpoch) {
+        return inTransaction(connection -> {
+            lockIsland(connection, islandUuid, expectedWriteEpoch);
             requireRole(connection, islandUuid, actor, RequiredRole.MEMBER);
 
             int deleted = executeUpdate(connection, "DELETE FROM " + prefix + "island_bans WHERE island_uuid = ? AND banned_player = ?;", stmt -> {
@@ -851,13 +998,17 @@ public class DatabaseHandler {
                 throw new PlayerNotBannedException();
             }
 
-            return null;
+            return bumpStateVersion(connection, islandUuid);
         });
     }
 
-    public void removeCoop(UUID islandUuid, Actor actor, UUID playerUuid) {
-        inTransaction(connection -> {
-            lockIsland(connection, islandUuid);
+    public long removeCoop(UUID islandUuid, Actor actor, UUID playerUuid) {
+        return removeCoop(islandUuid, actor, playerUuid, null);
+    }
+
+    public long removeCoop(UUID islandUuid, Actor actor, UUID playerUuid, UUID expectedWriteEpoch) {
+        return inTransaction(connection -> {
+            lockIsland(connection, islandUuid, expectedWriteEpoch);
             requireRole(connection, islandUuid, actor, RequiredRole.MEMBER);
 
             int deleted = executeUpdate(connection, "DELETE FROM " + prefix + "island_coops WHERE island_uuid = ? AND cooped_player = ?;", stmt -> {
@@ -869,7 +1020,7 @@ public class DatabaseHandler {
                 throw new PlayerNotCoopedException();
             }
 
-            return null;
+            return bumpStateVersion(connection, islandUuid);
         });
     }
 
@@ -880,8 +1031,9 @@ public class DatabaseHandler {
         return inTransaction(connection -> {
             boolean lock;
             boolean pvp;
+            long stateVersion;
 
-            String islandSql = "SELECT `lock`, pvp FROM " + prefix + "islands WHERE island_uuid = ? LIMIT 1";
+            String islandSql = "SELECT `lock`, pvp, state_version FROM " + prefix + "islands WHERE island_uuid = ? LIMIT 1";
             try (PreparedStatement stmt = connection.prepareStatement(islandSql)) {
                 stmt.setString(1, islandUuid.toString());
 
@@ -892,6 +1044,7 @@ public class DatabaseHandler {
 
                     lock = rs.getBoolean("lock");
                     pvp = rs.getBoolean("pvp");
+                    stateVersion = rs.getLong("state_version");
                 }
             }
 
@@ -944,7 +1097,7 @@ public class DatabaseHandler {
                 }
             }
 
-            return new Island(islandUuid, lock, pvp, ownerUuid, members.isEmpty() ? Set.of() : Set.copyOf(members), coops.isEmpty() ? Set.of() : Set.copyOf(coops), bans.isEmpty() ? Set.of() : Set.copyOf(bans));
+            return new Island(islandUuid, lock, pvp, ownerUuid, members.isEmpty() ? Set.of() : Set.copyOf(members), coops.isEmpty() ? Set.of() : Set.copyOf(coops), bans.isEmpty() ? Set.of() : Set.copyOf(bans), stateVersion);
         });
     }
 
@@ -965,13 +1118,99 @@ public class DatabaseHandler {
     }
 
     private void lockIsland(Connection connection, UUID islandUuid) throws SQLException {
-        try (PreparedStatement stmt = connection.prepareStatement("SELECT 1 FROM " + prefix + "islands WHERE island_uuid = ? FOR UPDATE")) {
+        lockIsland(connection, islandUuid, null);
+    }
+
+    private void lockIsland(Connection connection, UUID islandUuid, UUID expectedWriteEpoch) throws SQLException {
+        try (PreparedStatement stmt = connection.prepareStatement("SELECT write_epoch FROM " + prefix + "islands WHERE island_uuid = ? FOR UPDATE")) {
             stmt.setString(1, islandUuid.toString());
 
             try (ResultSet rs = stmt.executeQuery()) {
                 if (!rs.next()) {
                     throw new IslandDoesNotExistException();
                 }
+                if (expectedWriteEpoch != null && !expectedWriteEpoch.toString().equals(rs.getString("write_epoch"))) {
+                    throw new WrongIslandHostException();
+                }
+            }
+        }
+    }
+
+    /**
+     * Binds durable writes to the current Redis lease incarnation under the island row lock.
+     * Takeover racing an old transaction is serialized by this same lock: whichever epoch wins
+     * the lock determines which side may subsequently commit.
+     */
+    public void bindWriteEpoch(UUID islandUuid, UUID writeEpoch) {
+        inTransaction(connection -> {
+            lockIsland(connection, islandUuid);
+            executeUpdate(connection, "UPDATE " + prefix + "islands SET write_epoch = ? WHERE island_uuid = ?", stmt -> {
+                stmt.setString(1, writeEpoch.toString());
+                stmt.setString(2, islandUuid.toString());
+            });
+            return null;
+        });
+    }
+
+    /** Whether a committed create still needs its durable world provisioning completed. */
+    public boolean isIslandProvisioning(UUID islandUuid) {
+        return withConnection(connection -> {
+            try (PreparedStatement stmt = connection.prepareStatement("SELECT provision_state FROM " + prefix
+                    + "islands WHERE island_uuid = ? LIMIT 1")) {
+                stmt.setString(1, islandUuid.toString());
+                try (ResultSet rs = stmt.executeQuery()) {
+                    if (!rs.next()) {
+                        throw new IslandDoesNotExistException();
+                    }
+                    return "provisioning".equals(rs.getString(1));
+                }
+            }
+        });
+    }
+
+    /** Publishes a provisioned island under the same durable epoch fence used by state writes. */
+    public void markIslandReady(UUID islandUuid, UUID expectedWriteEpoch) {
+        inTransaction(connection -> {
+            lockIsland(connection, islandUuid, expectedWriteEpoch);
+            executeUpdate(connection, "UPDATE " + prefix
+                    + "islands SET provision_state = 'ready' WHERE island_uuid = ?", stmt ->
+                    stmt.setString(1, islandUuid.toString()));
+            return null;
+        });
+    }
+
+    private long bumpStateVersion(Connection connection, UUID islandUuid) throws SQLException {
+        int updated = executeUpdate(connection,
+                "UPDATE " + prefix + "islands SET state_version = state_version + 1 WHERE island_uuid = ?",
+                stmt -> stmt.setString(1, islandUuid.toString()));
+        if (updated != 1) {
+            throw new IslandDoesNotExistException();
+        }
+
+        try (PreparedStatement stmt = connection.prepareStatement(
+                "SELECT state_version FROM " + prefix + "islands WHERE island_uuid = ?")) {
+            stmt.setString(1, islandUuid.toString());
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (!rs.next()) {
+                    throw new IslandDoesNotExistException();
+                }
+                return rs.getLong(1);
+            }
+        }
+    }
+
+    private VersionedBoolean getToggleOperation(Connection connection, UUID operationId, UUID islandUuid, String action) throws SQLException {
+        try (PreparedStatement stmt = connection.prepareStatement("SELECT island_uuid, action, boolean_result, state_version FROM "
+                + prefix + "island_operations WHERE operation_id = ?")) {
+            stmt.setString(1, operationId.toString());
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (!rs.next()) {
+                    return null;
+                }
+                if (!islandUuid.toString().equals(rs.getString("island_uuid")) || !action.equals(rs.getString("action"))) {
+                    throw new IllegalStateException("Operation ID was reused for a different island mutation: " + operationId);
+                }
+                return new VersionedBoolean(rs.getBoolean("boolean_result"), rs.getLong("state_version"));
             }
         }
     }
