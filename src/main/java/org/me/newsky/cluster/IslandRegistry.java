@@ -31,6 +31,19 @@ public class IslandRegistry extends ClusterState {
     // ARGV[1] = island uuid,          ARGV[2] = the server the claim pointed at
     public static final String RELEASE_IF_DEAD = "if redis.call('hget', KEYS[1], ARGV[1]) == ARGV[2] and redis.call('exists', KEYS[2]) == 0 then return redis.call('hdel', KEYS[1], ARGV[1]) else return 0 end";
 
+    // KEYS[1] = island->server hash, ARGV[1] = island uuid, ARGV[2] = the server asking to write
+    public static final String ACQUIRE_WRITE_AUTHORITY = "local held = redis.call('hget', KEYS[1], ARGV[1]) " + "if held == ARGV[2] then return 'host' end " + "if held then return 'other' end " + "redis.call('hsetnx', KEYS[1], ARGV[1], ARGV[2]) " + "return 'claimed'";
+
+    /** Outcome of {@link #acquireWriteAuthority}: who may execute a write for this island. */
+    public enum WriteAuthority {
+        /** This server hosts the island; write and apply the delta, keep the claim. */
+        HOST,
+        /** The island was unclaimed; this server now holds a temporary write claim it must release. */
+        CLAIMED,
+        /** Another server holds the claim; the write must be routed there instead. */
+        OTHER
+    }
+
     public IslandRegistry(NewSky plugin, RedisHandler redisHandler) {
         super(plugin, redisHandler);
     }
@@ -57,6 +70,24 @@ public class IslandRegistry extends ClusterState {
             Object result = jedis.eval(CLAIM_OR_CONFIRM, List.of(ClusterKeys.islandServer()), List.of(islandUuid.toString(), serverName));
             return Long.valueOf(1L).equals(result);
         }, "Failed to claim or confirm island loaded server for: " + islandUuid);
+    }
+
+    /**
+     * Decides atomically who may execute a write for this island: the claim holder itself (HOST),
+     * this server under a temporary claim when nobody held one (CLAIMED - the caller must release
+     * it), or nobody here (OTHER - route to the holder). Writes must never run without authority:
+     * a write executed beside someone else's claim would commit a change the real host's
+     * in-memory copy never hears about.
+     */
+    public WriteAuthority acquireWriteAuthority(UUID islandUuid, String serverName) {
+        return execute(jedis -> {
+            Object result = jedis.eval(ACQUIRE_WRITE_AUTHORITY, List.of(ClusterKeys.islandServer()), List.of(islandUuid.toString(), serverName));
+            return switch (String.valueOf(result)) {
+                case "host" -> WriteAuthority.HOST;
+                case "claimed" -> WriteAuthority.CLAIMED;
+                default -> WriteAuthority.OTHER;
+            };
+        }, "Failed to acquire write authority for island: " + islandUuid);
     }
 
     /**

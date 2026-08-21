@@ -101,15 +101,41 @@ step. It is a courtesy, not a defense — the transaction still enforces.
   claim self-heals: the next teleport routed to the host re-loads the island at the point of
   effect. `IslandOperator` serializes create/load/unload/delete per island locally and
   de-duplicates concurrent loads.
-- **`IslandSnapshot.get()` never returns null because a refresh is in flight** — listeners
-  fail closed on null, so stale must beat absent on hot paths. Loads for one island are
-  serialized so an older read can never overwrite a newer one.
+- **The snapshot is authoritative memory, not a cache**: the database is read once per hosting
+  (the seed, at world load — concurrent seeds coalesce) and every write applies its own delta
+  (`Island.withX`, mirroring the transaction exactly, idempotent) in the same operation that
+  committed it. There is no refresh, no retry, no reconciliation — nothing to "catch up",
+  because a write completes only after memory reflects it. Deltas queue behind an in-flight
+  seed on the snapshot's per-island chain; the unload generation stops a stale seed from
+  resurrecting state (the ABA case).
+- **Every state write runs under write authority** (`IslandRegistry.acquireWriteAuthority`,
+  atomic in Redis): HOST executes and applies its delta; CLAIMED takes a temporary claim for an
+  unloaded island inside the island's chain slot and releases it there, so a concurrent load
+  queues behind the write and seeds committed state — the write-versus-load race is
+  unrepresentable, not detected; OTHER refuses with `WrongIslandHostException` and the caller
+  re-resolves and follows the island (bounded attempts). Never execute a state write beside
+  someone else's claim: the host's memory would never hear about it.
+- **`IslandSnapshot.get()` never returns null because a seed is in flight** — listeners
+  fail closed on null, so stale must beat absent on hot paths.
 - The read path for listeners (protection/PvP/access) is the in-memory snapshot only.
   Never put a SQL query on a per-block or per-hit path.
 - **Cross-server requests are ephemeral, not durable**: a server clears its own inbox on
   startup and drops requests older than the requester's timeout (nobody is waiting, and
   replaying non-idempotent operations like toggles or loads against moved-on state is
   harmful). Never design a flow that relies on an inbox message surviving a restart.
+- **Lifecycle ordering**: on startup the heartbeat's claim sweep runs BEFORE the messenger
+  opens intake; on shutdown the messenger closes intake FIRST and the sweep runs after the
+  worlds are gone. Either inversion lets a load slip through and lose its claim to the sweep.
+- **Delta-order equals commit-order**: writes for one island run inside its
+  `KeyedSequentialExecutor` chain slot, so two writes cannot commit in one order and apply in
+  the other. The trade for dropping the self-correcting re-read is that a wrong delta persists
+  until unload — which is why `Island.withX` must mirror its transaction exactly and
+  `IslandSnapshotTest.deltaRunMatchesReferenceModel` pins the equivalence.
+- **Teleporting into an island is a visit, not an edit**: the teleport guard mirrors
+  IslandAccessListener (ban/lock/boundary), never the build rules — build rules there would
+  break public warps for every visitor. Roles stay hard-coded: add-member only ever grants
+  "member" (ownership moves via setOwner alone), and an invitation is a vouch that is
+  re-verified against the inviter's membership inside the add-member transaction.
 
 ## Future read cache (planned, not yet built)
 
@@ -162,15 +188,24 @@ same ASP-jar reason). They cover the concurrency primitives the cluster safety r
 - `ActorRulesTest` — no Redis needed. The SELF and BYPASS identity rules, plus the cross-server
   round trip: a restored player actor must not decay into a bypass, and a payload with no actor
   must be rejected rather than defaulted.
-- `IslandSnapshotTest` — no Redis needed. Snapshot cache ordering: reads never overlap, an older
-  read never overwrites a newer one (including the ABA case across unload+reload), failed reads
-  keep the previous snapshot, deleted islands drop out, `reload` is a no-op when not hosting, and
-  a monotonic-version property test under concurrent churn. Injects a reader through the
+- `IslandSnapshotTest` — no Redis needed. The delta model's rules: concurrent seeds coalesce
+  into one read, deltas queue behind an in-flight seed and apply in submission order, a delta
+  for an unhosted island touches nothing, the ABA/unload-generation guard, failed seeds keep
+  the previous snapshot, a 2000-delta random run must equal a reference model field-for-field,
+  and a monotonic-version property test under churn. Injects a reader through the
   `IslandSnapshot(Executor, Reader, ErrorSink)` seam - the production constructor delegates to it.
-- `SnapshotPropagationTest` — the local-write vs concurrent-load routing race against real Redis
-  (args: host port [iterations]), modeling the writer's post-commit re-check and the host's
-  serialized snapshot loads. Ends with a negative control: with the re-check disabled the same
-  race must strand a stale host, so the test cannot pass for the wrong reason.
+- `SnapshotPropagationTest` — the write-versus-load race under write authority, against real
+  Redis with the production Lua (args: host port [iterations]). Ends with a negative control:
+  with no write authority the same race must strand a stale host, so the test cannot pass for
+  the wrong reason.
+- `DatabaseTransactionTest` — the transaction layer against a real MySQL (args: host port user
+  password), on a scratch database created and dropped by the run; prints SKIPPED without one.
+  Races the rules that are enforced by racing: N creates for one owner yield exactly one island,
+  two concurrent ownership transfers keep exactly one owner row, 200 racing lock toggles lose no
+  update (the row-lock serialization the delta model assumes). Plus role rules in-transaction,
+  invitation vouch re-verification, add-member side effects, ban rules, the point-write foreign
+  key, and delete cascades. Uses the `DatabaseHandler(HikariDataSource, prefix, spawnLocation,
+  ErrorSink)` seam - the production constructor delegates to it.
 
 ```
 find src/test/java -name "*.java" > target/test-srcs.txt

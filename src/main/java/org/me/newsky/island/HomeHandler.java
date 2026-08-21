@@ -55,10 +55,14 @@ public class HomeHandler {
     public CompletableFuture<Void> deleteHome(Actor actor, UUID playerUuid, String homeName) {
         actor.requireSelf(playerUuid);
 
+        // Names are stored lowercased by setHome, so every lookup normalizes the same way -
+        // otherwise "HomeOne" would fail to find the "homeone" that was just created.
+        String normalizedHomeName = homeName.toLowerCase(Locale.ROOT);
+
         return CompletableFuture.runAsync(() -> {
             UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
 
-            database.deleteHome(islandUuid, playerUuid, homeName);
+            database.deleteHome(islandUuid, playerUuid, normalizedHomeName);
         }, plugin.getBukkitAsyncExecutor());
     }
 
@@ -70,9 +74,11 @@ public class HomeHandler {
         actor.requireSelf(playerUuid);
         actor.requireSelf(targetPlayerUuid);
 
+        String normalizedHomeName = homeName.toLowerCase(Locale.ROOT);
+
         return CompletableFuture.supplyAsync(() -> {
             UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
-            String homeLocation = Optional.ofNullable(database.getIslandHomes(islandUuid, playerUuid).get(homeName)).orElseThrow(HomeDoesNotExistException::new);
+            String homeLocation = Optional.ofNullable(database.getIslandHomes(islandUuid, playerUuid).get(normalizedHomeName)).orElseThrow(HomeDoesNotExistException::new);
 
             return new HomeTarget(islandUuid, homeLocation);
         }, plugin.getBukkitAsyncExecutor()).thenCompose(target -> islandDistributor.teleportIsland(target.islandUuid(), targetPlayerUuid, IslandUtils.UUIDToName(target.islandUuid()), target.homeLocation()));

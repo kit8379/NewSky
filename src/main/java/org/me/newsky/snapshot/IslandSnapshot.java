@@ -9,21 +9,36 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.function.UnaryOperator;
 
 /**
- * Per-server cache of the islands hosted here, read on every block break, PvP hit and world change.
+ * Per-server authoritative copy of the islands hosted here, read on every block break, PvP hit
+ * and world change.
  * <p>
- * Reads are never gated on a refresh being in progress: listeners treat a missing snapshot as
- * "island does not exist" and fail closed, so blanking the cache during a reload would bounce the
- * players standing on the island and deny the owner their own blocks for the duration. A snapshot
- * that is one write out of date is always the better answer than no snapshot at all.
+ * This is not a cache that chases the database: the database is read exactly once per hosting -
+ * the seed, at world load - and from then on every write applies its own known delta in the same
+ * operation that committed it. There is nothing to refresh, retry or reconcile, because there is
+ * no moment where memory has to "catch up": a write completes only after both the database row
+ * and the hosted copy reflect it.
+ * <p>
+ * Ordering rules, all enforced by one per-island chain:
+ * <ul>
+ *   <li>Deltas queue behind an in-flight seed, so a delta committed during the seed's read is
+ *       applied on top of it - and every delta is idempotent, because the seed may already
+ *       contain it.</li>
+ *   <li>Concurrent seed requests coalesce into one read.</li>
+ *   <li>An unload bumps the island's generation, so a seed left over from before the unload can
+ *       never resurrect or overwrite a fresher hosting.</li>
+ * </ul>
+ * Listeners treat a missing island as "does not exist" and fail closed; null means "not hosted
+ * here", never "busy".
  */
 public class IslandSnapshot {
 
     /**
      * Blocking read of one island's snapshot row set. Returns null when the island has no rows.
-     * Exists so {@code IslandSnapshotTest} can drive the ordering rules below with a controlled
-     * reader instead of a live database.
+     * Exists so {@code IslandSnapshotTest} can drive the ordering rules with a controlled reader
+     * instead of a live database.
      */
     @FunctionalInterface
     public interface Reader {
@@ -40,9 +55,10 @@ public class IslandSnapshot {
     private final ErrorSink errorSink;
 
     private final Map<UUID, Island> islands = new ConcurrentHashMap<>();
-    private final Map<UUID, CompletableFuture<Void>> loadChains = new ConcurrentHashMap<>();
+    private final Map<UUID, CompletableFuture<Void>> chains = new ConcurrentHashMap<>();
+    private final Map<UUID, CompletableFuture<Void>> pendingSeeds = new ConcurrentHashMap<>();
 
-    // Bumped on every unload. A read caches its result only if the generation it was enqueued
+    // Bumped on every unload. A seed caches its result only if the generation it was enqueued
     // under is still current: without this, a read left over from before an unload could pass a
     // bare "is the island hosted" check (a newer load re-created the chain) and overwrite that
     // newer load's fresher result with its stale one.
@@ -59,43 +75,64 @@ public class IslandSnapshot {
     }
 
     /**
-     * The last snapshot known good for this island, or null if this server has none at all. Null
-     * means "unknown", never "busy".
+     * The hosted state of this island, or null if this server does not host it. Null means
+     * "not hosted", never "busy".
      */
     public Island get(UUID islandUuid) {
         return islands.get(islandUuid);
     }
 
     /**
-     * Reads the island from the database into the cache. Loads for the same island run in sequence:
-     * two reloads triggered by two writes could otherwise finish out of order and leave the older
-     * read cached, which would turn a momentary staleness into a permanent one.
+     * Seeds the island from the database - the one and only database read of a hosting, called at
+     * world load. Concurrent seed requests for the same island coalesce into a single read.
      */
     public CompletableFuture<Void> load(UUID islandUuid) {
-        long generation = currentGeneration(islandUuid);
+        return pendingSeeds.computeIfAbsent(islandUuid, uuid -> {
+            long generation = currentGeneration(uuid);
 
-        return loadChains.compute(islandUuid, (uuid, previous) -> {
-            CompletableFuture<Void> settled = previous == null ? CompletableFuture.completedFuture(null) : previous.handle((result, error) -> null);
-            return settled.thenCompose(v -> read(uuid, generation));
+            CompletableFuture<Void> seed = chains.compute(uuid, (key, previous) -> {
+                CompletableFuture<Void> settled = previous == null ? CompletableFuture.completedFuture(null) : previous.handle((result, error) -> null);
+                return settled.thenCompose(v -> read(key, generation));
+            });
+
+            seed.whenComplete((result, error) -> pendingSeeds.remove(uuid, seed));
+            return seed;
         });
     }
 
     /**
-     * Refreshes the island after a write, but only if this server hosts it. A write to an island
-     * loaded elsewhere is a no-op here rather than a pointless database read.
+     * Applies a write's own delta to the hosted copy, queued behind any in-flight seed so the
+     * result always lands on seeded state. A no-op when this server does not host the island -
+     * there is no copy to maintain. The delta must be idempotent: it may run on top of a seed
+     * that already observed the committed write.
      */
-    public CompletableFuture<Void> reload(UUID islandUuid) {
-        if (!loadChains.containsKey(islandUuid)) {
-            return CompletableFuture.completedFuture(null);
+    public CompletableFuture<Void> apply(UUID islandUuid, UnaryOperator<Island> delta) {
+        CompletableFuture<Void> done = new CompletableFuture<>();
+
+        CompletableFuture<Void> chained = chains.computeIfPresent(islandUuid, (uuid, previous) -> previous.handle((result, error) -> null).thenRun(() -> {
+            try {
+                islands.computeIfPresent(uuid, (key, current) -> delta.apply(current));
+                done.complete(null);
+            } catch (Throwable t) {
+                errorSink.error("Failed to apply snapshot delta for island: " + islandUuid, t);
+                done.completeExceptionally(t);
+            }
+        }));
+
+        if (chained == null) {
+            // Not hosted here: the write's truth is in the database, and whoever seeds this
+            // island later reads it from there.
+            done.complete(null);
         }
 
-        return load(islandUuid);
+        return done;
     }
 
     public void unload(UUID islandUuid) {
         unloadGenerations.merge(islandUuid, 1L, Long::sum);
         islands.remove(islandUuid);
-        loadChains.remove(islandUuid);
+        chains.remove(islandUuid);
+        pendingSeeds.remove(islandUuid);
     }
 
     private long currentGeneration(UUID islandUuid) {
@@ -105,7 +142,7 @@ public class IslandSnapshot {
     private CompletableFuture<Void> read(UUID islandUuid, long generation) {
         return CompletableFuture.supplyAsync(() -> reader.read(islandUuid), executor).thenAccept(island -> {
             if (island == null) {
-                // The island genuinely has no row any more, so the cached copy has to go: listeners
+                // The island genuinely has no row any more, so the hosted copy has to go: listeners
                 // must stop enforcing rules from a snapshot with nothing behind it.
                 islands.remove(islandUuid);
                 throw new IllegalStateException("Island snapshot does not exist: " + islandUuid);
@@ -125,10 +162,7 @@ public class IslandSnapshot {
                 islands.remove(islandUuid, island);
             }
         }).exceptionallyCompose(error -> {
-            // A failed read deliberately leaves the previous snapshot in place. It is at most one
-            // write out of date, while dropping it would make the island look non-existent to every
-            // listener. The next write reloads it.
-            errorSink.error("Failed to load island snapshot: " + islandUuid, error);
+            errorSink.error("Failed to seed island snapshot: " + islandUuid, error);
             return CompletableFuture.failedFuture(error);
         });
     }

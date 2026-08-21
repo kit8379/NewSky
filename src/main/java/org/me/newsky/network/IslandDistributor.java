@@ -7,6 +7,7 @@ import org.me.newsky.cluster.ServerRegistry;
 import org.me.newsky.exceptions.IslandAlreadyLoadedException;
 import org.me.newsky.exceptions.IslandNotLoadedException;
 import org.me.newsky.exceptions.NoActiveServerException;
+import org.me.newsky.exceptions.WrongIslandHostException;
 import org.me.newsky.messaging.CrossServerMessenger;
 import org.me.newsky.model.Actor;
 import org.me.newsky.routing.ServerSelector;
@@ -16,7 +17,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 public class IslandDistributor {
@@ -36,10 +40,11 @@ public class IslandDistributor {
     public static final String ACTION_ISLAND_LOCK_TOGGLE = "island.lock.toggle";
     public static final String ACTION_ISLAND_PVP_TOGGLE = "island.pvp.toggle";
     public static final String ACTION_ISLAND_EXPEL = "island.expel";
-    public static final String ACTION_ISLAND_SNAPSHOT_REFRESH = "island.snapshot.refresh";
 
-    private static final int SNAPSHOT_REFRESH_ATTEMPTS = 3;
-    private static final long SNAPSHOT_REFRESH_RETRY_SECONDS = 2L;
+    // Attempts for a write chasing a moving island: each WrongIslandHostException means the claim
+    // moved between resolving it and executing, so re-resolve and follow. Islands do not move
+    // often enough for an honest caller to lose three races in a row.
+    private static final int WRITE_ROUTE_ATTEMPTS = 3;
 
     private final NewSky plugin;
     private final IslandOperator islandOperator;
@@ -155,34 +160,8 @@ public class IslandDistributor {
     }
 
     public CompletableFuture<Void> deleteIsland(UUID islandUuid, Actor actor) {
-        String islandServer = getServerByIsland(islandUuid);
-        if (islandServer == null || islandServer.equals(serverID)) {
-            // A load racing this delete can finish after the rows are gone and leave a ghost world
-            // hosted somewhere; the post-delete check evicts it. Best-effort: the rows are already
-            // deleted, so the delete itself has succeeded no matter what the ghost unload does.
-            return islandOperator.deleteIsland(islandUuid, actor).thenCompose(v -> unloadGhostAfterDelete(islandUuid));
-        }
-
-        JSONObject payload = new JSONObject();
-        payload.put("islandUuid", islandUuid.toString());
-        payload.put(Actor.FIELD, Actor.toJson(actor));
-        return messenger.requestVoid(islandServer, ACTION_ISLAND_DELETE, payload);
-    }
-
-    private CompletableFuture<Void> unloadGhostAfterDelete(UUID islandUuid) {
-        return CompletableFuture.runAsync(() -> {
-            String islandServer = getServerByIsland(islandUuid);
-            if (islandServer == null || islandServer.equals(serverID)) {
-                return;
-            }
-
-            JSONObject payload = new JSONObject();
-            payload.put("islandUuid", islandUuid.toString());
-            messenger.requestVoid(islandServer, ACTION_ISLAND_UNLOAD, payload).exceptionally(e -> {
-                plugin.severe("Failed to unload ghost world of deleted island " + islandUuid + " on " + islandServer, e);
-                return null;
-            });
-        }, plugin.getBukkitAsyncExecutor());
+        JSONObject payload = islandActorPayload(islandUuid, actor);
+        return routeWrite(islandUuid, ACTION_ISLAND_DELETE, payload, () -> islandOperator.deleteIsland(islandUuid, actor), response -> null);
     }
 
     public CompletableFuture<Void> teleportIsland(UUID islandUuid, UUID playerUuid, String teleportWorld, String teleportLocation) {
@@ -217,90 +196,75 @@ public class IslandDistributor {
         return messenger.requestVoid(lobbyServer, ACTION_ISLAND_TELEPORT_PREPARE, payload).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, lobbyServer));
     }
 
-    public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role) {
+    public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role, UUID vouchedBy) {
         JSONObject payload = new JSONObject();
         payload.put("islandUuid", islandUuid.toString());
         payload.put("playerUuid", playerUuid.toString());
         payload.put("role", role);
-        return runOnIslandServer(islandUuid, ACTION_ISLAND_MEMBER_ADD, payload, () -> {
-            return islandOperator.addMember(islandUuid, playerUuid, role);
-        });
+        if (vouchedBy != null) {
+            payload.put("vouchedBy", vouchedBy.toString());
+        }
+        return routeWrite(islandUuid, ACTION_ISLAND_MEMBER_ADD, payload, () -> islandOperator.addMember(islandUuid, playerUuid, role, vouchedBy), response -> null);
     }
 
     public CompletableFuture<Void> removeMember(UUID islandUuid, Actor actor, UUID playerUuid) {
         JSONObject payload = islandActorPayload(islandUuid, actor);
         payload.put("playerUuid", playerUuid.toString());
-        return runOnIslandServer(islandUuid, ACTION_ISLAND_MEMBER_REMOVE, payload, () -> islandOperator.removeMember(islandUuid, actor, playerUuid));
+        return routeWrite(islandUuid, ACTION_ISLAND_MEMBER_REMOVE, payload, () -> islandOperator.removeMember(islandUuid, actor, playerUuid), response -> null);
     }
 
     public CompletableFuture<Void> setOwner(UUID islandUuid, Actor actor, UUID newOwnerUuid) {
         JSONObject payload = islandActorPayload(islandUuid, actor);
         payload.put("newOwnerUuid", newOwnerUuid.toString());
-        return runOnIslandServer(islandUuid, ACTION_ISLAND_OWNER_SET, payload, () -> islandOperator.setOwner(islandUuid, actor, newOwnerUuid));
+        return routeWrite(islandUuid, ACTION_ISLAND_OWNER_SET, payload, () -> islandOperator.setOwner(islandUuid, actor, newOwnerUuid), response -> null);
     }
 
     public CompletableFuture<Void> addBan(UUID islandUuid, Actor actor, UUID playerUuid) {
         JSONObject payload = islandActorPayload(islandUuid, actor);
         payload.put("playerUuid", playerUuid.toString());
-        return runOnIslandServer(islandUuid, ACTION_ISLAND_BAN_ADD, payload, () -> islandOperator.addBan(islandUuid, actor, playerUuid));
+        return routeWrite(islandUuid, ACTION_ISLAND_BAN_ADD, payload, () -> islandOperator.addBan(islandUuid, actor, playerUuid), response -> null);
     }
 
     public CompletableFuture<Void> removeBan(UUID islandUuid, Actor actor, UUID playerUuid) {
         JSONObject payload = islandActorPayload(islandUuid, actor);
         payload.put("playerUuid", playerUuid.toString());
-        return runOnIslandServer(islandUuid, ACTION_ISLAND_BAN_REMOVE, payload, () -> islandOperator.removeBan(islandUuid, actor, playerUuid));
+        return routeWrite(islandUuid, ACTION_ISLAND_BAN_REMOVE, payload, () -> islandOperator.removeBan(islandUuid, actor, playerUuid), response -> null);
     }
 
     public CompletableFuture<Void> addCoop(UUID islandUuid, Actor actor, UUID playerUuid) {
         JSONObject payload = islandActorPayload(islandUuid, actor);
         payload.put("playerUuid", playerUuid.toString());
-        return runOnIslandServer(islandUuid, ACTION_ISLAND_COOP_ADD, payload, () -> islandOperator.addCoop(islandUuid, actor, playerUuid));
+        return routeWrite(islandUuid, ACTION_ISLAND_COOP_ADD, payload, () -> islandOperator.addCoop(islandUuid, actor, playerUuid), response -> null);
     }
 
     public CompletableFuture<Void> removeCoop(UUID islandUuid, Actor actor, UUID playerUuid) {
         JSONObject payload = islandActorPayload(islandUuid, actor);
         payload.put("playerUuid", playerUuid.toString());
-        return runOnIslandServer(islandUuid, ACTION_ISLAND_COOP_REMOVE, payload, () -> islandOperator.removeCoop(islandUuid, actor, playerUuid));
+        return routeWrite(islandUuid, ACTION_ISLAND_COOP_REMOVE, payload, () -> islandOperator.removeCoop(islandUuid, actor, playerUuid), response -> null);
     }
 
     public CompletableFuture<Boolean> toggleLock(UUID islandUuid, Actor actor) {
-        String islandServer = getServerByIsland(islandUuid);
-        if (islandServer == null || islandServer.equals(serverID)) {
-            return islandOperator.toggleLock(islandUuid, actor).thenCompose(locked -> propagateSnapshotAfterLocalWrite(islandUuid).thenApply(v -> locked));
-        }
-
-        return messenger.request(islandServer, ACTION_ISLAND_LOCK_TOGGLE, islandActorPayload(islandUuid, actor)).thenApply(resp -> resp.getBoolean("locked"));
+        return routeWrite(islandUuid, ACTION_ISLAND_LOCK_TOGGLE, islandActorPayload(islandUuid, actor), () -> islandOperator.toggleLock(islandUuid, actor), response -> response.getBoolean("locked"));
     }
 
     public CompletableFuture<Boolean> togglePvp(UUID islandUuid, Actor actor) {
+        return routeWrite(islandUuid, ACTION_ISLAND_PVP_TOGGLE, islandActorPayload(islandUuid, actor), () -> islandOperator.togglePvp(islandUuid, actor), response -> response.getBoolean("pvp"));
+    }
+
+    /**
+     * Expel is a world-side kick, not a state write: it needs no write authority, and when the
+     * island is not loaded anywhere there is nobody standing on it to kick.
+     */
+    public CompletableFuture<Void> expelPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
+        JSONObject payload = islandActorPayload(islandUuid, actor);
+        payload.put("playerUuid", playerUuid.toString());
+
         String islandServer = getServerByIsland(islandUuid);
         if (islandServer == null || islandServer.equals(serverID)) {
-            return islandOperator.togglePvp(islandUuid, actor).thenCompose(pvp -> propagateSnapshotAfterLocalWrite(islandUuid).thenApply(v -> pvp));
+            return islandOperator.expelPlayer(islandUuid, actor, playerUuid);
         }
 
-        return messenger.request(islandServer, ACTION_ISLAND_PVP_TOGGLE, islandActorPayload(islandUuid, actor)).thenApply(resp -> resp.getBoolean("pvp"));
-    }
-
-    public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
-        JSONObject payload = new JSONObject();
-        payload.put("islandUuid", islandUuid.toString());
-        payload.put("playerUuid", playerUuid.toString());
-        return runOnIslandServer(islandUuid, ACTION_ISLAND_EXPEL, payload, () -> islandOperator.expelPlayer(islandUuid, playerUuid));
-    }
-
-    public CompletableFuture<Void> refreshIslandSnapshot(UUID islandUuid) {
-        String islandServer = getServerByIsland(islandUuid);
-        if (islandServer == null) {
-            return CompletableFuture.completedFuture(null);
-        }
-
-        if (islandServer.equals(serverID)) {
-            return islandOperator.refreshIslandSnapshot(islandUuid);
-        }
-
-        JSONObject payload = new JSONObject();
-        payload.put("islandUuid", islandUuid.toString());
-        return messenger.requestVoid(islandServer, ACTION_ISLAND_SNAPSHOT_REFRESH, payload);
+        return messenger.requestVoid(islandServer, ACTION_ISLAND_EXPEL, payload);
     }
 
     // =====================================================================================
@@ -314,53 +278,42 @@ public class IslandDistributor {
         return payload;
     }
 
-    private CompletableFuture<Void> runOnIslandServer(UUID islandUuid, String action, JSONObject payload, LocalOperation localOperation) {
-        String islandServer = getServerByIsland(islandUuid);
-        if (islandServer == null || islandServer.equals(serverID)) {
-            return localOperation.run().thenCompose(v -> propagateSnapshotAfterLocalWrite(islandUuid));
-        }
-
-        return messenger.requestVoid(islandServer, action, payload);
-    }
-
     /**
-     * Closes the routing race around locally executed writes. The "no host, run locally" decision
-     * is made before the write commits; a concurrent load may have claimed the island and read its
-     * snapshot before that commit, in which case nothing would ever tell the new host about the
-     * write. Re-checking the claim after the commit closes the window completely: a host claimed
-     * after this check reads its snapshot after the claim, and therefore after the commit.
-     * <p>
-     * Why converge-after rather than mutual exclusion: forbidding the overlap outright would need
-     * the claim to double as a write token, making Redis a hard dependency of every write, letting
-     * writes block or bounce loads, and turning a writer crash into a minutes-long lockout. This
-     * way the overlap stays harmless instead: the write always lands in the database, and the only
-     * best-effort part is this notification - so it retries before giving up.
+     * Routes a state write to whoever holds the island's claim, executing locally when the claim
+     * is ours or nobody's. Authority is decided again at the point of write
+     * ({@code IslandOperator.authorizedWrite}), so this resolution is only a routing hint: if the
+     * island moved in between, the executor refuses with WrongIslandHostException and the write
+     * re-resolves and follows. There is no notify-and-retry machinery behind this - a write either
+     * lands where the island's memory lives, or it does not happen.
      */
-    private CompletableFuture<Void> propagateSnapshotAfterLocalWrite(UUID islandUuid) {
-        return CompletableFuture.runAsync(() -> sendSnapshotRefresh(islandUuid, 1), plugin.getBukkitAsyncExecutor());
+    private <T> CompletableFuture<T> routeWrite(UUID islandUuid, String action, JSONObject payload, Supplier<CompletableFuture<T>> localOperation, Function<JSONObject, T> remoteResult) {
+        return routeWrite(islandUuid, action, payload, localOperation, remoteResult, 1);
     }
 
-    private void sendSnapshotRefresh(UUID islandUuid, int attempt) {
-        // Re-resolved on every attempt: the host may have unloaded (nothing left to refresh) or
-        // moved between attempts, and a retry must chase the island, not the original server.
+    private <T> CompletableFuture<T> routeWrite(UUID islandUuid, String action, JSONObject payload, Supplier<CompletableFuture<T>> localOperation, Function<JSONObject, T> remoteResult, int attempt) {
         String islandServer = getServerByIsland(islandUuid);
+
+        CompletableFuture<T> write;
         if (islandServer == null || islandServer.equals(serverID)) {
-            return;
+            write = localOperation.get();
+        } else {
+            write = messenger.request(islandServer, action, payload).thenApply(remoteResult);
         }
 
-        JSONObject payload = new JSONObject();
-        payload.put("islandUuid", islandUuid.toString());
-
-        messenger.requestVoid(islandServer, ACTION_ISLAND_SNAPSHOT_REFRESH, payload).exceptionally(e -> {
-            if (attempt >= SNAPSHOT_REFRESH_ATTEMPTS) {
-                plugin.severe("Giving up on snapshot refresh for island " + islandUuid + " on " + islandServer + " after " + attempt + " attempts; its snapshot stays stale until the next write", e);
-                return null;
+        return write.exceptionallyCompose(error -> {
+            if (unwrap(error) instanceof WrongIslandHostException && attempt < WRITE_ROUTE_ATTEMPTS) {
+                return routeWrite(islandUuid, action, payload, localOperation, remoteResult, attempt + 1);
             }
-
-            long delaySeconds = SNAPSHOT_REFRESH_RETRY_SECONDS * attempt;
-            CompletableFuture.runAsync(() -> sendSnapshotRefresh(islandUuid, attempt + 1), CompletableFuture.delayedExecutor(delaySeconds, TimeUnit.SECONDS, plugin.getBukkitAsyncExecutor()));
-            return null;
+            return CompletableFuture.failedFuture(error);
         });
+    }
+
+    private Throwable unwrap(Throwable error) {
+        Throwable current = error;
+        while ((current instanceof CompletionException || current instanceof ExecutionException) && current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current;
     }
 
     private String selectServer(Map<String, String> servers) {
@@ -369,10 +322,5 @@ public class IslandDistributor {
 
     private String getServerByIsland(UUID islandUuid) {
         return islandRegistry.getHost(islandUuid).orElse(null);
-    }
-
-    @FunctionalInterface
-    private interface LocalOperation {
-        CompletableFuture<Void> run();
     }
 }

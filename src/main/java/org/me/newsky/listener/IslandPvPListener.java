@@ -1,6 +1,8 @@
 package org.me.newsky.listener;
 
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -27,7 +29,12 @@ public class IslandPvPListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-        if (!(event.getEntity() instanceof Player victim) || !(event.getDamager() instanceof Player attacker)) {
+        if (!(event.getEntity() instanceof Player victim)) {
+            return;
+        }
+
+        Player attacker = resolveAttacker(event.getDamager());
+        if (attacker == null || attacker.equals(victim)) {
             return;
         }
 
@@ -48,5 +55,22 @@ public class IslandPvPListener implements Listener {
             attacker.sendMessage(config.getIslandPvpDisabledMessage());
             plugin.debug("IslandPvPListener", "Cancelled PvP between " + attacker.getName() + " and " + victim.getName() + " in island world: " + victim.getWorld().getName());
         }
+    }
+
+    /**
+     * PvP is player-versus-player however the damage travels: a direct hit, or an arrow, trident,
+     * splash potion or other projectile shot by a player. Only resolving the direct damager would
+     * let ranged attacks walk straight past a PvP-off island.
+     */
+    private Player resolveAttacker(Entity damager) {
+        if (damager instanceof Player player) {
+            return player;
+        }
+
+        if (damager instanceof Projectile projectile && projectile.getShooter() instanceof Player shooter) {
+            return shooter;
+        }
+
+        return null;
     }
 }

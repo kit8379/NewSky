@@ -56,6 +56,15 @@ public class WorldActivityHandler {
         return result;
     }
 
+    /**
+     * Re-checked at the moment of unload, after the sweep nominated this world: a player may have
+     * entered in between, which removes the empty-timestamp and must veto the unload.
+     */
+    public boolean isStillInactive(String worldName, long thresholdMillis, long now) {
+        Long emptySince = lastEmptyTimestamps.get(worldName);
+        return emptySince != null && now - emptySince >= thresholdMillis && !playerCounts.containsKey(worldName);
+    }
+
     public void clearWorld(String worldName) {
         playerCounts.remove(worldName);
         lastEmptyTimestamps.remove(worldName);

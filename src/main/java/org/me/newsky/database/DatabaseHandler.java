@@ -18,31 +18,41 @@ import java.util.*;
 
 public class DatabaseHandler {
 
-    private final NewSky plugin;
-    private final ConfigHandler config;
+    /**
+     * Where failures are reported. Exists so {@code DatabaseTransactionTest} can run this exact
+     * class against a scratch MySQL without a Bukkit server behind it.
+     */
+    @FunctionalInterface
+    public interface ErrorSink {
+        void error(String message, Throwable error);
+    }
+
+    private final ErrorSink errorSink;
     private final HikariDataSource dataSource;
     private final String prefix;
+    private final String spawnLocation;
 
     public record IslandCoreData(boolean lock, boolean pvp, int level, Optional<UUID> owner) {
     }
 
     public DatabaseHandler(NewSky plugin, ConfigHandler config) {
-        this.plugin = plugin;
-        this.config = config;
-        this.prefix = config.getMySQLTablePrefix();
+        this(buildDataSource(config), config.getMySQLTablePrefix(), config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch(), plugin::severe);
+    }
 
-        String host = config.getMySQLHost();
-        int port = config.getMySQLPort();
-        String database = config.getMySQLDB();
-        String username = config.getMySQLUsername();
-        String password = config.getMySQLPassword();
-        boolean useSsl = config.getMySQLUseSSL();
-        String properties = config.getMySQLProperties();
+    public DatabaseHandler(HikariDataSource dataSource, String tablePrefix, String spawnLocation, ErrorSink errorSink) {
+        this.dataSource = dataSource;
+        this.prefix = tablePrefix;
+        this.spawnLocation = spawnLocation;
+        this.errorSink = errorSink;
 
+        createTables();
+    }
+
+    private static HikariDataSource buildDataSource(ConfigHandler config) {
         HikariConfig hikariConfig = new HikariConfig();
-        hikariConfig.setJdbcUrl("jdbc:mysql://" + host + ":" + port + "/" + database + "?useSSL=" + useSsl + "&" + properties);
-        hikariConfig.setUsername(username);
-        hikariConfig.setPassword(password);
+        hikariConfig.setJdbcUrl("jdbc:mysql://" + config.getMySQLHost() + ":" + config.getMySQLPort() + "/" + config.getMySQLDB() + "?useSSL=" + config.getMySQLUseSSL() + "&" + config.getMySQLProperties());
+        hikariConfig.setUsername(config.getMySQLUsername());
+        hikariConfig.setPassword(config.getMySQLPassword());
 
         hikariConfig.addDataSourceProperty("cachePrepStmts", "true");
         hikariConfig.addDataSourceProperty("prepStmtCacheSize", "250");
@@ -55,9 +65,7 @@ public class DatabaseHandler {
         hikariConfig.addDataSourceProperty("elideSetAutoCommits", "true");
         hikariConfig.addDataSourceProperty("maintainTimeStats", "false");
 
-        this.dataSource = new HikariDataSource(hikariConfig);
-
-        createTables();
+        return new HikariDataSource(hikariConfig);
     }
 
     public void close() {
@@ -72,7 +80,7 @@ public class DatabaseHandler {
         try (Connection connection = getConnection()) {
             return work.apply(connection);
         } catch (SQLException e) {
-            plugin.severe("Database connection operation failed.", e);
+            errorSink.error("Database connection operation failed.", e);
             throw new RuntimeException(e);
         }
     }
@@ -91,7 +99,7 @@ public class DatabaseHandler {
                 if (e instanceof SQLIntegrityConstraintViolationException) {
                     throw new ConstraintViolationException(e);
                 }
-                plugin.severe("Database transaction failed.", e);
+                errorSink.error("Database transaction failed.", e);
                 throw new RuntimeException(e);
             } catch (RuntimeException e) {
                 rollbackQuietly(connection);
@@ -104,7 +112,7 @@ public class DatabaseHandler {
                 }
             }
         } catch (SQLException e) {
-            plugin.severe("Database transaction connection failed.", e);
+            errorSink.error("Database transaction connection failed.", e);
             throw new RuntimeException(e);
         }
     }
@@ -130,7 +138,7 @@ public class DatabaseHandler {
         } catch (SQLIntegrityConstraintViolationException e) {
             throw new ConstraintViolationException(e);
         } catch (SQLException e) {
-            plugin.severe("Database Update failed: " + query, e);
+            errorSink.error("Database Update failed: " + query, e);
             throw new RuntimeException(e);
         }
     }
@@ -142,7 +150,7 @@ public class DatabaseHandler {
                 return function.apply(resultSet);
             }
         } catch (SQLException e) {
-            plugin.severe("Database Query failed: " + query, e);
+            errorSink.error("Database Query failed: " + query, e);
             throw new RuntimeException(e);
         }
     }
@@ -321,35 +329,18 @@ public class DatabaseHandler {
         });
     }
 
-    /**
-     * Wipes every coop entry of one player and returns exactly the islands whose rows were
-     * deleted. Listing and deleting share one transaction so the caller's snapshot refreshes can
-     * never miss an island: a coop committed concurrently is either locked out by the next-key
-     * locks of the FOR UPDATE read (and survives untouched), or was read and is deleted and
-     * refreshed. Splitting this into a bare listing plus a broader delete would silently drop
-     * rows the listing never saw, leaving their hosts' snapshots stale forever.
-     */
-    public Set<UUID> removeAllCoops(UUID playerUuid) {
-        return inTransaction(connection -> {
-            Set<UUID> touched = new HashSet<>();
+    /** The islands where this player currently holds a coop, for the quit cleanup's work list. */
+    public Set<UUID> getCoopIslands(UUID playerUuid) {
+        String sql = "SELECT island_uuid FROM " + prefix + "island_coops WHERE cooped_player = ?";
 
-            try (PreparedStatement stmt = connection.prepareStatement("SELECT island_uuid FROM " + prefix + "island_coops WHERE cooped_player = ? FOR UPDATE")) {
-                stmt.setString(1, playerUuid.toString());
+        return executeQuery(sql, stmt -> stmt.setString(1, playerUuid.toString()), rs -> {
+            Set<UUID> result = new LinkedHashSet<>();
 
-                try (ResultSet rs = stmt.executeQuery()) {
-                    while (rs.next()) {
-                        touched.add(parseRequiredUuid(rs.getString("island_uuid"), "island_coops.island_uuid"));
-                    }
-                }
+            while (rs.next()) {
+                result.add(parseRequiredUuid(rs.getString("island_uuid"), "island_coops.island_uuid"));
             }
 
-            if (!touched.isEmpty()) {
-                executeUpdate(connection, "DELETE FROM " + prefix + "island_coops WHERE cooped_player = ?;", stmt -> {
-                    stmt.setString(1, playerUuid.toString());
-                });
-            }
-
-            return Set.copyOf(touched);
+            return result.isEmpty() ? Set.of() : Set.copyOf(result);
         });
     }
 
@@ -554,10 +545,24 @@ public class DatabaseHandler {
         }
     }
 
-    public void addMember(UUID islandUuid, UUID playerUuid, String role) {
+    /**
+     * Adds a member. The role is fixed: only "member" can ever be granted here - ownership moves
+     * exclusively through {@link #setOwner}, so no caller can mint a second owner. When
+     * {@code vouchedBy} is present (an invitation redemption), the voucher's membership is
+     * re-verified under the island lock: an invitation dies with its issuer's membership.
+     */
+    public void addMember(UUID islandUuid, UUID playerUuid, String role, UUID vouchedBy) {
+        if (!"member".equals(role)) {
+            throw new IllegalArgumentException("Only the member role can be granted; ownership moves via setOwner");
+        }
+
         try {
             inTransaction(connection -> {
                 lockIsland(connection, islandUuid);
+
+                if (vouchedBy != null && getIslandRole(connection, islandUuid, vouchedBy).isEmpty()) {
+                    throw new InviterNotMemberException();
+                }
 
                 Optional<UUID> playerIsland = getPlayerIsland(connection, playerUuid);
                 if (playerIsland.isPresent()) {
@@ -1020,7 +1025,7 @@ public class DatabaseHandler {
     }
 
     private String islandSpawnLocation() {
-        return config.getIslandSpawnX() + "," + config.getIslandSpawnY() + "," + config.getIslandSpawnZ() + "," + config.getIslandSpawnYaw() + "," + config.getIslandSpawnPitch();
+        return spawnLocation;
     }
 
     private Optional<UUID> getIslandOwner(Connection connection, UUID islandUuid) throws SQLException {

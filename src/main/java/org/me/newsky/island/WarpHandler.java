@@ -52,10 +52,13 @@ public class WarpHandler {
     public CompletableFuture<Void> deleteWarp(Actor actor, UUID playerUuid, String warpName) {
         actor.requireSelf(playerUuid);
 
+        // Names are stored lowercased by setWarp, so every lookup normalizes the same way.
+        String normalizedWarpName = warpName.toLowerCase(Locale.ROOT);
+
         return CompletableFuture.runAsync(() -> {
             UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
 
-            database.deleteWarp(islandUuid, playerUuid, warpName);
+            database.deleteWarp(islandUuid, playerUuid, normalizedWarpName);
         }, plugin.getBukkitAsyncExecutor());
     }
 
@@ -65,6 +68,8 @@ public class WarpHandler {
      */
     public CompletableFuture<Void> teleportToWarp(Actor actor, UUID warpPlayerUuid, String warpName, UUID targetPlayerUuid) {
         actor.requireSelf(targetPlayerUuid);
+
+        String normalizedWarpName = warpName.toLowerCase(Locale.ROOT);
 
         return CompletableFuture.supplyAsync(() -> {
             UUID islandUuid = database.getIslandUuid(warpPlayerUuid).orElseThrow(IslandDoesNotExistException::new);
@@ -81,7 +86,7 @@ public class WarpHandler {
                 throw new IslandLockedException();
             }
 
-            String warpLocation = Optional.ofNullable(database.getIslandWarps(islandUuid, warpPlayerUuid).get(warpName)).orElseThrow(WarpDoesNotExistException::new);
+            String warpLocation = Optional.ofNullable(database.getIslandWarps(islandUuid, warpPlayerUuid).get(normalizedWarpName)).orElseThrow(WarpDoesNotExistException::new);
 
             return new WarpTarget(islandUuid, warpLocation);
         }, plugin.getBukkitAsyncExecutor()).thenCompose(target -> islandDistributor.teleportIsland(target.islandUuid(), targetPlayerUuid, IslandUtils.UUIDToName(target.islandUuid()), target.warpLocation()));

@@ -161,7 +161,7 @@ public final class PlayerActions {
         return warpHandler.deleteWarp(actor, playerUuid, warpName);
     }
 
-    /** Travel to anyone's warp - warps are public to visit; only the traveller is fixed to self. */
+    /** Travel to anyone's warp - warps are public to visit; only the traveler is fixed to self. */
     public CompletableFuture<Void> warp(UUID warpOwnerUuid, String warpName) {
         return warpHandler.teleportToWarp(actor, warpOwnerUuid, warpName, playerUuid);
     }

@@ -62,22 +62,39 @@ public class IslandUnloadScheduler {
                 return;
             }
 
-            World bukkitWorld = Bukkit.getWorld(worldName);
+            // The async sweep only nominates candidates. The decision runs on the main thread,
+            // right before the unload: a player may have entered since the sweep read its
+            // timestamps, and Bukkit world state must not be touched from an async thread anyway.
+            Bukkit.getScheduler().getMainThreadExecutor(plugin).execute(() -> {
+                if (!worldActivityHandler.isStillInactive(worldName, thresholdMillis, System.currentTimeMillis())) {
+                    plugin.debug("IslandUnloadScheduler", "World became active again before unload, skipping: " + worldName);
+                    return;
+                }
 
-            if (bukkitWorld == null) {
-                plugin.debug("IslandUnloadScheduler", "World is already absent in Bukkit. Clearing stale inactive entry: " + worldName);
-                worldActivityHandler.clearWorld(worldName);
-                return;
-            }
+                World bukkitWorld = Bukkit.getWorld(worldName);
 
-            // Through the operator, so the unload runs on the island's lifecycle chain: it can
-            // never interleave with a concurrent load and release the claim that load just took.
-            islandOperator.unloadIsland(islandUuid).thenRun(() -> {
-                worldActivityHandler.clearWorld(worldName);
-                plugin.debug("IslandUnloadScheduler", "Unloaded world: " + worldName);
-            }).exceptionally(ex -> {
-                plugin.severe("Failed to unload world: " + worldName, ex);
-                return null;
+                if (bukkitWorld == null) {
+                    plugin.debug("IslandUnloadScheduler", "World is already absent in Bukkit. Clearing stale inactive entry: " + worldName);
+                    worldActivityHandler.clearWorld(worldName);
+                    return;
+                }
+
+                if (!bukkitWorld.getPlayers().isEmpty()) {
+                    // Authoritative guard: whatever the counters say, a world with players in it
+                    // is not idle and unloading it would kick them.
+                    plugin.debug("IslandUnloadScheduler", "World has players despite idle counters, skipping unload: " + worldName);
+                    return;
+                }
+
+                // Through the operator, so the unload runs on the island's lifecycle chain: it can
+                // never interleave with a concurrent load and release the claim that load just took.
+                islandOperator.unloadIsland(islandUuid).thenRun(() -> {
+                    worldActivityHandler.clearWorld(worldName);
+                    plugin.debug("IslandUnloadScheduler", "Unloaded world: " + worldName);
+                }).exceptionally(ex -> {
+                    plugin.severe("Failed to unload world: " + worldName, ex);
+                    return null;
+                });
             });
         });
     }

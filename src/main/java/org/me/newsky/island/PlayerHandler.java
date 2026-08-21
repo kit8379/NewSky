@@ -38,9 +38,9 @@ public class PlayerHandler {
      * member yet, so the authorization is the invitation, consumed by the accept command before
      * this call. Conflict checks and home seeding happen inside the insert transaction.
      */
-    public CompletableFuture<Void> addMember(Actor actor, UUID islandUuid, UUID playerUuid, String role) {
+    public CompletableFuture<Void> addMember(Actor actor, UUID islandUuid, UUID playerUuid, String role, UUID vouchedBy) {
         actor.requireSelf(playerUuid);
-        return islandDistributor.addMember(islandUuid, playerUuid, role);
+        return islandDistributor.addMember(islandUuid, playerUuid, role, vouchedBy);
     }
 
     /** MEMBER, enforced in the delete transaction. */
@@ -67,7 +67,7 @@ public class PlayerHandler {
             if (islandPlayers.contains(playerUuid)) {
                 throw new CannotExpelIslandPlayerException();
             }
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.expelPlayer(islandUuid, playerUuid));
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.expelPlayer(islandUuid, actor, playerUuid));
     }
 
     /**
@@ -108,16 +108,43 @@ public class PlayerHandler {
         return CompletableFuture.supplyAsync(() -> invitationStore.getInvite(playerUuid), plugin.getBukkitAsyncExecutor());
     }
 
+    // A join that fails after the invitation was consumed puts it back (best effort, fresh TTL),
+    // so a transient failure does not burn the invite. The one exception is a dead voucher: an
+    // invitation whose issuer is no longer a member is genuinely void.
+    private static final int REINSTATED_INVITE_TTL_SECONDS = 300;
+
     public CompletableFuture<Optional<Invitation>> acceptInvite(Actor actor, UUID inviteeUuid) {
         actor.requireSelf(inviteeUuid);
 
         return CompletableFuture.supplyAsync(() -> invitationStore.consumeInvite(inviteeUuid), plugin.getBukkitAsyncExecutor()).thenCompose(invite -> {
             if (invite.isEmpty()) {
-                return CompletableFuture.completedFuture(Optional.empty());
+                return CompletableFuture.completedFuture(Optional.<Invitation>empty());
             }
 
-            return addMember(actor, invite.get().getIslandUuid(), inviteeUuid, "member").thenApply(v -> invite);
+            UUID islandUuid = invite.get().getIslandUuid();
+            UUID inviterUuid = invite.get().getInviterUuid();
+
+            // The inviter's membership is re-verified inside the add-member transaction, under
+            // the island lock - an invitation is a vouch and dies with the voucher's membership.
+            return addMember(actor, islandUuid, inviteeUuid, "member", inviterUuid).thenApply(v -> invite).exceptionallyCompose(error -> {
+                if (!(unwrap(error) instanceof InviterNotMemberException)) {
+                    try {
+                        invitationStore.addInvite(inviteeUuid, islandUuid, inviterUuid, REINSTATED_INVITE_TTL_SECONDS);
+                    } catch (Exception reinstateFailure) {
+                        plugin.severe("Failed to reinstate invitation for " + inviteeUuid + " after a failed accept", reinstateFailure);
+                    }
+                }
+                return CompletableFuture.failedFuture(error);
+            });
         });
+    }
+
+    private Throwable unwrap(Throwable error) {
+        Throwable current = error;
+        while ((current instanceof java.util.concurrent.CompletionException || current instanceof java.util.concurrent.ExecutionException) && current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current;
     }
 
     public CompletableFuture<UUID> getIslandOwner(UUID islandUuid) {

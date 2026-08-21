@@ -68,7 +68,9 @@ public class PlayerDelHomeCommand implements SubCommand, AsyncTabComplete {
 
         String homeName = args[1];
 
-        if ("default".equals(homeName)) {
+        // Case-insensitive: names are stored lowercased and common MySQL collations compare
+        // case-insensitively, so "Default" would otherwise slip past this guard and delete it.
+        if ("default".equalsIgnoreCase(homeName)) {
             player.sendMessage(config.getPlayerCannotDeleteDefaultHomeMessage());
             return true;
         }

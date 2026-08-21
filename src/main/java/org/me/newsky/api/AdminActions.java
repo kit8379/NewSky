@@ -59,8 +59,9 @@ public final class AdminActions {
 
     // ---- membership and trust ---------------------------------------------------------------
 
-    public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role) {
-        return playerHandler.addMember(actor, islandUuid, playerUuid, role);
+    /** Always grants the member role: ownership moves exclusively through {@link #setOwner}. */
+    public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid) {
+        return playerHandler.addMember(actor, islandUuid, playerUuid, "member", null);
     }
 
     public CompletableFuture<Void> removeMember(UUID islandUuid, UUID playerUuid) {

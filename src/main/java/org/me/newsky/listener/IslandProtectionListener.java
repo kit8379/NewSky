@@ -263,13 +263,44 @@ public class IslandProtectionListener implements Listener {
         }
     }
 
+    /**
+     * Teleporting into an island is a visit, not an edit: the rules here mirror
+     * IslandAccessListener (ban, lock, boundary), NOT the build rules - otherwise no visitor
+     * could ever warp to a public island. Build protection still applies once they arrive.
+     */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onTeleport(PlayerTeleportEvent event) {
-        Player player = event.getPlayer();
+        Location to = event.getTo();
 
-        if (!canPlayerEdit(player, event.getTo())) {
+        UUID islandUuid = getIslandUuidIfIslandWorld(to);
+        if (islandUuid == null) {
+            return;
+        }
+
+        Player player = event.getPlayer();
+        if (player.isOp()) {
+            return;
+        }
+
+        Island island = islandSnapshot.get(islandUuid);
+        if (island == null || !isInsideIslandBoundary(island, to)) {
             event.setCancelled(true);
-            deny(player);
+            player.sendMessage(config.getIslandLockedMessage());
+            return;
+        }
+
+        UUID playerUuid = player.getUniqueId();
+
+        if (island.getBans().contains(playerUuid)) {
+            event.setCancelled(true);
+            player.sendMessage(config.getPlayerBannedMessage());
+            return;
+        }
+
+        boolean privileged = island.getOwner().equals(playerUuid) || island.getMembers().contains(playerUuid) || island.getCoops().contains(playerUuid);
+        if (island.isLock() && !privileged) {
+            event.setCancelled(true);
+            player.sendMessage(config.getIslandLockedMessage());
         }
     }
 }

@@ -3,12 +3,15 @@ package org.me.newsky.island;
 import org.me.newsky.NewSky;
 import org.me.newsky.cluster.OnlinePlayerRegistry;
 import org.me.newsky.database.DatabaseHandler;
+import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.exceptions.PlayerNotCoopedException;
 import org.me.newsky.model.Actor;
 import org.me.newsky.network.IslandDistributor;
 
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 public class CoopHandler {
 
@@ -38,10 +41,26 @@ public class CoopHandler {
         return islandDistributor.removeCoop(islandUuid, actor, playerUuid);
     }
 
+    /**
+     * Quit cleanup: every coop this player holds is removed as a normal routed write, so each
+     * removal lands on its island's claim holder and applies its delta there - the same guaranteed
+     * path as any other write, with no snapshot refresh machinery. Removals that lost a race
+     * (coop already gone, island deleted meanwhile) count as done; other failures are logged and
+     * do not stop the rest.
+     */
     public CompletableFuture<Void> removeAllCoops(UUID playerUuid) {
-        return CompletableFuture.supplyAsync(() -> database.removeAllCoops(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(touchedIslands -> {
-            CompletableFuture<?>[] refreshes = touchedIslands.stream().map(islandDistributor::refreshIslandSnapshot).toArray(CompletableFuture[]::new);
-            return CompletableFuture.allOf(refreshes);
+        Actor cleanup = new Actor.Bypass("system");
+
+        return CompletableFuture.supplyAsync(() -> database.getCoopIslands(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(islands -> {
+            CompletableFuture<?>[] removals = islands.stream().map(islandUuid -> islandDistributor.removeCoop(islandUuid, cleanup, playerUuid).exceptionally(error -> {
+                Throwable cause = error instanceof CompletionException && error.getCause() != null ? error.getCause() : error;
+                if (!(cause instanceof PlayerNotCoopedException) && !(cause instanceof IslandDoesNotExistException)) {
+                    plugin.severe("Failed to remove coop of " + playerUuid + " on island " + islandUuid + " during quit cleanup", error);
+                }
+                return null;
+            })).toArray(CompletableFuture[]::new);
+
+            return CompletableFuture.allOf(removals);
         });
     }
 

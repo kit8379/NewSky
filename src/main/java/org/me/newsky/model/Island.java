@@ -1,8 +1,16 @@
 package org.me.newsky.model;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
+/**
+ * Immutable snapshot of one island's enforcement state. Every mutation produces a new instance
+ * via the with-methods below, which are the delta vocabulary of the snapshot cache: a write
+ * applies its own known delta to the hosted copy instead of re-reading the database, so each
+ * with-method must mirror exactly what the corresponding database transaction does - and stay
+ * idempotent, because a delta may be re-applied on top of a seed read that already contains it.
+ */
 public final class Island {
 
     private final UUID islandUuid;
@@ -49,5 +57,63 @@ public final class Island {
 
     public Set<UUID> getBans() {
         return bans;
+    }
+
+    public Island withLock(boolean newLock) {
+        return new Island(islandUuid, newLock, pvp, owner, members, coops, bans);
+    }
+
+    public Island withPvp(boolean newPvp) {
+        return new Island(islandUuid, lock, newPvp, owner, members, coops, bans);
+    }
+
+    /** Mirrors the transfer transaction: the old owner becomes a member, the new owner stops being one. */
+    public Island withOwner(UUID newOwner) {
+        Set<UUID> newMembers = new HashSet<>(members);
+        if (owner != null && !owner.equals(newOwner)) {
+            newMembers.add(owner);
+        }
+        newMembers.remove(newOwner);
+        return new Island(islandUuid, lock, pvp, newOwner, newMembers, coops, bans);
+    }
+
+    /** Mirrors the add-member transaction, which also clears the joiner's ban and coop rows. */
+    public Island withMemberAdded(UUID playerUuid) {
+        Set<UUID> newMembers = new HashSet<>(members);
+        newMembers.add(playerUuid);
+        return new Island(islandUuid, lock, pvp, owner, newMembers, without(coops, playerUuid), without(bans, playerUuid));
+    }
+
+    public Island withMemberRemoved(UUID playerUuid) {
+        return new Island(islandUuid, lock, pvp, owner, without(members, playerUuid), coops, bans);
+    }
+
+    public Island withBanAdded(UUID playerUuid) {
+        Set<UUID> newBans = new HashSet<>(bans);
+        newBans.add(playerUuid);
+        return new Island(islandUuid, lock, pvp, owner, members, coops, newBans);
+    }
+
+    public Island withBanRemoved(UUID playerUuid) {
+        return new Island(islandUuid, lock, pvp, owner, members, coops, without(bans, playerUuid));
+    }
+
+    public Island withCoopAdded(UUID playerUuid) {
+        Set<UUID> newCoops = new HashSet<>(coops);
+        newCoops.add(playerUuid);
+        return new Island(islandUuid, lock, pvp, owner, members, newCoops, bans);
+    }
+
+    public Island withCoopRemoved(UUID playerUuid) {
+        return new Island(islandUuid, lock, pvp, owner, members, without(coops, playerUuid), bans);
+    }
+
+    private static Set<UUID> without(Set<UUID> source, UUID playerUuid) {
+        if (!source.contains(playerUuid)) {
+            return source;
+        }
+        Set<UUID> copy = new HashSet<>(source);
+        copy.remove(playerUuid);
+        return copy;
     }
 }

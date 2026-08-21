@@ -223,8 +223,11 @@ public class NewSky extends JavaPlugin {
             getServer().getPluginManager().registerEvents(asyncTabCompleteListener, this);
             info("All commands registered");
 
-            crossServerMessenger.start();
+            // Order matters: the heartbeat's startup cleanup sweeps claims left under this server's
+            // name by a previous life. The messenger must not accept work before that sweep, or a
+            // fresh claim taken by an early load request would be swept away from under its world.
             heartBeatScheduler.start();
+            crossServerMessenger.start();
             islandUnloadScheduler.start();
             levelupdateSchedulerIsland.start();
 
@@ -260,7 +263,7 @@ public class NewSky extends JavaPlugin {
         messenger.register(IslandDistributor.ACTION_ISLAND_UNLOAD, payload -> emptyResponse(islandOperator.unloadIsland(uuid(payload, "islandUuid"))));
         messenger.register(IslandDistributor.ACTION_ISLAND_DELETE, payload -> emptyResponse(islandOperator.deleteIsland(uuid(payload, "islandUuid"), Actor.fromJson(payload))));
         messenger.register(IslandDistributor.ACTION_ISLAND_TELEPORT_PREPARE, payload -> emptyResponse(islandOperator.prepareTeleport(uuid(payload, "playerUuid"), payload.getString("teleportWorld"), payload.getString("teleportLocation"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_MEMBER_ADD, payload -> emptyResponse(islandOperator.addMember(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"), payload.getString("role"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_MEMBER_ADD, payload -> emptyResponse(islandOperator.addMember(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"), payload.getString("role"), optionalUuid(payload, "vouchedBy"))));
         messenger.register(IslandDistributor.ACTION_ISLAND_MEMBER_REMOVE, payload -> emptyResponse(islandOperator.removeMember(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
         messenger.register(IslandDistributor.ACTION_ISLAND_OWNER_SET, payload -> emptyResponse(islandOperator.setOwner(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "newOwnerUuid"))));
         messenger.register(IslandDistributor.ACTION_ISLAND_BAN_ADD, payload -> emptyResponse(islandOperator.addBan(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
@@ -269,12 +272,16 @@ public class NewSky extends JavaPlugin {
         messenger.register(IslandDistributor.ACTION_ISLAND_COOP_REMOVE, payload -> emptyResponse(islandOperator.removeCoop(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
         messenger.register(IslandDistributor.ACTION_ISLAND_LOCK_TOGGLE, payload -> islandOperator.toggleLock(uuid(payload, "islandUuid"), Actor.fromJson(payload)).thenApply(locked -> new JSONObject().put("locked", locked)));
         messenger.register(IslandDistributor.ACTION_ISLAND_PVP_TOGGLE, payload -> islandOperator.togglePvp(uuid(payload, "islandUuid"), Actor.fromJson(payload)).thenApply(pvp -> new JSONObject().put("pvp", pvp)));
-        messenger.register(IslandDistributor.ACTION_ISLAND_EXPEL, payload -> emptyResponse(islandOperator.expelPlayer(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_SNAPSHOT_REFRESH, payload -> emptyResponse(islandOperator.refreshIslandSnapshot(uuid(payload, "islandUuid"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_EXPEL, payload -> emptyResponse(islandOperator.expelPlayer(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
     }
 
     private CompletableFuture<JSONObject> emptyResponse(CompletableFuture<Void> future) {
         return future.thenApply(v -> new JSONObject());
+    }
+
+    private UUID optionalUuid(JSONObject payload, String key) {
+        String value = payload.optString(key, null);
+        return value == null || value.isEmpty() ? null : UUID.fromString(value);
     }
 
     private UUID uuid(JSONObject payload, String key) {
@@ -299,8 +306,12 @@ public class NewSky extends JavaPlugin {
     }
 
     public void shutdown() {
-        if (worldHandler != null) {
-            worldHandler.unloadAllWorldsOnShutdown();
+        // Intake closes first: once worlds start unloading and the claim sweep runs, a late load
+        // request could otherwise re-claim and re-load a world on a dying server. The heartbeat's
+        // cleanup runs after the worlds are gone so it also releases claims taken by requests that
+        // slipped in before the messenger stopped.
+        if (crossServerMessenger != null) {
+            crossServerMessenger.stop();
         }
 
         if (msptUpdateScheduler != null) {
@@ -315,12 +326,12 @@ public class NewSky extends JavaPlugin {
             islandUnloadScheduler.stop();
         }
 
-        if (heartBeatScheduler != null) {
-            heartBeatScheduler.stop();
+        if (worldHandler != null) {
+            worldHandler.unloadAllWorldsOnShutdown();
         }
 
-        if (crossServerMessenger != null) {
-            crossServerMessenger.stop();
+        if (heartBeatScheduler != null) {
+            heartBeatScheduler.stop();
         }
 
         if (redisHandler != null) {

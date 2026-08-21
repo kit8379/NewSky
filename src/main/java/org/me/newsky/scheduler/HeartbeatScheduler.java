@@ -2,8 +2,8 @@ package org.me.newsky.scheduler;
 
 import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
-import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.cluster.ServerRegistry;
+import org.me.newsky.config.ConfigHandler;
 
 public class HeartbeatScheduler {
 
