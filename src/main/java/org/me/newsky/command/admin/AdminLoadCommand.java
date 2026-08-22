@@ -69,7 +69,7 @@ public class AdminLoadCommand implements SubCommand, AsyncTabComplete {
                 return CompletableFuture.completedFuture(null);
             }
 
-            return api.getIslandUuid(targetUuidOpt.get()).thenCompose(api::loadIsland).thenRun(() -> sender.sendMessage(config.getIslandLoadSuccessMessage(targetPlayerName)));
+            return api.getIslandUuid(targetUuidOpt.get()).thenCompose(islandUuid -> api.admin(sender).loadIsland(islandUuid)).thenRun(() -> sender.sendMessage(config.getIslandLoadSuccessMessage(targetPlayerName)));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {

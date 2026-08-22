@@ -67,7 +67,7 @@ public class PlayerHomeCommand implements SubCommand, AsyncTabComplete {
         String homeName = (args.length >= 2) ? args[1] : "default";
         UUID playerUuid = player.getUniqueId();
 
-        api.home(playerUuid, homeName, playerUuid).thenRun(() -> {
+        api.player(playerUuid).home(homeName).thenRun(() -> {
             api.sendPlayerMessage(playerUuid, config.getPlayerHomeSuccessMessage(homeName));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();

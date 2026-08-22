@@ -72,7 +72,7 @@ public class AdminDelWarpCommand implements SubCommand, AsyncTabComplete {
 
             UUID targetUuid = targetUuidOpt.get();
 
-            return api.delWarp(targetUuid, warpName).thenRun(() -> sender.sendMessage(config.getAdminDelWarpSuccessMessage(warpPlayerName, warpName)));
+            return api.admin(sender).deleteWarp(targetUuid, warpName).thenRun(() -> sender.sendMessage(config.getAdminDelWarpSuccessMessage(warpPlayerName, warpName)));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {

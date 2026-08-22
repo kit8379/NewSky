@@ -33,38 +33,32 @@ public class PlayerHandler {
     }
 
     public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role) {
-        // Conflict checks and the new member's home seeding both happen inside the insert
-        // transaction, under the island lock.
         return islandDistributor.addMember(islandUuid, playerUuid, role);
     }
 
-    public CompletableFuture<Void> removeMember(UUID islandUuid, Actor actor, UUID playerUuid) {
-        return islandDistributor.removeMember(islandUuid, actor, playerUuid);
+    public CompletableFuture<Void> removeMember(Actor actor, UUID islandUuid, UUID playerUuid) {
+        return islandDistributor.removeMember(actor, islandUuid, playerUuid);
     }
 
-    public CompletableFuture<Void> setOwner(UUID islandUuid, Actor actor, UUID newOwnerUuid) {
-        return islandDistributor.setOwner(islandUuid, actor, newOwnerUuid);
+    public CompletableFuture<Void> setOwner(Actor actor, UUID islandUuid, UUID newOwnerUuid) {
+        return islandDistributor.setOwner(actor, islandUuid, newOwnerUuid);
     }
 
-    public CompletableFuture<Void> expelPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
+    public CompletableFuture<Void> expelPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {
         return CompletableFuture.runAsync(() -> {
-            onlinePlayerRegistry.requireOnline(playerUuid);
-
-            Set<UUID> islandPlayers = database.getIslandPlayers(islandUuid).keySet();
-
-            if (actor instanceof Actor.Player player && !islandPlayers.contains(player.uuid())) {
-                throw new IslandDoesNotExistException();
+            if (!onlinePlayerRegistry.isOnline(playerUuid)) {
+                throw new PlayerNotOnlineException();
             }
-
-            if (islandPlayers.contains(playerUuid)) {
-                throw new CannotExpelIslandPlayerException();
-            }
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.expelPlayer(islandUuid, playerUuid));
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> {
+            return islandDistributor.expelPlayer(actor, islandUuid, playerUuid);
+        });
     }
 
     public CompletableFuture<Void> addPendingInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {
         return CompletableFuture.runAsync(() -> {
-            onlinePlayerRegistry.requireOnline(inviteeUuid);
+            if (!onlinePlayerRegistry.isOnline(inviteeUuid)) {
+                throw new PlayerNotOnlineException();
+            }
 
             Set<UUID> members = database.getIslandPlayers(islandUuid).keySet();
             if (members.contains(inviteeUuid)) {
@@ -94,7 +88,7 @@ public class PlayerHandler {
     }
 
     public CompletableFuture<UUID> getIslandOwner(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> database.getIslandCore(islandUuid).flatMap(DatabaseHandler.IslandCoreData::owner).orElseThrow(IslandDoesNotExistException::new), plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> database.getIslandOwner(islandUuid).orElseThrow(IslandDoesNotExistException::new), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Set<UUID>> getIslandMembers(UUID islandUuid) {

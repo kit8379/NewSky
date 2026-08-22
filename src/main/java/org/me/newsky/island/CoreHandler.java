@@ -25,8 +25,8 @@ public class CoreHandler {
         return islandDistributor.createIsland(UUID.randomUUID(), ownerUuid);
     }
 
-    public CompletableFuture<Void> deleteIsland(UUID islandUuid, Actor actor) {
-        return islandDistributor.deleteIsland(islandUuid, actor);
+    public CompletableFuture<Void> deleteIsland(Actor actor, UUID islandUuid) {
+        return islandDistributor.deleteIsland(actor, islandUuid);
     }
 
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
@@ -37,20 +37,20 @@ public class CoreHandler {
         return islandDistributor.unloadIsland(islandUuid);
     }
 
-    public CompletableFuture<Boolean> toggleIslandLock(UUID islandUuid, Actor actor) {
-        return islandDistributor.toggleIslandLock(islandUuid, actor);
+    public CompletableFuture<Boolean> toggleIslandLock(Actor actor, UUID islandUuid) {
+        return islandDistributor.toggleIslandLock(actor, islandUuid);
     }
 
-    public CompletableFuture<Boolean> toggleIslandPvp(UUID islandUuid, Actor actor) {
-        return islandDistributor.toggleIslandPvp(islandUuid, actor);
+    public CompletableFuture<Boolean> toggleIslandPvp(Actor actor, UUID islandUuid) {
+        return islandDistributor.toggleIslandPvp(actor, islandUuid);
     }
 
     public CompletableFuture<Boolean> isIslandLock(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> database.getIslandCore(islandUuid).map(DatabaseHandler.IslandCoreData::lock).orElse(false), plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> database.isIslandLock(islandUuid), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Boolean> isIslandPvp(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> database.getIslandCore(islandUuid).map(DatabaseHandler.IslandCoreData::pvp).orElse(false), plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> database.isIslandPvp(islandUuid), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<UUID> getIslandUuid(UUID playerUuid) {

@@ -3,6 +3,7 @@ package org.me.newsky.island;
 import org.me.newsky.NewSky;
 import org.me.newsky.cluster.OnlinePlayerRegistry;
 import org.me.newsky.database.DatabaseHandler;
+import org.me.newsky.exceptions.PlayerNotOnlineException;
 import org.me.newsky.model.Actor;
 import org.me.newsky.network.IslandDistributor;
 
@@ -24,20 +25,23 @@ public class CoopHandler {
         this.onlinePlayerRegistry = onlinePlayerRegistry;
     }
 
-    public CompletableFuture<Void> coopPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
-        // Coop grants trust to someone currently visiting, so it only applies to online players.
-        return CompletableFuture.runAsync(() -> onlinePlayerRegistry.requireOnline(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.addCoop(islandUuid, actor, playerUuid));
+    public CompletableFuture<Void> coopPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {
+        return CompletableFuture.runAsync(() -> {
+            if (!onlinePlayerRegistry.isOnline(playerUuid)) {
+                throw new PlayerNotOnlineException();
+            }
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> {
+            return islandDistributor.addCoop(actor, islandUuid, playerUuid);
+        });
     }
 
-    public CompletableFuture<Void> unCoopPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
-        return islandDistributor.removeCoop(islandUuid, actor, playerUuid);
+    public CompletableFuture<Void> unCoopPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {
+        return islandDistributor.removeCoop(actor, islandUuid, playerUuid);
     }
 
     public CompletableFuture<Void> deleteAllCoopOfPlayer(UUID playerUuid) {
-        return CompletableFuture.supplyAsync(() -> database.deleteAllCoopsOfPlayer(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(touchedIslands -> {
-            CompletableFuture<?>[] refreshes = touchedIslands.stream().map(islandDistributor::refreshIslandSnapshot).toArray(CompletableFuture[]::new);
-            return CompletableFuture.allOf(refreshes);
-        });
+        return CompletableFuture.runAsync(() -> database.deleteAllCoopsOfPlayer(playerUuid),
+                plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Boolean> isPlayerCooped(UUID islandUuid, UUID playerUuid) {

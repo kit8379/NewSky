@@ -5,7 +5,6 @@ import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.model.Actor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.CannotBanIslandPlayerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
@@ -78,7 +77,7 @@ public class AdminBanCommand implements SubCommand, AsyncTabComplete {
                 }
 
                 return api.getIslandUuid(islandOwnerUuidOpt.get()).thenCompose(islandUuid -> {
-                    return api.banPlayer(islandUuid, new Actor.Bypass(sender.getName()), targetPlayerUuidOpt.get());
+                    return api.admin(sender).banPlayer(islandUuid, targetPlayerUuidOpt.get());
                 }).thenRun(() -> {
                     sender.sendMessage(config.getAdminBanSuccessMessage(islandOwnerName, banPlayerName));
                     api.sendPlayerMessage(targetPlayerUuidOpt.get(), config.getWasBannedFromIslandMessage(islandOwnerName));

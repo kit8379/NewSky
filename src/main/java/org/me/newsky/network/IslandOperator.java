@@ -7,6 +7,7 @@ import org.me.newsky.NewSky;
 import org.me.newsky.cluster.IslandRegistry;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.exceptions.CannotExpelIslandPlayerException;
+import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.model.Actor;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.util.IslandUtils;
@@ -114,13 +115,13 @@ public class IslandOperator {
         });
     }
 
-    public CompletableFuture<Void> deleteIsland(UUID islandUuid, Actor actor) {
+    public CompletableFuture<Void> deleteIsland(Actor actor, UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         // Rows go first: the ownership check and the delete share one transaction, so a refused
         // delete changes nothing. If removing the world fails afterwards, all that remains is an
         // orphaned world file no island row points at - unreachable garbage rather than a live bug.
-        return CompletableFuture.runAsync(() -> database.deleteIsland(islandUuid, actor), plugin.getBukkitAsyncExecutor()).thenCompose(v -> worldHandler.deleteWorld(islandName).exceptionally(e -> {
+        return CompletableFuture.runAsync(() -> database.deleteIsland(actor, islandUuid), plugin.getBukkitAsyncExecutor()).thenCompose(v -> worldHandler.deleteWorld(islandName).exceptionally(e -> {
             plugin.severe("Island rows deleted but the world could not be removed, leaving an orphaned world: " + islandName, e);
             return null;
         })).thenRun(() -> {
@@ -152,9 +153,14 @@ public class IslandOperator {
      * Guarding at the point of effect shrinks that window to the gap between a membership commit
      * and this read. A member slipping through even that is only bounced to the lobby once.
      */
-    public CompletableFuture<Void> expelPlayer(UUID islandUuid, UUID playerUuid) {
-        return CompletableFuture.supplyAsync(() -> database.getIslandPlayers(islandUuid).containsKey(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(isMember -> {
-            if (isMember) {
+    public CompletableFuture<Void> expelPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {
+        return CompletableFuture.supplyAsync(() -> database.getIslandPlayers(islandUuid).keySet(),
+                plugin.getBukkitAsyncExecutor()).thenCompose(islandPlayers -> {
+            if (actor instanceof Actor.Player player && !islandPlayers.contains(player.uuid())) {
+                throw new IslandDoesNotExistException();
+            }
+
+            if (islandPlayers.contains(playerUuid)) {
                 throw new CannotExpelIslandPlayerException();
             }
 
@@ -170,32 +176,32 @@ public class IslandOperator {
         return updateSnapshot(islandUuid, () -> database.addIslandPlayer(islandUuid, playerUuid, role));
     }
 
-    public CompletableFuture<Void> removeMember(UUID islandUuid, Actor actor, UUID playerUuid) {
-        return updateSnapshot(islandUuid, () -> database.deleteIslandPlayer(islandUuid, actor, playerUuid)).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(islandUuid), playerUuid));
+    public CompletableFuture<Void> removeMember(Actor actor, UUID islandUuid, UUID playerUuid) {
+        return updateSnapshot(islandUuid, () -> database.deleteIslandPlayer(actor, islandUuid, playerUuid)).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(islandUuid), playerUuid));
     }
 
-    public CompletableFuture<Void> setOwner(UUID islandUuid, Actor actor, UUID newOwnerUuid) {
-        return updateSnapshot(islandUuid, () -> database.updateIslandOwner(islandUuid, actor, newOwnerUuid));
+    public CompletableFuture<Void> setOwner(Actor actor, UUID islandUuid, UUID newOwnerUuid) {
+        return updateSnapshot(islandUuid, () -> database.updateIslandOwner(actor, islandUuid, newOwnerUuid));
     }
 
-    public CompletableFuture<Void> addBan(UUID islandUuid, Actor actor, UUID playerUuid) {
-        return updateSnapshot(islandUuid, () -> database.updateBanPlayer(islandUuid, actor, playerUuid)).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(islandUuid), playerUuid));
+    public CompletableFuture<Void> addBan(Actor actor, UUID islandUuid, UUID playerUuid) {
+        return updateSnapshot(islandUuid, () -> database.updateBanPlayer(actor, islandUuid, playerUuid)).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(islandUuid), playerUuid));
     }
 
-    public CompletableFuture<Void> removeBan(UUID islandUuid, Actor actor, UUID playerUuid) {
-        return updateSnapshot(islandUuid, () -> database.deleteBanPlayer(islandUuid, actor, playerUuid));
+    public CompletableFuture<Void> removeBan(Actor actor, UUID islandUuid, UUID playerUuid) {
+        return updateSnapshot(islandUuid, () -> database.deleteBanPlayer(actor, islandUuid, playerUuid));
     }
 
-    public CompletableFuture<Void> addCoop(UUID islandUuid, Actor actor, UUID playerUuid) {
-        return updateSnapshot(islandUuid, () -> database.updateCoopPlayer(islandUuid, actor, playerUuid));
+    public CompletableFuture<Void> addCoop(Actor actor, UUID islandUuid, UUID playerUuid) {
+        return updateSnapshot(islandUuid, () -> database.updateCoopPlayer(actor, islandUuid, playerUuid));
     }
 
-    public CompletableFuture<Void> removeCoop(UUID islandUuid, Actor actor, UUID playerUuid) {
-        return updateSnapshot(islandUuid, () -> database.deleteCoopPlayer(islandUuid, actor, playerUuid)).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(islandUuid), playerUuid));
+    public CompletableFuture<Void> removeCoop(Actor actor, UUID islandUuid, UUID playerUuid) {
+        return updateSnapshot(islandUuid, () -> database.deleteCoopPlayer(actor, islandUuid, playerUuid)).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(islandUuid), playerUuid));
     }
 
-    public CompletableFuture<Boolean> toggleIslandLock(UUID islandUuid, Actor actor) {
-        return updateSnapshotAndGet(islandUuid, () -> database.toggleIslandLock(islandUuid, actor)).thenCompose(locked -> {
+    public CompletableFuture<Boolean> toggleIslandLock(Actor actor, UUID islandUuid) {
+        return updateSnapshotAndGet(islandUuid, () -> database.toggleIslandLock(actor, islandUuid)).thenCompose(locked -> {
             if (!locked) {
                 return CompletableFuture.completedFuture(false);
             }
@@ -204,8 +210,8 @@ public class IslandOperator {
         });
     }
 
-    public CompletableFuture<Boolean> toggleIslandPvp(UUID islandUuid, Actor actor) {
-        return updateSnapshotAndGet(islandUuid, () -> database.toggleIslandPvp(islandUuid, actor));
+    public CompletableFuture<Boolean> toggleIslandPvp(Actor actor, UUID islandUuid) {
+        return updateSnapshotAndGet(islandUuid, () -> database.toggleIslandPvp(actor, islandUuid));
     }
 
     private CompletableFuture<Void> removeNonMembersFromWorld(UUID islandUuid) {
@@ -225,7 +231,7 @@ public class IslandOperator {
         // The snapshot is refreshed even when the mutation fails, because a mutation can fail after
         // having written something (or after another server wrote), and skipping the reload would
         // leave this server serving a snapshot it already knows to be behind.
-        return CompletableFuture.supplyAsync(mutation, plugin.getBukkitAsyncExecutor()).handle((result, error) -> islandSnapshot.reload(islandUuid).thenCompose(v -> error == null ? CompletableFuture.completedFuture(result) : CompletableFuture.<T>failedFuture(error))).thenCompose(future -> future);
+        return CompletableFuture.supplyAsync(mutation, plugin.getBukkitAsyncExecutor()).handle((result, error) -> islandSnapshot.reload(islandUuid).thenCompose(v -> error == null ? CompletableFuture.completedFuture(result) : CompletableFuture.failedFuture(error))).thenCompose(future -> future);
     }
 
     private CompletableFuture<Void> cleanupFailedCreate(UUID islandUuid, String islandName) {
@@ -234,7 +240,7 @@ public class IslandOperator {
             return null;
         }).thenRunAsync(() -> {
             try {
-                database.deleteIsland(islandUuid, new Actor.Bypass("island create cleanup"));
+                database.deleteIsland(new Actor.Bypass("island create cleanup"), islandUuid);
             } catch (Exception e) {
                 plugin.severe("Failed to cleanup database after island create failure: " + islandUuid, e);
             }

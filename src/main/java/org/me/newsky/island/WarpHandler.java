@@ -62,7 +62,7 @@ public class WarpHandler {
                 throw new PlayerBannedException();
             }
 
-            boolean isLocked = database.getIslandCore(islandUuid).map(DatabaseHandler.IslandCoreData::lock).orElse(false);
+            boolean isLocked = database.isIslandLock(islandUuid);
             boolean isMember = database.getIslandPlayers(islandUuid).containsKey(targetPlayerUuid);
             if (isLocked && !isMember) {
                 throw new IslandLockedException();

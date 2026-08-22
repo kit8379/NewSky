@@ -87,7 +87,7 @@ public class AdminSetWarpCommand implements SubCommand, AsyncTabComplete {
 
             UUID targetUuid = targetUuidOpt.get();
 
-            return api.setWarp(targetUuid, warpName, worldName, x, y, z, yaw, pitch).thenRun(() -> sender.sendMessage(config.getAdminSetWarpSuccessMessage(warpPlayerName, warpName)));
+            return api.admin(sender).setWarp(targetUuid, warpName, worldName, x, y, z, yaw, pitch).thenRun(() -> sender.sendMessage(config.getAdminSetWarpSuccessMessage(warpPlayerName, warpName)));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof LocationNotInIslandException) {

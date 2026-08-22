@@ -5,7 +5,6 @@ import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
-import org.me.newsky.model.Actor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.CannotRemoveOwnerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
@@ -77,7 +76,7 @@ public class AdminRemoveMemberCommand implements SubCommand, AsyncTabComplete {
                     return CompletableFuture.completedFuture(null);
                 }
 
-                return api.getIslandUuid(islandOwnerUuidOpt.get()).thenCompose(islandUuid -> api.removeMember(islandUuid, new Actor.Bypass(sender.getName()), targetMemberUuidOpt.get())).thenRun(() -> {
+                return api.getIslandUuid(islandOwnerUuidOpt.get()).thenCompose(islandUuid -> api.admin(sender).removeMember(islandUuid, targetMemberUuidOpt.get())).thenRun(() -> {
                     sender.sendMessage(config.getAdminRemoveMemberSuccessMessage(targetMemberName, islandOwnerName));
                     api.sendPlayerMessage(targetMemberUuidOpt.get(), config.getWasRemovedFromIslandMessage(islandOwnerName));
                 });

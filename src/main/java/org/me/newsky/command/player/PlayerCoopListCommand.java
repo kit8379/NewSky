@@ -62,7 +62,7 @@ public class PlayerCoopListCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(api::getCoopedPlayers).thenCompose(coopedPlayers -> {
+        api.getIslandUuid(playerUuid).thenCompose(api::getIslandCoops).thenCompose(coopedPlayers -> {
             if (coopedPlayers.isEmpty()) {
                 player.sendMessage(config.getNoCoopedPlayersMessage());
                 return CompletableFuture.completedFuture(null);

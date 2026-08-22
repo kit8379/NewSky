@@ -62,7 +62,7 @@ public class PlayerBanListCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(api::getBannedPlayers).thenCompose(bannedPlayers -> {
+        api.getIslandUuid(playerUuid).thenCompose(api::getIslandBans).thenCompose(bannedPlayers -> {
             if (bannedPlayers.isEmpty()) {
                 player.sendMessage(config.getNoBannedPlayersMessage());
                 return CompletableFuture.completedFuture(null);

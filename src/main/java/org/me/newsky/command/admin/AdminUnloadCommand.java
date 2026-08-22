@@ -71,7 +71,7 @@ public class AdminUnloadCommand implements SubCommand, AsyncTabComplete {
 
             UUID targetUuid = targetUuidOpt.get();
 
-            return api.getIslandUuid(targetUuid).thenCompose(api::unloadIsland).thenRun(() -> sender.sendMessage(config.getIslandUnloadSuccessMessage(targetPlayerName)));
+            return api.getIslandUuid(targetUuid).thenCompose(islandUuid -> api.admin(sender).unloadIsland(islandUuid)).thenRun(() -> sender.sendMessage(config.getIslandUnloadSuccessMessage(targetPlayerName)));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {

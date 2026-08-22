@@ -6,16 +6,21 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.me.newsky.NewSky;
+import org.me.newsky.cluster.OnlinePlayerRegistry;
+import org.me.newsky.island.CoopHandler;
 
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 public class IslandCoopListener implements Listener {
 
     private final NewSky plugin;
+    private final CoopHandler coopHandler;
+    private final OnlinePlayerRegistry onlinePlayerRegistry;
 
-    public IslandCoopListener(NewSky plugin) {
+    public IslandCoopListener(NewSky plugin, CoopHandler coopHandler, OnlinePlayerRegistry onlinePlayerRegistry) {
         this.plugin = plugin;
+        this.coopHandler = coopHandler;
+        this.onlinePlayerRegistry = onlinePlayerRegistry;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
@@ -25,19 +30,21 @@ public class IslandCoopListener implements Listener {
         String playerName = player.getName();
 
         plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> {
-            plugin.getApi().getOnlinePlayersUUIDs().thenCompose(onlinePlayers -> {
-                if (onlinePlayers.contains(playerUuid)) {
+            try {
+                if (onlinePlayerRegistry.isOnline(playerUuid)) {
                     plugin.debug("IslandCoopListener", "Skipped coop cleanup for player " + playerName + " because they are still online.");
-                    return CompletableFuture.completedFuture(null);
+                    return;
                 }
 
-                return plugin.getApi().removeAllCoopOfPlayer(playerUuid).thenRun(() -> {
+                coopHandler.deleteAllCoopOfPlayer(playerUuid).thenRun(() -> {
                     plugin.debug("IslandCoopListener", "Removed all coop entries for player " + playerName + " on quit.");
+                }).exceptionally(ex -> {
+                    plugin.severe("Error removing coop entries for player " + playerName + " on quit.", ex);
+                    return null;
                 });
-            }).exceptionally(ex -> {
-                plugin.severe("Error removing coop entries for player " + playerName + " on quit.", ex);
-                return null;
-            });
-        }, 60L);
+            } catch (RuntimeException ex) {
+                plugin.severe("Error checking online state for player " + playerName + " on quit.", ex);
+            }
+        }, 100L);
     }
 }

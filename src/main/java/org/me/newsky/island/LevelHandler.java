@@ -124,7 +124,7 @@ public class LevelHandler {
 
     public CompletableFuture<Integer> getIslandLevel(UUID islandUuid) {
         return CompletableFuture.supplyAsync(() -> {
-            return database.getIslandCore(islandUuid).map(DatabaseHandler.IslandCoreData::level).orElse(0);
+            return database.getIslandLevel(islandUuid);
         }, plugin.getBukkitAsyncExecutor());
     }
 

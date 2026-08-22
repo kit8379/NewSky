@@ -1,7 +1,6 @@
 package org.me.newsky.cluster;
 
 import org.me.newsky.NewSky;
-import org.me.newsky.exceptions.PlayerNotOnlineException;
 import org.me.newsky.redis.RedisHandler;
 
 import java.util.HashSet;
@@ -32,23 +31,8 @@ public class OnlinePlayerRegistry extends ClusterState {
         }, "Failed to remove online player: " + playerUuid);
     }
 
-    /**
-     * Whether the player is online anywhere in the cluster. Checked by UUID rather than by name so
-     * that it cannot disagree with the case-insensitive name lookup in the database, and so that it
-     * stays a single field probe instead of pulling every online name across the network.
-     */
     public boolean isOnline(UUID playerUuid) {
         return execute(jedis -> jedis.hexists(ClusterKeys.onlinePlayers(), playerUuid.toString()), "Failed to check online player: " + playerUuid);
-    }
-
-    /**
-     * Online state lives in Redis and changes constantly, so this can only ever be a fail-fast
-     * filter: the player may quit the moment after it passes.
-     */
-    public void requireOnline(UUID playerUuid) {
-        if (!isOnline(playerUuid)) {
-            throw new PlayerNotOnlineException();
-        }
     }
 
     public String getOnlinePlayerServer(UUID playerUuid) {
