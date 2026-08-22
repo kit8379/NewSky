@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
+import org.me.newsky.model.Actor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.CannotRemoveOwnerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
@@ -60,7 +61,9 @@ public class PlayerLeaveCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.player(playerUuid).leave().thenRun(() -> {
+        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> {
+            return api.removeMember(islandUuid, new Actor.Player(playerUuid), playerUuid);
+        }).thenRun(() -> {
             api.sendPlayerMessage(playerUuid, config.getPlayerLeaveSuccessMessage());
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();

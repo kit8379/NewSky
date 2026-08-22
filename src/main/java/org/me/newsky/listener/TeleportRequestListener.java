@@ -1,5 +1,6 @@
 package org.me.newsky.listener;
 
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -24,25 +25,11 @@ public class TeleportRequestListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         UUID playerUuid = player.getUniqueId();
-        TeleportHandler.PendingTeleportTicket pending = teleportHandler.claimPendingTeleport(playerUuid);
-        if (pending == null) {
-            return;
+        Location pendingLocation = teleportHandler.getPendingTeleport(playerUuid);
+        if (pendingLocation != null) {
+            player.teleportAsync(pendingLocation);
+            teleportHandler.removePendingTeleport(playerUuid);
+            plugin.debug("TeleportRequestListener", "Teleported " + player.getName() + " to pending location on join.");
         }
-
-        player.teleportAsync(pending.location()).whenComplete((teleported, error) -> {
-            boolean arrived = error == null && Boolean.TRUE.equals(teleported);
-            teleportHandler.completePendingTeleport(playerUuid, pending, arrived);
-
-            if (arrived) {
-                plugin.debug("TeleportRequestListener", "Teleported " + player.getName()
-                        + " to pending location on join.");
-            } else if (error != null) {
-                plugin.severe("Pending teleport failed for " + player.getName()
-                        + "; request retained for retry", error);
-            } else {
-                plugin.warning("Pending teleport was blocked for " + player.getName()
-                        + "; request retained for retry");
-            }
-        });
     }
 }

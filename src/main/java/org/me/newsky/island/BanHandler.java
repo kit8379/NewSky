@@ -21,11 +21,11 @@ public class BanHandler {
         this.islandDistributor = islandDistributor;
     }
 
-    public CompletableFuture<Void> addBan(Actor actor, UUID islandUuid, UUID playerUuid) {
+    public CompletableFuture<Void> banPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
         return islandDistributor.addBan(islandUuid, actor, playerUuid);
     }
 
-    public CompletableFuture<Void> removeBan(Actor actor, UUID islandUuid, UUID playerUuid) {
+    public CompletableFuture<Void> unbanPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
         return islandDistributor.removeBan(islandUuid, actor, playerUuid);
     }
 
@@ -33,7 +33,7 @@ public class BanHandler {
         return CompletableFuture.supplyAsync(() -> database.getIslandBans(islandUuid).contains(playerUuid), plugin.getBukkitAsyncExecutor());
     }
 
-    public CompletableFuture<Set<UUID>> getIslandBans(UUID islandUuid) {
+    public CompletableFuture<Set<UUID>> getBannedPlayers(UUID islandUuid) {
         return CompletableFuture.supplyAsync(() -> database.getIslandBans(islandUuid), plugin.getBukkitAsyncExecutor());
     }
 }

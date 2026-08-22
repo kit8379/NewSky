@@ -19,8 +19,8 @@ public class UuidHandler {
         this.database = database;
     }
 
-    public CompletableFuture<Void> setPlayerName(UUID uuid, String name) {
-        return CompletableFuture.runAsync(() -> database.setPlayerName(uuid, name), plugin.getBukkitAsyncExecutor());
+    public CompletableFuture<Void> updatePlayerUuid(UUID uuid, String name) {
+        return CompletableFuture.runAsync(() -> database.updatePlayerName(uuid, name), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Optional<UUID>> getPlayerUuid(String name) {

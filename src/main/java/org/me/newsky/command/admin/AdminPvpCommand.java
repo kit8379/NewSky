@@ -5,6 +5,7 @@ import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
+import org.me.newsky.model.Actor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 
@@ -67,7 +68,7 @@ public class AdminPvpCommand implements SubCommand, AsyncTabComplete {
                 return CompletableFuture.completedFuture(null);
             }
 
-            return api.getIslandUuid(targetUuidOpt.get()).thenCompose(islandUuid -> api.admin(sender).togglePvp(islandUuid)).thenAccept(isPvpEnabled -> {
+            return api.getIslandUuid(targetUuidOpt.get()).thenCompose(islandUuid -> api.toggleIslandPvp(islandUuid, new Actor.Bypass(sender.getName()))).thenAccept(isPvpEnabled -> {
                 if (isPvpEnabled) {
                     sender.sendMessage(config.getAdminPvpEnableSuccessMessage(targetPlayerName));
                 } else {

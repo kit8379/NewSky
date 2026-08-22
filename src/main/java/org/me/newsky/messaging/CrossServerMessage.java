@@ -26,11 +26,8 @@ public final class CrossServerMessage {
     private final String status;
     private final String errorType;
     private final String errorMessage;
-    private final long timestamp;
 
-    private CrossServerMessage(String messageId, String correlationId, String type, String source,
-                               String target, String action, JSONObject payload, String status,
-                               String errorType, String errorMessage, long timestamp) {
+    private CrossServerMessage(String messageId, String correlationId, String type, String source, String target, String action, JSONObject payload, String status, String errorType, String errorMessage) {
         this.messageId = messageId;
         this.correlationId = correlationId;
         this.type = type;
@@ -41,33 +38,25 @@ public final class CrossServerMessage {
         this.status = status;
         this.errorType = errorType;
         this.errorMessage = errorMessage;
-        this.timestamp = timestamp;
     }
 
     public static CrossServerMessage request(String source, String target, String action, JSONObject payload) {
         String messageId = UUID.randomUUID().toString();
-        return new CrossServerMessage(messageId, messageId, TYPE_REQUEST, source, target, action,
-                payload, null, null, null, System.currentTimeMillis());
+        return new CrossServerMessage(messageId, messageId, TYPE_REQUEST, source, target, action, payload, null, null, null);
     }
 
     public static CrossServerMessage successResponse(CrossServerMessage request, JSONObject payload) {
-        return new CrossServerMessage(UUID.randomUUID().toString(), request.messageId, TYPE_RESPONSE,
-                request.target, request.source, request.action, payload, STATUS_SUCCESS, null, null,
-                System.currentTimeMillis());
+        return new CrossServerMessage(UUID.randomUUID().toString(), request.messageId, TYPE_RESPONSE, request.target, request.source, request.action, payload, STATUS_SUCCESS, null, null);
     }
 
     public static CrossServerMessage failedResponse(CrossServerMessage request, String errorMessage) {
-        return new CrossServerMessage(UUID.randomUUID().toString(), request.messageId, TYPE_RESPONSE,
-                request.target, request.source, request.action, new JSONObject(), STATUS_FAILED,
-                null, errorMessage, System.currentTimeMillis());
+        return new CrossServerMessage(UUID.randomUUID().toString(), request.messageId, TYPE_RESPONSE, request.target, request.source, request.action, new JSONObject(), STATUS_FAILED, null, errorMessage);
     }
 
     public static CrossServerMessage failedResponse(CrossServerMessage request, Throwable throwable) {
         Throwable cause = unwrap(throwable);
         String message = cause.getMessage() == null ? cause.toString() : cause.getMessage();
-        return new CrossServerMessage(UUID.randomUUID().toString(), request.messageId, TYPE_RESPONSE,
-                request.target, request.source, request.action, new JSONObject(), STATUS_FAILED,
-                cause.getClass().getName(), message, System.currentTimeMillis());
+        return new CrossServerMessage(UUID.randomUUID().toString(), request.messageId, TYPE_RESPONSE, request.target, request.source, request.action, new JSONObject(), STATUS_FAILED, cause.getClass().getName(), message);
     }
 
     public static CrossServerMessage fromJson(String raw) {
@@ -82,15 +71,13 @@ public final class CrossServerMessage {
                 json.optJSONObject("payload"),
                 json.optString("status", null),
                 json.optString("errorType", null),
-                json.optString("errorMessage", null),
-                json.optLong("timestamp", 0L)
+                json.optString("errorMessage", null)
         );
     }
 
     private static Throwable unwrap(Throwable throwable) {
         Throwable current = throwable;
-        while ((current instanceof CompletionException || current instanceof ExecutionException)
-                && current.getCause() != null) {
+        while ((current instanceof CompletionException || current instanceof ExecutionException) && current.getCause() != null) {
             current = current.getCause();
         }
         return current;
@@ -106,7 +93,6 @@ public final class CrossServerMessage {
         json.put("target", target);
         json.put("action", action);
         json.put("payload", payload);
-        json.put("timestamp", timestamp);
 
         if (status != null) {
             json.put("status", status);
@@ -161,9 +147,5 @@ public final class CrossServerMessage {
 
     public String getErrorMessage() {
         return errorMessage;
-    }
-
-    public long getTimestamp() {
-        return timestamp;
     }
 }

@@ -21,37 +21,28 @@ public class CoreHandler {
         this.islandDistributor = islandDistributor;
     }
 
-    /** SELF: a player may only create their own island. */
-    public CompletableFuture<Void> createIsland(Actor actor, UUID ownerUuid) {
-        actor.requireSelf(ownerUuid);
+    public CompletableFuture<Void> createIsland(UUID ownerUuid) {
         return islandDistributor.createIsland(UUID.randomUUID(), ownerUuid);
     }
 
-    /** OWNER, enforced in the delete transaction. */
-    public CompletableFuture<Void> deleteIsland(Actor actor, UUID islandUuid) {
+    public CompletableFuture<Void> deleteIsland(UUID islandUuid, Actor actor) {
         return islandDistributor.deleteIsland(islandUuid, actor);
     }
 
-    /** BYPASS: world placement is an operational concern, not a player-facing one. */
-    public CompletableFuture<Void> loadIsland(Actor actor, UUID islandUuid) {
-        actor.requireBypass();
+    public CompletableFuture<Void> loadIsland(UUID islandUuid) {
         return islandDistributor.loadIsland(islandUuid);
     }
 
-    /** BYPASS: world placement is an operational concern, not a player-facing one. */
-    public CompletableFuture<Void> unloadIsland(Actor actor, UUID islandUuid) {
-        actor.requireBypass();
+    public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
         return islandDistributor.unloadIsland(islandUuid);
     }
 
-    /** MEMBER, enforced in the toggle transaction. */
-    public CompletableFuture<Boolean> toggleLock(Actor actor, UUID islandUuid) {
-        return islandDistributor.toggleLock(islandUuid, actor);
+    public CompletableFuture<Boolean> toggleIslandLock(UUID islandUuid, Actor actor) {
+        return islandDistributor.toggleIslandLock(islandUuid, actor);
     }
 
-    /** MEMBER, enforced in the toggle transaction. */
-    public CompletableFuture<Boolean> togglePvp(Actor actor, UUID islandUuid) {
-        return islandDistributor.togglePvp(islandUuid, actor);
+    public CompletableFuture<Boolean> toggleIslandPvp(UUID islandUuid, Actor actor) {
+        return islandDistributor.toggleIslandPvp(islandUuid, actor);
     }
 
     public CompletableFuture<Boolean> isIslandLock(UUID islandUuid) {

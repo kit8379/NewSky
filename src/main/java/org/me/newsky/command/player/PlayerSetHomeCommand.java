@@ -75,7 +75,7 @@ public class PlayerSetHomeCommand implements SubCommand, AsyncTabComplete {
         float yaw = loc.getYaw();
         float pitch = loc.getPitch();
 
-        api.player(playerUuid).setHome(homeName, worldName, x, y, z, yaw, pitch).thenRun(() -> {
+        api.setHome(playerUuid, homeName, worldName, x, y, z, yaw, pitch).thenRun(() -> {
             player.sendMessage(config.getPlayerSetHomeSuccessMessage(homeName));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();

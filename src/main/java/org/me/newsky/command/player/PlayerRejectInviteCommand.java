@@ -59,7 +59,7 @@ public class PlayerRejectInviteCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.getInvite(playerUuid).thenCompose(optionalInvite -> {
+        api.getPendingInvite(playerUuid).thenCompose(optionalInvite -> {
             if (optionalInvite.isEmpty()) {
                 player.sendMessage(config.getPlayerNoPendingInviteMessage());
                 return CompletableFuture.completedFuture(null);
@@ -68,7 +68,7 @@ public class PlayerRejectInviteCommand implements SubCommand {
             Invitation invite = optionalInvite.get();
             UUID inviterUuid = invite.getInviterUuid();
 
-            return api.player(playerUuid).rejectInvite().thenRun(() -> {
+            return api.removePendingInvite(playerUuid).thenRun(() -> {
                 player.sendMessage(config.getPlayerInviteRejectedMessage());
                 api.sendPlayerMessage(inviterUuid, config.getPlayerInviteRejectedNotifyMessage(player.getName()));
             });

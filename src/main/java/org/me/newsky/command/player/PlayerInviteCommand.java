@@ -8,10 +8,10 @@ import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.InvitedAlreadyException;
+import org.me.newsky.exceptions.PlayerNotOnlineException;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
-import org.me.newsky.exceptions.PlayerNotOnlineException;
 
 import java.util.Collections;
 import java.util.List;
@@ -81,9 +81,11 @@ public class PlayerInviteCommand implements SubCommand, AsyncTabComplete {
 
             UUID targetPlayerUuid = targetUuidOpt.get();
 
-            return api.player(playerUuid).invite(targetPlayerUuid, 600).thenRun(() -> {
-                player.sendMessage(config.getPlayerInviteSentMessage(targetPlayerName));
-                api.sendPlayerMessage(targetPlayerUuid, config.getPlayerInviteReceiveMessage(player.getName()));
+            return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> {
+                return api.addPendingInvite(targetPlayerUuid, islandUuid, playerUuid, 600).thenRun(() -> {
+                    player.sendMessage(config.getPlayerInviteSentMessage(targetPlayerName));
+                    api.sendPlayerMessage(targetPlayerUuid, config.getPlayerInviteReceiveMessage(player.getName()));
+                });
             });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();

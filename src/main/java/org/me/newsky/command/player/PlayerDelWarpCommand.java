@@ -70,7 +70,7 @@ public class PlayerDelWarpCommand implements SubCommand, AsyncTabComplete {
         String warpName = args[1];
         UUID playerUuid = player.getUniqueId();
 
-        api.player(playerUuid).deleteWarp(warpName).thenRun(() -> player.sendMessage(config.getPlayerDelWarpSuccessMessage(warpName))).exceptionally(ex -> {
+        api.delWarp(playerUuid, warpName).thenRun(() -> player.sendMessage(config.getPlayerDelWarpSuccessMessage(warpName))).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());

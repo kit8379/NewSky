@@ -167,7 +167,6 @@ messages:
   player-invite-rejected: "<yellow>You have rejected the island invitation."
   player-already-invited: "<red>Player <aqua>{player} <red>already has a pending island invitation!"
   player-no-pending-invite: "<red>You have no pending island invitations!"
-  player-invite-no-longer-valid: "<red>That invitation is no longer valid - the player who invited you has left the island."
   player-team-limit-reached: "<red>Your island has reached the team member limit of <white>{limit}<red>."
 
   admin-add-member-success: "<green>Successfully added <aqua>{target} <green>to the island of <aqua>{owner}<green>!"

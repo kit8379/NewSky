@@ -109,7 +109,7 @@ public final class LevelUpdateScheduler {
 
         CompletableFuture<Integer> fut;
         try {
-            fut = levelHandler.recalculateIslandLevel(e.islandUuid);
+            fut = levelHandler.calIslandLevel(e.islandUuid);
         } catch (Throwable t) {
             plugin.severe("LevelUpdateScheduler: Failed to start calculate for " + e.islandUuid, t);
             inFlight.decrementAndGet();

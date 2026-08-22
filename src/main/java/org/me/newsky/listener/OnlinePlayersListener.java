@@ -6,26 +6,20 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.me.newsky.NewSky;
-import org.me.newsky.cluster.IslandRegistry;
 import org.me.newsky.cluster.OnlinePlayerRegistry;
-import org.me.newsky.thread.KeyedSequentialExecutor;
 
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 public class OnlinePlayersListener implements Listener {
 
     private final NewSky plugin;
     private final OnlinePlayerRegistry onlinePlayerRegistry;
-    private final IslandRegistry.HostClaim serverInstance;
+    private final String serverID;
 
-    // Keep one player's join/quit updates in Bukkit event order.
-    private final KeyedSequentialExecutor<UUID> updateChains = new KeyedSequentialExecutor<>();
-
-    public OnlinePlayersListener(NewSky plugin, OnlinePlayerRegistry onlinePlayerRegistry, IslandRegistry.HostClaim serverInstance) {
+    public OnlinePlayersListener(NewSky plugin, OnlinePlayerRegistry onlinePlayerRegistry, String serverID) {
         this.plugin = plugin;
         this.onlinePlayerRegistry = onlinePlayerRegistry;
-        this.serverInstance = serverInstance;
+        this.serverID = serverID;
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
@@ -33,9 +27,9 @@ public class OnlinePlayersListener implements Listener {
         UUID playerUuid = event.getPlayer().getUniqueId();
         String playerName = event.getPlayer().getName();
 
-        enqueue(playerUuid, () -> {
-            onlinePlayerRegistry.addOnlinePlayer(playerUuid, playerName, serverInstance);
-            plugin.debug("OnlinePlayersListener", "Player " + playerName + " joined on server " + serverInstance.serverName());
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            onlinePlayerRegistry.addOnlinePlayer(playerUuid, playerName, serverID);
+            plugin.debug("OnlinePlayersListener", "Player " + playerName + " joined on server " + serverID);
         });
     }
 
@@ -44,19 +38,9 @@ public class OnlinePlayersListener implements Listener {
         UUID playerUuid = event.getPlayer().getUniqueId();
         String playerName = event.getPlayer().getName();
 
-        enqueue(playerUuid, () -> {
-            onlinePlayerRegistry.removeOnlinePlayer(playerUuid, serverInstance);
-            plugin.debug("OnlinePlayersListener", "Player " + playerName + " quit from server " + serverInstance.serverName());
-        });
-    }
-
-    private void enqueue(UUID playerUuid, Runnable update) {
-        updateChains.submit(playerUuid, () -> {
-            return CompletableFuture.runAsync(update, plugin.getBukkitAsyncExecutor());
-        }).whenComplete((result, error) -> {
-            if (error != null) {
-                plugin.severe("Failed to update online player registry for " + playerUuid, error);
-            }
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            onlinePlayerRegistry.removeOnlinePlayer(playerUuid);
+            plugin.debug("OnlinePlayersListener", "Player " + playerName + " quit from server " + serverID);
         });
     }
 }

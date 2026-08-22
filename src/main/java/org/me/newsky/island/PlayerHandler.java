@@ -9,15 +9,12 @@ import org.me.newsky.model.Actor;
 import org.me.newsky.model.Invitation;
 import org.me.newsky.network.IslandDistributor;
 
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
+import java.util.stream.Collectors;
 
 public class PlayerHandler {
 
@@ -27,8 +24,7 @@ public class PlayerHandler {
     private final InvitationStore invitationStore;
     private final OnlinePlayerRegistry onlinePlayerRegistry;
 
-    public PlayerHandler(NewSky plugin, DatabaseHandler database, IslandDistributor islandDistributor,
-                         InvitationStore invitationStore, OnlinePlayerRegistry onlinePlayerRegistry) {
+    public PlayerHandler(NewSky plugin, DatabaseHandler database, IslandDistributor islandDistributor, InvitationStore invitationStore, OnlinePlayerRegistry onlinePlayerRegistry) {
         this.plugin = plugin;
         this.database = database;
         this.islandDistributor = islandDistributor;
@@ -36,21 +32,21 @@ public class PlayerHandler {
         this.onlinePlayerRegistry = onlinePlayerRegistry;
     }
 
-    public CompletableFuture<Void> addMember(Actor actor, UUID islandUuid, UUID playerUuid,
-                                             String role, UUID vouchedBy) {
-        actor.requireSelf(playerUuid);
-        return islandDistributor.addMember(islandUuid, playerUuid, role, vouchedBy);
+    public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role) {
+        // Conflict checks and the new member's home seeding both happen inside the insert
+        // transaction, under the island lock.
+        return islandDistributor.addMember(islandUuid, playerUuid, role);
     }
 
-    public CompletableFuture<Void> removeMember(Actor actor, UUID islandUuid, UUID playerUuid) {
+    public CompletableFuture<Void> removeMember(UUID islandUuid, Actor actor, UUID playerUuid) {
         return islandDistributor.removeMember(islandUuid, actor, playerUuid);
     }
 
-    public CompletableFuture<Void> setOwner(Actor actor, UUID islandUuid, UUID newOwnerUuid) {
+    public CompletableFuture<Void> setOwner(UUID islandUuid, Actor actor, UUID newOwnerUuid) {
         return islandDistributor.setOwner(islandUuid, actor, newOwnerUuid);
     }
 
-    public CompletableFuture<Void> expelPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {
+    public CompletableFuture<Void> expelPlayer(UUID islandUuid, Actor actor, UUID playerUuid) {
         return CompletableFuture.runAsync(() -> {
             onlinePlayerRegistry.requireOnline(playerUuid);
 
@@ -63,16 +59,10 @@ public class PlayerHandler {
             if (islandPlayers.contains(playerUuid)) {
                 throw new CannotExpelIslandPlayerException();
             }
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> {
-            return islandDistributor.expelPlayer(islandUuid, actor, playerUuid);
-        });
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.expelPlayer(islandUuid, playerUuid));
     }
 
-    public CompletableFuture<Void> addInvite(Actor actor, UUID islandUuid, UUID inviteeUuid, int ttlSeconds) {
-        if (!(actor instanceof Actor.Player inviter)) {
-            return CompletableFuture.failedFuture(new ActorNotAuthorizedException());
-        }
-
+    public CompletableFuture<Void> addPendingInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {
         return CompletableFuture.runAsync(() -> {
             onlinePlayerRegistry.requireOnline(inviteeUuid);
 
@@ -86,118 +76,32 @@ public class PlayerHandler {
                 throw new IslandAlreadyExistException();
             }
 
-            if (!invitationStore.addInvite(inviteeUuid, islandUuid, inviter.uuid(), ttlSeconds)) {
+            Optional<Invitation> existingInvite = invitationStore.getIslandInvite(inviteeUuid);
+            if (existingInvite.isPresent()) {
                 throw new InvitedAlreadyException();
             }
+
+            invitationStore.addIslandInvite(inviteeUuid, islandUuid, inviterUuid, ttlSeconds);
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    public CompletableFuture<Void> removeInvite(Actor actor, UUID inviteeUuid) {
-        actor.requireSelf(inviteeUuid);
-        return CompletableFuture.runAsync(() -> invitationStore.removeInvite(inviteeUuid),
-                plugin.getBukkitAsyncExecutor());
+    public CompletableFuture<Void> removePendingInvite(UUID playerUuid) {
+        return CompletableFuture.runAsync(() -> invitationStore.removeIslandInvite(playerUuid), plugin.getBukkitAsyncExecutor());
     }
 
-    public CompletableFuture<Optional<Invitation>> getInvite(UUID playerUuid) {
-        return CompletableFuture.supplyAsync(() -> invitationStore.getInvite(playerUuid),
-                plugin.getBukkitAsyncExecutor());
-    }
-
-    private static final int REINSTATED_INVITE_TTL_SECONDS = 300;
-
-    public CompletableFuture<Optional<Invitation>> acceptInvite(Actor actor, UUID inviteeUuid) {
-        actor.requireSelf(inviteeUuid);
-
-        return CompletableFuture.supplyAsync(() -> invitationStore.consumeInvite(inviteeUuid),
-                plugin.getBukkitAsyncExecutor()).thenCompose(invite -> {
-            if (invite.isEmpty()) {
-                return CompletableFuture.completedFuture(Optional.empty());
-            }
-
-            return acceptConsumedInvite(actor, inviteeUuid, invite.get());
-        });
-    }
-
-    private CompletableFuture<Optional<Invitation>> acceptConsumedInvite(
-            Actor actor, UUID inviteeUuid, Invitation invitation) {
-        UUID islandUuid = invitation.getIslandUuid();
-        UUID inviterUuid = invitation.getInviterUuid();
-
-        return addMember(actor, islandUuid, inviteeUuid, "member", inviterUuid)
-                .thenApply(v -> Optional.of(invitation))
-                .exceptionallyCompose(error -> {
-                    return recoverFailedAccept(inviteeUuid, invitation, error);
-                });
-    }
-
-    private CompletableFuture<Optional<Invitation>> recoverFailedAccept(
-            UUID inviteeUuid, Invitation invitation, Throwable error) {
-        UUID islandUuid = invitation.getIslandUuid();
-
-        return CompletableFuture.supplyAsync(() -> database.getIslandUuid(inviteeUuid),
-                plugin.getBukkitAsyncExecutor()).thenCompose(currentIsland -> {
-            if (currentIsland.filter(islandUuid::equals).isPresent()) {
-                plugin.warning("Invitation response failed, but membership committed for " + inviteeUuid);
-                return CompletableFuture.completedFuture(Optional.of(invitation));
-            }
-
-            Throwable cause = unwrap(error);
-            if (shouldReinstateInvite(currentIsland, cause)) {
-                reinstateInvite(inviteeUuid, invitation);
-            } else if (cause instanceof TimeoutException) {
-                plugin.warning("Not reinstating invitation after an ambiguous timeout for " + inviteeUuid);
-            }
-
-            return CompletableFuture.failedFuture(error);
-        });
-    }
-
-    private boolean shouldReinstateInvite(Optional<UUID> currentIsland, Throwable cause) {
-        return currentIsland.isEmpty()
-                && !(cause instanceof InviterNotMemberException)
-                && !(cause instanceof TimeoutException);
-    }
-
-    private void reinstateInvite(UUID inviteeUuid, Invitation invitation) {
-        try {
-            invitationStore.addInvite(inviteeUuid, invitation.getIslandUuid(),
-                    invitation.getInviterUuid(), REINSTATED_INVITE_TTL_SECONDS);
-        } catch (Exception error) {
-            plugin.severe("Failed to reinstate invitation for " + inviteeUuid, error);
-        }
-    }
-
-    private Throwable unwrap(Throwable error) {
-        Throwable current = error;
-        while ((current instanceof CompletionException || current instanceof ExecutionException)
-                && current.getCause() != null) {
-            current = current.getCause();
-        }
-        return current;
+    public CompletableFuture<Optional<Invitation>> getPendingInvite(UUID playerUuid) {
+        return CompletableFuture.supplyAsync(() -> invitationStore.getIslandInvite(playerUuid), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<UUID> getIslandOwner(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> {
-            return database.getIslandCore(islandUuid)
-                    .flatMap(DatabaseHandler.IslandCoreData::owner)
-                    .orElseThrow(IslandDoesNotExistException::new);
-        }, plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> database.getIslandCore(islandUuid).flatMap(DatabaseHandler.IslandCoreData::owner).orElseThrow(IslandDoesNotExistException::new), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Set<UUID>> getIslandMembers(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> {
-            Set<UUID> members = new HashSet<>();
-            for (Map.Entry<UUID, String> entry : database.getIslandPlayers(islandUuid).entrySet()) {
-                if ("member".equalsIgnoreCase(entry.getValue())) {
-                    members.add(entry.getKey());
-                }
-            }
-            return members;
-        }, plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> database.getIslandPlayers(islandUuid).entrySet().stream().filter(entry -> "member".equalsIgnoreCase(entry.getValue())).map(Map.Entry::getKey).collect(Collectors.toSet()), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Set<UUID>> getIslandPlayers(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> database.getIslandPlayers(islandUuid).keySet(),
-                plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> database.getIslandPlayers(islandUuid).keySet(), plugin.getBukkitAsyncExecutor());
     }
 }

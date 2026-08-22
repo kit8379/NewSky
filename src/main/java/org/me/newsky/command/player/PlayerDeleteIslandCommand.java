@@ -5,6 +5,7 @@ import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
+import org.me.newsky.model.Actor;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.NoActiveServerException;
@@ -101,7 +102,7 @@ public class PlayerDeleteIslandCommand implements SubCommand {
                 if (stage == 2) {
                     reset(playerUuid);
 
-                    return api.player(playerUuid).deleteIsland().thenRun(() -> {
+                    return api.deleteIsland(islandUuid, new Actor.Player(playerUuid)).thenRun(() -> {
                         api.sendPlayerMessage(playerUuid, config.getPlayerDeleteSuccessMessage());
                     });
                 }

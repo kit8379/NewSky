@@ -3,20 +3,14 @@ package org.me.newsky.messaging;
 import org.bukkit.Bukkit;
 import org.json.JSONObject;
 import org.me.newsky.NewSky;
-import org.me.newsky.cluster.ClusterKeys;
 import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.StreamEntryID;
-import redis.clients.jedis.params.XAddParams;
 import redis.clients.jedis.params.XReadParams;
 import redis.clients.jedis.resps.StreamEntry;
 
 import java.lang.reflect.Constructor;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,11 +18,9 @@ import java.util.concurrent.TimeUnit;
 
 public final class CrossServerMessenger {
 
+    private static final String STREAM_PREFIX = "newsky:messaging:inbox:";
     private static final String FIELD_MESSAGE = "message";
     private static final long REQUEST_TIMEOUT_SECONDS = 30L;
-    private static final long STALE_REQUEST_MILLIS = (REQUEST_TIMEOUT_SECONDS + 5L) * 1000L;
-    private static final long HANDLER_TIMEOUT_SECONDS = 600L;
-    private static final long INBOX_MAX_LEN = 10_000L;
     private static final int READ_BLOCK_MILLIS = 1000;
     private static final int READ_COUNT = 10;
 
@@ -37,7 +29,7 @@ public final class CrossServerMessenger {
     private final String serverID;
     private final Map<String, CrossServerMessageHandler> handlers = new ConcurrentHashMap<>();
     private final Map<String, CompletableFuture<JSONObject>> pendingRequests = new ConcurrentHashMap<>();
-    private final Set<CompletableFuture<?>> activeHandlers = ConcurrentHashMap.newKeySet();
+    private final Set<String> processingEntries = ConcurrentHashMap.newKeySet();
 
     private volatile boolean running;
 
@@ -63,9 +55,7 @@ public final class CrossServerMessenger {
             }
         });
 
-        future.orTimeout(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).whenComplete((result, error) -> {
-            pendingRequests.remove(message.getMessageId());
-        });
+        future.orTimeout(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).whenComplete((result, throwable) -> pendingRequests.remove(message.getMessageId()));
         return future;
     }
 
@@ -83,32 +73,18 @@ public final class CrossServerMessenger {
         plugin.debug("CrossServerMessenger", "Started Redis Stream consumer for " + serverID);
     }
 
-    public boolean stop() {
+    public void stop() {
         running = false;
-        pendingRequests.forEach((id, future) -> {
-            future.completeExceptionally(new IllegalStateException("Cross-server messenger stopped"));
-        });
+        pendingRequests.forEach((id, future) -> future.completeExceptionally(new IllegalStateException("Cross-server messenger stopped")));
         pendingRequests.clear();
-
-        if (!activeHandlers.isEmpty()) {
-            plugin.warning("CrossServerMessenger stopped intake with " + activeHandlers.size()
-                    + " request handler(s) still completing");
-        }
-        return !activeHandlers.isEmpty();
     }
 
     private void consumeLoop() {
-        // Advance before dispatch: a failed response may time out, but a committed write is never replayed.
-        StreamEntryID lastReadId = new StreamEntryID(0L, 0L);
-
         while (running && plugin.isEnabled()) {
+            boolean skippedOnly = true;
+
             try (Jedis jedis = redisHandler.getJedis()) {
-                XReadParams readParams = XReadParams.xReadParams()
-                        .block(READ_BLOCK_MILLIS)
-                        .count(READ_COUNT);
-                Map<String, StreamEntryID> inbox = Collections.singletonMap(
-                        inboxKey(serverID), lastReadId);
-                List<Map.Entry<String, List<StreamEntry>>> streams = jedis.xread(readParams, inbox);
+                List<Map.Entry<String, List<StreamEntry>>> streams = jedis.xread(XReadParams.xReadParams().block(READ_BLOCK_MILLIS).count(READ_COUNT), Collections.singletonMap(inboxKey(serverID), StreamEntryID.MINIMUM_ID));
 
                 if (streams == null || streams.isEmpty()) {
                     continue;
@@ -116,8 +92,9 @@ public final class CrossServerMessenger {
 
                 for (Map.Entry<String, List<StreamEntry>> stream : streams) {
                     for (StreamEntry entry : stream.getValue()) {
-                        lastReadId = entry.getID();
-                        processEntry(entry);
+                        if (processEntry(entry)) {
+                            skippedOnly = false;
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -127,87 +104,74 @@ public final class CrossServerMessenger {
                 }
             }
 
+            if (skippedOnly) {
+                sleepQuietly(50L);
+            }
         }
     }
 
-    private void processEntry(StreamEntry entry) {
+    private boolean processEntry(StreamEntry entry) {
         String entryId = entry.getID().toString();
+        if (!processingEntries.add(entryId)) {
+            return false;
+        }
 
         try {
             String raw = entry.getFields().get(FIELD_MESSAGE);
             if (raw == null || raw.isEmpty()) {
                 deleteEntry(entry.getID());
-                return;
+                return true;
             }
 
             CrossServerMessage message = CrossServerMessage.fromJson(raw);
             if (!serverID.equals(message.getTarget())) {
-                plugin.warning("Dropping message targeted to " + message.getTarget()
-                        + " from inbox " + serverID);
+                plugin.warning("Dropping cross-server message targeted to " + message.getTarget() + " from inbox " + serverID);
                 deleteEntry(entry.getID());
-                return;
+                return true;
             }
 
             if (CrossServerMessage.TYPE_RESPONSE.equals(message.getType())) {
                 handleResponse(message);
                 deleteEntry(entry.getID());
-                return;
+                return true;
             }
 
             if (CrossServerMessage.TYPE_REQUEST.equals(message.getType())) {
-                if (isStale(message)) {
-                    plugin.warning("Dropping stale request " + message.getAction()
-                            + " from " + message.getSource());
-                    deleteEntry(entry.getID());
-                    return;
-                }
-
                 handleRequest(entry.getID(), message);
-                return;
+                return true;
             }
 
             plugin.warning("Dropping unknown cross-server message type: " + message.getType());
             deleteEntry(entry.getID());
+            return true;
         } catch (Exception e) {
             plugin.severe("Failed to process cross-server stream entry " + entryId, e);
             deleteEntry(entry.getID());
+            return true;
         }
-    }
-
-    private boolean isStale(CrossServerMessage message) {
-        return message.getTimestamp() > 0
-                && System.currentTimeMillis() - message.getTimestamp() > STALE_REQUEST_MILLIS;
     }
 
     private void handleRequest(StreamEntryID entryId, CrossServerMessage message) {
         CrossServerMessageHandler handler = handlers.get(message.getAction());
         if (handler == null) {
-            CrossServerMessage response = CrossServerMessage.failedResponse(message,
-                    "No handler registered for action: " + message.getAction());
-            sendAndDeleteAsync(entryId, response);
+            sendAndDeleteAsync(entryId, CrossServerMessage.failedResponse(message, "No handler registered for action: " + message.getAction()));
             return;
         }
 
         try {
-            CompletableFuture<JSONObject> handling = handler.handle(message.getPayload())
-                    .orTimeout(HANDLER_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            activeHandlers.add(handling);
-            handling.whenCompleteAsync((payload, throwable) -> {
-                activeHandlers.remove(handling);
-                CrossServerMessage response = createResponse(message, payload, throwable);
+            handler.handle(message.getPayload()).whenCompleteAsync((payload, throwable) -> {
+                CrossServerMessage response;
+                if (throwable == null) {
+                    response = CrossServerMessage.successResponse(message, payload == null ? new JSONObject() : payload);
+                } else {
+                    response = CrossServerMessage.failedResponse(message, throwable);
+                }
+
                 sendAndDelete(entryId, response);
             }, plugin.getBukkitAsyncExecutor());
         } catch (Exception e) {
             sendAndDeleteAsync(entryId, CrossServerMessage.failedResponse(message, e));
         }
-    }
-
-    private CrossServerMessage createResponse(CrossServerMessage request, JSONObject payload,
-                                              Throwable error) {
-        if (error != null) {
-            return CrossServerMessage.failedResponse(request, error);
-        }
-        return CrossServerMessage.successResponse(request, payload == null ? new JSONObject() : payload);
     }
 
     private void handleResponse(CrossServerMessage message) {
@@ -247,8 +211,7 @@ public final class CrossServerMessenger {
         }
     }
 
-    private RuntimeException instantiateRemoteException(Class<? extends RuntimeException> clazz,
-                                                         String errorMessage) throws Exception {
+    private RuntimeException instantiateRemoteException(Class<? extends RuntimeException> clazz, String errorMessage) throws Exception {
         try {
             Constructor<? extends RuntimeException> constructor = clazz.getDeclaredConstructor();
             constructor.setAccessible(true);
@@ -267,6 +230,7 @@ public final class CrossServerMessenger {
             plugin.severe("Failed to send cross-server response for " + response.getCorrelationId(), e);
         } finally {
             deleteEntry(entryId);
+            processingEntries.remove(entryId.toString());
         }
     }
 
@@ -289,13 +253,8 @@ public final class CrossServerMessenger {
 
     private void send(CrossServerMessage message) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            XAddParams addParams = XAddParams.xAddParams()
-                    .maxLen(INBOX_MAX_LEN)
-                    .approximateTrimming();
-            jedis.xadd(inboxKey(message.getTarget()), addParams,
-                    Map.of(FIELD_MESSAGE, message.toJson()));
-            plugin.debug("CrossServerMessenger", "Sent " + message.getType() + " "
-                    + message.getAction() + " to " + message.getTarget());
+            jedis.xadd(inboxKey(message.getTarget()), StreamEntryID.NEW_ENTRY, Map.of(FIELD_MESSAGE, message.toJson()));
+            plugin.debug("CrossServerMessenger", "Sent " + message.getType() + " " + message.getAction() + " to " + message.getTarget());
         }
     }
 
@@ -304,11 +263,13 @@ public final class CrossServerMessenger {
             jedis.xdel(inboxKey(serverID), entryId);
         } catch (Exception e) {
             plugin.severe("Failed to delete cross-server stream entry " + entryId, e);
+        } finally {
+            processingEntries.remove(entryId.toString());
         }
     }
 
     private String inboxKey(String serverName) {
-        return ClusterKeys.messagingInbox(serverName);
+        return STREAM_PREFIX + serverName;
     }
 
     private void sleepQuietly(long millis) {

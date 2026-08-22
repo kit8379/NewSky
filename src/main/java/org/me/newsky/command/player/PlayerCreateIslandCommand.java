@@ -56,10 +56,10 @@ public class PlayerCreateIslandCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.player(playerUuid).createIsland().thenRun(() -> {
+        api.createIsland(playerUuid).thenRun(() -> {
             player.sendMessage(config.getPlayerCreateSuccessMessage());
         }).thenCompose(v -> {
-            return api.player(playerUuid).home("default");
+            return api.home(playerUuid, "default", playerUuid);
         }).thenRun(() -> {
             api.sendPlayerMessage(playerUuid, config.getPlayerHomeSuccessMessage("default"));
         }).exceptionally(ex -> {

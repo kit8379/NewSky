@@ -75,7 +75,7 @@ public class PlayerBiomeCommand implements SubCommand, AsyncTabComplete {
         int chunkX = player.getLocation().getChunk().getX();
         int chunkZ = player.getLocation().getChunk().getZ();
 
-        api.player(playerUuid).applyBiome(worldName, chunkX, chunkZ, biomeName).thenRun(() -> player.sendMessage(config.getPlayerBiomeChangeSuccessMessage(biomeName))).exceptionally(ex -> {
+        api.applyPlayerChunkBiome(playerUuid, worldName, chunkX, chunkZ, biomeName).thenRun(() -> player.sendMessage(config.getPlayerBiomeChangeSuccessMessage(biomeName))).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());

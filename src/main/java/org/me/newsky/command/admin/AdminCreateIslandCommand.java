@@ -68,7 +68,7 @@ public class AdminCreateIslandCommand implements SubCommand, AsyncTabComplete {
                 return CompletableFuture.completedFuture(null);
             }
 
-            return api.admin(sender).createIsland(targetUuidOpt.get()).thenRun(() -> {
+            return api.createIsland(targetUuidOpt.get()).thenRun(() -> {
                 sender.sendMessage(config.getAdminCreateSuccessMessage(targetPlayerName));
             });
         }).exceptionally(ex -> {

@@ -4,10 +4,6 @@
     <strong>Scalable. Async. Redis. Built for Multi-Server.</strong>
 </div>
 
-<div align="center">
-    <a href="ARCHITECTURE.md">Code guide and consistency rules</a>
-</div>
-
 ---
 
 <h2 align="center">⚠️ Important Notice ⚠️</h2>
@@ -44,28 +40,6 @@ NewSky provide smoother gameplay and better scalability for modern Minecraft net
 - Redis
 - MySQL
 - AdvancedSlimeWorldManager
-
-### Cluster consistency model
-
-- Every JVM boot receives a unique instance ID. Redis island/player ownership records the exact
-  instance, not only the proxy server name.
-- Heartbeats are leases. A server self-fences before lease expiry, and every claim/write checks
-  the current instance atomically in Redis.
-- MySQL `write_epoch` fences transactions that were already waiting on a row lock when a Redis
-  lease changed hands. Old-host transactions are rolled back under the same island row lock.
-- MySQL `state_version` orders enforcement mutations. Hosted snapshots accept only the next
-  version, ignore duplicates, and reconcile from a consistent read when a gap is detected.
-- Island creation is a recoverable `provisioning` -> `ready` state machine. If a JVM dies after
-  committing ownership but before finishing the world, the next fenced host resumes provisioning.
-- Redis Stream inboxes are consumed at-most-once per boot; stale boot inboxes are cleared in the
-  same atomic operation that publishes the new heartbeat. Toggle operations also carry durable
-  operation IDs, so replay cannot invert the setting twice.
-- Startup migrates existing island tables online by adding `state_version`, `write_epoch`, and
-  `provision_state`, and creates the operation ledger automatically. Back up MySQL before the first
-  upgraded rollout.
-
-Each proxy server name must be unique in the cluster. A second live JVM using the same name is
-refused at startup rather than being allowed to split-brain the first one.
 
 ---
 

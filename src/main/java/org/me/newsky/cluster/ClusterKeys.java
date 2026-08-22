@@ -16,9 +16,6 @@ public final class ClusterKeys {
     private static final String SERVER_HEARTBEAT_PREFIX = "newsky:heartbeat:server:";
     private static final String GAME_SERVER_HEARTBEAT_PREFIX = "newsky:heartbeat:game_server:";
     private static final String INVITATION_PREFIX = "newsky:invitation:island:";
-    private static final String COOP_CLEANUP_QUEUE = "newsky:cleanup:coop";
-    private static final String COOP_CLEANUP_LEASES = "newsky:cleanup:coop:leases";
-    private static final String MESSAGING_INBOX_PREFIX = "newsky:messaging:inbox:";
 
     private ClusterKeys() {
     }
@@ -61,17 +58,5 @@ public final class ClusterKeys {
 
     public static String invitation(UUID inviteeUuid) {
         return INVITATION_PREFIX + inviteeUuid;
-    }
-
-    public static String coopCleanupQueue() {
-        return COOP_CLEANUP_QUEUE;
-    }
-
-    public static String coopCleanupLeases() {
-        return COOP_CLEANUP_LEASES;
-    }
-
-    public static String messagingInbox(String serverName) {
-        return MESSAGING_INBOX_PREFIX + serverName;
     }
 }

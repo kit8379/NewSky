@@ -38,9 +38,9 @@ public class LevelHandler {
         this.pointsByMaterialOrdinal = table;
     }
 
-    public CompletableFuture<Integer> recalculateIslandLevel(UUID islandUuid) {
+    public CompletableFuture<Integer> calIslandLevel(UUID islandUuid) {
         if (!Bukkit.isPrimaryThread()) {
-            return CompletableFuture.completedFuture(null).thenComposeAsync(v -> recalculateIslandLevel(islandUuid), Bukkit.getScheduler().getMainThreadExecutor(plugin));
+            return CompletableFuture.completedFuture(null).thenComposeAsync(v -> calIslandLevel(islandUuid), Bukkit.getScheduler().getMainThreadExecutor(plugin));
         }
 
         String islandName = IslandUtils.UUIDToName(islandUuid);
@@ -53,15 +53,12 @@ public class LevelHandler {
             });
         }
 
-        // The island's build area is [-half, half-1] on both axes - the same bounds the
-        // protection listener enforces. Chunks are scanned only as far as that area reaches,
-        // and each chunk is clipped to it below, so blocks beyond the border never score.
         int halfSize = config.getIslandSize() / 2;
 
         int minChunkX = Math.floorDiv(-halfSize, 16);
         int minChunkZ = Math.floorDiv(-halfSize, 16);
-        int maxChunkX = Math.floorDiv(halfSize - 1, 16);
-        int maxChunkZ = Math.floorDiv(halfSize - 1, 16);
+        int maxChunkX = Math.floorDiv(halfSize, 16);
+        int maxChunkZ = Math.floorDiv(halfSize, 16);
 
         List<CompletableFuture<Chunk>> chunkFutures = new ArrayList<>();
 
@@ -96,37 +93,24 @@ public class LevelHandler {
             long totalPoints = 0;
 
             for (ChunkSnapshot snapshot : snapshots) {
-                totalPoints += calculateSnapshotPoints(snapshot, minY, maxY, halfSize, table);
+                totalPoints += calculateSnapshotPoints(snapshot, minY, maxY, table);
             }
 
             return (int) Math.round((double) totalPoints / 100.0);
         }, plugin.getBukkitAsyncExecutor()).thenApply(totalLevel -> {
-            database.setIslandLevel(islandUuid, totalLevel);
+            database.updateIslandLevel(islandUuid, totalLevel);
             plugin.debug("LevelHandler", "Calculated level for island " + islandUuid + ": " + totalLevel);
             return totalLevel;
         });
     }
 
-    private static long calculateSnapshotPoints(ChunkSnapshot snapshot, int minY, int maxY, int halfSize, int[] table) {
-        // Clip the chunk's local coordinates to the island's build area so columns outside the
-        // border (edge chunks straddle it) contribute nothing.
-        int chunkBaseX = snapshot.getX() << 4;
-        int chunkBaseZ = snapshot.getZ() << 4;
-
-        int startX = Math.max(0, -halfSize - chunkBaseX);
-        int endX = Math.min(15, (halfSize - 1) - chunkBaseX);
-        int startZ = Math.max(0, -halfSize - chunkBaseZ);
-        int endZ = Math.min(15, (halfSize - 1) - chunkBaseZ);
-
-        if (startX > endX || startZ > endZ) {
-            return 0;
-        }
+    private static long calculateSnapshotPoints(ChunkSnapshot snapshot, int minY, int maxY, int[] table) {
 
         long points = 0;
 
         for (int y = minY; y < maxY; y++) {
-            for (int z = startZ; z <= endZ; z++) {
-                for (int x = startX; x <= endX; x++) {
+            for (int z = 0; z < 16; z++) {
+                for (int x = 0; x < 16; x++) {
 
                     Material mat = snapshot.getBlockType(x, y, z);
                     points += table[mat.ordinal()];

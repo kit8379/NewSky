@@ -68,14 +68,12 @@ public class PlayerDelHomeCommand implements SubCommand, AsyncTabComplete {
 
         String homeName = args[1];
 
-        // Case-insensitive: names are stored lowercased and common MySQL collations compare
-        // case-insensitively, so "Default" would otherwise slip past this guard and delete it.
-        if ("default".equalsIgnoreCase(homeName)) {
+        if ("default".equals(homeName)) {
             player.sendMessage(config.getPlayerCannotDeleteDefaultHomeMessage());
             return true;
         }
 
-        api.player(player.getUniqueId()).deleteHome(homeName).thenRun(() -> {
+        api.delHome(player.getUniqueId(), homeName).thenRun(() -> {
             player.sendMessage(config.getPlayerDelHomeSuccessMessage(homeName));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();

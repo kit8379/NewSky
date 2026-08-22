@@ -18,10 +18,6 @@
         <hikari.version>7.0.2</hikari.version>
         <jedis.version>7.2.0</jedis.version>
         <vault.version>1.7.1</vault.version>
-        <!-- 4.2.0-SNAPSHOT moved to Java 25 in June 2026. Pin the last Java 21 build so
-             clean builds stay reproducible instead of silently downloading incompatible bytecode. -->
-        <asp.api.version>4.2.0-20260324.164458-18</asp.api.version>
-        <asp.mysql-loader.version>4.2.0-20260324.164525-18</asp.mysql-loader.version>
     </properties>
 
     <build>
@@ -176,14 +172,14 @@
         <dependency>
             <groupId>com.infernalsuite.asp</groupId>
             <artifactId>api</artifactId>
-            <version>${asp.api.version}</version>
+            <version>4.2.0-SNAPSHOT</version>
             <scope>provided</scope>
         </dependency>
 
         <dependency>
             <groupId>com.infernalsuite.asp</groupId>
             <artifactId>mysql-loader</artifactId>
-            <version>${asp.mysql-loader.version}</version>
+            <version>4.2.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>

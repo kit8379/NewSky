@@ -3,7 +3,6 @@ package org.me.newsky.island;
 import org.me.newsky.NewSky;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.exceptions.*;
-import org.me.newsky.model.Actor;
 import org.me.newsky.network.IslandDistributor;
 import org.me.newsky.util.IslandUtils;
 
@@ -25,10 +24,7 @@ public class WarpHandler {
         this.islandDistributor = islandDistributor;
     }
 
-    /** SELF: warps belong to a player. Island membership is enforced by the foreign key below. */
-    public CompletableFuture<Void> setWarp(Actor actor, UUID playerUuid, String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
-        actor.requireSelf(playerUuid);
-
+    public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
         return CompletableFuture.runAsync(() -> {
             // The island is derived from the world the point lives in. Membership of that island is
             // enforced by the island_warps to island_players foreign key, so no lookup is needed here.
@@ -44,33 +40,19 @@ public class WarpHandler {
 
             String warpLocation = x + "," + y + "," + z + "," + yaw + "," + pitch;
 
-            database.setWarp(islandUuid, playerUuid, normalizedWarpName, warpLocation);
+            database.updateWarpPoint(islandUuid, playerUuid, normalizedWarpName, warpLocation);
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    /** SELF: warps belong to a player. */
-    public CompletableFuture<Void> deleteWarp(Actor actor, UUID playerUuid, String warpName) {
-        actor.requireSelf(playerUuid);
-
-        // Names are stored lowercased by setWarp, so every lookup normalizes the same way.
-        String normalizedWarpName = warpName.toLowerCase(Locale.ROOT);
-
+    public CompletableFuture<Void> delWarp(UUID playerUuid, String warpName) {
         return CompletableFuture.runAsync(() -> {
             UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
 
-            database.deleteWarp(islandUuid, playerUuid, normalizedWarpName);
+            database.deleteWarpPoint(islandUuid, playerUuid, warpName);
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    /**
-     * SELF on the traveller only. Unlike a home, a warp is meant to be visited by others, so the
-     * warp's owner may be anyone; what a player may not do is send somebody else through it.
-     */
-    public CompletableFuture<Void> teleportToWarp(Actor actor, UUID warpPlayerUuid, String warpName, UUID targetPlayerUuid) {
-        actor.requireSelf(targetPlayerUuid);
-
-        String normalizedWarpName = warpName.toLowerCase(Locale.ROOT);
-
+    public CompletableFuture<Void> warp(UUID warpPlayerUuid, String warpName, UUID targetPlayerUuid) {
         return CompletableFuture.supplyAsync(() -> {
             UUID islandUuid = database.getIslandUuid(warpPlayerUuid).orElseThrow(IslandDoesNotExistException::new);
 
@@ -86,7 +68,7 @@ public class WarpHandler {
                 throw new IslandLockedException();
             }
 
-            String warpLocation = Optional.ofNullable(database.getIslandWarps(islandUuid, warpPlayerUuid).get(normalizedWarpName)).orElseThrow(WarpDoesNotExistException::new);
+            String warpLocation = Optional.ofNullable(database.getIslandWarps(islandUuid, warpPlayerUuid).get(warpName)).orElseThrow(WarpDoesNotExistException::new);
 
             return new WarpTarget(islandUuid, warpLocation);
         }, plugin.getBukkitAsyncExecutor()).thenCompose(target -> islandDistributor.teleportIsland(target.islandUuid(), targetPlayerUuid, IslandUtils.UUIDToName(target.islandUuid()), target.warpLocation()));

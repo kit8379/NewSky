@@ -1,60 +1,20 @@
 package org.me.newsky.model;
 
 import org.json.JSONObject;
-import org.me.newsky.exceptions.ActorNotAuthorizedException;
 
 import java.util.UUID;
 
 /**
- * Who is performing a write.
+ * Who is performing an island write.
  * <p>
- * Every mutating API method takes one of these as its first parameter, so authorization cannot be
- * forgotten: only {@link Player} is subject to any rule, and skipping the rules requires
- * deliberately naming {@link Bypass}. What a given operation demands is fixed by the operation
- * itself and is never supplied by the caller, so a caller cannot weaken its own check.
- * <p>
- * There are exactly four rules, and every write's javadoc names the one it uses:
- * <ul>
- *   <li><b>OWNER</b> / <b>MEMBER</b> — an island role, read inside the write transaction under
- *       the island row lock (see {@code DatabaseHandler.requireRole}). Shared state, so it can
- *       only be checked there.</li>
- *   <li><b>SELF</b> — the actor must be the player being acted on, enforced by
- *       {@link #requireSelf(UUID)}. A pure identity comparison with no I/O, so unlike a role it
- *       can never be stale and is checked at the API boundary.</li>
- *   <li><b>BYPASS</b> — operator, console or internal task only, enforced by
- *       {@link #requireBypass()}.</li>
- * </ul>
+ * Every island mutation takes one of these, so island-level authorization cannot be forgotten:
+ * only {@link Player} is subject to role checks, and skipping them requires deliberately naming
+ * {@link Bypass}. The role a given operation demands is fixed by the operation itself and is
+ * never supplied by the caller, so a caller cannot weaken its own check.
  */
 public sealed interface Actor {
 
     String FIELD = "actor";
-
-    /**
-     * Enforces the SELF rule: this actor may only act on that player, unless it is a
-     * {@link Bypass}. Zero I/O - it compares two UUIDs, so it belongs at the API boundary and
-     * cannot go stale the way an island role would.
-     */
-    default void requireSelf(UUID subjectPlayerUuid) {
-        if (this instanceof Bypass) {
-            return;
-        }
-
-        if (this instanceof Player player && player.uuid().equals(subjectPlayerUuid)) {
-            return;
-        }
-
-        throw new ActorNotAuthorizedException();
-    }
-
-    /**
-     * Enforces the BYPASS rule: operators, console and internal tasks only. Used by operations
-     * that have no player-facing authorization at all, such as loading or unloading a world.
-     */
-    default void requireBypass() {
-        if (!(this instanceof Bypass)) {
-            throw new ActorNotAuthorizedException();
-        }
-    }
 
     static JSONObject toJson(Actor actor) {
         JSONObject json = new JSONObject();
@@ -91,7 +51,7 @@ public sealed interface Actor {
         };
     }
 
-    /** A player acting through their own island commands. All rules apply. */
+    /** A player acting through their own island commands. Island role rules apply. */
     record Player(UUID uuid) implements Actor {
     }
 

@@ -6,7 +6,6 @@ import org.me.newsky.exceptions.HomeDoesNotExistException;
 import org.me.newsky.exceptions.HomeNameNotLegalException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
-import org.me.newsky.model.Actor;
 import org.me.newsky.network.IslandDistributor;
 import org.me.newsky.util.IslandUtils;
 
@@ -28,10 +27,7 @@ public class HomeHandler {
         this.islandDistributor = islandDistributor;
     }
 
-    /** SELF: homes belong to a player. Island membership is enforced by the foreign key below. */
-    public CompletableFuture<Void> setHome(Actor actor, UUID playerUuid, String homeName, String worldName, double x, double y, double z, float yaw, float pitch) {
-        actor.requireSelf(playerUuid);
-
+    public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, String worldName, double x, double y, double z, float yaw, float pitch) {
         return CompletableFuture.runAsync(() -> {
             // The island is derived from the world the point lives in. Membership of that island is
             // enforced by the island_homes to island_players foreign key, so no lookup is needed here.
@@ -47,38 +43,22 @@ public class HomeHandler {
 
             String homeLocation = x + "," + y + "," + z + "," + yaw + "," + pitch;
 
-            database.setHome(islandUuid, playerUuid, normalizedHomeName, homeLocation);
+            database.updateHomePoint(islandUuid, playerUuid, normalizedHomeName, homeLocation);
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    /** SELF: homes belong to a player. */
-    public CompletableFuture<Void> deleteHome(Actor actor, UUID playerUuid, String homeName) {
-        actor.requireSelf(playerUuid);
-
-        // Names are stored lowercased by setHome, so every lookup normalizes the same way -
-        // otherwise "HomeOne" would fail to find the "homeone" that was just created.
-        String normalizedHomeName = homeName.toLowerCase(Locale.ROOT);
-
+    public CompletableFuture<Void> delHome(UUID playerUuid, String homeName) {
         return CompletableFuture.runAsync(() -> {
             UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
 
-            database.deleteHome(islandUuid, playerUuid, normalizedHomeName);
+            database.deleteHomePoint(islandUuid, playerUuid, homeName);
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    /**
-     * SELF: using someone else's home as a teleport destination - or sending a third party to it -
-     * is an operator action. A player may only travel to their own homes.
-     */
-    public CompletableFuture<Void> teleportToHome(Actor actor, UUID playerUuid, String homeName, UUID targetPlayerUuid) {
-        actor.requireSelf(playerUuid);
-        actor.requireSelf(targetPlayerUuid);
-
-        String normalizedHomeName = homeName.toLowerCase(Locale.ROOT);
-
+    public CompletableFuture<Void> home(UUID playerUuid, String homeName, UUID targetPlayerUuid) {
         return CompletableFuture.supplyAsync(() -> {
             UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
-            String homeLocation = Optional.ofNullable(database.getIslandHomes(islandUuid, playerUuid).get(normalizedHomeName)).orElseThrow(HomeDoesNotExistException::new);
+            String homeLocation = Optional.ofNullable(database.getIslandHomes(islandUuid, playerUuid).get(homeName)).orElseThrow(HomeDoesNotExistException::new);
 
             return new HomeTarget(islandUuid, homeLocation);
         }, plugin.getBukkitAsyncExecutor()).thenCompose(target -> islandDistributor.teleportIsland(target.islandUuid(), targetPlayerUuid, IslandUtils.UUIDToName(target.islandUuid()), target.homeLocation()));

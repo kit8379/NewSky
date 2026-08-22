@@ -62,7 +62,7 @@ public class PlayerBanListCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(api::getIslandBans).thenCompose(bannedPlayers -> {
+        api.getIslandUuid(playerUuid).thenCompose(api::getBannedPlayers).thenCompose(bannedPlayers -> {
             if (bannedPlayers.isEmpty()) {
                 player.sendMessage(config.getNoBannedPlayersMessage());
                 return CompletableFuture.completedFuture(null);
@@ -71,7 +71,7 @@ public class PlayerBanListCommand implements SubCommand {
             return api.getPlayerNames(bannedPlayers).thenAccept(nameMap -> {
                 List<String> playerNames = bannedPlayers.stream().map(uuid -> nameMap.getOrDefault(uuid, uuid.toString())).sorted(String.CASE_INSENSITIVE_ORDER).toList();
 
-                TextComponent.Builder bannedList = Component.text().append(config.getIslandBansHeaderMessage());
+                TextComponent.Builder bannedList = Component.text().append(config.getBannedPlayersHeaderMessage());
 
                 for (String playerName : playerNames) {
                     bannedList.append(Component.text("\n"));

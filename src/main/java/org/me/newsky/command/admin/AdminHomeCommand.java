@@ -96,7 +96,7 @@ public class AdminHomeCommand implements SubCommand, AsyncTabComplete {
                     return CompletableFuture.completedFuture(null);
                 }
 
-                return api.admin(sender).home(homePlayerUuidOpt.get(), homeName, teleportPlayerUuid).thenRun(() -> api.sendPlayerMessage(teleportPlayerUuid, config.getAdminHomeSuccessMessage(homePlayerName, homeName)));
+                return api.home(homePlayerUuidOpt.get(), homeName, teleportPlayerUuid).thenRun(() -> api.sendPlayerMessage(teleportPlayerUuid, config.getAdminHomeSuccessMessage(homePlayerName, homeName)));
             });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();

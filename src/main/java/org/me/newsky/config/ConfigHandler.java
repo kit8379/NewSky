@@ -1371,10 +1371,6 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.player-no-pending-invite"));
     }
 
-    public Component getPlayerInviteNoLongerValidMessage() {
-        return ColorUtils.colorize(messages.getString("messages.player-invite-no-longer-valid"));
-    }
-
     public Component getPlayerRemoveMemberSuccessMessage(String player) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-remove-member-success")).replace("{player}", player));
     }
@@ -1578,7 +1574,7 @@ public class ConfigHandler {
     }
 
     // Ban
-    public Component getIslandBansHeaderMessage() {
+    public Component getBannedPlayersHeaderMessage() {
         return ColorUtils.colorize(messages.getString("messages.banned-players-header"));
     }
 
@@ -1591,7 +1587,7 @@ public class ConfigHandler {
     }
 
     // Coop
-    public Component getIslandCoopsHeaderMessage() {
+    public Component getCoopedPlayersHeaderMessage() {
         return ColorUtils.colorize(messages.getString("messages.cooped-players-header"));
     }
 

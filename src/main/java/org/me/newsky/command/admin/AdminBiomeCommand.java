@@ -81,7 +81,7 @@ public class AdminBiomeCommand implements SubCommand, AsyncTabComplete {
         int chunkX = player.getLocation().getChunk().getX();
         int chunkZ = player.getLocation().getChunk().getZ();
 
-        api.admin(sender).applyBiome(worldName, chunkX, chunkZ, biomeName).thenRun(() -> {
+        api.applyChunkBiome(worldName, chunkX, chunkZ, biomeName).thenRun(() -> {
             player.sendMessage(config.getAdminBiomeChangeSuccessMessage(biomeName));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
