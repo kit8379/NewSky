@@ -22,50 +22,91 @@ public class IslandRegistry extends ClusterState {
     // Public so RedisClaimScriptsTest runs the exact deployed scripts instead of a copy that
     // could silently drift from them.
     // KEYS[1] = island->server hash, ARGV[1] = island uuid, ARGV[2] = encoded expected holder
-    public static final String RELEASE_IF_HELD_BY = "if redis.call('hget', KEYS[1], ARGV[1]) == ARGV[2] then return redis.call('hdel', KEYS[1], ARGV[1]) else return 0 end";
+    public static final String RELEASE_IF_HELD_BY = """
+            if redis.call('hget', KEYS[1], ARGV[1]) == ARGV[2] then
+                return redis.call('hdel', KEYS[1], ARGV[1])
+            end
+            return 0
+            """;
 
     // Every acquisition also proves that this exact JVM incarnation still owns its heartbeat.
     // This closes the gap between detecting lease loss and the Bukkit main thread disabling the
     // plugin: an already-fenced process cannot re-acquire a claim while shutdown is pending.
     // KEYS[1] = island->server hash, KEYS[2] = claimant heartbeat
     // ARGV[1] = island uuid, ARGV[2] = encoded claimant, ARGV[3] = claimant instance id
-    public static final String CLAIM_IF_LIVE = "if redis.call('get', KEYS[2]) ~= ARGV[3] then return -1 end "
-            + "return redis.call('hsetnx', KEYS[1], ARGV[1], ARGV[2])";
+    public static final String CLAIM_IF_LIVE = """
+            if redis.call('get', KEYS[2]) ~= ARGV[3] then
+                return -1
+            end
+            return redis.call('hsetnx', KEYS[1], ARGV[1], ARGV[2])
+            """;
 
-    public static final String CLAIM_OR_CONFIRM = "if redis.call('get', KEYS[2]) ~= ARGV[3] then return -1 end "
-            + "local held = redis.call('hget', KEYS[1], ARGV[1]) "
-            + "if held == ARGV[2] then return 1 end "
-            + "if held then return 0 end "
-            + "return redis.call('hsetnx', KEYS[1], ARGV[1], ARGV[2])";
+    public static final String CLAIM_OR_CONFIRM = """
+            if redis.call('get', KEYS[2]) ~= ARGV[3] then
+                return -1
+            end
+
+            local held = redis.call('hget', KEYS[1], ARGV[1])
+            if held == ARGV[2] then
+                return 1
+            end
+            if held then
+                return 0
+            end
+
+            return redis.call('hsetnx', KEYS[1], ARGV[1], ARGV[2])
+            """;
 
     // KEYS[1] = island->server hash, KEYS[2] = the claim holder's heartbeat key
     // ARGV[1] = island uuid, ARGV[2] = encoded holder, ARGV[3] = expected instance id
     // A missing heartbeat and a heartbeat from a newer incarnation both fence the old claim.
-    public static final String RELEASE_IF_DEAD = "if redis.call('hget', KEYS[1], ARGV[1]) == ARGV[2] and redis.call('get', KEYS[2]) ~= ARGV[3] then return redis.call('hdel', KEYS[1], ARGV[1]) else return 0 end";
+    public static final String RELEASE_IF_DEAD = """
+            if redis.call('hget', KEYS[1], ARGV[1]) == ARGV[2]
+                    and redis.call('get', KEYS[2]) ~= ARGV[3] then
+                return redis.call('hdel', KEYS[1], ARGV[1])
+            end
+            return 0
+            """;
 
     // Rolling-upgrade compatibility for claims written by the old server-name-only protocol.
-    public static final String RELEASE_LEGACY_IF_DEAD = "if redis.call('hget', KEYS[1], ARGV[1]) == ARGV[2] and redis.call('exists', KEYS[2]) == 0 then return redis.call('hdel', KEYS[1], ARGV[1]) else return 0 end";
+    public static final String RELEASE_LEGACY_IF_DEAD = """
+            if redis.call('hget', KEYS[1], ARGV[1]) == ARGV[2]
+                    and redis.call('exists', KEYS[2]) == 0 then
+                return redis.call('hdel', KEYS[1], ARGV[1])
+            end
+            return 0
+            """;
 
     // KEYS[1] = island->server hash, KEYS[2] = claimant heartbeat
-    public static final String ACQUIRE_WRITE_AUTHORITY = "if redis.call('get', KEYS[2]) ~= ARGV[3] then return 'fenced' end "
-            + "local held = redis.call('hget', KEYS[1], ARGV[1]) "
-            + "if held == ARGV[2] then return 'host' end "
-            + "if held then return 'other' end "
-            + "redis.call('hsetnx', KEYS[1], ARGV[1], ARGV[2]) "
-            + "return 'claimed'";
+    public static final String ACQUIRE_WRITE_AUTHORITY = """
+            if redis.call('get', KEYS[2]) ~= ARGV[3] then
+                return 'fenced'
+            end
 
-    public static final String IS_LIVE_HOLDER = "if redis.call('get', KEYS[2]) == ARGV[3] and "
-            + "redis.call('hget', KEYS[1], ARGV[1]) == ARGV[2] then return 1 else return 0 end";
+            local held = redis.call('hget', KEYS[1], ARGV[1])
+            if held == ARGV[2] then
+                return 'host'
+            end
+            if held then
+                return 'other'
+            end
 
-    /** Outcome of {@link #acquireWriteAuthority}: who may execute a write for this island. */
+            redis.call('hsetnx', KEYS[1], ARGV[1], ARGV[2])
+            return 'claimed'
+            """;
+
+    public static final String IS_LIVE_HOLDER = """
+            if redis.call('get', KEYS[2]) == ARGV[3]
+                    and redis.call('hget', KEYS[1], ARGV[1]) == ARGV[2] then
+                return 1
+            end
+            return 0
+            """;
+
     public enum WriteAuthority {
-        /** This server hosts the island; write and apply the delta, keep the claim. */
         HOST,
-        /** The island was unclaimed; this server now holds a temporary write claim it must release. */
         CLAIMED,
-        /** Another server holds the claim; the write must be routed there instead. */
         OTHER,
-        /** This JVM no longer owns the configured server name's heartbeat and must not write. */
         FENCED
     }
 
@@ -166,7 +207,10 @@ public class IslandRegistry extends ClusterState {
      * server is left untouched.
      */
     public void releaseHost(UUID islandUuid, HostClaim claimant) {
-        run(jedis -> jedis.eval(RELEASE_IF_HELD_BY, List.of(ClusterKeys.islandServer()), List.of(islandUuid.toString(), claimant.encoded())), "Failed to release island loaded server for: " + islandUuid);
+        run(jedis -> jedis.eval(RELEASE_IF_HELD_BY,
+                        List.of(ClusterKeys.islandServer()),
+                        List.of(islandUuid.toString(), claimant.encoded())),
+                "Failed to release island loaded server for: " + islandUuid);
     }
 
     public Optional<String> getHost(UUID islandUuid) {
@@ -234,7 +278,8 @@ public class IslandRegistry extends ClusterState {
                             List.of(ClusterKeys.islandServer(), ClusterKeys.serverHeartbeat(encoded)),
                             List.of(islandUuid, encoded));
                     if (Long.valueOf(1L).equals(removed)) {
-                        plugin.warning("Reaped legacy island claim " + islandUuid + " held by inactive server " + encoded);
+                        plugin.warning("Reaped legacy island claim " + islandUuid
+                                + " held by inactive server " + encoded);
                         reaped++;
                     }
                     continue;
@@ -245,9 +290,13 @@ public class IslandRegistry extends ClusterState {
                     continue;
                 }
 
-                Object removed = jedis.eval(RELEASE_IF_DEAD, List.of(ClusterKeys.islandServer(), ClusterKeys.serverHeartbeat(claim.serverName())), List.of(islandUuid, claim.encoded(), claim.instanceId()));
+                Object removed = jedis.eval(RELEASE_IF_DEAD,
+                        List.of(ClusterKeys.islandServer(),
+                                ClusterKeys.serverHeartbeat(claim.serverName())),
+                        List.of(islandUuid, claim.encoded(), claim.instanceId()));
                 if (Long.valueOf(1L).equals(removed)) {
-                    plugin.warning("Reaped island claim " + islandUuid + " held by inactive instance " + claim.encoded());
+                    plugin.warning("Reaped island claim " + islandUuid
+                            + " held by inactive instance " + claim.encoded());
                     reaped++;
                 }
             }
@@ -271,7 +320,9 @@ public class IslandRegistry extends ClusterState {
 
             for (Map.Entry<String, String> entry : mappings.entrySet()) {
                 if (claimant.encoded().equals(entry.getValue())) {
-                    jedis.eval(RELEASE_IF_HELD_BY, List.of(ClusterKeys.islandServer()), List.of(entry.getKey(), claimant.encoded()));
+                    jedis.eval(RELEASE_IF_HELD_BY,
+                            List.of(ClusterKeys.islandServer()),
+                            List.of(entry.getKey(), claimant.encoded()));
                 }
             }
         }, "Failed to remove island server mappings for: " + claimant.encoded());

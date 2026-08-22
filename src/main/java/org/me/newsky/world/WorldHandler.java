@@ -23,8 +23,8 @@ import java.util.function.Predicate;
 
 public class WorldHandler {
 
-    public final NewSky plugin;
-    public final ConfigHandler config;
+    private final NewSky plugin;
+    private final ConfigHandler config;
     private final SlimeLoader slimeLoader;
     private final SlimePropertyMap properties;
     private final AdvancedSlimePaperAPI asp = AdvancedSlimePaperAPI.instance();
@@ -33,28 +33,44 @@ public class WorldHandler {
         this.plugin = plugin;
         this.config = config;
 
-        try {
-            this.slimeLoader = new MysqlLoader("jdbc:mysql://{host}:{port}/{database}?useSSL={usessl}&" + config.getMySQLProperties(), config.getMySQLHost(), config.getMySQLPort(), config.getMySQLDB(), config.getMySQLUseSSL(), config.getMySQLUsername(), config.getMySQLPassword());
-            plugin.debug("WorldHandler", "Initialized MySQL slimeLoader successfully.");
-        } catch (SQLException e) {
-            plugin.severe("Failed to initialize MySQL slimeLoader", e);
-            throw new RuntimeException(e);
-        }
-
-        properties = new SlimePropertyMap();
-        properties.setValue(SlimeProperties.DIFFICULTY, "normal");
-        properties.setValue(SlimeProperties.ENVIRONMENT, "normal");
-        properties.setValue(SlimeProperties.SPAWN_X, config.getIslandSpawnX());
-        properties.setValue(SlimeProperties.SPAWN_Y, config.getIslandSpawnY());
-        properties.setValue(SlimeProperties.SPAWN_Z, config.getIslandSpawnZ());
-        properties.setValue(SlimeProperties.SPAWN_YAW, config.getIslandSpawnYaw());
+        this.slimeLoader = createSlimeLoader();
+        this.properties = createWorldProperties();
         plugin.debug("WorldHandler", "Default slime world properties configured.");
+    }
+
+    private SlimeLoader createSlimeLoader() {
+        String jdbcUrl = "jdbc:mysql://{host}:{port}/{database}?useSSL={usessl}&"
+                + config.getMySQLProperties();
+
+        try {
+            SlimeLoader loader = new MysqlLoader(jdbcUrl, config.getMySQLHost(),
+                    config.getMySQLPort(), config.getMySQLDB(), config.getMySQLUseSSL(),
+                    config.getMySQLUsername(), config.getMySQLPassword());
+            plugin.debug("WorldHandler", "Initialized MySQL slimeLoader successfully.");
+            return loader;
+        } catch (SQLException error) {
+            plugin.severe("Failed to initialize MySQL slimeLoader", error);
+            throw new RuntimeException(error);
+        }
+    }
+
+    private SlimePropertyMap createWorldProperties() {
+        SlimePropertyMap result = new SlimePropertyMap();
+        result.setValue(SlimeProperties.DIFFICULTY, "normal");
+        result.setValue(SlimeProperties.ENVIRONMENT, "normal");
+        result.setValue(SlimeProperties.SPAWN_X, config.getIslandSpawnX());
+        result.setValue(SlimeProperties.SPAWN_Y, config.getIslandSpawnY());
+        result.setValue(SlimeProperties.SPAWN_Z, config.getIslandSpawnZ());
+        result.setValue(SlimeProperties.SPAWN_YAW, config.getIslandSpawnYaw());
+        return result;
     }
 
     public CompletableFuture<Void> createWorld(String worldName) {
         plugin.debug("WorldHandler", "Creating world: " + worldName);
 
-        File templateWorld = plugin.getDataFolder().toPath().resolve("template/" + config.getTemplateWorldName()).toFile();
+        File templateWorld = plugin.getDataFolder().toPath()
+                .resolve("template/" + config.getTemplateWorldName())
+                .toFile();
         plugin.debug("WorldHandler", "Template world path resolved: " + templateWorld.getAbsolutePath());
 
         if (!templateWorld.exists()) {
@@ -67,7 +83,7 @@ public class WorldHandler {
             plugin.debug("WorldHandler", "Vanilla world read successfully for: " + worldName);
             asp.saveWorld(newWorld);
             plugin.debug("WorldHandler", "World saved to slime loader: " + worldName);
-            SlimeWorld loadedWorld = asp.readWorld(slimeLoader, worldName, false, properties);
+            SlimeWorld loadedWorld = readWorld(worldName);
             return loadWorldToBukkit(loadedWorld).thenRunAsync(() -> {
                 plugin.debug("WorldHandler", "World loaded into Bukkit: " + worldName);
             }, plugin.getBukkitAsyncExecutor());
@@ -80,7 +96,7 @@ public class WorldHandler {
     public CompletableFuture<Void> loadWorld(String worldName) {
         plugin.debug("WorldHandler", "Loading world: " + worldName);
         try {
-            SlimeWorld world = asp.readWorld(slimeLoader, worldName, false, properties);
+            SlimeWorld world = readWorld(worldName);
             plugin.debug("WorldHandler", "World read from slime loader: " + worldName);
             return loadWorldToBukkit(world).thenRunAsync(() -> {
                 plugin.debug("WorldHandler", "World loaded into Bukkit: " + worldName);
@@ -91,11 +107,10 @@ public class WorldHandler {
         }
     }
 
-    /**
-     * Resumes a create that crashed after committing its provisioning row. A saved world may
-     * already exist when the crash happened late; otherwise the same deterministic world name is
-     * created from the template. Established islands never use this blank-world recovery path.
-     */
+    private SlimeWorld readWorld(String worldName) throws Exception {
+        return asp.readWorld(slimeLoader, worldName, false, properties);
+    }
+
     public CompletableFuture<Void> resumeProvisioningWorld(String worldName) {
         try {
             return slimeLoader.worldExists(worldName) ? loadWorld(worldName) : createWorld(worldName);
@@ -127,14 +142,6 @@ public class WorldHandler {
         }
     }
 
-    /**
-     * Saves and unloads a world only when the supplied idle predicate still holds and Bukkit sees
-     * no players. Both checks and the unload execute in one main-thread turn, so a scheduled idle
-     * candidate can never kick somebody who entered while it waited behind an island lifecycle
-     * operation.
-     *
-     * @return true when the world is absent after the call, false when activity vetoed the unload
-     */
     public CompletableFuture<Boolean> unloadWorldIfIdle(String worldName, BooleanSupplier stillIdle) {
         plugin.debug("WorldHandler", "Conditionally unloading idle world: " + worldName);
 
@@ -152,7 +159,8 @@ public class WorldHandler {
                 if (!stillIdle.getAsBoolean() || !bukkitWorld.getPlayers().isEmpty()) {
                     return false;
                 }
-                if (!Bukkit.unloadWorld(bukkitWorld, false)) {
+                boolean unloaded = Bukkit.unloadWorld(bukkitWorld, false);
+                if (!unloaded) {
                     throw new IllegalStateException("Failed to unload world from Bukkit: " + worldName);
                 }
                 return true;
@@ -189,7 +197,7 @@ public class WorldHandler {
             World world = Bukkit.getWorld(worldName);
 
             if (world == null) {
-                plugin.debug("WorldHandler", "World already absent from Bukkit, treating as unloaded: " + worldName);
+                plugin.debug("WorldHandler", "World already absent from Bukkit: " + worldName);
                 return;
             }
 
@@ -224,7 +232,8 @@ public class WorldHandler {
             if (player != null && player.getWorld().equals(world)) {
                 player.teleportAsync(Bukkit.getWorlds().getFirst().getSpawnLocation());
                 plugin.getApi().lobby(playerUuid);
-                plugin.debug("WorldHandler", "Removed player " + playerUuid + " from world: " + worldName);
+                plugin.debug("WorldHandler", "Removed player " + playerUuid
+                        + " from world: " + worldName);
             }
         }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
     }
@@ -240,7 +249,8 @@ public class WorldHandler {
                 if (shouldRemove.test(player)) {
                     player.teleportAsync(Bukkit.getWorlds().getFirst().getSpawnLocation());
                     plugin.getApi().lobby(player.getUniqueId());
-                    plugin.debug("WorldHandler", "Removed player " + player.getUniqueId() + " from world: " + worldName);
+                    plugin.debug("WorldHandler", "Removed player " + player.getUniqueId()
+                            + " from world: " + worldName);
                 }
             }
         }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
@@ -262,7 +272,8 @@ public class WorldHandler {
                     player.teleport(Bukkit.getWorlds().getFirst().getSpawnLocation());
                 }
                 if (Bukkit.unloadWorld(worldInstance.getName(), false)) {
-                    plugin.debug("WorldHandler", "World unloaded successfully from Bukkit: " + worldInstance.getName());
+                    plugin.debug("WorldHandler", "World unloaded successfully from Bukkit: "
+                            + worldInstance.getName());
                 } else {
                     plugin.severe("Failed to unload world from Bukkit: " + worldInstance.getName());
                 }

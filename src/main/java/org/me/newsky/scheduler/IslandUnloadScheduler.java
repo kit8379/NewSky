@@ -21,7 +21,8 @@ public class IslandUnloadScheduler {
 
     private BukkitTask task;
 
-    public IslandUnloadScheduler(NewSky plugin, ConfigHandler config, IslandOperator islandOperator, WorldActivityHandler worldActivityHandler) {
+    public IslandUnloadScheduler(NewSky plugin, ConfigHandler config, IslandOperator islandOperator,
+                                 WorldActivityHandler worldActivityHandler) {
         this.plugin = plugin;
         this.islandOperator = islandOperator;
         this.worldActivityHandler = worldActivityHandler;
@@ -34,8 +35,10 @@ public class IslandUnloadScheduler {
             return;
         }
 
-        plugin.debug("IslandUnloadScheduler", "Starting unload scheduler with interval: " + unloadInterval + " seconds.");
-        this.task = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::checkInactiveWorlds, 0L, unloadInterval * 20L);
+        plugin.debug("IslandUnloadScheduler", "Starting unload scheduler with interval: "
+                + unloadInterval + " seconds.");
+        this.task = plugin.getServer().getScheduler().runTaskTimerAsynchronously(
+                plugin, this::checkInactiveWorlds, 0L, unloadInterval * 20L);
         plugin.debug("IslandUnloadScheduler", "Unload scheduler started successfully.");
     }
 
@@ -54,54 +57,58 @@ public class IslandUnloadScheduler {
         long thresholdMillis = unloadInterval * 1000L;
 
         worldActivityHandler.getInactiveWorlds(thresholdMillis, now).forEach((worldName, timestamp) -> {
-            UUID islandUuid = IslandUtils.parseIslandUuid(worldName);
+            checkCandidateOnMainThread(worldName, thresholdMillis);
+        });
+    }
 
-            if (islandUuid == null) {
-                // A malformed island-prefixed name must not abort the sweep for every other world.
-                worldActivityHandler.clearWorld(worldName);
-                return;
-            }
+    private void checkCandidateOnMainThread(String worldName, long thresholdMillis) {
+        UUID islandUuid = IslandUtils.parseIslandUuid(worldName);
+        if (islandUuid == null) {
+            worldActivityHandler.clearWorld(worldName);
+            return;
+        }
 
-            // The async sweep only nominates candidates. The decision runs on the main thread,
-            // right before the unload: a player may have entered since the sweep read its
-            // timestamps, and Bukkit world state must not be touched from an async thread anyway.
-            Bukkit.getScheduler().getMainThreadExecutor(plugin).execute(() -> {
-                if (!worldActivityHandler.isStillInactive(worldName, thresholdMillis, System.currentTimeMillis())) {
-                    plugin.debug("IslandUnloadScheduler", "World became active again before unload, skipping: " + worldName);
-                    return;
-                }
+        Bukkit.getScheduler().getMainThreadExecutor(plugin).execute(() -> {
+            unloadCandidateIfStillIdle(islandUuid, worldName, thresholdMillis);
+        });
+    }
 
-                World bukkitWorld = Bukkit.getWorld(worldName);
+    private void unloadCandidateIfStillIdle(UUID islandUuid, String worldName, long thresholdMillis) {
+        if (!isStillInactive(worldName, thresholdMillis)) {
+            plugin.debug("IslandUnloadScheduler", "World became active, skipping: " + worldName);
+            return;
+        }
 
-                if (bukkitWorld == null) {
-                    plugin.debug("IslandUnloadScheduler", "World is already absent in Bukkit. Clearing stale inactive entry: " + worldName);
-                    worldActivityHandler.clearWorld(worldName);
-                    return;
-                }
+        World world = Bukkit.getWorld(worldName);
+        if (world == null) {
+            worldActivityHandler.clearWorld(worldName);
+            return;
+        }
 
-                if (!bukkitWorld.getPlayers().isEmpty()) {
-                    // Authoritative guard: whatever the counters say, a world with players in it
-                    // is not idle and unloading it would kick them.
-                    plugin.debug("IslandUnloadScheduler", "World has players despite idle counters, skipping unload: " + worldName);
-                    return;
-                }
+        if (!world.getPlayers().isEmpty()) {
+            plugin.debug("IslandUnloadScheduler", "World still has players, skipping: " + worldName);
+            return;
+        }
 
-                // The predicate is evaluated again inside the island lifecycle slot, in the same
-                // main-thread turn as Bukkit's unload. The checks above are only an inexpensive
-                // early veto; they are not the correctness boundary.
-                islandOperator.unloadIslandIfIdle(islandUuid,
-                        () -> worldActivityHandler.isStillInactive(worldName, thresholdMillis, System.currentTimeMillis())).thenAccept(unloaded -> {
-                    if (unloaded) {
-                        worldActivityHandler.clearWorld(worldName);
-                        plugin.debug("IslandUnloadScheduler", "Unloaded world: " + worldName);
-                    } else {
-                        plugin.debug("IslandUnloadScheduler", "World became active while queued for unload: " + worldName);
-                    }
-                }).exceptionally(ex -> {
-                    plugin.severe("Failed to unload world: " + worldName, ex);
+        islandOperator.unloadIslandIfIdle(islandUuid, () -> isStillInactive(worldName, thresholdMillis))
+                .thenAccept(unloaded -> finishUnloadCheck(worldName, unloaded))
+                .exceptionally(error -> {
+                    plugin.severe("Failed to unload world: " + worldName, error);
                     return null;
                 });
-            });
-        });
+    }
+
+    private boolean isStillInactive(String worldName, long thresholdMillis) {
+        return worldActivityHandler.isStillInactive(
+                worldName, thresholdMillis, System.currentTimeMillis());
+    }
+
+    private void finishUnloadCheck(String worldName, boolean unloaded) {
+        if (unloaded) {
+            worldActivityHandler.clearWorld(worldName);
+            plugin.debug("IslandUnloadScheduler", "Unloaded world: " + worldName);
+        } else {
+            plugin.debug("IslandUnloadScheduler", "World became active while queued: " + worldName);
+        }
     }
 }

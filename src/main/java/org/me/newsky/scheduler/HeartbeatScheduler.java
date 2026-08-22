@@ -24,7 +24,8 @@ public class HeartbeatScheduler {
     private BukkitTask heartbeatTask;
     private volatile long lastSuccessfulHeartbeatNanos;
 
-    public HeartbeatScheduler(NewSky plugin, ConfigHandler config, ServerRegistry serverRegistry, IslandRegistry.HostClaim instance, Runnable leaseLostAction) {
+    public HeartbeatScheduler(NewSky plugin, ConfigHandler config, ServerRegistry serverRegistry,
+                              IslandRegistry.HostClaim instance, Runnable leaseLostAction) {
         this.plugin = plugin;
         this.config = config;
         this.serverRegistry = serverRegistry;
@@ -41,16 +42,17 @@ public class HeartbeatScheduler {
             return;
         }
 
-        // Register synchronously before opening messenger intake. A duplicate live server name is
-        // refused rather than deleting the other process's heartbeat and claims.
         if (!serverRegistry.updateActiveServer(instance, config.isLobbyOnly(), heartbeatTtlSeconds)) {
-            throw new IllegalStateException("Another live NewSky instance already owns server name: " + instance.serverName());
+            throw new IllegalStateException("Another live NewSky instance already owns server name: "
+                    + instance.serverName());
         }
         lastSuccessfulHeartbeatNanos = System.nanoTime();
         serverRegistry.reapDeadServerClaims();
 
-        plugin.debug("HeartbeatScheduler", "Starting heartbeat task with interval: " + heartbeatInterval + " seconds, ttl: " + heartbeatTtlSeconds + " seconds.");
-        heartbeatTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, this::heartbeatTick, heartbeatInterval * 20L, heartbeatInterval * 20L);
+        plugin.debug("HeartbeatScheduler", "Starting heartbeat task with interval: "
+                + heartbeatInterval + " seconds, ttl: " + heartbeatTtlSeconds + " seconds.");
+        heartbeatTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(
+                plugin, this::heartbeatTick, heartbeatInterval * 20L, heartbeatInterval * 20L);
         plugin.debug("HeartbeatScheduler", "Heartbeat task started successfully.");
     }
 
@@ -58,10 +60,6 @@ public class HeartbeatScheduler {
         stop(true);
     }
 
-    /**
-     * Stops renewal. With cleanup disabled, exact claims remain fenced by the heartbeat TTL; this
-     * is the safe shutdown path when an admitted operation may still be finishing.
-     */
     public void stop(boolean cleanupImmediately) {
         if (heartbeatTask != null) {
             plugin.debug("HeartbeatScheduler", "Stopping heartbeat task for server instance: " + instance.encoded());
@@ -71,7 +69,8 @@ public class HeartbeatScheduler {
         }
 
         if (!cleanupImmediately) {
-            plugin.warning("Leaving heartbeat and claims to expire for in-flight operation safety: " + instance.encoded());
+            plugin.warning("Leaving heartbeat and claims to expire for in-flight operation safety: "
+                    + instance.encoded());
             return;
         }
 
@@ -118,7 +117,8 @@ public class HeartbeatScheduler {
             return;
         }
 
-        plugin.severe("Cluster lease lost for " + instance.encoded() + ": " + reason + ". Self-fencing this server before another host can take over.");
+        plugin.severe("Cluster lease lost for " + instance.encoded() + ": " + reason
+                + ". Self-fencing this server before another host can take over.");
         if (heartbeatTask != null) {
             heartbeatTask.cancel();
             heartbeatTask = null;

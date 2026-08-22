@@ -9,12 +9,15 @@ import org.me.newsky.model.Actor;
 import org.me.newsky.model.Invitation;
 import org.me.newsky.network.IslandDistributor;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 public class PlayerHandler {
 
@@ -24,7 +27,8 @@ public class PlayerHandler {
     private final InvitationStore invitationStore;
     private final OnlinePlayerRegistry onlinePlayerRegistry;
 
-    public PlayerHandler(NewSky plugin, DatabaseHandler database, IslandDistributor islandDistributor, InvitationStore invitationStore, OnlinePlayerRegistry onlinePlayerRegistry) {
+    public PlayerHandler(NewSky plugin, DatabaseHandler database, IslandDistributor islandDistributor,
+                         InvitationStore invitationStore, OnlinePlayerRegistry onlinePlayerRegistry) {
         this.plugin = plugin;
         this.database = database;
         this.islandDistributor = islandDistributor;
@@ -32,28 +36,20 @@ public class PlayerHandler {
         this.onlinePlayerRegistry = onlinePlayerRegistry;
     }
 
-    /**
-     * SELF: a player joins an island for themselves, having accepted its invitation; admins add
-     * anyone with a Bypass. There is deliberately no island role rule here - the joiner is not a
-     * member yet, so the authorization is the invitation, consumed by the accept command before
-     * this call. Conflict checks and home seeding happen inside the insert transaction.
-     */
-    public CompletableFuture<Void> addMember(Actor actor, UUID islandUuid, UUID playerUuid, String role, UUID vouchedBy) {
+    public CompletableFuture<Void> addMember(Actor actor, UUID islandUuid, UUID playerUuid,
+                                             String role, UUID vouchedBy) {
         actor.requireSelf(playerUuid);
         return islandDistributor.addMember(islandUuid, playerUuid, role, vouchedBy);
     }
 
-    /** MEMBER, enforced in the delete transaction. */
     public CompletableFuture<Void> removeMember(Actor actor, UUID islandUuid, UUID playerUuid) {
         return islandDistributor.removeMember(islandUuid, actor, playerUuid);
     }
 
-    /** OWNER, enforced in the transfer transaction. */
     public CompletableFuture<Void> setOwner(Actor actor, UUID islandUuid, UUID newOwnerUuid) {
         return islandDistributor.setOwner(islandUuid, actor, newOwnerUuid);
     }
 
-    /** MEMBER, enforced again on the island's host at the moment of the kick. */
     public CompletableFuture<Void> expelPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {
         return CompletableFuture.runAsync(() -> {
             onlinePlayerRegistry.requireOnline(playerUuid);
@@ -67,14 +63,11 @@ public class PlayerHandler {
             if (islandPlayers.contains(playerUuid)) {
                 throw new CannotExpelIslandPlayerException();
             }
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> islandDistributor.expelPlayer(islandUuid, actor, playerUuid));
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> {
+            return islandDistributor.expelPlayer(islandUuid, actor, playerUuid);
+        });
     }
 
-    /**
-     * SELF: an invitation is a personal vouch, so it is recorded against the actor who issued it.
-     * A Bypass has no player identity and therefore cannot invite - console and operators add
-     * members directly with {@link #addMember} instead.
-     */
     public CompletableFuture<Void> addInvite(Actor actor, UUID islandUuid, UUID inviteeUuid, int ttlSeconds) {
         if (!(actor instanceof Actor.Player inviter)) {
             return CompletableFuture.failedFuture(new ActorNotAuthorizedException());
@@ -101,79 +94,110 @@ public class PlayerHandler {
 
     public CompletableFuture<Void> removeInvite(Actor actor, UUID inviteeUuid) {
         actor.requireSelf(inviteeUuid);
-        return CompletableFuture.runAsync(() -> invitationStore.removeInvite(inviteeUuid), plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.runAsync(() -> invitationStore.removeInvite(inviteeUuid),
+                plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Optional<Invitation>> getInvite(UUID playerUuid) {
-        return CompletableFuture.supplyAsync(() -> invitationStore.getInvite(playerUuid), plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> invitationStore.getInvite(playerUuid),
+                plugin.getBukkitAsyncExecutor());
     }
 
-    // A join that fails after the invitation was consumed puts it back (best effort, fresh TTL),
-    // so a transient failure does not burn the invite. The one exception is a dead voucher: an
-    // invitation whose issuer is no longer a member is genuinely void.
     private static final int REINSTATED_INVITE_TTL_SECONDS = 300;
 
     public CompletableFuture<Optional<Invitation>> acceptInvite(Actor actor, UUID inviteeUuid) {
         actor.requireSelf(inviteeUuid);
 
-        return CompletableFuture.supplyAsync(() -> invitationStore.consumeInvite(inviteeUuid), plugin.getBukkitAsyncExecutor()).thenCompose(invite -> {
+        return CompletableFuture.supplyAsync(() -> invitationStore.consumeInvite(inviteeUuid),
+                plugin.getBukkitAsyncExecutor()).thenCompose(invite -> {
             if (invite.isEmpty()) {
-                return CompletableFuture.completedFuture(Optional.<Invitation>empty());
+                return CompletableFuture.completedFuture(Optional.empty());
             }
 
-            UUID islandUuid = invite.get().getIslandUuid();
-            UUID inviterUuid = invite.get().getInviterUuid();
-
-            // The inviter's membership is re-verified inside the add-member transaction, under
-            // the island lock - an invitation is a vouch and dies with the voucher's membership.
-            return addMember(actor, islandUuid, inviteeUuid, "member", inviterUuid).thenApply(v -> invite).exceptionallyCompose(error ->
-                    // A remote timeout is ambiguous: the host may have committed membership and
-                    // lost only its response. Reconcile against MySQL before restoring the token,
-                    // otherwise the same invite can be redeemed again or appear valid after the
-                    // player already joined.
-                    CompletableFuture.supplyAsync(() -> database.getIslandUuid(inviteeUuid), plugin.getBukkitAsyncExecutor()).thenCompose(currentIsland -> {
-                        if (currentIsland.filter(islandUuid::equals).isPresent()) {
-                            plugin.warning("Invitation accept response was ambiguous, but membership committed for " + inviteeUuid);
-                            return CompletableFuture.completedFuture(invite);
-                        }
-
-                        // Membership elsewhere makes this invitation permanently obsolete. A dead
-                        // voucher is also permanently invalid; neither case should be reinstated.
-                        Throwable cause = unwrap(error);
-                        if (currentIsland.isEmpty() && !(cause instanceof InviterNotMemberException)
-                                && !(cause instanceof java.util.concurrent.TimeoutException)) {
-                            try {
-                                invitationStore.addInvite(inviteeUuid, islandUuid, inviterUuid, REINSTATED_INVITE_TTL_SECONDS);
-                            } catch (Exception reinstateFailure) {
-                                plugin.severe("Failed to reinstate invitation for " + inviteeUuid + " after a failed accept", reinstateFailure);
-                            }
-                        }
-                        if (cause instanceof java.util.concurrent.TimeoutException) {
-                            plugin.warning("Not reinstating invitation after an ambiguous remote timeout for " + inviteeUuid
-                                    + "; a late membership commit must not leave a second redeemable token");
-                        }
-                        return CompletableFuture.failedFuture(error);
-                    }));
+            return acceptConsumedInvite(actor, inviteeUuid, invite.get());
         });
+    }
+
+    private CompletableFuture<Optional<Invitation>> acceptConsumedInvite(
+            Actor actor, UUID inviteeUuid, Invitation invitation) {
+        UUID islandUuid = invitation.getIslandUuid();
+        UUID inviterUuid = invitation.getInviterUuid();
+
+        return addMember(actor, islandUuid, inviteeUuid, "member", inviterUuid)
+                .thenApply(v -> Optional.of(invitation))
+                .exceptionallyCompose(error -> {
+                    return recoverFailedAccept(inviteeUuid, invitation, error);
+                });
+    }
+
+    private CompletableFuture<Optional<Invitation>> recoverFailedAccept(
+            UUID inviteeUuid, Invitation invitation, Throwable error) {
+        UUID islandUuid = invitation.getIslandUuid();
+
+        return CompletableFuture.supplyAsync(() -> database.getIslandUuid(inviteeUuid),
+                plugin.getBukkitAsyncExecutor()).thenCompose(currentIsland -> {
+            if (currentIsland.filter(islandUuid::equals).isPresent()) {
+                plugin.warning("Invitation response failed, but membership committed for " + inviteeUuid);
+                return CompletableFuture.completedFuture(Optional.of(invitation));
+            }
+
+            Throwable cause = unwrap(error);
+            if (shouldReinstateInvite(currentIsland, cause)) {
+                reinstateInvite(inviteeUuid, invitation);
+            } else if (cause instanceof TimeoutException) {
+                plugin.warning("Not reinstating invitation after an ambiguous timeout for " + inviteeUuid);
+            }
+
+            return CompletableFuture.failedFuture(error);
+        });
+    }
+
+    private boolean shouldReinstateInvite(Optional<UUID> currentIsland, Throwable cause) {
+        return currentIsland.isEmpty()
+                && !(cause instanceof InviterNotMemberException)
+                && !(cause instanceof TimeoutException);
+    }
+
+    private void reinstateInvite(UUID inviteeUuid, Invitation invitation) {
+        try {
+            invitationStore.addInvite(inviteeUuid, invitation.getIslandUuid(),
+                    invitation.getInviterUuid(), REINSTATED_INVITE_TTL_SECONDS);
+        } catch (Exception error) {
+            plugin.severe("Failed to reinstate invitation for " + inviteeUuid, error);
+        }
     }
 
     private Throwable unwrap(Throwable error) {
         Throwable current = error;
-        while ((current instanceof java.util.concurrent.CompletionException || current instanceof java.util.concurrent.ExecutionException) && current.getCause() != null) {
+        while ((current instanceof CompletionException || current instanceof ExecutionException)
+                && current.getCause() != null) {
             current = current.getCause();
         }
         return current;
     }
 
     public CompletableFuture<UUID> getIslandOwner(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> database.getIslandCore(islandUuid).flatMap(DatabaseHandler.IslandCoreData::owner).orElseThrow(IslandDoesNotExistException::new), plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> {
+            return database.getIslandCore(islandUuid)
+                    .flatMap(DatabaseHandler.IslandCoreData::owner)
+                    .orElseThrow(IslandDoesNotExistException::new);
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Set<UUID>> getIslandMembers(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> database.getIslandPlayers(islandUuid).entrySet().stream().filter(entry -> "member".equalsIgnoreCase(entry.getValue())).map(Map.Entry::getKey).collect(Collectors.toSet()), plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> {
+            Set<UUID> members = new HashSet<>();
+            for (Map.Entry<UUID, String> entry : database.getIslandPlayers(islandUuid).entrySet()) {
+                if ("member".equalsIgnoreCase(entry.getValue())) {
+                    members.add(entry.getKey());
+                }
+            }
+            return members;
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Set<UUID>> getIslandPlayers(UUID islandUuid) {
-        return CompletableFuture.supplyAsync(() -> database.getIslandPlayers(islandUuid).keySet(), plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> database.getIslandPlayers(islandUuid).keySet(),
+                plugin.getBukkitAsyncExecutor());
     }
 }

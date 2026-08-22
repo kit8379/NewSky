@@ -17,8 +17,7 @@ import java.util.UUID;
  */
 public class IslandCoopListener implements Listener {
 
-    // Long enough for a proxy server switch to re-register the player on their new server, so a
-    // transfer is not mistaken for a disconnect.
+    // Allows a proxy switch to re-register the player before cleanup becomes due.
     private static final long CLEANUP_DELAY_MILLIS = 3_000L;
     private static final long CLEANUP_LEASE_MILLIS = 30_000L;
     private static final long DRAIN_INTERVAL_TICKS = 20L;
@@ -28,7 +27,8 @@ public class IslandCoopListener implements Listener {
     private final CoopHandler coopHandler;
     private final OnlinePlayerRegistry onlinePlayerRegistry;
 
-    public IslandCoopListener(NewSky plugin, CoopHandler coopHandler, OnlinePlayerRegistry onlinePlayerRegistry) {
+    public IslandCoopListener(NewSky plugin, CoopHandler coopHandler,
+                              OnlinePlayerRegistry onlinePlayerRegistry) {
         this.plugin = plugin;
         this.coopHandler = coopHandler;
         this.onlinePlayerRegistry = onlinePlayerRegistry;
@@ -44,7 +44,8 @@ public class IslandCoopListener implements Listener {
 
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
-                onlinePlayerRegistry.scheduleCoopCleanup(playerUuid, System.currentTimeMillis() + CLEANUP_DELAY_MILLIS);
+                onlinePlayerRegistry.scheduleCoopCleanup(
+                        playerUuid, System.currentTimeMillis() + CLEANUP_DELAY_MILLIS);
                 plugin.debug("IslandCoopListener", "Queued durable coop cleanup for player " + playerName);
             } catch (Exception e) {
                 plugin.severe("Failed to queue coop cleanup for player " + playerName, e);
@@ -56,27 +57,39 @@ public class IslandCoopListener implements Listener {
         long now = System.currentTimeMillis();
         long leaseUntil = now + CLEANUP_LEASE_MILLIS;
         try {
-            for (OnlinePlayerRegistry.CoopCleanupLease lease : onlinePlayerRegistry.claimDueCoopCleanups(now, leaseUntil, DRAIN_BATCH_SIZE)) {
-                UUID playerUuid = lease.playerUuid();
-                coopHandler.removeAllCoops(playerUuid).thenRun(() -> {
-                    try {
-                        if (onlinePlayerRegistry.completeCoopCleanup(lease)) {
-                            plugin.debug("IslandCoopListener", "Completed durable coop cleanup for " + playerUuid);
-                        } else {
-                            plugin.debug("IslandCoopListener", "Ignored stale coop cleanup acknowledgement for " + playerUuid);
-                        }
-                    } catch (Exception e) {
-                        // Database cleanup succeeded; leaving the leased job only causes an
-                        // idempotent retry, which is safer than acknowledging uncertain work.
-                        plugin.severe("Failed to acknowledge coop cleanup for " + playerUuid, e);
-                    }
-                }).exceptionally(error -> {
-                    plugin.severe("Coop cleanup failed for " + playerUuid + "; it will retry after the lease", error);
-                    return null;
-                });
+            for (OnlinePlayerRegistry.CoopCleanupLease lease
+                    : onlinePlayerRegistry.claimDueCoopCleanups(now, leaseUntil, DRAIN_BATCH_SIZE)) {
+                runCleanup(lease);
             }
         } catch (Exception e) {
             plugin.severe("Failed to drain durable coop cleanup queue", e);
+        }
+    }
+
+    private void runCleanup(OnlinePlayerRegistry.CoopCleanupLease lease) {
+        UUID playerUuid = lease.playerUuid();
+
+        coopHandler.removeAllCoops(playerUuid)
+                .thenRun(() -> acknowledgeCleanup(lease))
+                .exceptionally(error -> {
+                    plugin.severe("Coop cleanup failed for " + playerUuid
+                            + "; it will retry after the lease", error);
+                    return null;
+                });
+    }
+
+    private void acknowledgeCleanup(OnlinePlayerRegistry.CoopCleanupLease lease) {
+        try {
+            if (onlinePlayerRegistry.completeCoopCleanup(lease)) {
+                plugin.debug("IslandCoopListener", "Completed durable coop cleanup for "
+                        + lease.playerUuid());
+            } else {
+                plugin.debug("IslandCoopListener", "Ignored stale coop cleanup acknowledgement for "
+                        + lease.playerUuid());
+            }
+        } catch (Exception error) {
+            // A missing acknowledgement only causes an idempotent retry.
+            plugin.severe("Failed to acknowledge coop cleanup for " + lease.playerUuid(), error);
         }
     }
 }

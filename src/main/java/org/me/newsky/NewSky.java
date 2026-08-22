@@ -88,7 +88,8 @@ public class NewSky extends JavaPlugin {
 
             info("Start loading server ID now...");
             String serverID = config.getServerName();
-            IslandRegistry.HostClaim serverInstance = new IslandRegistry.HostClaim(serverID, UUID.randomUUID().toString());
+            IslandRegistry.HostClaim serverInstance = new IslandRegistry.HostClaim(
+                    serverID, UUID.randomUUID().toString());
             info("Server ID loaded success!");
             info("This Server ID: " + serverID);
             info("This Server Instance: " + serverInstance.instanceId());
@@ -105,7 +106,8 @@ public class NewSky extends JavaPlugin {
             onlinePlayerRegistry = new OnlinePlayerRegistry(this, redisHandler);
             InvitationStore invitationStore = new InvitationStore(this, redisHandler);
             IslandRegistry islandRegistry = new IslandRegistry(this, redisHandler);
-            ServerRegistry serverRegistry = new ServerRegistry(this, redisHandler, islandRegistry, onlinePlayerRegistry);
+            ServerRegistry serverRegistry = new ServerRegistry(
+                    this, redisHandler, islandRegistry, onlinePlayerRegistry);
             info("Redis cache state handler loaded");
 
             info("Loading island loaded snapshot");
@@ -120,34 +122,20 @@ public class NewSky extends JavaPlugin {
             TeleportHandler teleportHandler = new TeleportHandler();
             info("Teleport handler loaded");
 
-            info("Starting server selector");
-            ServerSelector serverSelector;
-            switch (config.getServerSelector().toLowerCase(Locale.ROOT)) {
-                case "round-robin":
-                    serverSelector = new RoundRobinServerSelector(serverRegistry);
-                    info("Using Round Robin server selector");
-                    break;
-                case "mspt":
-                    serverSelector = new MSPTServerSelector(serverRegistry);
-                    info("Using MSPT server selector");
-                    break;
-                case "random":
-                default:
-                    serverSelector = new RandomServerSelector();
-                    info("Using Random server selector");
-                    break;
-            }
-            info("Server selector loaded");
+            ServerSelector serverSelector = createServerSelector(serverRegistry);
 
             info("Starting handlers for island remote requests");
             crossServerMessenger = new CrossServerMessenger(this, redisHandler, serverID);
-            islandOperator = new IslandOperator(this, databaseHandler, worldHandler, teleportHandler, islandSnapshot, islandRegistry, serverInstance);
-            IslandDistributor islandDistributor = new IslandDistributor(this, islandOperator, serverSelector, serverRegistry, islandRegistry, crossServerMessenger, serverID);
+            islandOperator = new IslandOperator(this, databaseHandler, worldHandler, teleportHandler,
+                    islandSnapshot, islandRegistry, serverInstance);
+            IslandDistributor islandDistributor = new IslandDistributor(this, islandOperator, serverSelector,
+                    serverRegistry, islandRegistry, crossServerMessenger, serverID);
             registerCrossServerHandlers(crossServerMessenger, islandOperator);
             info("All handlers for remote requests loaded");
 
             info("Starting player message handler");
-            PlayerMessageHandler playerMessageHandler = new PlayerMessageHandler(this, crossServerMessenger, onlinePlayerRegistry, serverID);
+            PlayerMessageHandler playerMessageHandler = new PlayerMessageHandler(
+                    this, crossServerMessenger, onlinePlayerRegistry, serverID);
             info("Player message handler loaded");
 
             info("Starting economy provider");
@@ -160,12 +148,14 @@ public class NewSky extends JavaPlugin {
 
             info("Starting main handlers for the plugin");
             CoreHandler coreHandler = new CoreHandler(this, databaseHandler, islandDistributor);
-            PlayerHandler playerHandler = new PlayerHandler(this, databaseHandler, islandDistributor, invitationStore, onlinePlayerRegistry);
+            PlayerHandler playerHandler = new PlayerHandler(this, databaseHandler, islandDistributor,
+                    invitationStore, onlinePlayerRegistry);
             HomeHandler homeHandler = new HomeHandler(this, databaseHandler, islandDistributor);
             WarpHandler warpHandler = new WarpHandler(this, databaseHandler, islandDistributor);
             levelHandler = new LevelHandler(this, config, databaseHandler);
             BanHandler banHandler = new BanHandler(this, databaseHandler, islandDistributor);
-            CoopHandler coopHandler = new CoopHandler(this, databaseHandler, islandDistributor, onlinePlayerRegistry);
+            CoopHandler coopHandler = new CoopHandler(this, databaseHandler, islandDistributor,
+                    onlinePlayerRegistry);
             BiomeHandler biomeHandler = new BiomeHandler(this, databaseHandler);
             LobbyHandler lobbyHandler = new LobbyHandler(this, config, islandDistributor);
             UuidHandler uuidHandler = new UuidHandler(this, databaseHandler);
@@ -177,7 +167,8 @@ public class NewSky extends JavaPlugin {
             info("Plugin messaging loaded");
 
             info("Starting all schedulers for the plugin");
-            heartBeatScheduler = new HeartbeatScheduler(this, config, serverRegistry, serverInstance, this::selfFenceClusterLease);
+            heartBeatScheduler = new HeartbeatScheduler(this, config, serverRegistry, serverInstance,
+                    this::selfFenceClusterLease);
             islandUnloadScheduler = new IslandUnloadScheduler(this, config, islandOperator, worldActivityHandler);
             levelupdateSchedulerIsland = new LevelUpdateScheduler(this, levelHandler);
 
@@ -191,60 +182,112 @@ public class NewSky extends JavaPlugin {
             info("All schedulers loaded");
 
             info("Starting API");
-            api = new NewSkyAPI(this, coreHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, playerMessageHandler, uuidHandler, biomeHandler);
+            api = new NewSkyAPI(this, coreHandler, playerHandler, homeHandler, warpHandler, levelHandler,
+                    banHandler, coopHandler, lobbyHandler, playerMessageHandler, uuidHandler, biomeHandler);
             info("API loaded");
 
-            info("Starting listeners");
-            getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, onlinePlayerRegistry, serverInstance), this);
-            getServer().getPluginManager().registerEvents(new WorldLoadListener(this, config, levelupdateSchedulerIsland, islandSnapshot, worldActivityHandler), this);
-            getServer().getPluginManager().registerEvents(new WorldUnloadListener(this, levelupdateSchedulerIsland, islandSnapshot), this);
-            getServer().getPluginManager().registerEvents(new WorldActivityListener(this, worldActivityHandler), this);
-            getServer().getPluginManager().registerEvents(new TeleportRequestListener(this, teleportHandler), this);
-            getServer().getPluginManager().registerEvents(new IslandProtectionListener(this, config, islandSnapshot), this);
-            getServer().getPluginManager().registerEvents(new IslandAccessListener(this, config, islandSnapshot), this);
-            getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config, islandSnapshot), this);
-            getServer().getPluginManager().registerEvents(new UuidUpdateListener(this, uuidHandler), this);
-            getServer().getPluginManager().registerEvents(new IslandCoopListener(this, coopHandler, onlinePlayerRegistry), this);
-            info("All listeners loaded");
-
-            info("Registering commands");
-            PluginCommand playerCommand = createCommand("island");
-            playerCommand.setAliases(Collections.singletonList("is"));
-            IslandPlayerCommand islandPlayerCommand = new IslandPlayerCommand(this, api, config);
-            playerCommand.setExecutor(islandPlayerCommand);
-            Bukkit.getCommandMap().register("island", playerCommand);
-
-            PluginCommand adminCommand = createCommand("islandadmin");
-            adminCommand.setAliases(Collections.singletonList("isadmin"));
-            IslandAdminCommand islandAdminCommand = new IslandAdminCommand(this, api, config);
-            adminCommand.setExecutor(islandAdminCommand);
-            Bukkit.getCommandMap().register("islandadmin", adminCommand);
-
-            AsyncTabCompleteListener asyncTabCompleteListener = new AsyncTabCompleteListener(this);
-            asyncTabCompleteListener.registerRoot("island", islandPlayerCommand);
-            asyncTabCompleteListener.registerRoot("is", islandPlayerCommand);
-            asyncTabCompleteListener.registerRoot("islandadmin", islandAdminCommand);
-            asyncTabCompleteListener.registerRoot("isadmin", islandAdminCommand);
-            getServer().getPluginManager().registerEvents(asyncTabCompleteListener, this);
-            info("All commands registered");
-
-            // Order matters: registration proves this boot owns the configured server name and
-            // atomically retires the previous boot's inbox before the messenger accepts work.
-            // Claims are incarnation-fenced and are never swept merely because a name restarted.
-            heartBeatScheduler.start();
-            crossServerMessenger.start();
-            islandUnloadScheduler.start();
-            levelupdateSchedulerIsland.start();
-
-            if (msptUpdateScheduler != null) {
-                msptUpdateScheduler.start();
-            } else {
-                info("MSPT update scheduler not enabled (server selector is not MSPT), skipping start.");
-            }
+            registerListeners(serverInstance, islandSnapshot, worldActivityHandler, teleportHandler,
+                    uuidHandler, coopHandler);
+            registerCommands();
+            startSchedulers();
 
         } catch (Exception e) {
             getLogger().log(Level.SEVERE, "An error occurred during plugin initialization", e);
             getServer().getPluginManager().disablePlugin(this);
+        }
+    }
+
+    private ServerSelector createServerSelector(ServerRegistry serverRegistry) {
+        info("Starting server selector");
+
+        ServerSelector selector;
+        switch (config.getServerSelector().toLowerCase(Locale.ROOT)) {
+            case "round-robin":
+                selector = new RoundRobinServerSelector(serverRegistry);
+                info("Using Round Robin server selector");
+                break;
+            case "mspt":
+                selector = new MSPTServerSelector(serverRegistry);
+                info("Using MSPT server selector");
+                break;
+            case "random":
+            default:
+                selector = new RandomServerSelector();
+                info("Using Random server selector");
+                break;
+        }
+
+        info("Server selector loaded");
+        return selector;
+    }
+
+    private void registerListeners(IslandRegistry.HostClaim serverInstance, IslandSnapshot islandSnapshot,
+                                   WorldActivityHandler worldActivityHandler, TeleportHandler teleportHandler,
+                                   UuidHandler uuidHandler, CoopHandler coopHandler) {
+        info("Starting listeners");
+
+        getServer().getPluginManager().registerEvents(
+                new OnlinePlayersListener(this, onlinePlayerRegistry, serverInstance), this);
+        getServer().getPluginManager().registerEvents(
+                new WorldLoadListener(this, config, levelupdateSchedulerIsland, islandSnapshot,
+                        worldActivityHandler), this);
+        getServer().getPluginManager().registerEvents(
+                new WorldUnloadListener(this, levelupdateSchedulerIsland, islandSnapshot), this);
+        getServer().getPluginManager().registerEvents(
+                new WorldActivityListener(this, worldActivityHandler), this);
+        getServer().getPluginManager().registerEvents(
+                new TeleportRequestListener(this, teleportHandler), this);
+        getServer().getPluginManager().registerEvents(
+                new IslandProtectionListener(this, config, islandSnapshot), this);
+        getServer().getPluginManager().registerEvents(
+                new IslandAccessListener(this, config, islandSnapshot), this);
+        getServer().getPluginManager().registerEvents(
+                new IslandPvPListener(this, config, islandSnapshot), this);
+        getServer().getPluginManager().registerEvents(
+                new UuidUpdateListener(this, uuidHandler), this);
+        getServer().getPluginManager().registerEvents(
+                new IslandCoopListener(this, coopHandler, onlinePlayerRegistry), this);
+
+        info("All listeners loaded");
+    }
+
+    private void registerCommands() {
+        info("Registering commands");
+
+        IslandPlayerCommand islandPlayerCommand = new IslandPlayerCommand(this, api, config);
+        PluginCommand playerCommand = createCommand("island");
+        playerCommand.setAliases(Collections.singletonList("is"));
+        playerCommand.setExecutor(islandPlayerCommand);
+        Bukkit.getCommandMap().register("island", playerCommand);
+
+        IslandAdminCommand islandAdminCommand = new IslandAdminCommand(this, api, config);
+        PluginCommand adminCommand = createCommand("islandadmin");
+        adminCommand.setAliases(Collections.singletonList("isadmin"));
+        adminCommand.setExecutor(islandAdminCommand);
+        Bukkit.getCommandMap().register("islandadmin", adminCommand);
+
+        AsyncTabCompleteListener tabComplete = new AsyncTabCompleteListener(this);
+        tabComplete.registerRoot("island", islandPlayerCommand);
+        tabComplete.registerRoot("is", islandPlayerCommand);
+        tabComplete.registerRoot("islandadmin", islandAdminCommand);
+        tabComplete.registerRoot("isadmin", islandAdminCommand);
+        getServer().getPluginManager().registerEvents(tabComplete, this);
+
+        info("All commands registered");
+    }
+
+    private void startSchedulers() {
+        // Heartbeat registration retires the previous boot's inbox. Start it before accepting
+        // cross-server work so every request belongs to this exact server incarnation.
+        heartBeatScheduler.start();
+        crossServerMessenger.start();
+        islandUnloadScheduler.start();
+        levelupdateSchedulerIsland.start();
+
+        if (msptUpdateScheduler != null) {
+            msptUpdateScheduler.start();
+        } else {
+            info("MSPT update scheduler not enabled, skipping start.");
         }
     }
 
@@ -263,21 +306,75 @@ public class NewSky extends JavaPlugin {
     }
 
     private void registerCrossServerHandlers(CrossServerMessenger messenger, IslandOperator islandOperator) {
-        messenger.register(IslandDistributor.ACTION_ISLAND_CREATE, payload -> emptyResponse(islandOperator.createIsland(uuid(payload, "islandUuid"), uuid(payload, "ownerUuid"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_LOAD, payload -> emptyResponse(islandOperator.loadIsland(uuid(payload, "islandUuid"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_UNLOAD, payload -> emptyResponse(islandOperator.unloadIsland(uuid(payload, "islandUuid"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_DELETE, payload -> emptyResponse(islandOperator.deleteIsland(uuid(payload, "islandUuid"), Actor.fromJson(payload))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_TELEPORT_PREPARE, payload -> emptyResponse(islandOperator.prepareTeleport(uuid(payload, "playerUuid"), payload.getString("teleportWorld"), payload.getString("teleportLocation"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_MEMBER_ADD, payload -> emptyResponse(islandOperator.addMember(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"), payload.getString("role"), optionalUuid(payload, "vouchedBy"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_MEMBER_REMOVE, payload -> emptyResponse(islandOperator.removeMember(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_OWNER_SET, payload -> emptyResponse(islandOperator.setOwner(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "newOwnerUuid"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_BAN_ADD, payload -> emptyResponse(islandOperator.addBan(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_BAN_REMOVE, payload -> emptyResponse(islandOperator.removeBan(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_COOP_ADD, payload -> emptyResponse(islandOperator.addCoop(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_COOP_REMOVE, payload -> emptyResponse(islandOperator.removeCoop(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_LOCK_TOGGLE, payload -> islandOperator.toggleLock(uuid(payload, "islandUuid"), Actor.fromJson(payload), operationUuid(payload)).thenApply(locked -> new JSONObject().put("locked", locked)));
-        messenger.register(IslandDistributor.ACTION_ISLAND_PVP_TOGGLE, payload -> islandOperator.togglePvp(uuid(payload, "islandUuid"), Actor.fromJson(payload), operationUuid(payload)).thenApply(pvp -> new JSONObject().put("pvp", pvp)));
-        messenger.register(IslandDistributor.ACTION_ISLAND_EXPEL, payload -> emptyResponse(islandOperator.expelPlayer(uuid(payload, "islandUuid"), Actor.fromJson(payload), uuid(payload, "playerUuid"))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_CREATE, payload -> {
+            return emptyResponse(islandOperator.createIsland(
+                    uuid(payload, "islandUuid"), uuid(payload, "ownerUuid")));
+        });
+        messenger.register(IslandDistributor.ACTION_ISLAND_LOAD, payload -> {
+            return emptyResponse(islandOperator.loadIsland(uuid(payload, "islandUuid")));
+        });
+        messenger.register(IslandDistributor.ACTION_ISLAND_UNLOAD, payload -> {
+            return emptyResponse(islandOperator.unloadIsland(uuid(payload, "islandUuid")));
+        });
+        messenger.register(IslandDistributor.ACTION_ISLAND_DELETE, payload -> {
+            return emptyResponse(islandOperator.deleteIsland(
+                    uuid(payload, "islandUuid"), Actor.fromJson(payload)));
+        });
+        messenger.register(IslandDistributor.ACTION_ISLAND_TELEPORT_PREPARE, payload -> {
+            return emptyResponse(islandOperator.prepareTeleport(
+                    uuid(payload, "playerUuid"), payload.getString("teleportWorld"),
+                    payload.getString("teleportLocation")));
+        });
+
+        messenger.register(IslandDistributor.ACTION_ISLAND_MEMBER_ADD, payload -> {
+            return emptyResponse(islandOperator.addMember(
+                    uuid(payload, "islandUuid"), uuid(payload, "playerUuid"),
+                    payload.getString("role"), optionalUuid(payload, "vouchedBy")));
+        });
+        messenger.register(IslandDistributor.ACTION_ISLAND_MEMBER_REMOVE, payload -> {
+            return emptyResponse(islandOperator.removeMember(
+                    uuid(payload, "islandUuid"), Actor.fromJson(payload),
+                    uuid(payload, "playerUuid")));
+        });
+        messenger.register(IslandDistributor.ACTION_ISLAND_OWNER_SET, payload -> {
+            return emptyResponse(islandOperator.setOwner(
+                    uuid(payload, "islandUuid"), Actor.fromJson(payload),
+                    uuid(payload, "newOwnerUuid")));
+        });
+        messenger.register(IslandDistributor.ACTION_ISLAND_BAN_ADD, payload -> {
+            return emptyResponse(islandOperator.addBan(
+                    uuid(payload, "islandUuid"), Actor.fromJson(payload),
+                    uuid(payload, "playerUuid")));
+        });
+        messenger.register(IslandDistributor.ACTION_ISLAND_BAN_REMOVE, payload -> {
+            return emptyResponse(islandOperator.removeBan(
+                    uuid(payload, "islandUuid"), Actor.fromJson(payload),
+                    uuid(payload, "playerUuid")));
+        });
+        messenger.register(IslandDistributor.ACTION_ISLAND_COOP_ADD, payload -> {
+            return emptyResponse(islandOperator.addCoop(
+                    uuid(payload, "islandUuid"), Actor.fromJson(payload),
+                    uuid(payload, "playerUuid")));
+        });
+        messenger.register(IslandDistributor.ACTION_ISLAND_COOP_REMOVE, payload -> {
+            return emptyResponse(islandOperator.removeCoop(
+                    uuid(payload, "islandUuid"), Actor.fromJson(payload),
+                    uuid(payload, "playerUuid")));
+        });
+
+        messenger.register(IslandDistributor.ACTION_ISLAND_LOCK_TOGGLE, payload -> {
+            return islandOperator.toggleLock(uuid(payload, "islandUuid"), Actor.fromJson(payload),
+                    operationUuid(payload)).thenApply(locked -> new JSONObject().put("locked", locked));
+        });
+        messenger.register(IslandDistributor.ACTION_ISLAND_PVP_TOGGLE, payload -> {
+            return islandOperator.togglePvp(uuid(payload, "islandUuid"), Actor.fromJson(payload),
+                    operationUuid(payload)).thenApply(pvp -> new JSONObject().put("pvp", pvp));
+        });
+        messenger.register(IslandDistributor.ACTION_ISLAND_EXPEL, payload -> {
+            return emptyResponse(islandOperator.expelPlayer(
+                    uuid(payload, "islandUuid"), Actor.fromJson(payload),
+                    uuid(payload, "playerUuid")));
+        });
     }
 
     private CompletableFuture<JSONObject> emptyResponse(CompletableFuture<Void> future) {
@@ -367,7 +464,8 @@ public class NewSky extends JavaPlugin {
 
         Runnable disable = () -> {
             if (isEnabled()) {
-                getLogger().severe("Disabling NewSky because this JVM can no longer prove ownership of its island leases.");
+                getLogger().severe("Disabling NewSky because this JVM can no longer prove "
+                        + "ownership of its island leases.");
                 getServer().getPluginManager().disablePlugin(this);
             }
         };
@@ -388,12 +486,14 @@ public class NewSky extends JavaPlugin {
 
     @SuppressWarnings("unused")
     public CompletableFuture<Set<UUID>> getOnlinePlayersUUIDs() {
-        return CompletableFuture.supplyAsync(() -> onlinePlayerRegistry.getOnlinePlayerUuids(), getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(
+                () -> onlinePlayerRegistry.getOnlinePlayerUuids(), getBukkitAsyncExecutor());
     }
 
     @SuppressWarnings("unused")
     public CompletableFuture<Set<String>> getOnlinePlayersNames() {
-        return CompletableFuture.supplyAsync(() -> onlinePlayerRegistry.getOnlinePlayerNames(), getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(
+                () -> onlinePlayerRegistry.getOnlinePlayerNames(), getBukkitAsyncExecutor());
     }
 
     @SuppressWarnings("unused")

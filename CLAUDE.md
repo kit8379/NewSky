@@ -1,5 +1,8 @@
 # NewSky — Architecture Rules
 
+For the current code map, lifecycle diagrams, thread rules and the ASP storage contract,
+read `ARCHITECTURE.md` first. This file keeps the deeper authorization rationale and test notes.
+
 ## The API shape rule: writes enter through a handle, reads live on the root
 
 `NewSkyAPI` exposes exactly one way to write, with no exceptions and no footnotes:
@@ -101,13 +104,11 @@ step. It is a courtesy, not a defense — the transaction still enforces.
   claim self-heals: the next teleport routed to the host re-loads the island at the point of
   effect. `IslandOperator` serializes create/load/unload/delete per island locally and
   de-duplicates concurrent loads.
-- **The snapshot is authoritative memory, not a cache**: the database is read once per hosting
-  (the seed, at world load — concurrent seeds coalesce) and every write applies its own delta
-  (`Island.withX`, mirroring the transaction exactly, idempotent) in the same operation that
-  committed it. There is no refresh, no retry, no reconciliation — nothing to "catch up",
-  because a write completes only after memory reflects it. Deltas queue behind an in-flight
-  seed on the snapshot's per-island chain; the unload generation stops a stale seed from
-  resurrecting state (the ABA case).
+- **The snapshot is authoritative memory, not a polling cache**: the database is read at world
+  load and every normal write applies its own exact versioned delta (`Island.withX`) before the
+  operation completes. Deltas queue behind an in-flight seed; the unload generation stops a stale
+  seed from resurrecting state (the ABA case). Duplicate/late versions are ignored. A version gap
+  is treated as an abnormal missed/out-of-band update and triggers one consistent database read.
 - **Every state write runs under write authority** (`IslandRegistry.acquireWriteAuthority`,
   atomic in Redis): HOST executes and applies its delta; CLAIMED takes a temporary claim for an
   unloaded island inside the island's chain slot and releases it there, so a concurrent load
@@ -115,8 +116,8 @@ step. It is a courtesy, not a defense — the transaction still enforces.
   unrepresentable, not detected; OTHER refuses with `WrongIslandHostException` and the caller
   re-resolves and follows the island (bounded attempts). Never execute a state write beside
   someone else's claim: the host's memory would never hear about it.
-- **`IslandSnapshot.get()` never returns null because a seed is in flight** — listeners
-  fail closed on null, so stale must beat absent on hot paths.
+- **`IslandSnapshot.get()` returning null means the island is not ready on this server**. Listeners
+  fail closed on null; they never query MySQL from a hot event path.
 - The read path for listeners (protection/PvP/access) is the in-memory snapshot only.
   Never put a SQL query on a per-block or per-hit path.
 - **Cross-server requests are ephemeral, not durable**: a server clears its own inbox on
@@ -155,20 +156,19 @@ Command-rate reads (single indexed queries, async) do not need caching — measu
 
 ## Build verification
 
-`mvn compile` fails on this machine: the AdvancedSlimePaper 4.2.0-SNAPSHOT jars are class-file
-major 69 (Java 25) while the local JDK is 21. Verify with the stubs instead:
+AdvancedSlimePaper is pinned to the last Java 21-compatible snapshot in `pom.xml`. The normal
+verification command is:
 
-```
-mvn -q -o dependency:build-classpath -Dmdep.outputFile=target/cp.txt -Dmdep.includeScope=compile
-# strip the two infernalsuite jars from the classpath file, then:
-find src/main/java target/codex-stubs -name "*.java" > target/srcs.txt
-javac -nowarn -d target/verify -cp "@target/cp_nostub.txt" @target/srcs.txt
+```powershell
+mvn -q -DskipTests package
 ```
 
 ## Tests
 
-`src/test/java` holds plain-main test classes (no JUnit — `mvn test` cannot run here for the
-same ASP-jar reason). They cover the concurrency primitives the cluster safety rests on:
+`src/test/java` holds plain-main test classes rather than JUnit tests. `mvn test` compiles them but
+reports zero executed tests, so it must not be treated as test success. Run their `main` methods
+with `target/test-classes`, `target/classes` and Maven's test dependency classpath. They cover the
+concurrency primitives the cluster safety rests on:
 
 - `KeyedSequentialExecutorTest` — per-key ordering, no-overlap, failure isolation, cross-key
   parallelism, chain cleanup (backs island lifecycle + online-player ordering).
@@ -206,14 +206,21 @@ same ASP-jar reason). They cover the concurrency primitives the cluster safety r
   invitation vouch re-verification, add-member side effects, ban rules, the point-write foreign
   key, and delete cascades. Uses the `DatabaseHandler(HikariDataSource, prefix, spawnLocation,
   ErrorSink)` seam - the production constructor delegates to it.
+- `ClusterFencingExtremeTest` — real Redis + MySQL takeover tests: duplicate server-name startup,
+  A→B→C claim handoff, old-epoch write/delete cleanup rejection, operation-ID replay and row-lock
+  ordering during epoch takeover.
+- `RedisStreamDeliveryExtremeTest` — boot-scoped stream cursor behaviour, inbox retirement and
+  concurrent producers with exact loss/duplicate counts.
+- `TeleportHandlerTest` — stale teleport completions cannot remove a newer request; failed or
+  blocked teleports remain retryable.
 
-```
-find src/test/java -name "*.java" > target/test-srcs.txt
-CP=$(cat target/cp_nostub.txt)
-javac -nowarn -d target/verify-tests -cp "target/verify;$CP" @target/test-srcs.txt
-java -cp "target/verify-tests;target/verify;$CP" org.me.newsky.test.KeyedSequentialExecutorTest
-java -cp "target/verify-tests;target/verify;$CP" org.me.newsky.test.CrossServerMessageTest
-java -cp "target/verify-tests;target/verify;$CP" org.me.newsky.test.RedisClaimScriptsTest
+```powershell
+mvn -q test dependency:build-classpath "-Dmdep.outputFile=target/test-cp.txt" "-Dmdep.includeScope=test"
+$dependencyCp = Get-Content -Raw target/test-cp.txt
+$testCp = "target/test-classes;target/classes;$dependencyCp"
+java -cp $testCp org.me.newsky.test.KeyedSequentialExecutorTest
+java -cp $testCp org.me.newsky.test.CrossServerMessageTest
+java -cp $testCp org.me.newsky.test.RedisClaimScriptsTest 192.168.1.49 6379
 ```
 
 ## Parked features

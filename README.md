@@ -4,6 +4,10 @@
     <strong>Scalable. Async. Redis. Built for Multi-Server.</strong>
 </div>
 
+<div align="center">
+    <a href="ARCHITECTURE.md">Code guide and consistency rules</a>
+</div>
+
 ---
 
 <h2 align="center">⚠️ Important Notice ⚠️</h2>

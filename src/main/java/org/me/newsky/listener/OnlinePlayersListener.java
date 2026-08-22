@@ -19,8 +19,7 @@ public class OnlinePlayersListener implements Listener {
     private final OnlinePlayerRegistry onlinePlayerRegistry;
     private final IslandRegistry.HostClaim serverInstance;
 
-    // Registry updates for one player must reach Redis in event order: a relog fires quit then
-    // join, and two unordered async tasks could apply them reversed, deleting the fresh entry.
+    // Keep one player's join/quit updates in Bukkit event order.
     private final KeyedSequentialExecutor<UUID> updateChains = new KeyedSequentialExecutor<>();
 
     public OnlinePlayersListener(NewSky plugin, OnlinePlayerRegistry onlinePlayerRegistry, IslandRegistry.HostClaim serverInstance) {
@@ -52,7 +51,9 @@ public class OnlinePlayersListener implements Listener {
     }
 
     private void enqueue(UUID playerUuid, Runnable update) {
-        updateChains.submit(playerUuid, () -> CompletableFuture.runAsync(update, plugin.getBukkitAsyncExecutor())).whenComplete((result, error) -> {
+        updateChains.submit(playerUuid, () -> {
+            return CompletableFuture.runAsync(update, plugin.getBukkitAsyncExecutor());
+        }).whenComplete((result, error) -> {
             if (error != null) {
                 plugin.severe("Failed to update online player registry for " + playerUuid, error);
             }

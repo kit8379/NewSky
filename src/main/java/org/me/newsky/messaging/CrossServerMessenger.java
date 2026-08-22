@@ -12,7 +12,11 @@ import redis.clients.jedis.params.XReadParams;
 import redis.clients.jedis.resps.StreamEntry;
 
 import java.lang.reflect.Constructor;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -22,14 +26,8 @@ public final class CrossServerMessenger {
 
     private static final String FIELD_MESSAGE = "message";
     private static final long REQUEST_TIMEOUT_SECONDS = 30L;
-    // A request older than the requester's timeout (plus clock-skew slack) has nobody waiting for
-    // it any more; executing it late would replay non-idempotent operations (lock toggles, loads)
-    // against state that has long moved on.
     private static final long STALE_REQUEST_MILLIS = (REQUEST_TIMEOUT_SECONDS + 5L) * 1000L;
-    // Backstop only: unclogs the inbox window if a handler future never completes. Far above any
-    // legitimate operation so it can never masquerade as a real failure verdict.
     private static final long HANDLER_TIMEOUT_SECONDS = 600L;
-    // Caps every inbox so streams of dead or renamed servers cannot grow without bound.
     private static final long INBOX_MAX_LEN = 10_000L;
     private static final int READ_BLOCK_MILLIS = 1000;
     private static final int READ_COUNT = 10;
@@ -65,7 +63,9 @@ public final class CrossServerMessenger {
             }
         });
 
-        future.orTimeout(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).whenComplete((result, throwable) -> pendingRequests.remove(message.getMessageId()));
+        future.orTimeout(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).whenComplete((result, error) -> {
+            pendingRequests.remove(message.getMessageId());
+        });
         return future;
     }
 
@@ -85,27 +85,30 @@ public final class CrossServerMessenger {
 
     public boolean stop() {
         running = false;
-        pendingRequests.forEach((id, future) -> future.completeExceptionally(new IllegalStateException("Cross-server messenger stopped")));
+        pendingRequests.forEach((id, future) -> {
+            future.completeExceptionally(new IllegalStateException("Cross-server messenger stopped"));
+        });
         pendingRequests.clear();
+
         if (!activeHandlers.isEmpty()) {
-            plugin.warning("CrossServerMessenger stopped intake with " + activeHandlers.size() + " request handler(s) still completing");
+            plugin.warning("CrossServerMessenger stopped intake with " + activeHandlers.size()
+                    + " request handler(s) still completing");
         }
         return !activeHandlers.isEmpty();
     }
 
     private void consumeLoop() {
-        // XREAD returns entries strictly newer than the supplied ID. Advancing this cursor before
-        // dispatch makes the inbox explicitly at-most-once for this boot: an XDEL or response-send
-        // failure can cause a caller timeout, but can never replay a committed toggle/mutation.
-        // The heartbeat registration atomically clears the previous boot's inbox before this
-        // incarnation becomes visible, so a crashed boot's entries are never replayed either.
-        // Jedis MINIMUM_ID serializes as "-", which Redis accepts for XRANGE but rejects for
-        // XREAD. The explicit 0-0 ID means "all entries newer than the beginning of the stream".
+        // Advance before dispatch: a failed response may time out, but a committed write is never replayed.
         StreamEntryID lastReadId = new StreamEntryID(0L, 0L);
 
         while (running && plugin.isEnabled()) {
             try (Jedis jedis = redisHandler.getJedis()) {
-                List<Map.Entry<String, List<StreamEntry>>> streams = jedis.xread(XReadParams.xReadParams().block(READ_BLOCK_MILLIS).count(READ_COUNT), Collections.singletonMap(inboxKey(serverID), lastReadId));
+                XReadParams readParams = XReadParams.xReadParams()
+                        .block(READ_BLOCK_MILLIS)
+                        .count(READ_COUNT);
+                Map<String, StreamEntryID> inbox = Collections.singletonMap(
+                        inboxKey(serverID), lastReadId);
+                List<Map.Entry<String, List<StreamEntry>>> streams = jedis.xread(readParams, inbox);
 
                 if (streams == null || streams.isEmpty()) {
                     continue;
@@ -139,7 +142,8 @@ public final class CrossServerMessenger {
 
             CrossServerMessage message = CrossServerMessage.fromJson(raw);
             if (!serverID.equals(message.getTarget())) {
-                plugin.warning("Dropping cross-server message targeted to " + message.getTarget() + " from inbox " + serverID);
+                plugin.warning("Dropping message targeted to " + message.getTarget()
+                        + " from inbox " + serverID);
                 deleteEntry(entry.getID());
                 return;
             }
@@ -151,8 +155,9 @@ public final class CrossServerMessenger {
             }
 
             if (CrossServerMessage.TYPE_REQUEST.equals(message.getType())) {
-                if (message.getTimestamp() > 0 && System.currentTimeMillis() - message.getTimestamp() > STALE_REQUEST_MILLIS) {
-                    plugin.warning("Dropping stale cross-server request " + message.getAction() + " from " + message.getSource() + " (age exceeds requester timeout)");
+                if (isStale(message)) {
+                    plugin.warning("Dropping stale request " + message.getAction()
+                            + " from " + message.getSource());
                     deleteEntry(entry.getID());
                     return;
                 }
@@ -169,30 +174,40 @@ public final class CrossServerMessenger {
         }
     }
 
+    private boolean isStale(CrossServerMessage message) {
+        return message.getTimestamp() > 0
+                && System.currentTimeMillis() - message.getTimestamp() > STALE_REQUEST_MILLIS;
+    }
+
     private void handleRequest(StreamEntryID entryId, CrossServerMessage message) {
         CrossServerMessageHandler handler = handlers.get(message.getAction());
         if (handler == null) {
-            sendAndDeleteAsync(entryId, CrossServerMessage.failedResponse(message, "No handler registered for action: " + message.getAction()));
+            CrossServerMessage response = CrossServerMessage.failedResponse(message,
+                    "No handler registered for action: " + message.getAction());
+            sendAndDeleteAsync(entryId, response);
             return;
         }
 
         try {
-            CompletableFuture<JSONObject> handling = handler.handle(message.getPayload()).orTimeout(HANDLER_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            CompletableFuture<JSONObject> handling = handler.handle(message.getPayload())
+                    .orTimeout(HANDLER_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             activeHandlers.add(handling);
             handling.whenCompleteAsync((payload, throwable) -> {
                 activeHandlers.remove(handling);
-                CrossServerMessage response;
-                if (throwable == null) {
-                    response = CrossServerMessage.successResponse(message, payload == null ? new JSONObject() : payload);
-                } else {
-                    response = CrossServerMessage.failedResponse(message, throwable);
-                }
-
+                CrossServerMessage response = createResponse(message, payload, throwable);
                 sendAndDelete(entryId, response);
             }, plugin.getBukkitAsyncExecutor());
         } catch (Exception e) {
             sendAndDeleteAsync(entryId, CrossServerMessage.failedResponse(message, e));
         }
+    }
+
+    private CrossServerMessage createResponse(CrossServerMessage request, JSONObject payload,
+                                              Throwable error) {
+        if (error != null) {
+            return CrossServerMessage.failedResponse(request, error);
+        }
+        return CrossServerMessage.successResponse(request, payload == null ? new JSONObject() : payload);
     }
 
     private void handleResponse(CrossServerMessage message) {
@@ -232,7 +247,8 @@ public final class CrossServerMessenger {
         }
     }
 
-    private RuntimeException instantiateRemoteException(Class<? extends RuntimeException> clazz, String errorMessage) throws Exception {
+    private RuntimeException instantiateRemoteException(Class<? extends RuntimeException> clazz,
+                                                         String errorMessage) throws Exception {
         try {
             Constructor<? extends RuntimeException> constructor = clazz.getDeclaredConstructor();
             constructor.setAccessible(true);
@@ -273,8 +289,13 @@ public final class CrossServerMessenger {
 
     private void send(CrossServerMessage message) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.xadd(inboxKey(message.getTarget()), XAddParams.xAddParams().maxLen(INBOX_MAX_LEN).approximateTrimming(), Map.of(FIELD_MESSAGE, message.toJson()));
-            plugin.debug("CrossServerMessenger", "Sent " + message.getType() + " " + message.getAction() + " to " + message.getTarget());
+            XAddParams addParams = XAddParams.xAddParams()
+                    .maxLen(INBOX_MAX_LEN)
+                    .approximateTrimming();
+            jedis.xadd(inboxKey(message.getTarget()), addParams,
+                    Map.of(FIELD_MESSAGE, message.toJson()));
+            plugin.debug("CrossServerMessenger", "Sent " + message.getType() + " "
+                    + message.getAction() + " to " + message.getTarget());
         }
     }
 
