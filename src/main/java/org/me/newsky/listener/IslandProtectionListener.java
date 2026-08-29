@@ -266,10 +266,39 @@ public class IslandProtectionListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onTeleport(PlayerTeleportEvent event) {
         Player player = event.getPlayer();
+        Location to = event.getTo();
 
-        if (!canPlayerEdit(player, event.getTo())) {
+        UUID islandUuid = getIslandUuidIfIslandWorld(to);
+        if (islandUuid == null) {
+            return;
+        }
+
+        Island island = islandSnapshot.get(islandUuid);
+        if (!isInsideIslandBoundary(island, to)) {
             event.setCancelled(true);
             deny(player);
+            return;
+        }
+
+        if (player.isOp()) {
+            return;
+        }
+
+        UUID playerUuid = player.getUniqueId();
+        if (island.getBans().contains(playerUuid)) {
+            event.setCancelled(true);
+            player.sendMessage(config.getPlayerBannedMessage());
+            return;
+        }
+
+        boolean allowed = !island.isLock()
+                || island.getOwner().equals(playerUuid)
+                || island.getMembers().contains(playerUuid)
+                || island.getCoops().contains(playerUuid);
+
+        if (!allowed) {
+            event.setCancelled(true);
+            player.sendMessage(config.getIslandLockedMessage());
         }
     }
 }

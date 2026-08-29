@@ -1,6 +1,7 @@
 package org.me.newsky.listener;
 
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -27,7 +28,18 @@ public class IslandPvPListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
-        if (!(event.getEntity() instanceof Player victim) || !(event.getDamager() instanceof Player attacker)) {
+        if (!(event.getEntity() instanceof Player victim)) {
+            return;
+        }
+
+        Player attacker = null;
+        if (event.getDamager() instanceof Player player) {
+            attacker = player;
+        } else if (event.getDamager() instanceof Projectile projectile && projectile.getShooter() instanceof Player player) {
+            attacker = player;
+        }
+
+        if (attacker == null || attacker.equals(victim)) {
             return;
         }
 
