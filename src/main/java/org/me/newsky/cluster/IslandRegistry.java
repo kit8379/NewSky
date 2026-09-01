@@ -16,16 +16,6 @@ public class IslandRegistry extends ClusterState {
         super(plugin, redisHandler);
     }
 
-    /**
-     * Atomically claims the right to host an island, so that two servers can never both load it.
-     * The claim is written before the world is loaded and must be released if the load fails.
-     *
-     * @return true if the claim was taken by this call, false if another server already holds it
-     */
-    public boolean claimIslandLoadedServer(UUID islandUuid, String serverName) {
-        return execute(jedis -> jedis.hsetnx(ClusterKeys.islandServer(), islandUuid.toString(), serverName) == 1L, "Failed to claim island loaded server for: " + islandUuid);
-    }
-
     public void updateIslandLoadedServer(UUID islandUuid, String serverName) {
         run(jedis -> jedis.hset(ClusterKeys.islandServer(), islandUuid.toString(), serverName), "Failed to update island loaded server for: " + islandUuid);
     }

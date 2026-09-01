@@ -35,7 +35,6 @@ public class IslandDistributor {
     public static final String ACTION_ISLAND_LOCK_TOGGLE = "island.lock.toggle";
     public static final String ACTION_ISLAND_PVP_TOGGLE = "island.pvp.toggle";
     public static final String ACTION_ISLAND_EXPEL = "island.expel";
-    public static final String ACTION_ISLAND_SNAPSHOT_REFRESH = "island.snapshot.refresh";
 
     private final NewSky plugin;
     private final IslandOperator islandOperator;
@@ -65,43 +64,22 @@ public class IslandDistributor {
             return CompletableFuture.completedFuture(alreadyLoadedServer);
         }
 
-        String candidate = selectServer(serverRegistry.getActiveGameServers());
-        if (candidate == null) {
+        String targetServer = selectServer(serverRegistry.getActiveGameServers());
+        if (targetServer == null) {
             return CompletableFuture.failedFuture(new NoActiveServerException());
         }
 
-        // Claim the host before loading. Without the claim two servers can both observe an unclaimed
-        // island, pick different hosts, and load the same world twice on top of one storage backend.
-        boolean claimed = islandRegistry.claimIslandLoadedServer(islandUuid, candidate);
-        String host = claimed ? candidate : getServerByIsland(islandUuid);
-        if (host == null) {
-            return CompletableFuture.failedFuture(new NoActiveServerException());
-        }
-
-        // Winner and losers alike dispatch the load to the claimed host, which de-duplicates them
-        // locally. That way every caller only continues once the world is really loaded.
-        return dispatchLoad(islandUuid, host, claimed).thenApply(v -> host);
+        return loadIslandOnServer(islandUuid, targetServer).thenApply(v -> targetServer);
     }
 
-    private CompletableFuture<Void> dispatchLoad(UUID islandUuid, String host, boolean claimedByUs) {
-        CompletableFuture<Void> load;
-
-        if (host.equals(serverID)) {
-            load = islandOperator.loadIsland(islandUuid);
-        } else {
-            JSONObject payload = new JSONObject();
-            payload.put("islandUuid", islandUuid.toString());
-            load = messenger.requestVoid(host, ACTION_ISLAND_LOAD, payload);
+    private CompletableFuture<Void> loadIslandOnServer(UUID islandUuid, String targetServer) {
+        if (targetServer.equals(serverID)) {
+            return islandOperator.loadIsland(islandUuid);
         }
 
-        return load.exceptionallyCompose(e -> {
-            // Only the caller that took the claim may release it, otherwise a failing loser would
-            // strip the claim out from under the winner while it is still loading.
-            if (claimedByUs) {
-                islandRegistry.removeIslandLoadedServer(islandUuid);
-            }
-            return CompletableFuture.failedFuture(e);
-        });
+        JSONObject payload = new JSONObject();
+        payload.put("islandUuid", islandUuid.toString());
+        return messenger.requestVoid(targetServer, ACTION_ISLAND_LOAD, payload);
     }
 
     // =====================================================================================
@@ -112,6 +90,10 @@ public class IslandDistributor {
         String targetServer = selectServer(serverRegistry.getActiveGameServers());
         if (targetServer == null) {
             return CompletableFuture.failedFuture(new NoActiveServerException());
+        }
+
+        if (islandRegistry.getIslandLoadedServer(islandUuid).isPresent()) {
+            return CompletableFuture.failedFuture(new IslandAlreadyLoadedException());
         }
 
         JSONObject payload = new JSONObject();
@@ -126,18 +108,16 @@ public class IslandDistributor {
     }
 
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
-        String candidate = selectServer(serverRegistry.getActiveGameServers());
-        if (candidate == null) {
+        String targetServer = selectServer(serverRegistry.getActiveGameServers());
+        if (targetServer == null) {
             return CompletableFuture.failedFuture(new NoActiveServerException());
         }
 
-        // Losing the claim is exactly the "already loaded" case, and deciding it this way makes two
-        // simultaneous load requests resolve atomically instead of both proceeding.
-        if (!islandRegistry.claimIslandLoadedServer(islandUuid, candidate)) {
+        if (islandRegistry.getIslandLoadedServer(islandUuid).isPresent()) {
             return CompletableFuture.failedFuture(new IslandAlreadyLoadedException());
         }
 
-        return dispatchLoad(islandUuid, candidate, true);
+        return loadIslandOnServer(islandUuid, targetServer);
     }
 
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {

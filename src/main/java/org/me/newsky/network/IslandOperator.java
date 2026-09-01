@@ -15,7 +15,9 @@ import org.me.newsky.util.LocationUtils;
 import org.me.newsky.world.WorldHandler;
 import snapshot.IslandSnapshot;
 
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -154,8 +156,7 @@ public class IslandOperator {
      * and this read. A member slipping through even that is only bounced to the lobby once.
      */
     public CompletableFuture<Void> expelPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {
-        return CompletableFuture.supplyAsync(() -> database.getIslandPlayers(islandUuid).keySet(),
-                plugin.getBukkitAsyncExecutor()).thenCompose(islandPlayers -> {
+        return CompletableFuture.supplyAsync(() -> database.getIslandPlayers(islandUuid).keySet(), plugin.getBukkitAsyncExecutor()).thenCompose(islandPlayers -> {
             if (actor instanceof Actor.Player player && !islandPlayers.contains(player.uuid())) {
                 throw new IslandDoesNotExistException();
             }
@@ -168,69 +169,75 @@ public class IslandOperator {
         });
     }
 
-    public CompletableFuture<Void> refreshSnapshot(UUID islandUuid) {
-        return islandSnapshot.reload(islandUuid);
-    }
-
     public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role) {
-        return updateSnapshot(islandUuid, () -> database.addIslandPlayer(islandUuid, playerUuid, role));
-    }
-
-    public CompletableFuture<Void> removeMember(Actor actor, UUID islandUuid, UUID playerUuid) {
-        return updateSnapshot(islandUuid, () -> database.deleteIslandPlayer(actor, islandUuid, playerUuid)).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(islandUuid), playerUuid));
-    }
-
-    public CompletableFuture<Void> setOwner(Actor actor, UUID islandUuid, UUID newOwnerUuid) {
-        return updateSnapshot(islandUuid, () -> database.updateIslandOwner(actor, islandUuid, newOwnerUuid));
-    }
-
-    public CompletableFuture<Void> addBan(Actor actor, UUID islandUuid, UUID playerUuid) {
-        return updateSnapshot(islandUuid, () -> database.updateBanPlayer(actor, islandUuid, playerUuid)).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(islandUuid), playerUuid));
-    }
-
-    public CompletableFuture<Void> removeBan(Actor actor, UUID islandUuid, UUID playerUuid) {
-        return updateSnapshot(islandUuid, () -> database.deleteBanPlayer(actor, islandUuid, playerUuid));
-    }
-
-    public CompletableFuture<Void> addCoop(Actor actor, UUID islandUuid, UUID playerUuid) {
-        return updateSnapshot(islandUuid, () -> database.updateCoopPlayer(actor, islandUuid, playerUuid));
-    }
-
-    public CompletableFuture<Void> removeCoop(Actor actor, UUID islandUuid, UUID playerUuid) {
-        return updateSnapshot(islandUuid, () -> database.deleteCoopPlayer(actor, islandUuid, playerUuid)).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(islandUuid), playerUuid));
-    }
-
-    public CompletableFuture<Boolean> toggleIslandLock(Actor actor, UUID islandUuid) {
-        return updateSnapshotAndGet(islandUuid, () -> database.toggleIslandLock(actor, islandUuid)).thenCompose(locked -> {
-            if (!locked) {
-                return CompletableFuture.completedFuture(false);
-            }
-
-            return removeNonMembersFromWorld(islandUuid).thenApply(v -> true);
-        });
-    }
-
-    public CompletableFuture<Boolean> toggleIslandPvp(Actor actor, UUID islandUuid) {
-        return updateSnapshotAndGet(islandUuid, () -> database.toggleIslandPvp(actor, islandUuid));
-    }
-
-    private CompletableFuture<Void> removeNonMembersFromWorld(UUID islandUuid) {
-        String islandName = IslandUtils.UUIDToName(islandUuid);
-
-        return plugin.getApi().getIslandPlayers(islandUuid).thenCompose(islandPlayers -> worldHandler.removePlayersFromWorld(islandName, player -> !islandPlayers.contains(player.getUniqueId())));
-    }
-
-    private CompletableFuture<Void> updateSnapshot(UUID islandUuid, Runnable mutation) {
-        return updateSnapshotAndGet(islandUuid, () -> {
-            mutation.run();
+        return updateSnapshot(islandUuid, () -> {
+            database.addIslandPlayer(islandUuid, playerUuid, role);
             return null;
         });
     }
 
-    private <T> CompletableFuture<T> updateSnapshotAndGet(UUID islandUuid, Supplier<T> mutation) {
-        // The snapshot is refreshed even when the mutation fails, because a mutation can fail after
-        // having written something (or after another server wrote), and skipping the reload would
-        // leave this server serving a snapshot it already knows to be behind.
+    public CompletableFuture<Void> removeMember(Actor actor, UUID islandUuid, UUID playerUuid) {
+        return updateSnapshot(islandUuid, () -> {
+            database.deleteIslandPlayer(actor, islandUuid, playerUuid);
+            return null;
+        }).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(islandUuid), playerUuid));
+    }
+
+    public CompletableFuture<Void> setOwner(Actor actor, UUID islandUuid, UUID newOwnerUuid) {
+        return updateSnapshot(islandUuid, () -> {
+            database.updateIslandOwner(actor, islandUuid, newOwnerUuid);
+            return null;
+        });
+    }
+
+    public CompletableFuture<Void> addBan(Actor actor, UUID islandUuid, UUID playerUuid) {
+        return updateSnapshot(islandUuid, () -> {
+            database.updateBanPlayer(actor, islandUuid, playerUuid);
+            return null;
+        }).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(islandUuid), playerUuid));
+    }
+
+    public CompletableFuture<Void> removeBan(Actor actor, UUID islandUuid, UUID playerUuid) {
+        return updateSnapshot(islandUuid, () -> {
+            database.deleteBanPlayer(actor, islandUuid, playerUuid);
+            return null;
+        });
+    }
+
+    public CompletableFuture<Void> addCoop(Actor actor, UUID islandUuid, UUID playerUuid) {
+        return updateSnapshot(islandUuid, () -> {
+            database.updateCoopPlayer(actor, islandUuid, playerUuid);
+            return null;
+        });
+    }
+
+    public CompletableFuture<Void> removeCoop(Actor actor, UUID islandUuid, UUID playerUuid) {
+        return updateSnapshot(islandUuid, () -> {
+            database.deleteCoopPlayer(actor, islandUuid, playerUuid);
+            return null;
+        }).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.UUIDToName(islandUuid), playerUuid));
+    }
+
+    public CompletableFuture<Boolean> toggleIslandLock(Actor actor, UUID islandUuid) {
+        return updateSnapshot(islandUuid, () -> database.toggleIslandLock(actor, islandUuid)).thenCompose(locked -> {
+            if (!locked) {
+                return CompletableFuture.completedFuture(false);
+            }
+
+            String islandName = IslandUtils.UUIDToName(islandUuid);
+            return plugin.getApi().getIslandPlayers(islandUuid).thenCombine(plugin.getApi().getIslandCoops(islandUuid), (islandPlayers, coops) -> {
+                Set<UUID> allowed = new HashSet<>(islandPlayers);
+                allowed.addAll(coops);
+                return allowed;
+            }).thenCompose(allowed -> worldHandler.removePlayersFromWorld(islandName, player -> !allowed.contains(player.getUniqueId()))).thenApply(v -> true);
+        });
+    }
+
+    public CompletableFuture<Boolean> toggleIslandPvp(Actor actor, UUID islandUuid) {
+        return updateSnapshot(islandUuid, () -> database.toggleIslandPvp(actor, islandUuid));
+    }
+
+    private <T> CompletableFuture<T> updateSnapshot(UUID islandUuid, Supplier<T> mutation) {
         return CompletableFuture.supplyAsync(mutation, plugin.getBukkitAsyncExecutor()).handle((result, error) -> islandSnapshot.reload(islandUuid).thenCompose(v -> error == null ? CompletableFuture.completedFuture(result) : CompletableFuture.failedFuture(error))).thenCompose(future -> future);
     }
 
