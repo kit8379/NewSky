@@ -6,7 +6,6 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.exceptions.IslandBusyException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandNotLoadedException;
 
@@ -72,13 +71,11 @@ public class AdminUnloadCommand implements SubCommand, AsyncTabComplete {
 
             UUID targetUuid = targetUuidOpt.get();
 
-            return api.getIslandUuid(targetUuid).thenCompose(api::unloadIsland).thenRun(() -> sender.sendMessage(config.getIslandUnloadSuccessMessage(targetPlayerName)));
+            return api.getIslandUuid(targetUuid).thenCompose(islandUuid -> api.admin(sender).unloadIsland(islandUuid)).thenRun(() -> sender.sendMessage(config.getIslandUnloadSuccessMessage(targetPlayerName)));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 sender.sendMessage(config.getNoIslandMessage(targetPlayerName));
-            } else if (cause instanceof IslandBusyException) {
-                sender.sendMessage(config.getIslandBusyMessage());
             } else if (cause instanceof IslandNotLoadedException) {
                 sender.sendMessage(config.getIslandNotLoadedMessage());
             } else {

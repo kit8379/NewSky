@@ -31,11 +31,10 @@ public class IslandPvPListener implements Listener {
             return;
         }
 
-        if (!IslandUtils.isIslandWorld(victim.getWorld().getName())) {
+        UUID islandUuid = IslandUtils.parseIslandUuid(victim.getWorld().getName());
+        if (islandUuid == null) {
             return;
         }
-
-        UUID islandUuid = IslandUtils.nameToUUID(victim.getWorld().getName());
 
         Island island = islandSnapshot.get(islandUuid);
         if (island == null) {

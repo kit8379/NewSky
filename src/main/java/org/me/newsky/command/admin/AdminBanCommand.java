@@ -77,7 +77,7 @@ public class AdminBanCommand implements SubCommand, AsyncTabComplete {
                 }
 
                 return api.getIslandUuid(islandOwnerUuidOpt.get()).thenCompose(islandUuid -> {
-                    return api.banPlayer(islandUuid, targetPlayerUuidOpt.get());
+                    return api.admin(sender).banPlayer(islandUuid, targetPlayerUuidOpt.get());
                 }).thenRun(() -> {
                     sender.sendMessage(config.getAdminBanSuccessMessage(islandOwnerName, banPlayerName));
                     api.sendPlayerMessage(targetPlayerUuidOpt.get(), config.getWasBannedFromIslandMessage(islandOwnerName));

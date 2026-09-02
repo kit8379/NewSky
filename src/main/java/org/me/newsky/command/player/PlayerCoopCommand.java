@@ -10,7 +10,7 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.CannotCoopIslandPlayerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerAlreadyCoopedException;
-import org.me.newsky.island.UpgradeHandler;
+import org.me.newsky.exceptions.PlayerNotOnlineException;
 
 import java.util.Collections;
 import java.util.List;
@@ -80,32 +80,16 @@ public class PlayerCoopCommand implements SubCommand, AsyncTabComplete {
 
             UUID targetUuid = targetUuidOpt.get();
 
-            return api.getOnlinePlayersNames().thenCompose(onlineNames -> {
-                if (!onlineNames.contains(targetPlayerName)) {
-                    player.sendMessage(config.getPlayerNotOnlineMessage(targetPlayerName));
-                    return CompletableFuture.completedFuture(null);
-                }
-
-                return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_COOP_LIMIT).thenCompose(coopLimitLevel -> {
-                    int coopLimit = api.getCoopLimit(coopLimitLevel);
-
-                    return api.getCoopedPlayers(islandUuid).thenCompose(coopedPlayers -> {
-                        if (coopedPlayers.size() >= coopLimit) {
-                            player.sendMessage(config.getPlayerCoopLimitReachedMessage(coopLimit));
-                            return CompletableFuture.completedFuture(null);
-                        }
-
-                        return api.addCoop(islandUuid, targetUuid).thenRun(() -> {
-                            player.sendMessage(config.getPlayerCoopSuccessMessage(targetPlayerName));
-                            api.sendPlayerMessage(targetUuid, config.getWasCoopedToIslandMessage(player.getName()));
-                        });
-                    });
-                }));
+            return api.player(playerUuid).addCoop(targetUuid).thenRun(() -> {
+                player.sendMessage(config.getPlayerCoopSuccessMessage(targetPlayerName));
+                api.sendPlayerMessage(targetUuid, config.getWasCoopedToIslandMessage(player.getName()));
             });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
+            } else if (cause instanceof PlayerNotOnlineException) {
+                player.sendMessage(config.getPlayerNotOnlineMessage(targetPlayerName));
             } else if (cause instanceof PlayerAlreadyCoopedException) {
                 player.sendMessage(config.getPlayerAlreadyCoopedMessage(targetPlayerName));
             } else if (cause instanceof CannotCoopIslandPlayerException) {

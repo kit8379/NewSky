@@ -58,7 +58,7 @@ public class PlayerPvpCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(api::toggleIslandPvp).thenAccept(isPvpEnabled -> {
+        api.player(playerUuid).togglePvp().thenAccept(isPvpEnabled -> {
             if (isPvpEnabled) {
                 player.sendMessage(config.getPlayerPvpEnableSuccessMessage());
             } else {

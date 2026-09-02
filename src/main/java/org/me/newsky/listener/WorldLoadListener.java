@@ -6,7 +6,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldLoadEvent;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.island.UpgradeHandler;
 import org.me.newsky.model.Island;
 import org.me.newsky.scheduler.LevelUpdateScheduler;
 import org.me.newsky.util.IslandUtils;
@@ -34,11 +33,10 @@ public class WorldLoadListener implements Listener {
         World world = event.getWorld();
         String name = world.getName();
 
-        if (!IslandUtils.isIslandWorld(name)) {
+        UUID islandUuid = IslandUtils.parseIslandUuid(name);
+        if (islandUuid == null) {
             return;
         }
-
-        UUID islandUuid = IslandUtils.nameToUUID(name);
 
         applyGameRules(world);
         applyBorder(world, islandUuid);
@@ -103,8 +101,7 @@ public class WorldLoadListener implements Listener {
             return;
         }
 
-        int level = island.getUpgrades().getOrDefault(UpgradeHandler.UPGRADE_ISLAND_SIZE, 1);
-        int size = plugin.getApi().getIslandSize(level);
+        int size = config.getIslandSize();
 
         WorldBorder border = world.getWorldBorder();
         border.setCenter(0.0, 0.0);
@@ -113,7 +110,7 @@ public class WorldLoadListener implements Listener {
         border.setDamageAmount(0.1);
         border.setDamageBuffer(1.0);
 
-        plugin.debug("WorldLoadListener", "Set world border for " + world.getName() + " with island size upgrade level " + level);
+        plugin.debug("WorldLoadListener", "Set world border for " + world.getName() + " with island size " + size);
     }
 
     private void registerLevelUpdate(UUID islandUuid) {

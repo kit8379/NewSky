@@ -51,7 +51,6 @@ public class IslandPlayerCommand implements CommandExecutor, AsyncCommandTabRout
         subCommands.add(new PlayerCoopCommand(plugin, api, config));
         subCommands.add(new PlayerUncoopCommand(plugin, api, config));
         subCommands.add(new PlayerCoopListCommand(plugin, api, config));
-        subCommands.add(new PlayerUpgradeCommand(plugin, api, config));
         subCommands.add(new PlayerBiomeCommand(plugin, api, config));
         subCommands.add(new PlayerLobbyCommand(plugin, api, config));
         subCommands.add(new PlayerHelpCommand(config, subCommands));

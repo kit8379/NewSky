@@ -79,7 +79,7 @@ public class PlayerBanCommand implements SubCommand, AsyncTabComplete {
 
             UUID targetUuid = targetUuidOpt.get();
 
-            return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.banPlayer(islandUuid, targetUuid)).thenRun(() -> {
+            return api.player(playerUuid).banPlayer(targetUuid).thenRun(() -> {
                 player.sendMessage(config.getPlayerBanSuccessMessage(targetNameInput));
                 api.sendPlayerMessage(targetUuid, config.getWasBannedFromIslandMessage(player.getName()));
             });

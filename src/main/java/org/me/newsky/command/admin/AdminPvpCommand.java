@@ -67,7 +67,7 @@ public class AdminPvpCommand implements SubCommand, AsyncTabComplete {
                 return CompletableFuture.completedFuture(null);
             }
 
-            return api.getIslandUuid(targetUuidOpt.get()).thenCompose(api::toggleIslandPvp).thenAccept(isPvpEnabled -> {
+            return api.getIslandUuid(targetUuidOpt.get()).thenCompose(islandUuid -> api.admin(sender).togglePvp(islandUuid)).thenAccept(isPvpEnabled -> {
                 if (isPvpEnabled) {
                     sender.sendMessage(config.getAdminPvpEnableSuccessMessage(targetPlayerName));
                 } else {

@@ -67,12 +67,13 @@ public class PlayerInfoCommand implements SubCommand, AsyncTabComplete {
             Location loc = player.getLocation();
             String worldName = loc.getWorld().getName();
 
-            if (!IslandUtils.isIslandWorld(worldName)) {
+            UUID islandUuid = IslandUtils.parseIslandUuid(worldName);
+            if (islandUuid == null) {
                 sender.sendMessage(config.getPlayerInfoNotInIslandMessage());
                 return true;
             }
 
-            islandFuture = CompletableFuture.completedFuture(IslandUtils.nameToUUID(worldName));
+            islandFuture = CompletableFuture.completedFuture(islandUuid);
         } else {
             String targetPlayerName = args[1];
 

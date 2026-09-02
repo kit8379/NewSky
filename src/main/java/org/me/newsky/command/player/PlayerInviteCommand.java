@@ -11,7 +11,7 @@ import org.me.newsky.exceptions.InvitedAlreadyException;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
-import org.me.newsky.island.UpgradeHandler;
+import org.me.newsky.exceptions.PlayerNotOnlineException;
 
 import java.util.Collections;
 import java.util.List;
@@ -73,40 +73,24 @@ public class PlayerInviteCommand implements SubCommand, AsyncTabComplete {
         String targetPlayerName = args[1];
         UUID playerUuid = player.getUniqueId();
 
-        api.getOnlinePlayersNames().thenCompose(onlinePlayerNames -> {
-            if (!onlinePlayerNames.contains(targetPlayerName)) {
-                player.sendMessage(config.getPlayerNotOnlineMessage(targetPlayerName));
+        api.getPlayerUuid(targetPlayerName).thenCompose(targetUuidOpt -> {
+            if (targetUuidOpt.isEmpty()) {
+                player.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
                 return CompletableFuture.completedFuture(null);
             }
 
-            return api.getPlayerUuid(targetPlayerName).thenCompose(targetUuidOpt -> {
-                if (targetUuidOpt.isEmpty()) {
-                    player.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
-                    return CompletableFuture.completedFuture(null);
-                }
+            UUID targetPlayerUuid = targetUuidOpt.get();
 
-                UUID targetPlayerUuid = targetUuidOpt.get();
-
-                return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_TEAM_LIMIT).thenCompose(teamLimitLevel -> {
-                    int teamLimit = api.getTeamLimit(teamLimitLevel);
-
-                    return api.getIslandMembers(islandUuid).thenCompose(members -> {
-                        if (members.size() >= teamLimit) {
-                            player.sendMessage(config.getPlayerTeamLimitReachedMessage(teamLimit));
-                            return CompletableFuture.completedFuture(null);
-                        }
-
-                        return api.addPendingInvite(targetPlayerUuid, islandUuid, playerUuid, 600).thenRun(() -> {
-                            player.sendMessage(config.getPlayerInviteSentMessage(targetPlayerName));
-                            api.sendPlayerMessage(targetPlayerUuid, config.getPlayerInviteReceiveMessage(player.getName()));
-                        });
-                    });
-                }));
+            return api.player(playerUuid).invite(targetPlayerUuid, 600).thenRun(() -> {
+                player.sendMessage(config.getPlayerInviteSentMessage(targetPlayerName));
+                api.sendPlayerMessage(targetPlayerUuid, config.getPlayerInviteReceiveMessage(player.getName()));
             });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
+            } else if (cause instanceof PlayerNotOnlineException) {
+                player.sendMessage(config.getPlayerNotOnlineMessage(targetPlayerName));
             } else if (cause instanceof InvitedAlreadyException) {
                 player.sendMessage(config.getPlayerAlreadyInvitedMessage(targetPlayerName));
             } else if (cause instanceof IslandAlreadyExistException) {

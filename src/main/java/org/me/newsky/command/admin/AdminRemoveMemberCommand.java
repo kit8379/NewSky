@@ -76,7 +76,7 @@ public class AdminRemoveMemberCommand implements SubCommand, AsyncTabComplete {
                     return CompletableFuture.completedFuture(null);
                 }
 
-                return api.getIslandUuid(islandOwnerUuidOpt.get()).thenCompose(islandUuid -> api.removeMember(islandUuid, targetMemberUuidOpt.get())).thenRun(() -> {
+                return api.getIslandUuid(islandOwnerUuidOpt.get()).thenCompose(islandUuid -> api.admin(sender).removeMember(islandUuid, targetMemberUuidOpt.get())).thenRun(() -> {
                     sender.sendMessage(config.getAdminRemoveMemberSuccessMessage(targetMemberName, islandOwnerName));
                     api.sendPlayerMessage(targetMemberUuidOpt.get(), config.getWasRemovedFromIslandMessage(islandOwnerName));
                 });

@@ -58,7 +58,7 @@ public class PlayerLockCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(api::toggleIslandLock).thenAccept(isLocked -> {
+        api.player(playerUuid).toggleLock().thenAccept(isLocked -> {
             if (isLocked) {
                 player.sendMessage(config.getPlayerLockSuccessMessage());
             } else {

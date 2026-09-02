@@ -20,8 +20,6 @@ public class ConfigHandler {
     private volatile FileConfiguration messages;
     private volatile FileConfiguration commands;
     private volatile FileConfiguration levels;
-    private volatile FileConfiguration upgrades;
-    private volatile FileConfiguration limits;
 
     public ConfigHandler(NewSky plugin) {
         this.plugin = plugin;
@@ -33,8 +31,6 @@ public class ConfigHandler {
         this.messages = load("messages.yml");
         this.commands = load("commands.yml");
         this.levels = load("levels.yml");
-        this.upgrades = load("upgrades.yml");
-        this.limits = load("limits.yml");
     }
 
     private FileConfiguration load(String fileName) {
@@ -239,112 +235,6 @@ public class ConfigHandler {
     public int getBlockLevel(String material) {
         return levels.getInt("blocks." + material, 0);
     }
-
-    // ================================================================================================================
-    // Limits Section
-    // ================================================================================================================
-
-    public int getBlockLimit(String material) {
-        return limits.getInt("limit.blocks." + material, 0);
-    }
-
-    public int getEntityLimit(String entityType) {
-        return limits.getInt("limit.entities." + entityType, 0);
-    }
-
-    // ================================================================================================================
-    // Upgrades Section
-    // ================================================================================================================
-
-    public Set<String> getUpgradeIds() {
-        return Objects.requireNonNull(upgrades.getConfigurationSection("upgrades")).getKeys(false);
-    }
-
-    public Set<Integer> getUpgradeLevels(String upgradeId) {
-        String path = "upgrades." + upgradeId;
-
-        Set<String> keys = Objects.requireNonNull(upgrades.getConfigurationSection(path)).getKeys(false);
-        Set<Integer> levels = new HashSet<>();
-
-        for (String k : keys) {
-            try {
-                levels.add(Integer.parseInt(k));
-            } catch (NumberFormatException ignored) {
-                // ignore non-numeric keys
-            }
-        }
-
-        return levels;
-    }
-
-    public int getUpgradeRequireIslandLevel(String upgradeId, int level) {
-        return upgrades.getInt("upgrades." + upgradeId + "." + level + ".require-level", 0);
-    }
-
-    public double getUpgradePrice(String upgradeId, int level) {
-        return upgrades.getDouble("upgrades." + upgradeId + "." + level + ".price", 0);
-    }
-
-    public int getUpgradeTeamLimit(int level) {
-        return upgrades.getInt("upgrades.team-limit." + level + ".limit", 0);
-    }
-
-    public int getUpgradeWarpLimit(int level) {
-        return upgrades.getInt("upgrades.warp-limit." + level + ".limit", 0);
-    }
-
-    public int getUpgradeHomeLimit(int level) {
-        return upgrades.getInt("upgrades.home-limit." + level + ".limit", 0);
-    }
-
-    public int getUpgradeCoopLimit(int level) {
-        return upgrades.getInt("upgrades.coop-limit." + level + ".limit", 0);
-    }
-
-    public int getUpgradeIslandSize(int level) {
-        return upgrades.getInt("upgrades.island-size." + level + ".size", 0);
-    }
-
-    public Map<String, Double> getUpgradeGeneratorRates(int level) {
-        String path = "upgrades.generator-rates." + level + ".rates";
-
-        Map<String, Object> values = Objects.requireNonNull(upgrades.getConfigurationSection(path)).getValues(false);
-        if (values.isEmpty()) {
-            return Collections.emptyMap();
-        }
-
-        Map<String, Double> out = new LinkedHashMap<>();
-        for (Map.Entry<String, Object> e : values.entrySet()) {
-            Object v = e.getValue();
-            if (v instanceof Number n) {
-                out.put(e.getKey(), n.doubleValue());
-            }
-        }
-        return out;
-    }
-
-    public Set<String> getUpgradeBiomes(int level) {
-        List<String> raw = upgrades.getStringList("upgrades.biomes." + level + ".allowed");
-        if (raw.isEmpty()) {
-            raw = upgrades.getStringList("upgrades.biomes.1.allowed");
-        }
-
-        if (raw.isEmpty()) {
-            return Set.of();
-        }
-
-        Set<String> result = new LinkedHashSet<>();
-        for (String entry : raw) {
-            if (entry == null || entry.isBlank()) {
-                continue;
-            }
-
-            result.add(entry.trim().toLowerCase(Locale.ROOT).replace(' ', '_').replace('-', '_'));
-        }
-
-        return result.isEmpty() ? Set.of() : Set.copyOf(result);
-    }
-
 
 // ================================================================================================================
 // Commands Section
@@ -818,26 +708,6 @@ public class ConfigHandler {
         return commands.getString("commands.player.lobby.description");
     }
 
-    public String[] getPlayerUpgradeAliases() {
-        return commands.getStringList("commands.player.upgrade.aliases").toArray(new String[0]);
-    }
-
-    public String getPlayerUpgradePermission() {
-        return commands.getString("commands.player.upgrade.permission");
-    }
-
-    public String getPlayerUpgradeSyntax() {
-        return commands.getString("commands.player.upgrade.syntax");
-    }
-
-    public String getPlayerUpgradeDescription() {
-        return commands.getString("commands.player.upgrade.description");
-    }
-
-    public String getUpgradeUnknownValue() {
-        return commands.getString("commands.upgrade.unknown-value");
-    }
-
     public String[] getPlayerBiomeAliases() {
         return commands.getStringList("commands.player.biome.aliases").toArray(new String[0]);
     }
@@ -1194,22 +1064,6 @@ public class ConfigHandler {
         return commands.getString("commands.admin.lobby.description");
     }
 
-    public String[] getAdminUpgradeAliases() {
-        return commands.getStringList("commands.admin.upgrade.aliases").toArray(new String[0]);
-    }
-
-    public String getAdminUpgradePermission() {
-        return commands.getString("commands.admin.upgrade.permission");
-    }
-
-    public String getAdminUpgradeSyntax() {
-        return commands.getString("commands.admin.upgrade.syntax");
-    }
-
-    public String getAdminUpgradeDescription() {
-        return commands.getString("commands.admin.upgrade.description");
-    }
-
     public String[] getAdminBiomeAliases() {
         return commands.getStringList("commands.admin.biome.aliases").toArray(new String[0]);
     }
@@ -1245,10 +1099,6 @@ public class ConfigHandler {
 
     public Component getNoActiveServerMessage() {
         return ColorUtils.colorize(messages.getString("messages.no-active-server"));
-    }
-
-    public Component getIslandBusyMessage() {
-        return ColorUtils.colorize(messages.getString("messages.island-busy"));
     }
 
     public Component getIslandNotLoadedMessage() {
@@ -1460,26 +1310,6 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-uncoop-success")).replace("{owner}", owner).replace("{target}", target));
     }
 
-    public Component getAdminUpgradeDetailsHeaderMessage(String player, String upgradeId) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-upgrade-details-header")).replace("{player}", player).replace("{upgrade}", upgradeId));
-    }
-
-    public Component getAdminUpgradeDetailsCurrentLevelMessage(String upgradeId, int level) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-upgrade-details-current-level")).replace("{upgrade}", upgradeId).replace("{level}", String.valueOf(level)));
-    }
-
-    public Component getAdminUpgradeDetailsCurrentValueMessage(String valueString) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-upgrade-details-current-value")).replace("{value}", valueString));
-    }
-
-    public Component getAdminUpgradeInvalidLevelMessage() {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-upgrade-invalid-level")));
-    }
-
-    public Component getAdminUpgradeSetSuccessMessage(String upgradeId, int level) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-upgrade-set-success")).replace("{upgrade}", upgradeId).replace("{level}", String.valueOf(level)));
-    }
-
     public Component getAdminLobbySuccessMessage(String player) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-lobby-success")).replace("{player}", player));
     }
@@ -1567,6 +1397,10 @@ public class ConfigHandler {
 
     public Component getPlayerDeleteNotOwnerMessage() {
         return ColorUtils.colorize(messages.getString("messages.player-delete-not-owner"));
+    }
+
+    public Component getPlayerNotIslandOwnerMessage() {
+        return ColorUtils.colorize(messages.getString("messages.player-not-island-owner"));
     }
 
     public Component getPlayerSetHomeSuccessMessage(String home) {
@@ -1710,11 +1544,6 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(Objects.requireNonNull(messages.getString("messages.island-info-uuid")).replace("{island_uuid}", islandUuid.toString())));
     }
 
-    // Limit
-    public Component getBlockLimitReachedMessage(String block, int limit) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.block-limit-reached")).replace("{block}", block).replace("{limit}", String.valueOf(limit)));
-    }
-
     public Component getIslandInfoLevelMessage(int level) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.island-info-level")).replace("{level}", String.valueOf(level)));
     }
@@ -1770,100 +1599,10 @@ public class ConfigHandler {
         return ColorUtils.colorize(messages.getString("messages.cooped-player-no-cooped"));
     }
 
-    // Upgrade
-    public Component getPlayerUpgradeInvalidIdMessage(String upgradeId) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-invalid-id")).replace("{upgrade}", upgradeId));
-    }
-
-    public Component getPlayerUpgradeDetailsHeaderMessage(String upgradeId) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-header")).replace("{upgrade}", upgradeId));
-    }
-
-    public Component getPlayerUpgradeDetailsCurrentLevelMessage(int level) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-current-level")).replace("{level}", String.valueOf(level)));
-    }
-
-    public Component getPlayerUpgradeDetailsCurrentValueMessage(String valueString) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-current-value")).replace("{value}", valueString));
-    }
-
-    public Component getPlayerUpgradeDetailsNextLevelMessage(String nextLevelOrMaxed) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-next-level")).replace("{level}", nextLevelOrMaxed));
-    }
-
-    public Component getPlayerUpgradeDetailsNextValueMessage(String valueString) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-next-value")).replace("{value}", valueString));
-    }
-
-    public Component getPlayerUpgradeDetailsRequireIslandLevelMessage(int requireLevel) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-require-island-level")).replace("{level}", String.valueOf(requireLevel)));
-    }
-
-    public Component getPlayerUpgradeDetailsYourIslandLevelMessage(int islandLevel) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-your-island-level")).replace("{level}", String.valueOf(islandLevel)));
-    }
-
-    public Component getPlayerUpgradeDetailsPriceMessage(double price) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-price")).replace("{price}", String.valueOf(price)));
-    }
-
-    public Component getPlayerUpgradeDetailsYourBalanceMessage(double balance) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-your-balance")).replace("{balance}", String.valueOf(balance)));
-    }
-
-    public Component getPlayerUpgradeDetailsStatusLockedMessage() {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-status-locked")));
-    }
-
-    public Component getPlayerUpgradeDetailsStatusAvailableMessage() {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-status-available")));
-    }
-
-    public Component getPlayerUpgradeBuySuccessMessage(String upgradeId, int oldLevel, int newLevel, int requireIslandLevel, double price) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-buy-success")).replace("{upgrade}", upgradeId).replace("{old_level}", String.valueOf(oldLevel)).replace("{new_level}", String.valueOf(newLevel)).replace("{require_level}", String.valueOf(requireIslandLevel).replace("{price}", String.valueOf(price))));
-    }
-
-    public Component getPlayerUpgradeMaxedMessage(String upgradeId) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-maxed")).replace("{upgrade}", upgradeId));
-    }
-
-    public Component getPlayerUpgradeIslandLevelTooLowMessage(String upgradeId) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-island-level-too-low")).replace("{upgrade}", upgradeId));
-    }
-
-
-    public Component getPlayerUpgradeNotEnoughMoneyMessage() {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-not-enough-money")));
-    }
-
-    public Component getPlayerTeamLimitReachedMessage(int limit) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-team-limit-reached")).replace("{limit}", String.valueOf(limit)));
-    }
-
-    public Component getPlayerWarpLimitReachedMessage(int limit) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-warp-limit-reached")).replace("{limit}", String.valueOf(limit)));
-    }
-
-    public Component getPlayerHomeLimitReachedMessage(int limit) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-home-limit-reached")).replace("{limit}", String.valueOf(limit)));
-    }
-
-    public Component getPlayerCoopLimitReachedMessage(int limit) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-coop-limit-reached")).replace("{limit}", String.valueOf(limit)));
-    }
-
     // Biome
 
     public Component getPlayerBiomeInvalidMessage(String biome) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-biome-invalid")).replace("{biome}", biome));
-    }
-
-    public Component getPlayerBiomeNotUnlockedMessage(String biome) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-biome-not-unlocked")).replace("{biome}", biome));
-    }
-
-    public Component getPlayerBiomeAllowedListMessage(String biomes) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-biome-allowed-list")).replace("{biomes}", biomes));
     }
 
     public Component getPlayerBiomeChangeSuccessMessage(String biome) {

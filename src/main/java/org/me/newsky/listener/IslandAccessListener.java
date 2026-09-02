@@ -42,11 +42,10 @@ public class IslandAccessListener implements Listener {
             return;
         }
 
-        if (!IslandUtils.isIslandWorld(player.getWorld().getName())) {
+        UUID islandUuid = IslandUtils.parseIslandUuid(player.getWorld().getName());
+        if (islandUuid == null) {
             return;
         }
-
-        UUID islandUuid = IslandUtils.nameToUUID(player.getWorld().getName());
         UUID playerUuid = player.getUniqueId();
 
         Island island = islandSnapshot.get(islandUuid);

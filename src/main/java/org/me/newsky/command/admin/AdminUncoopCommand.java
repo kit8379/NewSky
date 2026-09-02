@@ -80,7 +80,7 @@ public class AdminUncoopCommand implements SubCommand, AsyncTabComplete {
 
                 UUID targetUuid = targetUuidOpt.get();
 
-                return api.getIslandUuid(ownerUuid).thenCompose(islandUuid -> api.removeCoop(islandUuid, targetUuid).thenRun(() -> {
+                return api.getIslandUuid(ownerUuid).thenCompose(islandUuid -> api.admin(sender).removeCoop(islandUuid, targetUuid).thenRun(() -> {
                     sender.sendMessage(config.getAdminUncoopSuccessMessage(ownerName, targetName));
                     api.sendPlayerMessage(targetUuid, config.getWasUncoopedFromIslandMessage(ownerName));
                 }));
@@ -117,7 +117,7 @@ public class AdminUncoopCommand implements SubCommand, AsyncTabComplete {
                     return CompletableFuture.completedFuture(Collections.<String>emptyList());
                 }
 
-                return api.getIslandUuid(ownerUuidOpt.get()).thenCompose(islandUuid -> api.getCoopedPlayers(islandUuid).thenCompose(coopedPlayers -> {
+                return api.getIslandUuid(ownerUuidOpt.get()).thenCompose(islandUuid -> api.getIslandCoops(islandUuid).thenCompose(coopedPlayers -> {
                     if (coopedPlayers.isEmpty()) {
                         return CompletableFuture.completedFuture(Collections.<String>emptyList());
                     }

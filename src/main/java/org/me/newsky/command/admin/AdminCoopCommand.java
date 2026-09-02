@@ -77,7 +77,7 @@ public class AdminCoopCommand implements SubCommand, AsyncTabComplete {
                 }
 
                 return api.getIslandUuid(ownerUuidOpt.get()).thenCompose(islandUuid -> {
-                    return api.addCoop(islandUuid, targetUuidOpt.get());
+                    return api.admin(sender).addCoop(islandUuid, targetUuidOpt.get());
                 }).thenRun(() -> {
                     sender.sendMessage(config.getAdminCoopSuccessMessage(ownerName, targetName));
                     api.sendPlayerMessage(targetUuidOpt.get(), config.getWasCoopedToIslandMessage(ownerName));

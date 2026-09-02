@@ -7,7 +7,6 @@ import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
-import org.me.newsky.exceptions.IslandBusyException;
 import org.me.newsky.exceptions.NoActiveServerException;
 
 import java.util.Collections;
@@ -69,15 +68,13 @@ public class AdminCreateIslandCommand implements SubCommand, AsyncTabComplete {
                 return CompletableFuture.completedFuture(null);
             }
 
-            return api.createIsland(targetUuidOpt.get()).thenRun(() -> {
+            return api.admin(sender).createIsland(targetUuidOpt.get()).thenRun(() -> {
                 sender.sendMessage(config.getAdminCreateSuccessMessage(targetPlayerName));
             });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandAlreadyExistException) {
                 sender.sendMessage(config.getAlreadyHasIslandMessage(targetPlayerName));
-            } else if (cause instanceof IslandBusyException) {
-                sender.sendMessage(config.getIslandBusyMessage());
             } else if (cause instanceof NoActiveServerException) {
                 sender.sendMessage(config.getNoActiveServerMessage());
             } else {

@@ -60,9 +60,7 @@ public class PlayerLeaveCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.getIslandUuid(playerUuid).thenCompose(islandUuid -> {
-            return api.removeMember(islandUuid, playerUuid);
-        }).thenRun(() -> {
+        api.player(playerUuid).leave().thenRun(() -> {
             api.sendPlayerMessage(playerUuid, config.getPlayerLeaveSuccessMessage());
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();

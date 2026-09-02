@@ -8,7 +8,6 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
 
 import java.util.Collections;
@@ -84,12 +83,10 @@ public class AdminSetHomeCommand implements SubCommand, AsyncTabComplete {
                 return CompletableFuture.completedFuture(null);
             }
 
-            return api.setHome(targetUuidOpt.get(), homeName, worldName, x, y, z, yaw, pitch).thenRun(() -> sender.sendMessage(config.getAdminSetHomeSuccessMessage(homePlayerName, homeName)));
+            return api.admin(sender).setHome(targetUuidOpt.get(), homeName, worldName, x, y, z, yaw, pitch).thenRun(() -> sender.sendMessage(config.getAdminSetHomeSuccessMessage(homePlayerName, homeName)));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
-            if (cause instanceof IslandDoesNotExistException) {
-                sender.sendMessage(config.getAdminNoIslandMessage(homePlayerName));
-            } else if (cause instanceof LocationNotInIslandException) {
+            if (cause instanceof LocationNotInIslandException) {
                 sender.sendMessage(config.getAdminMustInIslandSetHomeMessage(homePlayerName));
             } else {
                 sender.sendMessage(config.getUnknownExceptionMessage());

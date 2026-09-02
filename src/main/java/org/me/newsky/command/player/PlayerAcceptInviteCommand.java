@@ -6,9 +6,7 @@ import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.exceptions.IslandBusyException;
 import org.me.newsky.exceptions.NoActiveServerException;
-import org.me.newsky.island.UpgradeHandler;
 import org.me.newsky.model.Invitation;
 
 import java.util.UUID;
@@ -62,7 +60,9 @@ public class PlayerAcceptInviteCommand implements SubCommand {
 
         UUID playerUuid = player.getUniqueId();
 
-        api.getPendingInvite(playerUuid).thenCompose(optionalInvite -> {
+        // Invitation redemption is hidden behind the player-scoped API, so commands do not
+        // assemble membership writes themselves.
+        api.player(playerUuid).acceptInvite().thenCompose(optionalInvite -> {
             if (optionalInvite.isEmpty()) {
                 player.sendMessage(config.getPlayerNoPendingInviteMessage());
                 return CompletableFuture.completedFuture(null);
@@ -72,36 +72,20 @@ public class PlayerAcceptInviteCommand implements SubCommand {
             UUID islandUuid = invite.getIslandUuid();
             UUID inviterUuid = invite.getInviterUuid();
 
-            return api.getCurrentUpgradeLevel(islandUuid, UpgradeHandler.UPGRADE_TEAM_LIMIT).thenCompose(teamLimitLevel -> {
-                int teamLimit = api.getTeamLimit(teamLimitLevel);
+            player.sendMessage(config.getPlayerInviteAcceptedMessage());
+            api.sendPlayerMessage(inviterUuid, config.getPlayerInviteAcceptedNotifyMessage(player.getName()));
 
-                return api.getIslandMembers(islandUuid).thenCompose(members -> {
-                    if (members.size() >= teamLimit) {
-                        player.sendMessage(config.getPlayerTeamLimitReachedMessage(teamLimit));
-                        return CompletableFuture.completedFuture(null);
+            return api.getIslandMembers(islandUuid).thenCompose(membersAfterJoin -> {
+                for (UUID uuid : membersAfterJoin) {
+                    if (!uuid.equals(playerUuid) && !uuid.equals(inviterUuid)) {
+                        api.sendPlayerMessage(uuid, config.getNewMemberNotificationMessage(player.getName()));
                     }
-
-                    return api.removePendingInvite(playerUuid).thenCompose(v -> {
-                        return api.addMember(islandUuid, playerUuid, "member");
-                    }).thenCompose(v -> {
-                        player.sendMessage(config.getPlayerInviteAcceptedMessage());
-                        api.sendPlayerMessage(inviterUuid, config.getPlayerInviteAcceptedNotifyMessage(player.getName()));
-                        return api.getIslandMembers(islandUuid);
-                    }).thenCompose(membersAfterJoin -> {
-                        for (UUID uuid : membersAfterJoin) {
-                            if (!uuid.equals(playerUuid) && !uuid.equals(inviterUuid)) {
-                                api.sendPlayerMessage(uuid, config.getNewMemberNotificationMessage(player.getName()));
-                            }
-                        }
-                        return api.home(playerUuid, "default", playerUuid);
-                    });
-                });
+                }
+                return api.player(playerUuid).home("default");
             });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
-            if (cause instanceof IslandBusyException) {
-                sender.sendMessage(config.getIslandBusyMessage());
-            } else if (cause instanceof NoActiveServerException) {
+            if (cause instanceof NoActiveServerException) {
                 player.sendMessage(config.getNoActiveServerMessage());
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());

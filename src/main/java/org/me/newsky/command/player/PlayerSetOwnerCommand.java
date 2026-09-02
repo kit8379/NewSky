@@ -9,6 +9,7 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerDoesNotExistException;
+import org.me.newsky.exceptions.NotIslandOwnerException;
 import org.me.newsky.exceptions.PlayerAlreadyOwnerException;
 
 import java.util.Collections;
@@ -79,13 +80,15 @@ public class PlayerSetOwnerCommand implements SubCommand, AsyncTabComplete {
 
             UUID targetPlayerUuid = targetUuidOpt.get();
 
-            return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.setOwner(islandUuid, targetPlayerUuid).thenRun(() -> player.sendMessage(config.getPlayerSetOwnerSuccessMessage(targetPlayerName))));
+            return api.player(playerUuid).setOwner(targetPlayerUuid).thenRun(() -> player.sendMessage(config.getPlayerSetOwnerSuccessMessage(targetPlayerName)));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else if (cause instanceof IslandPlayerDoesNotExistException) {
                 player.sendMessage(config.getIslandMemberNotExistsMessage(targetPlayerName));
+            } else if (cause instanceof NotIslandOwnerException) {
+                player.sendMessage(config.getPlayerNotIslandOwnerMessage());
             } else if (cause instanceof PlayerAlreadyOwnerException) {
                 player.sendMessage(config.getPlayerAlreadyOwnerMessage(targetPlayerName));
             } else {

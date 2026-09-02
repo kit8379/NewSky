@@ -1,6 +1,6 @@
 package org.me.newsky.routing;
 
-import org.me.newsky.state.ServerSelectorState;
+import org.me.newsky.cluster.ServerRegistry;
 
 import java.security.SecureRandom;
 import java.util.ArrayList;
@@ -9,11 +9,11 @@ import java.util.Map;
 
 public class MSPTServerSelector implements ServerSelector {
 
-    private final ServerSelectorState serverSelectorState;
+    private final ServerRegistry serverRegistry;
     private final SecureRandom random = new SecureRandom();
 
-    public MSPTServerSelector(ServerSelectorState serverSelectorState) {
-        this.serverSelectorState = serverSelectorState;
+    public MSPTServerSelector(ServerRegistry serverRegistry) {
+        this.serverRegistry = serverRegistry;
     }
 
     @Override
@@ -24,7 +24,7 @@ public class MSPTServerSelector implements ServerSelector {
         double minMspt = Double.MAX_VALUE;
 
         for (String server : activeServers.keySet()) {
-            double mspt = serverSelectorState.getServerMSPT(server);
+            double mspt = serverRegistry.getServerMSPT(server);
             if (mspt == -1) continue;
 
             if (mspt < minMspt) {

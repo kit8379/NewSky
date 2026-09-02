@@ -78,10 +78,10 @@ public class PlayerUncoopCommand implements SubCommand, AsyncTabComplete {
 
             UUID targetPlayerUuid = targetUuidOpt.get();
 
-            return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.removeCoop(islandUuid, targetPlayerUuid).thenRun(() -> {
+            return api.player(playerUuid).removeCoop(targetPlayerUuid).thenRun(() -> {
                 player.sendMessage(config.getPlayerUncoopSuccessMessage(targetPlayerName));
                 api.sendPlayerMessage(targetPlayerUuid, config.getWasUncoopedFromIslandMessage(player.getName()));
-            }));
+            });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
@@ -107,6 +107,6 @@ public class PlayerUncoopCommand implements SubCommand, AsyncTabComplete {
         String prefix = args[1].toLowerCase(Locale.ROOT);
         UUID playerUuid = player.getUniqueId();
 
-        return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getCoopedPlayers(islandUuid).thenCompose(coopedPlayers -> api.getPlayerNames(coopedPlayers).thenApply(nameMap -> coopedPlayers.stream().map(uuid -> nameMap.getOrDefault(uuid, uuid.toString())).filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())))).exceptionally(ex -> Collections.emptyList());
+        return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.getIslandCoops(islandUuid).thenCompose(coopedPlayers -> api.getPlayerNames(coopedPlayers).thenApply(nameMap -> coopedPlayers.stream().map(uuid -> nameMap.getOrDefault(uuid, uuid.toString())).filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())))).exceptionally(ex -> Collections.emptyList());
     }
 }

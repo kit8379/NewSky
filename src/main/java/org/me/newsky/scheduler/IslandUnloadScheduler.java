@@ -1,4 +1,3 @@
-// MODIFIED FILE: IslandUnloadScheduler.java
 package org.me.newsky.scheduler;
 
 import org.bukkit.Bukkit;
@@ -6,9 +5,7 @@ import org.bukkit.World;
 import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.exceptions.IslandBusyException;
-import org.me.newsky.lock.IslandOperationLock;
-import org.me.newsky.state.IslandServerState;
+import org.me.newsky.cluster.IslandRegistry;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.world.WorldActivityHandler;
 import org.me.newsky.world.WorldHandler;
@@ -20,19 +17,17 @@ public class IslandUnloadScheduler {
     private final NewSky plugin;
     private final WorldHandler worldHandler;
     private final WorldActivityHandler worldActivityHandler;
-    private final IslandOperationLock islandOperationLock;
-    private final IslandServerState islandServerState;
+    private final IslandRegistry islandRegistry;
 
     private final long unloadInterval;
 
     private BukkitTask task;
 
-    public IslandUnloadScheduler(NewSky plugin, ConfigHandler config, WorldHandler worldHandler, WorldActivityHandler worldActivityHandler, IslandOperationLock islandOperationLock, IslandServerState islandServerState) {
+    public IslandUnloadScheduler(NewSky plugin, ConfigHandler config, WorldHandler worldHandler, WorldActivityHandler worldActivityHandler, IslandRegistry islandRegistry) {
         this.plugin = plugin;
         this.worldHandler = worldHandler;
         this.worldActivityHandler = worldActivityHandler;
-        this.islandOperationLock = islandOperationLock;
-        this.islandServerState = islandServerState;
+        this.islandRegistry = islandRegistry;
         this.unloadInterval = config.getIslandUnloadInterval();
     }
 
@@ -62,7 +57,13 @@ public class IslandUnloadScheduler {
         long thresholdMillis = unloadInterval * 1000L;
 
         worldActivityHandler.getInactiveWorlds(thresholdMillis, now).forEach((worldName, timestamp) -> {
-            UUID islandUuid = IslandUtils.nameToUUID(worldName);
+            UUID islandUuid = IslandUtils.parseIslandUuid(worldName);
+
+            if (islandUuid == null) {
+                // A malformed island-prefixed name must not abort the sweep for every other world.
+                worldActivityHandler.clearWorld(worldName);
+                return;
+            }
 
             World bukkitWorld = Bukkit.getWorld(worldName);
 
@@ -72,21 +73,11 @@ public class IslandUnloadScheduler {
                 return;
             }
 
-            islandOperationLock.withLock(islandUuid, () -> {
-                plugin.debug("IslandUnloadScheduler", "Unloading inactive world under lock: " + worldName);
-
-                return worldHandler.unloadWorld(worldName).thenRun(() -> {
-                    worldActivityHandler.clearWorld(worldName);
-                    islandServerState.removeIslandLoadedServer(islandUuid);
-                    plugin.debug("IslandUnloadScheduler", "Unloaded world: " + worldName);
-                });
+            worldHandler.unloadWorld(worldName).thenRun(() -> {
+                worldActivityHandler.clearWorld(worldName);
+                islandRegistry.removeIslandLoadedServer(islandUuid);
+                plugin.debug("IslandUnloadScheduler", "Unloaded world: " + worldName);
             }).exceptionally(ex -> {
-                Throwable cause = ex.getCause();
-                if (cause instanceof IslandBusyException) {
-                    plugin.debug("IslandUnloadScheduler", "Skip unload because of busy lock: " + worldName);
-                    return null;
-                }
-
                 plugin.severe("Failed to unload world: " + worldName, ex);
                 return null;
             });

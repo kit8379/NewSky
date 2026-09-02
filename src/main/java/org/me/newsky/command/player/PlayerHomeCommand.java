@@ -8,7 +8,6 @@ import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.HomeDoesNotExistException;
-import org.me.newsky.exceptions.IslandBusyException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.NoActiveServerException;
 
@@ -68,7 +67,7 @@ public class PlayerHomeCommand implements SubCommand, AsyncTabComplete {
         String homeName = (args.length >= 2) ? args[1] : "default";
         UUID playerUuid = player.getUniqueId();
 
-        api.home(playerUuid, homeName, playerUuid).thenRun(() -> {
+        api.player(playerUuid).home(homeName).thenRun(() -> {
             api.sendPlayerMessage(playerUuid, config.getPlayerHomeSuccessMessage(homeName));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
@@ -76,8 +75,6 @@ public class PlayerHomeCommand implements SubCommand, AsyncTabComplete {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else if (cause instanceof HomeDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoHomeMessage(homeName));
-            } else if (cause instanceof IslandBusyException) {
-                sender.sendMessage(config.getIslandBusyMessage());
             } else if (cause instanceof NoActiveServerException) {
                 player.sendMessage(config.getNoActiveServerMessage());
             } else {

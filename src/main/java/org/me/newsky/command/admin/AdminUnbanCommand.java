@@ -80,7 +80,7 @@ public class AdminUnbanCommand implements SubCommand, AsyncTabComplete {
 
                 UUID targetPlayerUuid = targetUuidOpt.get();
 
-                return api.getIslandUuid(islandOwnerUuid).thenCompose(islandUuid -> api.unbanPlayer(islandUuid, targetPlayerUuid).thenRun(() -> {
+                return api.getIslandUuid(islandOwnerUuid).thenCompose(islandUuid -> api.admin(sender).unbanPlayer(islandUuid, targetPlayerUuid).thenRun(() -> {
                     sender.sendMessage(config.getAdminUnbanSuccessMessage(islandOwnerName, banPlayerName));
                     api.sendPlayerMessage(targetPlayerUuid, config.getWasUnbannedFromIslandMessage(islandOwnerName));
                 }));
@@ -117,7 +117,7 @@ public class AdminUnbanCommand implements SubCommand, AsyncTabComplete {
                     return CompletableFuture.completedFuture(Collections.<String>emptyList());
                 }
 
-                return api.getIslandUuid(ownerUuidOpt.get()).thenCompose(islandUuid -> api.getBannedPlayers(islandUuid).thenCompose(bannedPlayers -> {
+                return api.getIslandUuid(ownerUuidOpt.get()).thenCompose(islandUuid -> api.getIslandBans(islandUuid).thenCompose(bannedPlayers -> {
                     if (bannedPlayers.isEmpty()) {
                         return CompletableFuture.completedFuture(Collections.<String>emptyList());
                     }

@@ -84,10 +84,10 @@ public class PlayerRemoveMemberCommand implements SubCommand, AsyncTabComplete {
                 return CompletableFuture.completedFuture(null);
             }
 
-            return api.getIslandUuid(playerUuid).thenCompose(islandUuid -> api.removeMember(islandUuid, targetPlayerUuid).thenRun(() -> {
+            return api.player(playerUuid).removeMember(targetPlayerUuid).thenRun(() -> {
                 player.sendMessage(config.getPlayerRemoveMemberSuccessMessage(targetPlayerName));
                 api.sendPlayerMessage(targetPlayerUuid, config.getWasRemovedFromIslandMessage(player.getName()));
-            }));
+            });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
