@@ -3,7 +3,7 @@ package org.me.newsky.listener;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -18,12 +18,17 @@ import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
 import org.bukkit.event.player.PlayerFishEvent;
+import org.bukkit.event.player.PlayerInteractAtEntityEvent;
+import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
-import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
+import org.bukkit.event.vehicle.VehicleDamageEvent;
+import org.bukkit.event.vehicle.VehicleDestroyEvent;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.model.Island;
@@ -118,6 +123,18 @@ public class IslandProtectionListener implements Listener {
         player.sendMessage(config.getCannotEditIslandMessage());
     }
 
+    private Player resolvePlayer(Entity entity) {
+        if (entity instanceof Player player) {
+            return player;
+        }
+
+        if (entity instanceof Projectile projectile && projectile.getShooter() instanceof Player player) {
+            return player;
+        }
+
+        return null;
+    }
+
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         Player player = event.getPlayer();
@@ -210,13 +227,7 @@ public class IslandProtectionListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onEntityDamage(EntityDamageByEntityEvent event) {
-        Player damager = null;
-
-        if (event.getDamager() instanceof Player p) {
-            damager = p;
-        } else if (event.getDamager() instanceof Projectile proj && proj.getShooter() instanceof Player p) {
-            damager = p;
-        }
+        Player damager = resolvePlayer(event.getDamager());
 
         if (damager == null) {
             return;
@@ -233,17 +244,51 @@ public class IslandProtectionListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onHangingBreak(HangingBreakByEntityEvent event) {
+        Player player = resolvePlayer(event.getRemover());
+        if (player == null) {
+            return;
+        }
+
+        if (!canPlayerEdit(player, event.getEntity().getLocation())) {
+            event.setCancelled(true);
+            deny(player);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onVehicleDamage(VehicleDamageEvent event) {
+        Player player = resolvePlayer(event.getAttacker());
+        if (player == null) {
+            return;
+        }
+
+        if (!canPlayerEdit(player, event.getVehicle().getLocation())) {
+            event.setCancelled(true);
+            deny(player);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onVehicleDestroy(VehicleDestroyEvent event) {
+        Player player = resolvePlayer(event.getAttacker());
+        if (player == null) {
+            return;
+        }
+
+        if (!canPlayerEdit(player, event.getVehicle().getLocation())) {
+            event.setCancelled(true);
+            deny(player);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onOpenInventory(InventoryOpenEvent event) {
         if (!(event.getPlayer() instanceof Player player)) {
             return;
         }
 
-        InventoryHolder holder = event.getInventory().getHolder();
-        if (!(holder instanceof BlockState state)) {
-            return;
-        }
-
-        if (!canPlayerEdit(player, state.getBlock().getLocation())) {
+        if (!canPlayerEdit(player, event.getInventory().getLocation())) {
             event.setCancelled(true);
             deny(player);
         }
@@ -299,6 +344,36 @@ public class IslandProtectionListener implements Listener {
         if (!allowed) {
             event.setCancelled(true);
             player.sendMessage(config.getIslandLockedMessage());
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPlayerInteractEntity(PlayerInteractEntityEvent event) {
+        Player player = event.getPlayer();
+
+        if (!canPlayerEdit(player, event.getRightClicked().getLocation())) {
+            event.setCancelled(true);
+            deny(player);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPlayerInteractAtEntity(PlayerInteractAtEntityEvent event) {
+        Player player = event.getPlayer();
+
+        if (!canPlayerEdit(player, event.getRightClicked().getLocation())) {
+            event.setCancelled(true);
+            deny(player);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onArmorStandManipulate(PlayerArmorStandManipulateEvent event) {
+        Player player = event.getPlayer();
+
+        if (!canPlayerEdit(player, event.getRightClicked().getLocation())) {
+            event.setCancelled(true);
+            deny(player);
         }
     }
 }
