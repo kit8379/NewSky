@@ -19,7 +19,7 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectTypeCategory;
 import org.bukkit.potion.PotionType;
 import org.me.newsky.NewSky;
-import snapshot.IslandSnapshot;
+import org.me.newsky.snapshot.IslandSnapshot;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.model.Island;
 import org.me.newsky.util.IslandUtils;

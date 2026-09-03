@@ -7,7 +7,7 @@ import org.bukkit.event.world.WorldUnloadEvent;
 import org.me.newsky.NewSky;
 import org.me.newsky.scheduler.LevelUpdateScheduler;
 import org.me.newsky.util.IslandUtils;
-import snapshot.IslandSnapshot;
+import org.me.newsky.snapshot.IslandSnapshot;
 
 import java.util.UUID;
 
@@ -36,6 +36,6 @@ public final class WorldUnloadListener implements Listener {
         levelUpdateScheduler.unregisterIsland(islandUuid);
         islandSnapshot.unload(islandUuid);
 
-        plugin.debug("WorldUnloadListener", "Unloaded island snapshot and unregistered level updates for island UUID: " + islandUuid);
+        plugin.debug("WorldUnloadListener", "Unloaded island org.me.newsky.snapshot and unregistered level updates for island UUID: " + islandUuid);
     }
 }

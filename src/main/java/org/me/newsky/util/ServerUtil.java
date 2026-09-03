@@ -35,8 +35,6 @@ public class ServerUtil {
             } else {
                 throw new IllegalStateException("Player not found: " + playerUuid);
             }
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRun(() -> {
-            plugin.debug("ServerUtil", "Sent connect message to player " + playerUuid + " for server: " + serverName);
-        });
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
     }
 }

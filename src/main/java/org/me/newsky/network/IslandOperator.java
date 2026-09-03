@@ -13,14 +13,12 @@ import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.util.LocationUtils;
 import org.me.newsky.world.WorldHandler;
-import snapshot.IslandSnapshot;
+import org.me.newsky.snapshot.IslandSnapshot;
 
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 public class IslandOperator {
@@ -32,8 +30,6 @@ public class IslandOperator {
     private final IslandSnapshot islandSnapshot;
     private final IslandRegistry islandRegistry;
     private final String serverID;
-
-    private final Map<UUID, CompletableFuture<Void>> loadsInFlight = new ConcurrentHashMap<>();
 
     public IslandOperator(NewSky plugin, DatabaseHandler database, WorldHandler worldHandler, TeleportHandler teleportHandler, IslandSnapshot islandSnapshot, IslandRegistry islandRegistry, String serverID) {
         this.plugin = plugin;
@@ -65,32 +61,7 @@ public class IslandOperator {
         });
     }
 
-    /**
-     * Loads an island, collapsing concurrent requests for the same island into one load. Two
-     * requests reaching this server at once must not both run {@code loadWorld}, and every caller
-     * has to keep waiting until the world is actually available.
-     */
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
-        CompletableFuture<Void> gate = new CompletableFuture<>();
-        CompletableFuture<Void> inFlight = loadsInFlight.putIfAbsent(islandUuid, gate);
-        if (inFlight != null) {
-            return inFlight;
-        }
-
-        doLoadIsland(islandUuid).whenComplete((result, error) -> {
-            loadsInFlight.remove(islandUuid, gate);
-
-            if (error != null) {
-                gate.completeExceptionally(error);
-            } else {
-                gate.complete(null);
-            }
-        });
-
-        return gate;
-    }
-
-    private CompletableFuture<Void> doLoadIsland(UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
         return islandSnapshot.load(islandUuid).thenCompose(v -> {
@@ -115,9 +86,6 @@ public class IslandOperator {
     public CompletableFuture<Void> deleteIsland(Actor actor, UUID islandUuid) {
         String islandName = IslandUtils.UUIDToName(islandUuid);
 
-        // Rows go first: the ownership check and the delete share one transaction, so a refused
-        // delete changes nothing. If removing the world fails afterwards, all that remains is an
-        // orphaned world file no island row points at - unreachable garbage rather than a live bug.
         try {
             database.deleteIsland(actor, islandUuid);
         } catch (Throwable error) {
@@ -149,13 +117,6 @@ public class IslandOperator {
         });
     }
 
-    /**
-     * Kicks a visitor out of the island world. The membership guard runs here - on the island's
-     * host server, at the moment of the kick - not only at the caller: the caller's check and this
-     * kick are separated by a cross-server hop, and the target may have become a member in between.
-     * Guarding at the point of effect shrinks that window to the gap between a membership commit
-     * and this read. A member slipping through even that is only bounced to the lobby once.
-     */
     public CompletableFuture<Void> expelPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {
         try {
             Set<UUID> islandPlayers = database.getIslandPlayers(islandUuid).keySet();

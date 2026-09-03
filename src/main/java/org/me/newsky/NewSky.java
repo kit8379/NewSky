@@ -35,7 +35,7 @@ import org.me.newsky.thread.BukkitAsyncExecutor;
 import org.me.newsky.uuid.UuidHandler;
 import org.me.newsky.world.WorldActivityHandler;
 import org.me.newsky.world.WorldHandler;
-import snapshot.IslandSnapshot;
+import org.me.newsky.snapshot.IslandSnapshot;
 
 import java.lang.reflect.Constructor;
 import java.util.Collections;
@@ -103,9 +103,9 @@ public class NewSky extends JavaPlugin {
             ServerRegistry serverRegistry = new ServerRegistry(this, redisHandler, islandRegistry);
             info("Redis cache state handler loaded");
 
-            info("Loading island loaded snapshot");
+            info("Loading island loaded org.me.newsky.snapshot");
             IslandSnapshot islandSnapshot = new IslandSnapshot(this, databaseHandler);
-            info("Island loaded snapshot loaded");
+            info("Island loaded org.me.newsky.snapshot loaded");
 
             info("Starting world handler");
             worldHandler = new WorldHandler(this, config);

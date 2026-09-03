@@ -33,7 +33,7 @@ import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.model.Island;
 import org.me.newsky.util.IslandUtils;
-import snapshot.IslandSnapshot;
+import org.me.newsky.snapshot.IslandSnapshot;
 
 import java.util.UUID;
 

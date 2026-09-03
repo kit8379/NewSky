@@ -1,4 +1,4 @@
-package snapshot;
+package org.me.newsky.snapshot;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.database.DatabaseHandler;
@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Per-server cache of the islands hosted here, read on every block break, PvP hit and world change.
  * <p>
- * A loading, dirty or missing snapshot is unavailable so listeners fail closed.
+ * A loading, dirty or missing org.me.newsky.snapshot is unavailable so listeners fail closed.
  */
 public class IslandSnapshot {
 
@@ -51,7 +51,7 @@ public class IslandSnapshot {
 
             if (island == null) {
                 islands.remove(islandUuid);
-                throw new IllegalStateException("Island snapshot does not exist: " + islandUuid);
+                throw new IllegalStateException("Island org.me.newsky.snapshot does not exist: " + islandUuid);
             }
 
             islands.put(islandUuid, island);
@@ -64,7 +64,7 @@ public class IslandSnapshot {
         } catch (Throwable error) {
             if (loading.remove(islandUuid, generation)) {
                 dirty.put(islandUuid, Boolean.TRUE);
-                plugin.severe("Failed to load island snapshot: " + islandUuid, error);
+                plugin.severe("Failed to load island org.me.newsky.snapshot: " + islandUuid, error);
             }
 
             return CompletableFuture.failedFuture(error);
