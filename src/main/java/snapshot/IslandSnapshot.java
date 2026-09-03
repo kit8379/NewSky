@@ -42,9 +42,11 @@ public class IslandSnapshot {
         long generation = nextLoadGeneration.incrementAndGet();
         loading.put(islandUuid, generation);
 
-        return CompletableFuture.supplyAsync(() -> database.getIslandSnapshot(islandUuid), plugin.getBukkitAsyncExecutor()).thenAccept(island -> {
+        try {
+            Island island = database.getIslandSnapshot(islandUuid);
+
             if (!Long.valueOf(generation).equals(loading.get(islandUuid))) {
-                return;
+                return CompletableFuture.completedFuture(null);
             }
 
             if (island == null) {
@@ -53,18 +55,20 @@ public class IslandSnapshot {
             }
 
             islands.put(islandUuid, island);
-        }).whenComplete((result, error) -> {
-            if (!loading.remove(islandUuid, generation)) {
-                return;
-            }
 
-            if (error != null) {
-                dirty.put(islandUuid, Boolean.TRUE);
-                plugin.severe("Failed to load island snapshot: " + islandUuid, error);
-            } else {
+            if (loading.remove(islandUuid, generation)) {
                 dirty.remove(islandUuid);
             }
-        });
+
+            return CompletableFuture.completedFuture(null);
+        } catch (Throwable error) {
+            if (loading.remove(islandUuid, generation)) {
+                dirty.put(islandUuid, Boolean.TRUE);
+                plugin.severe("Failed to load island snapshot: " + islandUuid, error);
+            }
+
+            return CompletableFuture.failedFuture(error);
+        }
     }
 
     public CompletableFuture<Void> reload(UUID islandUuid) {

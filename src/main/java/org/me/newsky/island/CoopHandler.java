@@ -36,7 +36,7 @@ public class CoopHandler {
     }
 
     public CompletableFuture<Void> unCoopPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {
-        return islandDistributor.removeCoop(actor, islandUuid, playerUuid);
+        return CompletableFuture.completedFuture(null).thenComposeAsync(v -> islandDistributor.removeCoop(actor, islandUuid, playerUuid), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> deleteAllCoopOfPlayer(UUID playerUuid) {

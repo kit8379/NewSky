@@ -22,11 +22,11 @@ public class BanHandler {
     }
 
     public CompletableFuture<Void> banPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {
-        return islandDistributor.addBan(actor, islandUuid, playerUuid);
+        return CompletableFuture.completedFuture(null).thenComposeAsync(v -> islandDistributor.addBan(actor, islandUuid, playerUuid), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> unbanPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {
-        return islandDistributor.removeBan(actor, islandUuid, playerUuid);
+        return CompletableFuture.completedFuture(null).thenComposeAsync(v -> islandDistributor.removeBan(actor, islandUuid, playerUuid), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Boolean> isPlayerBanned(UUID islandUuid, UUID playerUuid) {

@@ -33,15 +33,15 @@ public class PlayerHandler {
     }
 
     public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role) {
-        return islandDistributor.addMember(islandUuid, playerUuid, role);
+        return CompletableFuture.completedFuture(null).thenComposeAsync(v -> islandDistributor.addMember(islandUuid, playerUuid, role), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> removeMember(Actor actor, UUID islandUuid, UUID playerUuid) {
-        return islandDistributor.removeMember(actor, islandUuid, playerUuid);
+        return CompletableFuture.completedFuture(null).thenComposeAsync(v -> islandDistributor.removeMember(actor, islandUuid, playerUuid), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> setOwner(Actor actor, UUID islandUuid, UUID newOwnerUuid) {
-        return islandDistributor.setOwner(actor, islandUuid, newOwnerUuid);
+        return CompletableFuture.completedFuture(null).thenComposeAsync(v -> islandDistributor.setOwner(actor, islandUuid, newOwnerUuid), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> expelPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {

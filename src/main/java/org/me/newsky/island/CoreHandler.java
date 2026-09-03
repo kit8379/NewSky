@@ -22,27 +22,27 @@ public class CoreHandler {
     }
 
     public CompletableFuture<Void> createIsland(UUID ownerUuid) {
-        return islandDistributor.createIsland(UUID.randomUUID(), ownerUuid);
+        return CompletableFuture.completedFuture(null).thenComposeAsync(v -> islandDistributor.createIsland(UUID.randomUUID(), ownerUuid), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> deleteIsland(Actor actor, UUID islandUuid) {
-        return islandDistributor.deleteIsland(actor, islandUuid);
+        return CompletableFuture.completedFuture(null).thenComposeAsync(v -> islandDistributor.deleteIsland(actor, islandUuid), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> loadIsland(UUID islandUuid) {
-        return islandDistributor.loadIsland(islandUuid);
+        return CompletableFuture.completedFuture(null).thenComposeAsync(v -> islandDistributor.loadIsland(islandUuid), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> unloadIsland(UUID islandUuid) {
-        return islandDistributor.unloadIsland(islandUuid);
+        return CompletableFuture.completedFuture(null).thenComposeAsync(v -> islandDistributor.unloadIsland(islandUuid), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Boolean> toggleIslandLock(Actor actor, UUID islandUuid) {
-        return islandDistributor.toggleIslandLock(actor, islandUuid);
+        return CompletableFuture.completedFuture(null).thenComposeAsync(v -> islandDistributor.toggleIslandLock(actor, islandUuid), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Boolean> toggleIslandPvp(Actor actor, UUID islandUuid) {
-        return islandDistributor.toggleIslandPvp(actor, islandUuid);
+        return CompletableFuture.completedFuture(null).thenComposeAsync(v -> islandDistributor.toggleIslandPvp(actor, islandUuid), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Boolean> isIslandLock(UUID islandUuid) {

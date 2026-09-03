@@ -28,9 +28,6 @@ public class IslandRegistry extends ClusterState {
         return execute(jedis -> Optional.ofNullable(jedis.hget(ClusterKeys.islandServer(), islandUuid.toString())), "Failed to get island loaded server for: " + islandUuid);
     }
 
-    /**
-     * Removes every island mapping hosted by the given server (used when a server goes away).
-     */
     public void removeServerMappings(String serverName) {
         run(jedis -> {
             Map<String, String> mappings = jedis.hgetAll(ClusterKeys.islandServer());
