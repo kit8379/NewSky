@@ -3,6 +3,7 @@ package org.me.newsky.cluster;
 import org.me.newsky.NewSky;
 import org.me.newsky.model.Invitation;
 import org.me.newsky.redis.RedisHandler;
+import redis.clients.jedis.params.SetParams;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -16,9 +17,14 @@ public class InvitationStore extends ClusterState {
         super(plugin, redisHandler);
     }
 
-    public void addIslandInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {
+    /**
+     * Atomically stores the invitation unless one is already pending.
+     *
+     * @return true if the invitation was stored, false if the invitee already has a pending one
+     */
+    public boolean addIslandInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {
         String value = islandUuid + ":" + inviterUuid;
-        run(jedis -> jedis.setex(ClusterKeys.invitation(inviteeUuid), ttlSeconds, value), "Failed to add island invite for: " + inviteeUuid);
+        return execute(jedis -> jedis.set(ClusterKeys.invitation(inviteeUuid), value, SetParams.setParams().nx().ex(ttlSeconds)) != null, "Failed to add island invite for: " + inviteeUuid);
     }
 
     public void removeIslandInvite(UUID inviteeUuid) {

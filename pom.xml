@@ -17,7 +17,6 @@
         <mysql.version>9.5.0</mysql.version>
         <hikari.version>7.0.2</hikari.version>
         <jedis.version>7.2.0</jedis.version>
-        <vault.version>1.7.1</vault.version>
         <!-- Keep Java 21 builds reproducible: the floating 4.2.0-SNAPSHOT now targets Java 25. -->
         <asp.api.version>4.2.0-20260324.164458-18</asp.api.version>
         <asp.mysql-loader.version>4.2.0-20260324.164525-18</asp.mysql-loader.version>
@@ -189,13 +188,6 @@
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>
             <version>2.11.7</version>
-            <scope>provided</scope>
-        </dependency>
-
-        <dependency>
-            <groupId>com.github.MilkBowl</groupId>
-            <artifactId>VaultAPI</artifactId>
-            <version>${vault.version}</version>
             <scope>provided</scope>
         </dependency>
     </dependencies>

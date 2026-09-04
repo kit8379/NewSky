@@ -21,7 +21,7 @@ public class AdminDeleteIslandCommand implements SubCommand, AsyncTabComplete {
     private final NewSky plugin;
     private final NewSkyAPI api;
     private final ConfigHandler config;
-    private final Map<UUID, Long> confirmationTimes = new ConcurrentHashMap<>();
+    private final Map<String, Long> confirmationTimes = new ConcurrentHashMap<>();
 
     public AdminDeleteIslandCommand(NewSky plugin, NewSkyAPI api, ConfigHandler config) {
         this.plugin = plugin;
@@ -69,16 +69,17 @@ public class AdminDeleteIslandCommand implements SubCommand, AsyncTabComplete {
             }
 
             UUID targetUuid = targetUuidOpt.get();
+            String confirmationKey = sender.getName() + ":" + targetUuid;
             long now = System.currentTimeMillis();
-            Long lastConfirmationTime = confirmationTimes.get(targetUuid);
+            Long lastConfirmationTime = confirmationTimes.get(confirmationKey);
 
             if (lastConfirmationTime == null || now - lastConfirmationTime >= 15000L) {
-                confirmationTimes.put(targetUuid, now);
+                confirmationTimes.put(confirmationKey, now);
                 sender.sendMessage(config.getAdminDeleteWarningMessage(targetPlayerName));
                 return CompletableFuture.completedFuture(null);
             }
 
-            confirmationTimes.remove(targetUuid);
+            confirmationTimes.remove(confirmationKey);
 
             return api.getIslandUuid(targetUuid).thenCompose(islandUuid -> api.admin(sender).deleteIsland(islandUuid)).thenRun(() -> sender.sendMessage(config.getAdminDeleteSuccessMessage(targetPlayerName)));
         }).exceptionally(ex -> {

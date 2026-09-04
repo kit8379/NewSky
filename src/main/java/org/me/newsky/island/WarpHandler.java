@@ -62,13 +62,15 @@ public class WarpHandler {
                 throw new PlayerBannedException();
             }
 
-            boolean isLocked = database.isIslandLock(islandUuid);
-            boolean isMember = database.getIslandPlayers(islandUuid).containsKey(targetPlayerUuid);
-            if (isLocked && !isMember) {
-                throw new IslandLockedException();
+            if (database.isIslandLock(islandUuid)) {
+                boolean allowed = database.getIslandPlayers(islandUuid).containsKey(targetPlayerUuid)
+                        || database.getIslandCoops(islandUuid).contains(targetPlayerUuid);
+                if (!allowed) {
+                    throw new IslandLockedException();
+                }
             }
 
-            String warpLocation = Optional.ofNullable(database.getIslandWarps(islandUuid, warpPlayerUuid).get(warpName)).orElseThrow(WarpDoesNotExistException::new);
+            String warpLocation = Optional.ofNullable(database.getIslandWarps(islandUuid, warpPlayerUuid).get(warpName.toLowerCase(Locale.ROOT))).orElseThrow(WarpDoesNotExistException::new);
 
             return new WarpTarget(islandUuid, warpLocation);
         }, plugin.getBukkitAsyncExecutor()).thenCompose(target -> islandDistributor.teleportIsland(target.islandUuid(), targetPlayerUuid, IslandUtils.UUIDToName(target.islandUuid()), target.warpLocation()));

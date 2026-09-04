@@ -70,12 +70,9 @@ public class PlayerHandler {
                 throw new IslandAlreadyExistException();
             }
 
-            Optional<Invitation> existingInvite = invitationStore.getIslandInvite(inviteeUuid);
-            if (existingInvite.isPresent()) {
+            if (!invitationStore.addIslandInvite(inviteeUuid, islandUuid, inviterUuid, ttlSeconds)) {
                 throw new InvitedAlreadyException();
             }
-
-            invitationStore.addIslandInvite(inviteeUuid, islandUuid, inviterUuid, ttlSeconds);
         }, plugin.getBukkitAsyncExecutor());
     }
 

@@ -58,7 +58,7 @@ public class HomeHandler {
     public CompletableFuture<Void> home(UUID playerUuid, String homeName, UUID targetPlayerUuid) {
         return CompletableFuture.supplyAsync(() -> {
             UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
-            String homeLocation = Optional.ofNullable(database.getIslandHomes(islandUuid, playerUuid).get(homeName)).orElseThrow(HomeDoesNotExistException::new);
+            String homeLocation = Optional.ofNullable(database.getIslandHomes(islandUuid, playerUuid).get(homeName.toLowerCase(Locale.ROOT))).orElseThrow(HomeDoesNotExistException::new);
 
             return new HomeTarget(islandUuid, homeLocation);
         }, plugin.getBukkitAsyncExecutor()).thenCompose(target -> islandDistributor.teleportIsland(target.islandUuid(), targetPlayerUuid, IslandUtils.UUIDToName(target.islandUuid()), target.homeLocation()));

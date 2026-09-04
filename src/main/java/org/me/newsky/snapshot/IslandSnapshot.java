@@ -54,9 +54,8 @@ public class IslandSnapshot {
                 throw new IllegalStateException("Island org.me.newsky.snapshot does not exist: " + islandUuid);
             }
 
-            islands.put(islandUuid, island);
-
             if (loading.remove(islandUuid, generation)) {
+                islands.put(islandUuid, island);
                 dirty.remove(islandUuid);
             }
 

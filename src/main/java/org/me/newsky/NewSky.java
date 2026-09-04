@@ -1,10 +1,8 @@
 package org.me.newsky;
 
-import net.milkbowl.vault.economy.Economy;
 import org.bukkit.Bukkit;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.RegisteredServiceProvider;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.json.JSONObject;
 import org.me.newsky.api.NewSkyAPI;
@@ -60,7 +58,6 @@ public class NewSky extends JavaPlugin {
     private LevelHandler levelHandler;
     private NewSkyAPI api;
     private BukkitAsyncExecutor bukkitAsyncExecutor;
-    private Economy economy;
 
     @Override
     public void onEnable() {
@@ -144,14 +141,6 @@ public class NewSky extends JavaPlugin {
             info("Starting player message handler");
             PlayerMessageHandler playerMessageHandler = new PlayerMessageHandler(this, crossServerMessenger, onlinePlayerRegistry, serverID);
             info("Player message handler loaded");
-
-            info("Starting economy provider");
-            if (!setupEconomy()) {
-                getLogger().severe("Economy provider not found. Disabling plugin.");
-                getServer().getPluginManager().disablePlugin(this);
-                return;
-            }
-            info("Economy provider loaded");
 
             info("Starting main handlers for the plugin");
             CoreHandler coreHandler = new CoreHandler(this, databaseHandler, islandDistributor);
@@ -238,20 +227,6 @@ public class NewSky extends JavaPlugin {
             getLogger().log(Level.SEVERE, "An error occurred during plugin initialization", e);
             getServer().getPluginManager().disablePlugin(this);
         }
-    }
-
-    private boolean setupEconomy() {
-        if (Bukkit.getPluginManager().getPlugin("Vault") == null) {
-            return false;
-        }
-
-        RegisteredServiceProvider<Economy> rsp = Bukkit.getServicesManager().getRegistration(Economy.class);
-        if (rsp == null) {
-            return false;
-        }
-
-        economy = rsp.getProvider();
-        return true;
     }
 
     private void registerCrossServerHandlers(CrossServerMessenger messenger, IslandOperator islandOperator) {
@@ -356,11 +331,6 @@ public class NewSky extends JavaPlugin {
     @SuppressWarnings("unused")
     public NewSkyAPI getApi() {
         return api;
-    }
-
-    @SuppressWarnings("unused")
-    public Economy getEconomy() {
-        return economy;
     }
 
     @SuppressWarnings("unused")

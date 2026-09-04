@@ -3,8 +3,8 @@ package org.me.newsky.listener;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.entity.Enemy;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
@@ -21,6 +21,7 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
+import org.bukkit.event.player.PlayerBucketFillEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.event.player.PlayerInteractAtEntityEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
@@ -185,6 +186,17 @@ public class IslandProtectionListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onBucketFill(PlayerBucketFillEvent event) {
+        Player player = event.getPlayer();
+        Location loc = event.getBlock().getLocation();
+
+        if (!canPlayerEdit(player, loc)) {
+            event.setCancelled(true);
+            deny(player);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onFluidSpread(BlockFromToEvent event) {
         if (!isAllowedByBoundary(event.getToBlock().getLocation())) {
             event.setCancelled(true);
@@ -233,7 +245,7 @@ public class IslandProtectionListener implements Listener {
             return;
         }
 
-        if (event.getEntity() instanceof Player || event.getEntity() instanceof Monster) {
+        if (event.getEntity() instanceof Player || event.getEntity() instanceof Enemy) {
             return;
         }
 

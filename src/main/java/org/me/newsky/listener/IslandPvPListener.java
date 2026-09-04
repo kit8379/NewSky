@@ -6,8 +6,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
-import org.bukkit.entity.TNTPrimed;
-import org.bukkit.entity.Tameable;
 import org.bukkit.entity.ThrownPotion;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -45,14 +43,6 @@ public class IslandPvPListener implements Listener {
 
         if (entity instanceof Projectile projectile && projectile.getShooter() instanceof Player player) {
             return player.getUniqueId();
-        }
-
-        if (entity instanceof TNTPrimed tnt && tnt.getSource() instanceof Player player) {
-            return player.getUniqueId();
-        }
-
-        if (entity instanceof Tameable tameable) {
-            return tameable.getOwnerUniqueId();
         }
 
         return null;
