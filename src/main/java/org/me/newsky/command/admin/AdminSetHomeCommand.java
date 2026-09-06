@@ -8,6 +8,7 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.HomeNameNotLegalException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
 
 import java.util.Collections;
@@ -88,6 +89,8 @@ public class AdminSetHomeCommand implements SubCommand, AsyncTabComplete {
             Throwable cause = ex.getCause();
             if (cause instanceof LocationNotInIslandException) {
                 sender.sendMessage(config.getAdminMustInIslandSetHomeMessage(homePlayerName));
+            } else if (cause instanceof HomeNameNotLegalException) {
+                sender.sendMessage(config.getHomeNameNotLegalMessage());
             } else {
                 sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.severe("Error setting home " + homeName + " for " + homePlayerName, ex);

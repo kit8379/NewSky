@@ -75,7 +75,7 @@ public class PlayerTopCommand implements SubCommand {
                 plugin.severe("Failed to resolve player names for /is top", ex);
                 return Map.of();
             }).thenApply(names -> new PreparedTopResult(entries, names));
-        }).whenComplete((result, ex) -> {
+        }).thenAccept(result -> {
             if (result.entries().isEmpty()) {
                 sender.sendMessage(config.getNoIslandsFoundMessage());
                 return;

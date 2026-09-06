@@ -6,6 +6,9 @@ import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.IslandAlreadyExistException;
+import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
 import org.me.newsky.exceptions.NoActiveServerException;
 import org.me.newsky.model.Invitation;
 
@@ -75,8 +78,8 @@ public class PlayerAcceptInviteCommand implements SubCommand {
             player.sendMessage(config.getPlayerInviteAcceptedMessage());
             api.sendPlayerMessage(inviterUuid, config.getPlayerInviteAcceptedNotifyMessage(player.getName()));
 
-            return api.getIslandMembers(islandUuid).thenCompose(membersAfterJoin -> {
-                for (UUID uuid : membersAfterJoin) {
+            return api.getIslandPlayers(islandUuid).thenCompose(islandPlayers -> {
+                for (UUID uuid : islandPlayers) {
                     if (!uuid.equals(playerUuid) && !uuid.equals(inviterUuid)) {
                         api.sendPlayerMessage(uuid, config.getNewMemberNotificationMessage(player.getName()));
                     }
@@ -85,7 +88,13 @@ public class PlayerAcceptInviteCommand implements SubCommand {
             });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
-            if (cause instanceof NoActiveServerException) {
+            if (cause instanceof IslandAlreadyExistException) {
+                player.sendMessage(config.getPlayerAlreadyHasIslandMessage());
+            } else if (cause instanceof IslandPlayerAlreadyExistsException) {
+                player.sendMessage(config.getIslandMemberExistsMessage(player.getName()));
+            } else if (cause instanceof IslandDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoPendingInviteMessage());
+            } else if (cause instanceof NoActiveServerException) {
                 player.sendMessage(config.getNoActiveServerMessage());
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());

@@ -9,6 +9,7 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.CannotCoopIslandPlayerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerAlreadyCoopedException;
+import org.me.newsky.exceptions.PlayerNotOnlineException;
 
 import java.util.Collections;
 import java.util.List;
@@ -91,6 +92,8 @@ public class AdminCoopCommand implements SubCommand, AsyncTabComplete {
                 sender.sendMessage(config.getPlayerAlreadyCoopedMessage(targetName));
             } else if (cause instanceof CannotCoopIslandPlayerException) {
                 sender.sendMessage(config.getPlayerCannotCoopIslandPlayerMessage());
+            } else if (cause instanceof PlayerNotOnlineException) {
+                sender.sendMessage(config.getPlayerNotOnlineMessage(targetName));
             } else {
                 sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.severe("Error cooping player " + targetName + " to island of " + ownerName, ex);

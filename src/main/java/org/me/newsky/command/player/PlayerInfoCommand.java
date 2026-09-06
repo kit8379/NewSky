@@ -61,9 +61,10 @@ public class PlayerInfoCommand implements SubCommand, AsyncTabComplete {
             return true;
         }
 
+        String targetPlayerName = args.length >= 2 ? args[1] : null;
         CompletableFuture<UUID> islandFuture;
 
-        if (args.length < 2) {
+        if (targetPlayerName == null) {
             Location loc = player.getLocation();
             String worldName = loc.getWorld().getName();
 
@@ -75,8 +76,6 @@ public class PlayerInfoCommand implements SubCommand, AsyncTabComplete {
 
             islandFuture = CompletableFuture.completedFuture(islandUuid);
         } else {
-            String targetPlayerName = args[1];
-
             islandFuture = api.getPlayerUuid(targetPlayerName).thenCompose(targetUuidOpt -> {
                 if (targetUuidOpt.isEmpty()) {
                     sender.sendMessage(config.getUnknownPlayerMessage(targetPlayerName));
@@ -117,7 +116,7 @@ public class PlayerInfoCommand implements SubCommand, AsyncTabComplete {
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {
-                sender.sendMessage(config.getPlayerNoIslandMessage());
+                sender.sendMessage(targetPlayerName == null ? config.getPlayerNoIslandMessage() : config.getNoIslandMessage(targetPlayerName));
             } else {
                 sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.severe("Error retrieving island info for player " + player.getName(), ex);

@@ -1,6 +1,8 @@
 package org.me.newsky.config;
 
 import net.kyori.adventure.text.Component;
+import org.bukkit.configuration.ConfigurationSection;
+import org.bukkit.configuration.InvalidConfigurationException;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.me.newsky.NewSky;
@@ -39,7 +41,13 @@ public class ConfigHandler {
             plugin.saveResource(fileName, false);
         }
 
-        FileConfiguration userConfig = YamlConfiguration.loadConfiguration(file);
+        FileConfiguration userConfig = new YamlConfiguration();
+        try {
+            userConfig.load(file);
+        } catch (IOException | InvalidConfigurationException e) {
+            throw new IllegalStateException("Cannot parse " + fileName + ", refusing to rewrite it", e);
+        }
+
         FileConfiguration defaultConfig = loadDefaultConfig(fileName);
         if (defaultConfig == null) {
             plugin.severe("Missing default config: " + fileName);
@@ -72,6 +80,18 @@ public class ConfigHandler {
             } else {
                 Object value = userConfig.contains(fullPath) ? userConfig.get(fullPath) : defaultConfig.get(fullPath);
                 rebuiltConfig.set(fullPath, value);
+            }
+        }
+
+        ConfigurationSection userSection = userConfig.getConfigurationSection(path);
+        if (userSection == null) {
+            return;
+        }
+
+        for (String key : userSection.getKeys(false)) {
+            String fullPath = path.isEmpty() ? key : path + "." + key;
+            if (!rebuiltConfig.contains(fullPath)) {
+                rebuiltConfig.set(fullPath, userConfig.get(fullPath));
             }
         }
     }
