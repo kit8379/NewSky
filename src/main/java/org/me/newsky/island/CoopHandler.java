@@ -40,8 +40,16 @@ public class CoopHandler {
     }
 
     public CompletableFuture<Void> deleteAllCoopOfPlayer(UUID playerUuid) {
-        return CompletableFuture.runAsync(() -> database.deleteAllCoopsOfPlayer(playerUuid),
-                plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> database.getCoopIslandsOfPlayer(playerUuid), plugin.getBukkitAsyncExecutor()).thenCompose(islands -> {
+            if (islands.isEmpty()) {
+                return CompletableFuture.completedFuture(null);
+            }
+
+            return CompletableFuture.allOf(islands.stream().map(islandUuid -> islandDistributor.removeCoop(new Actor.Bypass("coop quit cleanup"), islandUuid, playerUuid).exceptionally(e -> {
+                plugin.severe("Failed to clean up coop for " + playerUuid + " on island " + islandUuid, e);
+                return null;
+            })).toArray(CompletableFuture[]::new));
+        });
     }
 
     public CompletableFuture<Boolean> isPlayerCooped(UUID islandUuid, UUID playerUuid) {

@@ -169,21 +169,15 @@ public class DatabaseHandler {
     // ================================================================================================================
 
     public boolean isIslandLock(UUID islandUuid) {
-        return executeQuery("SELECT `lock` FROM " + prefix + "islands WHERE island_uuid = ? LIMIT 1",
-                stmt -> stmt.setString(1, islandUuid.toString()),
-                rs -> rs.next() && rs.getBoolean("lock"));
+        return executeQuery("SELECT `lock` FROM " + prefix + "islands WHERE island_uuid = ? LIMIT 1", stmt -> stmt.setString(1, islandUuid.toString()), rs -> rs.next() && rs.getBoolean("lock"));
     }
 
     public boolean isIslandPvp(UUID islandUuid) {
-        return executeQuery("SELECT pvp FROM " + prefix + "islands WHERE island_uuid = ? LIMIT 1",
-                stmt -> stmt.setString(1, islandUuid.toString()),
-                rs -> rs.next() && rs.getBoolean("pvp"));
+        return executeQuery("SELECT pvp FROM " + prefix + "islands WHERE island_uuid = ? LIMIT 1", stmt -> stmt.setString(1, islandUuid.toString()), rs -> rs.next() && rs.getBoolean("pvp"));
     }
 
     public int getIslandLevel(UUID islandUuid) {
-        return executeQuery("SELECT level FROM " + prefix + "island_levels WHERE island_uuid = ? LIMIT 1",
-                stmt -> stmt.setString(1, islandUuid.toString()),
-                rs -> rs.next() ? rs.getInt("level") : 0);
+        return executeQuery("SELECT level FROM " + prefix + "island_levels WHERE island_uuid = ? LIMIT 1", stmt -> stmt.setString(1, islandUuid.toString()), rs -> rs.next() ? rs.getInt("level") : 0);
     }
 
     public Optional<UUID> getIslandOwner(UUID islandUuid) {
@@ -287,28 +281,17 @@ public class DatabaseHandler {
         });
     }
 
-    /**
-     * Removes every coop entry of one player and returns the affected islands.
-     */
-    public Set<UUID> deleteAllCoopsOfPlayer(UUID playerUuid) {
-        return inTransaction(connection -> {
-            Set<UUID> touched = executeQuery(connection, "SELECT island_uuid FROM " + prefix + "island_coops WHERE cooped_player = ? FOR UPDATE", stmt -> {
-                stmt.setString(1, playerUuid.toString());
-            }, rs -> {
-                Set<UUID> result = new HashSet<>();
-                while (rs.next()) {
-                    result.add(parseRequiredUuid(rs.getString("island_uuid"), "island_coops.island_uuid"));
-                }
-                return result;
-            });
+    public Set<UUID> getCoopIslandsOfPlayer(UUID playerUuid) {
+        String sql = "SELECT island_uuid FROM " + prefix + "island_coops WHERE cooped_player = ?";
 
-            if (!touched.isEmpty()) {
-                executeUpdate(connection, "DELETE FROM " + prefix + "island_coops WHERE cooped_player = ?;", stmt -> {
-                    stmt.setString(1, playerUuid.toString());
-                });
+        return executeQuery(sql, stmt -> stmt.setString(1, playerUuid.toString()), rs -> {
+            Set<UUID> result = new LinkedHashSet<>();
+
+            while (rs.next()) {
+                result.add(parseRequiredUuid(rs.getString("island_uuid"), "island_coops.island_uuid"));
             }
 
-            return Set.copyOf(touched);
+            return result.isEmpty() ? Set.of() : Set.copyOf(result);
         });
     }
 
