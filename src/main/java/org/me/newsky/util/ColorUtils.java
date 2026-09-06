@@ -12,7 +12,7 @@ public final class ColorUtils {
 
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.builder().character('&').hexColors().build();
 
-    private static final Pattern LEGACY_CODE_PATTERN = Pattern.compile("(?i)&[0-9A-FK-OR]");
+    private static final Pattern LEGACY_CODE_PATTERN = Pattern.compile("(?i)&(?:[0-9A-FK-OR]|#[0-9A-F]{6})");
 
     public static Component colorize(String message) {
         if (message == null || message.isEmpty()) {

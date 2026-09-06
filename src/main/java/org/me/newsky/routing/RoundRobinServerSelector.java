@@ -20,10 +20,6 @@ public class RoundRobinServerSelector implements ServerSelector {
 
         long index = serverRegistry.getRoundRobinCounter();
 
-        if (index == -1) {
-            return null;
-        }
-
         List<String> servers = new ArrayList<>(activeServers.keySet());
         servers.sort(String::compareTo);
 

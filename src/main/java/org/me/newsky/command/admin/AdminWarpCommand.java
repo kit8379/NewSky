@@ -110,6 +110,8 @@ public class AdminWarpCommand implements SubCommand, AsyncTabComplete {
                 sender.sendMessage(config.getPlayerBannedMessage());
             } else if (cause instanceof IslandLockedException) {
                 sender.sendMessage(config.getIslandLockedMessage());
+            } else if (cause instanceof PlayerNotOnlineException) {
+                sender.sendMessage(config.getPlayerNotOnlineMessage(teleportPlayerName != null ? teleportPlayerName : sender.getName()));
             } else if (cause instanceof NoActiveServerException) {
                 sender.sendMessage(config.getNoActiveServerMessage());
             } else {

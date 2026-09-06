@@ -1,5 +1,6 @@
 package org.me.newsky.listener;
 
+import org.bukkit.ExplosionResult;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -18,6 +19,8 @@ import org.bukkit.event.block.BlockPistonRetractEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityPlaceEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.PlayerBucketEmptyEvent;
@@ -234,6 +237,40 @@ public class IslandProtectionListener implements Listener {
     public void onMobTrample(EntityChangeBlockEvent event) {
         if (!isAllowedByBoundary(event.getBlock().getLocation())) {
             event.setCancelled(true);
+        }
+    }
+
+    // A player-thrown wind charge activates buttons/levers/doors/bells via an explosion
+    // with TRIGGER_BLOCK result, bypassing PlayerInteractEvent entirely.
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onWindChargeTrigger(EntityExplodeEvent event) {
+        if (event.getExplosionResult() != ExplosionResult.TRIGGER_BLOCK) {
+            return;
+        }
+
+        Player player = resolvePlayer(event.getEntity());
+        if (player == null) {
+            return;
+        }
+
+        boolean removed = event.blockList().removeIf(block -> !canPlayerEdit(player, block.getLocation()));
+        if (removed) {
+            deny(player);
+        }
+    }
+
+    // Placing a boat on water spawns an entity without a BlockPlaceEvent, and the
+    // interact event carries no clicked block, so this is the only gate.
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onEntityPlace(EntityPlaceEvent event) {
+        Player player = event.getPlayer();
+        if (player == null) {
+            return;
+        }
+
+        if (!canPlayerEdit(player, event.getEntity().getLocation())) {
+            event.setCancelled(true);
+            deny(player);
         }
     }
 

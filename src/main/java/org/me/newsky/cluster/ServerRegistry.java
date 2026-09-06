@@ -7,6 +7,7 @@ import redis.clients.jedis.params.ScanParams;
 import redis.clients.jedis.resps.ScanResult;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
@@ -16,6 +17,19 @@ import java.util.Map;
  * when a server goes away.
  */
 public class ServerRegistry extends ClusterState {
+
+    /**
+     * Increments and wraps atomically: Redis INCR errors out at the signed 64-bit
+     * limit instead of wrapping, and a non-atomic check-then-SET reset would let
+     * concurrent callers reset twice and skew the rotation.
+     */
+    private static final String ROUND_ROBIN_INCR_SCRIPT = """
+            local value = redis.call('INCR', KEYS[1])
+            if value >= 1000000000 then
+                redis.call('SET', KEYS[1], '0')
+            end
+            return value
+            """;
 
     private final IslandRegistry islandRegistry;
     private final OnlinePlayerRegistry onlinePlayerRegistry;
@@ -101,15 +115,6 @@ public class ServerRegistry extends ClusterState {
     }
 
     public long getRoundRobinCounter() {
-        return execute(jedis -> {
-            long value = jedis.incr(ClusterKeys.roundRobinCounter());
-
-            if (value >= 1_000_000_000L) {
-                jedis.set(ClusterKeys.roundRobinCounter(), "0");
-                return 0L;
-            }
-
-            return value;
-        }, "Failed to increment round-robin counter");
+        return execute(jedis -> (Long) jedis.eval(ROUND_ROBIN_INCR_SCRIPT, List.of(ClusterKeys.roundRobinCounter()), List.of()), "Failed to increment round-robin counter");
     }
 }

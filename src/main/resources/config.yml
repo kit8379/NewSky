@@ -127,7 +127,7 @@ command:
   # Default behavior of `/island` when used with no arguments.
   # Options:
   # - "help"   : show help
-  # - "island" : teleport to island home if exists, otherwise create a new island
+  # - "island" : teleport to your island home (players without an island get the no-island message)
   base-command-mode: "island"
 
 

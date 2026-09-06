@@ -135,6 +135,12 @@ public class IslandPlayerCommand implements CommandExecutor, AsyncCommandTabRout
                 }
 
                 SubCommand homeCmd = subCommandMap.get("home");
+                String homePerm = homeCmd.getPermission();
+                if (homePerm != null && !homePerm.isEmpty() && !player.hasPermission(homePerm)) {
+                    player.sendMessage(config.getNoPermissionCommandMessage());
+                    return true;
+                }
+
                 return homeCmd.execute(player, new String[]{"home"});
             } else {
                 SubCommand helpCmd = subCommandMap.get("help");

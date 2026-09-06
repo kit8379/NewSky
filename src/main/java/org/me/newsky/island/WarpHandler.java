@@ -1,6 +1,7 @@
 package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
+import org.me.newsky.cluster.OnlinePlayerRegistry;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.exceptions.*;
 import org.me.newsky.network.IslandDistributor;
@@ -17,11 +18,13 @@ public class WarpHandler {
     private final NewSky plugin;
     private final DatabaseHandler database;
     private final IslandDistributor islandDistributor;
+    private final OnlinePlayerRegistry onlinePlayerRegistry;
 
-    public WarpHandler(NewSky plugin, DatabaseHandler database, IslandDistributor islandDistributor) {
+    public WarpHandler(NewSky plugin, DatabaseHandler database, IslandDistributor islandDistributor, OnlinePlayerRegistry onlinePlayerRegistry) {
         this.plugin = plugin;
         this.database = database;
         this.islandDistributor = islandDistributor;
+        this.onlinePlayerRegistry = onlinePlayerRegistry;
     }
 
     public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
@@ -54,6 +57,10 @@ public class WarpHandler {
 
     public CompletableFuture<Void> warp(UUID warpPlayerUuid, String warpName, UUID targetPlayerUuid) {
         return CompletableFuture.supplyAsync(() -> {
+            if (!onlinePlayerRegistry.isOnline(targetPlayerUuid)) {
+                throw new PlayerNotOnlineException();
+            }
+
             UUID islandUuid = database.getIslandUuid(warpPlayerUuid).orElseThrow(IslandDoesNotExistException::new);
 
             // Fail-fast filters only: the same rules are re-enforced on arrival by

@@ -1,11 +1,13 @@
 package org.me.newsky.island;
 
 import org.me.newsky.NewSky;
+import org.me.newsky.cluster.OnlinePlayerRegistry;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.exceptions.HomeDoesNotExistException;
 import org.me.newsky.exceptions.HomeNameNotLegalException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
+import org.me.newsky.exceptions.PlayerNotOnlineException;
 import org.me.newsky.network.IslandDistributor;
 import org.me.newsky.util.IslandUtils;
 
@@ -20,11 +22,13 @@ public class HomeHandler {
     private final NewSky plugin;
     private final DatabaseHandler database;
     private final IslandDistributor islandDistributor;
+    private final OnlinePlayerRegistry onlinePlayerRegistry;
 
-    public HomeHandler(NewSky plugin, DatabaseHandler database, IslandDistributor islandDistributor) {
+    public HomeHandler(NewSky plugin, DatabaseHandler database, IslandDistributor islandDistributor, OnlinePlayerRegistry onlinePlayerRegistry) {
         this.plugin = plugin;
         this.database = database;
         this.islandDistributor = islandDistributor;
+        this.onlinePlayerRegistry = onlinePlayerRegistry;
     }
 
     public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, String worldName, double x, double y, double z, float yaw, float pitch) {
@@ -57,6 +61,10 @@ public class HomeHandler {
 
     public CompletableFuture<Void> home(UUID playerUuid, String homeName, UUID targetPlayerUuid) {
         return CompletableFuture.supplyAsync(() -> {
+            if (!onlinePlayerRegistry.isOnline(targetPlayerUuid)) {
+                throw new PlayerNotOnlineException();
+            }
+
             UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
             String homeLocation = Optional.ofNullable(database.getIslandHomes(islandUuid, playerUuid).get(homeName.toLowerCase(Locale.ROOT))).orElseThrow(HomeDoesNotExistException::new);
 

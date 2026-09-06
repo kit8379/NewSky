@@ -146,8 +146,8 @@ public class NewSky extends JavaPlugin {
             info("Starting main handlers for the plugin");
             CoreHandler coreHandler = new CoreHandler(this, databaseHandler, islandDistributor);
             PlayerHandler playerHandler = new PlayerHandler(this, databaseHandler, islandDistributor, invitationStore, onlinePlayerRegistry);
-            HomeHandler homeHandler = new HomeHandler(this, databaseHandler, islandDistributor);
-            WarpHandler warpHandler = new WarpHandler(this, databaseHandler, islandDistributor);
+            HomeHandler homeHandler = new HomeHandler(this, databaseHandler, islandDistributor, onlinePlayerRegistry);
+            WarpHandler warpHandler = new WarpHandler(this, databaseHandler, islandDistributor, onlinePlayerRegistry);
             levelHandler = new LevelHandler(this, config, databaseHandler);
             BanHandler banHandler = new BanHandler(this, databaseHandler, islandDistributor);
             CoopHandler coopHandler = new CoopHandler(this, databaseHandler, islandDistributor, onlinePlayerRegistry);
