@@ -2,6 +2,7 @@ package org.me.newsky.cluster;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.redis.RedisHandler;
+import redis.clients.jedis.Transaction;
 
 import java.util.*;
 
@@ -29,8 +30,10 @@ public class OnlinePlayerRegistry extends ClusterState {
 
     public void addOnlinePlayer(UUID playerUuid, String playerName, String serverName) {
         run(jedis -> {
-            jedis.hset(ClusterKeys.onlinePlayers(), playerUuid.toString(), playerName);
-            jedis.hset(ClusterKeys.onlinePlayerServers(), playerUuid.toString(), serverName);
+            Transaction transaction = jedis.multi();
+            transaction.hset(ClusterKeys.onlinePlayers(), playerUuid.toString(), playerName);
+            transaction.hset(ClusterKeys.onlinePlayerServers(), playerUuid.toString(), serverName);
+            transaction.exec();
         }, "Failed to add online player: " + playerUuid);
     }
 
