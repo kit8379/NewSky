@@ -6,6 +6,7 @@ import org.me.newsky.NewSky;
 import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.Jedis;
 import redis.clients.jedis.StreamEntryID;
+import redis.clients.jedis.params.XAddParams;
 import redis.clients.jedis.params.XReadParams;
 import redis.clients.jedis.resps.StreamEntry;
 
@@ -21,6 +22,8 @@ public final class CrossServerMessenger {
     private static final String STREAM_PREFIX = "newsky:messaging:inbox:";
     private static final String FIELD_MESSAGE = "message";
     private static final long REQUEST_TIMEOUT_SECONDS = 30L;
+    private static final long MAX_MESSAGE_AGE_MILLIS = 60_000L;
+    private static final int INBOX_MAX_LEN = 1000;
     private static final int READ_BLOCK_MILLIS = 1000;
     private static final int READ_COUNT = 10;
 
@@ -66,6 +69,12 @@ public final class CrossServerMessenger {
     public void start() {
         if (running) {
             return;
+        }
+
+        // Entries from before this restart are poison: their requesters have long timed
+        // out, and replaying a stale island.load would double-load the world.
+        try (Jedis jedis = redisHandler.getJedis()) {
+            jedis.del(inboxKey(serverID));
         }
 
         running = true;
@@ -143,6 +152,13 @@ public final class CrossServerMessenger {
             CrossServerMessage message = CrossServerMessage.fromJson(raw);
             if (!serverID.equals(message.getTarget())) {
                 plugin.warning("Dropping cross-server message targeted to " + message.getTarget() + " from inbox " + serverID);
+                deleteEntry(entry.getID());
+                return true;
+            }
+
+            long age = System.currentTimeMillis() - message.getTimestamp();
+            if (age > MAX_MESSAGE_AGE_MILLIS) {
+                plugin.warning("Dropping stale cross-server " + message.getType() + " " + message.getAction() + " aged " + age + "ms from " + message.getSource());
                 deleteEntry(entry.getID());
                 return true;
             }
@@ -246,7 +262,6 @@ public final class CrossServerMessenger {
             plugin.severe("Failed to send cross-server response for " + response.getCorrelationId(), e);
         } finally {
             deleteEntry(entryId);
-            processingEntries.remove(entryId.toString());
         }
     }
 
@@ -269,7 +284,8 @@ public final class CrossServerMessenger {
 
     private void send(CrossServerMessage message) {
         try (Jedis jedis = redisHandler.getJedis()) {
-            jedis.xadd(inboxKey(message.getTarget()), StreamEntryID.NEW_ENTRY, Map.of(FIELD_MESSAGE, message.toJson()));
+            // MAXLEN bounds the inbox of a server that never comes back to consume it.
+            jedis.xadd(inboxKey(message.getTarget()), XAddParams.xAddParams().maxLen(INBOX_MAX_LEN).approximateTrimming(), Map.of(FIELD_MESSAGE, message.toJson()));
             plugin.debug("CrossServerMessenger", "Sent " + message.getType() + " " + message.getAction() + " to " + message.getTarget());
         }
     }
@@ -277,10 +293,11 @@ public final class CrossServerMessenger {
     private void deleteEntry(StreamEntryID entryId) {
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.xdel(inboxKey(serverID), entryId);
-        } catch (Exception e) {
-            plugin.severe("Failed to delete cross-server stream entry " + entryId, e);
-        } finally {
             processingEntries.remove(entryId.toString());
+        } catch (Exception e) {
+            // Keep the dedupe entry: the stream entry survived, and dropping the guard
+            // would re-execute the handler on the next read.
+            plugin.severe("Failed to delete cross-server stream entry " + entryId, e);
         }
     }
 
