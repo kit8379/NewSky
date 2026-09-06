@@ -213,7 +213,9 @@ public class IslandOperator {
             T result = mutation.get();
             return islandSnapshot.reload(islandUuid).thenApply(v -> result);
         } catch (Throwable error) {
-            return islandSnapshot.reload(islandUuid).thenCompose(v -> CompletableFuture.failedFuture(error));
+            // The reload here is best-effort refresh; its own failure (already logged by
+            // IslandSnapshot) must not replace the mutation's domain exception.
+            return islandSnapshot.reload(islandUuid).handle((v, reloadError) -> null).thenCompose(v -> CompletableFuture.failedFuture(error));
         }
     }
 
