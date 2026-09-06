@@ -55,7 +55,7 @@ public class HomeHandler {
         return CompletableFuture.runAsync(() -> {
             UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
 
-            database.deleteHomePoint(islandUuid, playerUuid, homeName);
+            database.deleteHomePoint(islandUuid, playerUuid, homeName.toLowerCase(Locale.ROOT));
         }, plugin.getBukkitAsyncExecutor());
     }
 

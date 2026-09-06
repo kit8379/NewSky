@@ -51,7 +51,7 @@ public class WarpHandler {
         return CompletableFuture.runAsync(() -> {
             UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
 
-            database.deleteWarpPoint(islandUuid, playerUuid, warpName);
+            database.deleteWarpPoint(islandUuid, playerUuid, warpName.toLowerCase(Locale.ROOT));
         }, plugin.getBukkitAsyncExecutor());
     }
 
