@@ -22,10 +22,13 @@ import java.util.function.Predicate;
 
 public class WorldHandler {
 
+    private static final String TEMPLATE_WORLD_NAME = "newsky-template";
+
     public final NewSky plugin;
     public final ConfigHandler config;
     private final SlimeLoader slimeLoader;
     private final SlimePropertyMap properties;
+    private final SlimeWorld templateWorld;
     private final AdvancedSlimePaperAPI asp = AdvancedSlimePaperAPI.instance();
 
     public WorldHandler(NewSky plugin, ConfigHandler config) {
@@ -48,26 +51,43 @@ public class WorldHandler {
         properties.setValue(SlimeProperties.SPAWN_Z, config.getIslandSpawnZ());
         properties.setValue(SlimeProperties.SPAWN_YAW, config.getIslandSpawnYaw());
         plugin.debug("WorldHandler", "Default slime world properties configured.");
+
+        this.templateWorld = config.isLobbyOnly() ? null : readTemplateWorld();
+    }
+
+    /**
+     * Parses the vanilla template folder once; every island world is a clone of the result.
+     * The template is never stored (null loader) and never mutated: clone() deep-copies it.
+     */
+    private SlimeWorld readTemplateWorld() {
+        File templateDir = plugin.getDataFolder().toPath().resolve("template/" + config.getTemplateWorldName()).toFile();
+        plugin.debug("WorldHandler", "Template world path resolved: " + templateDir.getAbsolutePath());
+
+        if (!templateDir.exists()) {
+            throw new IllegalStateException("Template world folder not found: " + templateDir.getAbsolutePath());
+        }
+
+        try {
+            SlimeWorld template = asp.readVanillaWorld(templateDir, TEMPLATE_WORLD_NAME, null);
+            plugin.debug("WorldHandler", "Template world cached in memory: " + templateDir.getAbsolutePath());
+            return template;
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to read template world: " + templateDir.getAbsolutePath(), e);
+        }
     }
 
     public CompletableFuture<Void> createWorld(String worldName) {
         plugin.debug("WorldHandler", "Creating world: " + worldName);
 
-        File templateWorld = plugin.getDataFolder().toPath().resolve("template/" + config.getTemplateWorldName()).toFile();
-        plugin.debug("WorldHandler", "Template world path resolved: " + templateWorld.getAbsolutePath());
-
-        if (!templateWorld.exists()) {
-            plugin.severe("Template world folder not found: " + templateWorld.getAbsolutePath());
-            return CompletableFuture.failedFuture(new IllegalStateException("Template folder not found"));
-        }
-
         try {
-            SlimeWorld newWorld = asp.readVanillaWorld(templateWorld, worldName, slimeLoader);
-            plugin.debug("WorldHandler", "Vanilla world read successfully for: " + worldName);
-            asp.saveWorld(newWorld);
-            plugin.debug("WorldHandler", "World saved to slime loader: " + worldName);
-            SlimeWorld loadedWorld = asp.readWorld(slimeLoader, worldName, false, properties);
-            return loadWorldToBukkit(loadedWorld).thenRunAsync(() -> {
+            if (templateWorld == null) {
+                throw new IllegalStateException("Lobby-only server has no template world to create islands from");
+            }
+
+            SlimeWorld newWorld = templateWorld.clone(worldName, slimeLoader);
+            newWorld.getPropertyMap().merge(properties);
+            plugin.debug("WorldHandler", "World cloned from template and saved to slime loader: " + worldName);
+            return loadWorldToBukkit(newWorld).thenRunAsync(() -> {
                 plugin.debug("WorldHandler", "World loaded into Bukkit: " + worldName);
             }, plugin.getBukkitAsyncExecutor());
         } catch (Exception e) {
