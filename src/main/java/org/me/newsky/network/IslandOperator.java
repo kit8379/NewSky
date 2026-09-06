@@ -102,19 +102,24 @@ public class IslandOperator {
         });
     }
 
-    public CompletableFuture<Void> prepareTeleport(UUID playerUuid, String teleportWorld, String teleportLocation) {
-        return CompletableFuture.runAsync(() -> {
+    /**
+     * @return true if the player was online here and teleported immediately,
+     * false if a pending teleport was stored for their next join.
+     */
+    public CompletableFuture<Boolean> prepareTeleport(UUID playerUuid, String teleportWorld, String teleportLocation) {
+        return CompletableFuture.supplyAsync(() -> {
             Location location = LocationUtils.stringToLocation(teleportWorld, teleportLocation);
             Player player = Bukkit.getPlayer(playerUuid);
             if (player != null) {
                 player.teleportAsync(location);
-                return;
+                plugin.debug("IslandOperator", "Teleported player " + playerUuid + " to location: " + teleportLocation + " in world: " + teleportWorld);
+                return true;
             }
 
             teleportHandler.addPendingTeleport(playerUuid, location);
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenRun(() -> {
-            plugin.debug("IslandOperator", "Teleported player " + playerUuid + " to location: " + teleportLocation + " in world: " + teleportWorld);
-        });
+            plugin.debug("IslandOperator", "Stored pending teleport for player " + playerUuid + " to location: " + teleportLocation + " in world: " + teleportWorld);
+            return false;
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
     }
 
     public CompletableFuture<Void> expelPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {
