@@ -12,6 +12,7 @@ public final class ClusterKeys {
     private static final String ONLINE_PLAYER_SERVERS = "newsky:online:player_servers";
     private static final String ISLAND_SERVER = "newsky:island:server";
     private static final String SERVER_MSPT = "newsky:server:mspt";
+    private static final String KNOWN_SERVERS = "newsky:servers:known";
     private static final String ROUND_ROBIN_COUNTER = "newsky:server:round_robin_counter";
     private static final String SERVER_HEARTBEAT_PREFIX = "newsky:heartbeat:server:";
     private static final String GAME_SERVER_HEARTBEAT_PREFIX = "newsky:heartbeat:game_server:";
@@ -34,6 +35,10 @@ public final class ClusterKeys {
 
     public static String serverMspt() {
         return SERVER_MSPT;
+    }
+
+    public static String knownServers() {
+        return KNOWN_SERVERS;
     }
 
     public static String roundRobinCounter() {

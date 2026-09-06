@@ -40,8 +40,29 @@ public class HeartbeatScheduler {
             serverRegistry.updateActiveServer(serverID, config.isLobbyOnly(), heartbeatTtlSeconds);
             plugin.debug("HeartbeatScheduler", "Sent heartbeat for server: " + serverID);
             plugin.debug("HeartbeatScheduler", "Active servers: " + serverRegistry.getActiveServers());
+
+            try {
+                reapDeadServers();
+            } catch (Exception e) {
+                plugin.severe("Failed to reap dead servers", e);
+            }
         }, 0L, heartbeatInterval * 20L);
         plugin.debug("HeartbeatScheduler", "Heartbeat task started successfully.");
+    }
+
+    private void reapDeadServers() {
+        for (String knownServer : serverRegistry.getKnownServers()) {
+            if (knownServer.equals(serverID)) {
+                continue;
+            }
+
+            long removed = serverRegistry.reapDeadServer(knownServer);
+            if (removed > 0) {
+                plugin.warning("Cleaned up state of dead server " + knownServer + ": removed " + removed + " stale entries.");
+            } else if (removed == 0) {
+                plugin.debug("HeartbeatScheduler", "Deregistered stopped server: " + knownServer);
+            }
+        }
     }
 
     public void stop() {

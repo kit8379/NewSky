@@ -10,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Tracks cluster server liveness (heartbeats), selection metrics (MSPT) and the
@@ -31,6 +32,41 @@ public class ServerRegistry extends ClusterState {
             return value
             """;
 
+    /**
+     * Clears every piece of cluster state owned by a server whose heartbeat has expired.
+     * The liveness check and the deletes run as one atomic script, so a server coming
+     * back mid-reap can never lose state it has just written.
+     * Returns -1 when the server is alive, otherwise the number of stale entries removed.
+     */
+    private static final String REAP_DEAD_SERVER_SCRIPT = """
+            if redis.call('EXISTS', KEYS[1]) == 1 then
+                return -1
+            end
+
+            local removed = 0
+
+            local islands = redis.call('HGETALL', KEYS[2])
+            for i = 1, #islands, 2 do
+                if islands[i + 1] == ARGV[1] then
+                    redis.call('HDEL', KEYS[2], islands[i])
+                    removed = removed + 1
+                end
+            end
+
+            local players = redis.call('HGETALL', KEYS[3])
+            for i = 1, #players, 2 do
+                if players[i + 1] == ARGV[1] then
+                    redis.call('HDEL', KEYS[3], players[i])
+                    redis.call('HDEL', KEYS[4], players[i])
+                    removed = removed + 1
+                end
+            end
+
+            redis.call('HDEL', KEYS[5], ARGV[1])
+            redis.call('SREM', KEYS[6], ARGV[1])
+            return removed
+            """;
+
     private final IslandRegistry islandRegistry;
     private final OnlinePlayerRegistry onlinePlayerRegistry;
 
@@ -50,7 +86,18 @@ public class ServerRegistry extends ClusterState {
             } else {
                 jedis.setex(ClusterKeys.gameServerHeartbeat(serverName), ttlSeconds, timestamp);
             }
+
+            // Known-set membership self-heals on every beat; the reaper is the only remover.
+            jedis.sadd(ClusterKeys.knownServers(), serverName);
         }, "Failed to update active server for: " + serverName);
+    }
+
+    public Set<String> getKnownServers() {
+        return execute(jedis -> jedis.smembers(ClusterKeys.knownServers()), "Failed to get known servers");
+    }
+
+    public long reapDeadServer(String serverName) {
+        return execute(jedis -> (Long) jedis.eval(REAP_DEAD_SERVER_SCRIPT, List.of(ClusterKeys.serverHeartbeat(serverName), ClusterKeys.islandServer(), ClusterKeys.onlinePlayerServers(), ClusterKeys.onlinePlayers(), ClusterKeys.serverMspt(), ClusterKeys.knownServers()), List.of(serverName)), "Failed to reap dead server: " + serverName);
     }
 
     public void removeActiveServer(String serverName) {
