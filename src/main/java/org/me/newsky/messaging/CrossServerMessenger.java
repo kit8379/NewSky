@@ -22,7 +22,7 @@ public final class CrossServerMessenger {
     private static final String STREAM_PREFIX = "newsky:messaging:inbox:";
     private static final String FIELD_MESSAGE = "message";
     private static final long REQUEST_TIMEOUT_SECONDS = 30L;
-    private static final long MAX_MESSAGE_AGE_MILLIS = 60_000L;
+    private static final long MAX_MESSAGE_AGE_MILLIS = REQUEST_TIMEOUT_SECONDS * 1000L;
     private static final int INBOX_MAX_LEN = 1000;
     private static final int READ_BLOCK_MILLIS = 1000;
     private static final int READ_COUNT = 10;

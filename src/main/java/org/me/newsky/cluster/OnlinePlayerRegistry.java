@@ -24,6 +24,21 @@ public class OnlinePlayerRegistry extends ClusterState {
             return 0
             """;
 
+    /**
+     * Deletes atomically, so a registration another server writes mid-cleanup can never
+     * be caught between the snapshot and the delete.
+     */
+    private static final String REMOVE_ALL_ON_SERVER_SCRIPT = """
+            local players = redis.call('HGETALL', KEYS[2])
+            for i = 1, #players, 2 do
+                if players[i + 1] == ARGV[1] then
+                    redis.call('HDEL', KEYS[1], players[i])
+                    redis.call('HDEL', KEYS[2], players[i])
+                end
+            end
+            return 0
+            """;
+
     public OnlinePlayerRegistry(NewSky plugin, RedisHandler redisHandler) {
         super(plugin, redisHandler);
     }
@@ -42,22 +57,7 @@ public class OnlinePlayerRegistry extends ClusterState {
     }
 
     public void removeAllOnServer(String serverName) {
-        run(jedis -> {
-            Map<String, String> playerServers = jedis.hgetAll(ClusterKeys.onlinePlayerServers());
-
-            List<String> stale = new ArrayList<>();
-            for (Map.Entry<String, String> entry : playerServers.entrySet()) {
-                if (serverName.equals(entry.getValue())) {
-                    stale.add(entry.getKey());
-                }
-            }
-
-            if (!stale.isEmpty()) {
-                String[] fields = stale.toArray(new String[0]);
-                jedis.hdel(ClusterKeys.onlinePlayers(), fields);
-                jedis.hdel(ClusterKeys.onlinePlayerServers(), fields);
-            }
-        }, "Failed to remove online players on server: " + serverName);
+        run(jedis -> jedis.eval(REMOVE_ALL_ON_SERVER_SCRIPT, List.of(ClusterKeys.onlinePlayers(), ClusterKeys.onlinePlayerServers()), List.of(serverName)), "Failed to remove online players on server: " + serverName);
     }
 
     public boolean isOnline(UUID playerUuid) {

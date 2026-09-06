@@ -3,7 +3,7 @@ package org.me.newsky.cluster;
 import org.me.newsky.NewSky;
 import org.me.newsky.redis.RedisHandler;
 
-import java.util.Map;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -11,6 +11,20 @@ import java.util.UUID;
  * Tracks which server each loaded island is hosted on, for cross-server routing.
  */
 public class IslandRegistry extends ClusterState {
+
+    /**
+     * Deletes atomically, so a mapping another server writes mid-cleanup can never be
+     * caught between the snapshot and the delete.
+     */
+    private static final String REMOVE_SERVER_MAPPINGS_SCRIPT = """
+            local entries = redis.call('HGETALL', KEYS[1])
+            for i = 1, #entries, 2 do
+                if entries[i + 1] == ARGV[1] then
+                    redis.call('HDEL', KEYS[1], entries[i])
+                end
+            end
+            return 0
+            """;
 
     public IslandRegistry(NewSky plugin, RedisHandler redisHandler) {
         super(plugin, redisHandler);
@@ -29,17 +43,6 @@ public class IslandRegistry extends ClusterState {
     }
 
     public void removeServerMappings(String serverName) {
-        run(jedis -> {
-            Map<String, String> mappings = jedis.hgetAll(ClusterKeys.islandServer());
-            if (mappings.isEmpty()) {
-                return;
-            }
-
-            for (Map.Entry<String, String> entry : mappings.entrySet()) {
-                if (serverName.equals(entry.getValue())) {
-                    jedis.hdel(ClusterKeys.islandServer(), entry.getKey());
-                }
-            }
-        }, "Failed to remove island server mappings for: " + serverName);
+        run(jedis -> jedis.eval(REMOVE_SERVER_MAPPINGS_SCRIPT, List.of(ClusterKeys.islandServer()), List.of(serverName)), "Failed to remove island server mappings for: " + serverName);
     }
 }
