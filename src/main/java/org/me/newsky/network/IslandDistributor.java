@@ -3,6 +3,7 @@ package org.me.newsky.network;
 import org.json.JSONObject;
 import org.me.newsky.NewSky;
 import org.me.newsky.cluster.IslandRegistry;
+import org.me.newsky.cluster.OnlinePlayerRegistry;
 import org.me.newsky.cluster.ServerRegistry;
 import org.me.newsky.exceptions.IslandAlreadyLoadedException;
 import org.me.newsky.exceptions.IslandNotLoadedException;
@@ -35,21 +36,24 @@ public class IslandDistributor {
     public static final String ACTION_ISLAND_LOCK_TOGGLE = "island.lock.toggle";
     public static final String ACTION_ISLAND_PVP_TOGGLE = "island.pvp.toggle";
     public static final String ACTION_ISLAND_EXPEL = "island.expel";
+    public static final String ACTION_PLAYER_CONNECT = "player.connect";
 
     private final NewSky plugin;
     private final IslandOperator islandOperator;
     private final ServerSelector serverSelector;
     private final ServerRegistry serverRegistry;
     private final IslandRegistry islandRegistry;
+    private final OnlinePlayerRegistry onlinePlayerRegistry;
     private final CrossServerMessenger messenger;
     private final String serverID;
 
-    public IslandDistributor(NewSky plugin, IslandOperator islandOperator, ServerSelector serverSelector, ServerRegistry serverRegistry, IslandRegistry islandRegistry, CrossServerMessenger messenger, String serverID) {
+    public IslandDistributor(NewSky plugin, IslandOperator islandOperator, ServerSelector serverSelector, ServerRegistry serverRegistry, IslandRegistry islandRegistry, OnlinePlayerRegistry onlinePlayerRegistry, CrossServerMessenger messenger, String serverID) {
         this.plugin = plugin;
         this.islandOperator = islandOperator;
         this.serverSelector = serverSelector;
         this.serverRegistry = serverRegistry;
         this.islandRegistry = islandRegistry;
+        this.onlinePlayerRegistry = onlinePlayerRegistry;
         this.messenger = messenger;
         this.serverID = serverID;
     }
@@ -148,17 +152,7 @@ public class IslandDistributor {
     }
 
     public CompletableFuture<Void> teleportIsland(UUID islandUuid, UUID playerUuid, String teleportWorld, String teleportLocation) {
-        return ensureIslandLoaded(islandUuid).thenCompose(loadedServer -> {
-            if (loadedServer.equals(serverID)) {
-                return islandOperator.prepareTeleport(playerUuid, teleportWorld, teleportLocation);
-            }
-
-            JSONObject payload = new JSONObject();
-            payload.put("playerUuid", playerUuid.toString());
-            payload.put("teleportWorld", teleportWorld);
-            payload.put("teleportLocation", teleportLocation);
-            return messenger.requestVoid(loadedServer, ACTION_ISLAND_TELEPORT_PREPARE, payload).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, loadedServer));
-        });
+        return ensureIslandLoaded(islandUuid).thenCompose(loadedServer -> prepareTeleportOnServer(loadedServer, playerUuid, teleportWorld, teleportLocation).thenComposeAsync(v -> directPlayerToServer(playerUuid, loadedServer), plugin.getBukkitAsyncExecutor()));
     }
 
     public CompletableFuture<Void> teleportLobby(UUID playerUuid, List<String> lobbyServers, String lobbyWorld, String lobbyLocation) {
@@ -168,15 +162,38 @@ public class IslandDistributor {
             return CompletableFuture.failedFuture(new NoActiveServerException());
         }
 
-        if (lobbyServer.equals(serverID)) {
-            return islandOperator.prepareTeleport(playerUuid, lobbyWorld, lobbyLocation);
+        return prepareTeleportOnServer(lobbyServer, playerUuid, lobbyWorld, lobbyLocation).thenComposeAsync(v -> directPlayerToServer(playerUuid, lobbyServer), plugin.getBukkitAsyncExecutor());
+    }
+
+    private CompletableFuture<Void> prepareTeleportOnServer(String hostServer, UUID playerUuid, String teleportWorld, String teleportLocation) {
+        if (hostServer.equals(serverID)) {
+            return islandOperator.prepareTeleport(playerUuid, teleportWorld, teleportLocation);
         }
 
         JSONObject payload = new JSONObject();
         payload.put("playerUuid", playerUuid.toString());
-        payload.put("teleportWorld", lobbyWorld);
-        payload.put("teleportLocation", lobbyLocation);
-        return messenger.requestVoid(lobbyServer, ACTION_ISLAND_TELEPORT_PREPARE, payload).thenCompose(v -> ServerUtil.connectToServer(plugin, playerUuid, lobbyServer));
+        payload.put("teleportWorld", teleportWorld);
+        payload.put("teleportLocation", teleportLocation);
+        return messenger.requestVoid(hostServer, ACTION_ISLAND_TELEPORT_PREPARE, payload);
+    }
+
+    private CompletableFuture<Void> directPlayerToServer(UUID playerUuid, String targetServer) {
+        String playerServer = onlinePlayerRegistry.getOnlinePlayerServer(playerUuid);
+
+        // Already on the target server: the prepare step teleported them directly.
+        // Offline: the pending teleport fires on their next join to the target server.
+        if (playerServer == null || playerServer.equals(targetServer)) {
+            return CompletableFuture.completedFuture(null);
+        }
+
+        if (playerServer.equals(serverID)) {
+            return ServerUtil.connectToServer(plugin, playerUuid, targetServer);
+        }
+
+        JSONObject payload = new JSONObject();
+        payload.put("playerUuid", playerUuid.toString());
+        payload.put("targetServer", targetServer);
+        return messenger.requestVoid(playerServer, ACTION_PLAYER_CONNECT, payload);
     }
 
     public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role) {

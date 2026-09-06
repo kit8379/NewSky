@@ -25,11 +25,17 @@ public class TeleportRequestListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
         UUID playerUuid = player.getUniqueId();
-        Location pendingLocation = teleportHandler.getPendingTeleport(playerUuid);
-        if (pendingLocation != null) {
-            player.teleportAsync(pendingLocation);
-            teleportHandler.removePendingTeleport(playerUuid);
-            plugin.debug("TeleportRequestListener", "Teleported " + player.getName() + " to pending location on join.");
+        Location pendingLocation = teleportHandler.removePendingTeleport(playerUuid);
+        if (pendingLocation == null) {
+            return;
         }
+
+        if (!pendingLocation.isWorldLoaded()) {
+            plugin.warning("Dropping pending teleport for " + player.getName() + ": target world is no longer loaded.");
+            return;
+        }
+
+        player.teleportAsync(pendingLocation);
+        plugin.debug("TeleportRequestListener", "Teleported " + player.getName() + " to pending location on join.");
     }
 }

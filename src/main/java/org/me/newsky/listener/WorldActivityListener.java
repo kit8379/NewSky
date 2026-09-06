@@ -5,6 +5,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.event.world.WorldLoadEvent;
 import org.me.newsky.NewSky;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.world.WorldActivityHandler;
@@ -17,6 +18,15 @@ public class WorldActivityListener implements Listener {
     public WorldActivityListener(NewSky plugin, WorldActivityHandler worldActivityHandler) {
         this.plugin = plugin;
         this.worldActivityHandler = worldActivityHandler;
+    }
+
+    @EventHandler
+    public void onWorldLoad(WorldLoadEvent event) {
+        String world = event.getWorld().getName();
+        if (IslandUtils.isIslandWorld(world)) {
+            plugin.debug("WorldActivityListener", "Island world loaded: " + world);
+            worldActivityHandler.worldLoaded(world, System.currentTimeMillis());
+        }
     }
 
     @EventHandler

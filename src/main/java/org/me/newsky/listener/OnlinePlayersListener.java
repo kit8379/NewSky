@@ -39,7 +39,7 @@ public class OnlinePlayersListener implements Listener {
         String playerName = event.getPlayer().getName();
 
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            onlinePlayerRegistry.removeOnlinePlayer(playerUuid);
+            onlinePlayerRegistry.removeOnlinePlayer(playerUuid, serverID);
             plugin.debug("OnlinePlayersListener", "Player " + playerName + " quit from server " + serverID);
         });
     }

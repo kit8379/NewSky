@@ -16,6 +16,13 @@ public class WorldActivityHandler {
         this.plugin = plugin;
     }
 
+    public void worldLoaded(String worldName, long currentTime) {
+        // A freshly loaded world has no players yet; without this stamp a world whose
+        // player never arrives would be invisible to the inactivity sweep forever.
+        lastEmptyTimestamps.put(worldName, currentTime);
+        plugin.debug("WorldActivityHandler", "World loaded empty, timestamp recorded: " + worldName);
+    }
+
     public void playerEnter(String worldName) {
         playerCounts.merge(worldName, 1, Integer::sum);
         lastEmptyTimestamps.remove(worldName);

@@ -30,6 +30,7 @@ import org.me.newsky.scheduler.MSPTUpdateScheduler;
 import org.me.newsky.cluster.*;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.thread.BukkitAsyncExecutor;
+import org.me.newsky.util.ServerUtil;
 import org.me.newsky.uuid.UuidHandler;
 import org.me.newsky.world.WorldActivityHandler;
 import org.me.newsky.world.WorldHandler;
@@ -97,7 +98,7 @@ public class NewSky extends JavaPlugin {
             onlinePlayerRegistry = new OnlinePlayerRegistry(this, redisHandler);
             InvitationStore invitationStore = new InvitationStore(this, redisHandler);
             IslandRegistry islandRegistry = new IslandRegistry(this, redisHandler);
-            ServerRegistry serverRegistry = new ServerRegistry(this, redisHandler, islandRegistry);
+            ServerRegistry serverRegistry = new ServerRegistry(this, redisHandler, islandRegistry, onlinePlayerRegistry);
             info("Redis cache state handler loaded");
 
             info("Loading island loaded org.me.newsky.snapshot");
@@ -134,7 +135,7 @@ public class NewSky extends JavaPlugin {
             info("Starting handlers for island remote requests");
             crossServerMessenger = new CrossServerMessenger(this, redisHandler, serverID);
             IslandOperator islandOperator = new IslandOperator(this, databaseHandler, worldHandler, teleportHandler, islandSnapshot, islandRegistry, serverID);
-            IslandDistributor islandDistributor = new IslandDistributor(this, islandOperator, serverSelector, serverRegistry, islandRegistry, crossServerMessenger, serverID);
+            IslandDistributor islandDistributor = new IslandDistributor(this, islandOperator, serverSelector, serverRegistry, islandRegistry, onlinePlayerRegistry, crossServerMessenger, serverID);
             registerCrossServerHandlers(crossServerMessenger, islandOperator);
             info("All handlers for remote requests loaded");
 
@@ -245,6 +246,7 @@ public class NewSky extends JavaPlugin {
         messenger.register(IslandDistributor.ACTION_ISLAND_LOCK_TOGGLE, payload -> islandOperator.toggleIslandLock(Actor.fromJson(payload), uuid(payload, "islandUuid")).thenApply(locked -> new JSONObject().put("locked", locked)));
         messenger.register(IslandDistributor.ACTION_ISLAND_PVP_TOGGLE, payload -> islandOperator.toggleIslandPvp(Actor.fromJson(payload), uuid(payload, "islandUuid")).thenApply(pvp -> new JSONObject().put("pvp", pvp)));
         messenger.register(IslandDistributor.ACTION_ISLAND_EXPEL, payload -> emptyResponse(islandOperator.expelPlayer(Actor.fromJson(payload), uuid(payload, "islandUuid"), uuid(payload, "playerUuid"))));
+        messenger.register(IslandDistributor.ACTION_PLAYER_CONNECT, payload -> emptyResponse(ServerUtil.connectToServer(this, uuid(payload, "playerUuid"), payload.getString("targetServer"))));
     }
 
     private CompletableFuture<JSONObject> emptyResponse(CompletableFuture<Void> future) {

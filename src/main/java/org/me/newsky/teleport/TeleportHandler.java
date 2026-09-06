@@ -13,11 +13,7 @@ public class TeleportHandler {
         pendingTeleports.put(playerUuid, location);
     }
 
-    public void removePendingTeleport(UUID playerUuid) {
-        pendingTeleports.remove(playerUuid);
-    }
-
-    public Location getPendingTeleport(UUID playerUuid) {
-        return pendingTeleports.get(playerUuid);
+    public Location removePendingTeleport(UUID playerUuid) {
+        return pendingTeleports.remove(playerUuid);
     }
 }

@@ -12,15 +12,18 @@ import java.util.Map;
 
 /**
  * Tracks cluster server liveness (heartbeats), selection metrics (MSPT) and the
- * shared round-robin counter. Cleans up island routing when a server goes away.
+ * shared round-robin counter. Cleans up island routing and online-player presence
+ * when a server goes away.
  */
 public class ServerRegistry extends ClusterState {
 
     private final IslandRegistry islandRegistry;
+    private final OnlinePlayerRegistry onlinePlayerRegistry;
 
-    public ServerRegistry(NewSky plugin, RedisHandler redisHandler, IslandRegistry islandRegistry) {
+    public ServerRegistry(NewSky plugin, RedisHandler redisHandler, IslandRegistry islandRegistry, OnlinePlayerRegistry onlinePlayerRegistry) {
         super(plugin, redisHandler);
         this.islandRegistry = islandRegistry;
+        this.onlinePlayerRegistry = onlinePlayerRegistry;
     }
 
     public void updateActiveServer(String serverName, boolean lobby, int ttlSeconds) {
@@ -46,6 +49,7 @@ public class ServerRegistry extends ClusterState {
         }, "Failed to remove active server: " + serverName);
 
         islandRegistry.removeServerMappings(serverName);
+        onlinePlayerRegistry.removeAllOnServer(serverName);
         plugin.debug("ServerRegistry", "Cleaned up all state data for server: " + serverName);
     }
 

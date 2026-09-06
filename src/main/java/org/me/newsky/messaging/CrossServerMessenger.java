@@ -81,20 +81,37 @@ public final class CrossServerMessenger {
 
     private void consumeLoop() {
         while (running && plugin.isEnabled()) {
-            boolean skippedOnly = true;
+            boolean sawEntries = false;
+            boolean processedAny = false;
 
             try (Jedis jedis = redisHandler.getJedis()) {
-                List<Map.Entry<String, List<StreamEntry>>> streams = jedis.xread(XReadParams.xReadParams().block(READ_BLOCK_MILLIS).count(READ_COUNT), Collections.singletonMap(inboxKey(serverID), StreamEntryID.MINIMUM_ID));
+                // Paginate through the whole stream: entries still being processed stay
+                // undeleted, so a single read from MINIMUM_ID would keep returning only
+                // the oldest READ_COUNT entries and hide everything behind them.
+                StreamEntryID cursor = StreamEntryID.MINIMUM_ID;
 
-                if (streams == null || streams.isEmpty()) {
-                    continue;
-                }
+                while (true) {
+                    List<Map.Entry<String, List<StreamEntry>>> streams = jedis.xread(XReadParams.xReadParams().block(READ_BLOCK_MILLIS).count(READ_COUNT), Collections.singletonMap(inboxKey(serverID), cursor));
 
-                for (Map.Entry<String, List<StreamEntry>> stream : streams) {
-                    for (StreamEntry entry : stream.getValue()) {
-                        if (processEntry(entry)) {
-                            skippedOnly = false;
+                    if (streams == null || streams.isEmpty()) {
+                        break;
+                    }
+
+                    int batchSize = 0;
+                    for (Map.Entry<String, List<StreamEntry>> stream : streams) {
+                        for (StreamEntry entry : stream.getValue()) {
+                            sawEntries = true;
+                            batchSize++;
+                            cursor = entry.getID();
+
+                            if (processEntry(entry)) {
+                                processedAny = true;
+                            }
                         }
+                    }
+
+                    if (batchSize < READ_COUNT) {
+                        break;
                     }
                 }
             } catch (Exception e) {
@@ -104,7 +121,7 @@ public final class CrossServerMessenger {
                 }
             }
 
-            if (skippedOnly) {
+            if (sawEntries && !processedAny) {
                 sleepQuietly(50L);
             }
         }
@@ -158,20 +175,19 @@ public final class CrossServerMessenger {
             return;
         }
 
-        try {
-            handler.handle(message.getPayload()).whenCompleteAsync((payload, throwable) -> {
-                CrossServerMessage response;
-                if (throwable == null) {
-                    response = CrossServerMessage.successResponse(message, payload == null ? new JSONObject() : payload);
-                } else {
-                    response = CrossServerMessage.failedResponse(message, throwable);
-                }
+        // Run the handler off the consumer thread: its blocking work (database reads,
+        // slime world IO) must not stall the other inbound messages, including the
+        // responses this server is itself waiting on.
+        CompletableFuture.supplyAsync(() -> handler.handle(message.getPayload()), plugin.getBukkitAsyncExecutor()).thenCompose(future -> future).whenCompleteAsync((payload, throwable) -> {
+            CrossServerMessage response;
+            if (throwable == null) {
+                response = CrossServerMessage.successResponse(message, payload == null ? new JSONObject() : payload);
+            } else {
+                response = CrossServerMessage.failedResponse(message, throwable);
+            }
 
-                sendAndDelete(entryId, response);
-            }, plugin.getBukkitAsyncExecutor());
-        } catch (Exception e) {
-            sendAndDeleteAsync(entryId, CrossServerMessage.failedResponse(message, e));
-        }
+            sendAndDelete(entryId, response);
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     private void handleResponse(CrossServerMessage message) {
