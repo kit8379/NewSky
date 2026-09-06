@@ -13,7 +13,9 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Per-server cache of the islands hosted here, read on every block break, PvP hit and world change.
  * <p>
- * A loading, dirty or missing org.me.newsky.snapshot is unavailable so listeners fail closed.
+ * A missing or failed (dirty) snapshot is unavailable so listeners fail closed. A reload in
+ * flight keeps serving the previous snapshot: it is at most one mutation behind for one DB
+ * round trip, and blanking it would let the access listener lobby-bounce legitimate members.
  */
 public class IslandSnapshot {
 
@@ -31,7 +33,7 @@ public class IslandSnapshot {
     }
 
     public Island get(UUID islandUuid) {
-        if (dirty.containsKey(islandUuid) || loading.containsKey(islandUuid)) {
+        if (dirty.containsKey(islandUuid)) {
             return null;
         }
 
@@ -75,7 +77,6 @@ public class IslandSnapshot {
             return CompletableFuture.completedFuture(null);
         }
 
-        dirty.put(islandUuid, Boolean.TRUE);
         return load(islandUuid);
     }
 

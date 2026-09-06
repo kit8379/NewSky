@@ -12,7 +12,7 @@ public final class LevelUpdateScheduler {
 
     private static final long BASE_INTERVAL_MS = 5 * 60_000L;
     private static final long JITTER_MS = 60_000L;
-    private static final int MAX_CONCURRENT = 1;
+    private static final int MAX_CONCURRENT = 2;
     private static final long POLL_PERIOD_TICKS = 20L;
     private final NewSky plugin;
     private final LevelHandler levelHandler;

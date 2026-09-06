@@ -14,6 +14,8 @@ import java.util.concurrent.CompletableFuture;
 
 public class LevelHandler {
 
+    private static final int SCAN_BATCH_SIZE = 16;
+
     private final NewSky plugin;
     private final ConfigHandler config;
     private final DatabaseHandler database;
@@ -60,17 +62,41 @@ public class LevelHandler {
         int maxChunkX = Math.floorDiv(halfSize, 16);
         int maxChunkZ = Math.floorDiv(halfSize, 16);
 
-        List<CompletableFuture<Chunk>> chunkFutures = new ArrayList<>();
+        int minY = world.getMinHeight();
+        int maxY = world.getMaxHeight();
 
+        List<int[]> chunkCoords = new ArrayList<>();
         for (int cx = minChunkX; cx <= maxChunkX; cx++) {
             for (int cz = minChunkZ; cz <= maxChunkZ; cz++) {
-                chunkFutures.add(world.getChunkAtAsync(cx, cz, true));
+                chunkCoords.add(new int[]{cx, cz});
             }
         }
 
-        CompletableFuture<Void> allLoaded = CompletableFuture.allOf(chunkFutures.toArray(new CompletableFuture[0]));
+        // Scan in small sequential batches so the snapshot work never hits the main thread
+        // as one full-island burst, and only a batch worth of chunks is loaded at a time.
+        CompletableFuture<Long> totalPoints = CompletableFuture.completedFuture(0L);
+        for (int start = 0; start < chunkCoords.size(); start += SCAN_BATCH_SIZE) {
+            List<int[]> batch = chunkCoords.subList(start, Math.min(start + SCAN_BATCH_SIZE, chunkCoords.size()));
+            totalPoints = totalPoints.thenCompose(acc -> scanBatch(world, batch, minY, maxY).thenApply(points -> acc + points));
+        }
 
-        CompletableFuture<List<ChunkSnapshot>> snapshotsFuture = allLoaded.thenApply(chunks -> {
+        return totalPoints.thenApplyAsync(total -> {
+            int totalLevel = (int) Math.round((double) total / 100.0);
+            database.updateIslandLevel(islandUuid, totalLevel);
+            plugin.debug("LevelHandler", "Calculated level for island " + islandUuid + ": " + totalLevel);
+            return totalLevel;
+        }, plugin.getBukkitAsyncExecutor());
+    }
+
+    private CompletableFuture<Long> scanBatch(World world, List<int[]> batch, int minY, int maxY) {
+        List<CompletableFuture<Chunk>> chunkFutures = new ArrayList<>(batch.size());
+        for (int[] coord : batch) {
+            // gen=false: a never-generated chunk holds nothing and scores zero, so skip it
+            // instead of generating and persisting it just to scan.
+            chunkFutures.add(world.getChunkAtAsync(coord[0], coord[1], false));
+        }
+
+        return CompletableFuture.allOf(chunkFutures.toArray(new CompletableFuture[0])).thenApplyAsync(v -> {
             List<ChunkSnapshot> snapshots = new ArrayList<>(chunkFutures.size());
 
             for (CompletableFuture<Chunk> f : chunkFutures) {
@@ -83,25 +109,16 @@ public class LevelHandler {
             }
 
             return snapshots;
-        });
-
-        return snapshotsFuture.thenApplyAsync(snapshots -> {
-            int minY = world.getMinHeight();
-            int maxY = world.getMaxHeight();
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenApplyAsync(snapshots -> {
             int[] table = this.pointsByMaterialOrdinal;
 
-            long totalPoints = 0;
-
+            long points = 0;
             for (ChunkSnapshot snapshot : snapshots) {
-                totalPoints += calculateSnapshotPoints(snapshot, minY, maxY, table);
+                points += calculateSnapshotPoints(snapshot, minY, maxY, table);
             }
 
-            return (int) Math.round((double) totalPoints / 100.0);
-        }, plugin.getBukkitAsyncExecutor()).thenApply(totalLevel -> {
-            database.updateIslandLevel(islandUuid, totalLevel);
-            plugin.debug("LevelHandler", "Calculated level for island " + islandUuid + ": " + totalLevel);
-            return totalLevel;
-        });
+            return points;
+        }, plugin.getBukkitAsyncExecutor());
     }
 
     private static long calculateSnapshotPoints(ChunkSnapshot snapshot, int minY, int maxY, int[] table) {
