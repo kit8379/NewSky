@@ -56,10 +56,18 @@ public class IslandSnapshot {
                 throw new IllegalStateException("Island org.me.newsky.snapshot does not exist: " + islandUuid);
             }
 
-            if (loading.remove(islandUuid, generation)) {
-                islands.put(islandUuid, island);
-                dirty.remove(islandUuid);
-            }
+            // Guard check and publish must be one atomic step: compute holds the key's
+            // lock, so a newer load (or unload) is forced to order strictly before or
+            // after the whole publish - a stalled older load can never overwrite it.
+            loading.compute(islandUuid, (key, current) -> {
+                if (!Long.valueOf(generation).equals(current)) {
+                    return current;
+                }
+
+                islands.put(key, island);
+                dirty.remove(key);
+                return null;
+            });
 
             return CompletableFuture.completedFuture(null);
         } catch (Throwable error) {
@@ -81,8 +89,11 @@ public class IslandSnapshot {
     }
 
     public void unload(UUID islandUuid) {
+        // Invalidate any in-flight load's guard first: after this remove, a mid-flight
+        // publish either already happened (cleaned by the removes below) or loses its
+        // guard and publishes nothing - no entry can be resurrected for an unloaded island.
+        loading.remove(islandUuid);
         islands.remove(islandUuid);
         dirty.remove(islandUuid);
-        loading.remove(islandUuid);
     }
 }

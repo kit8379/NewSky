@@ -98,6 +98,7 @@ public final class CrossServerMessenger {
                 // undeleted, so a single read from MINIMUM_ID would keep returning only
                 // the oldest READ_COUNT entries and hide everything behind them.
                 StreamEntryID cursor = StreamEntryID.MINIMUM_ID;
+                Set<String> seenEntryIds = new HashSet<>();
 
                 while (true) {
                     List<Map.Entry<String, List<StreamEntry>>> streams = jedis.xread(XReadParams.xReadParams().block(READ_BLOCK_MILLIS).count(READ_COUNT), Collections.singletonMap(inboxKey(serverID), cursor));
@@ -112,6 +113,7 @@ public final class CrossServerMessenger {
                             sawEntries = true;
                             batchSize++;
                             cursor = entry.getID();
+                            seenEntryIds.add(entry.getID().toString());
 
                             if (processEntry(entry)) {
                                 processedAny = true;
@@ -123,6 +125,13 @@ public final class CrossServerMessenger {
                         break;
                     }
                 }
+
+                // Only the consumer prunes the dedupe set, and only after a FULL sweep:
+                // an id absent from a complete stream pass has been XDELed and can never
+                // be read again. A completion thread must never remove ids itself - the
+                // consumer may still hold that entry in an already-fetched batch, and the
+                // removal would let it re-execute the handler.
+                processingEntries.retainAll(seenEntryIds);
             } catch (Exception e) {
                 if (running) {
                     plugin.severe("CrossServerMessenger failed while reading Redis Stream", e);
@@ -291,12 +300,12 @@ public final class CrossServerMessenger {
     }
 
     private void deleteEntry(StreamEntryID entryId) {
+        // Deletes from the stream only. The dedupe entry is pruned exclusively by the
+        // consumer once a full sweep no longer sees this id; removing it here would
+        // race the consumer's in-memory batch snapshot.
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.xdel(inboxKey(serverID), entryId);
-            processingEntries.remove(entryId.toString());
         } catch (Exception e) {
-            // Keep the dedupe entry: the stream entry survived, and dropping the guard
-            // would re-execute the handler on the next read.
             plugin.severe("Failed to delete cross-server stream entry " + entryId, e);
         }
     }
