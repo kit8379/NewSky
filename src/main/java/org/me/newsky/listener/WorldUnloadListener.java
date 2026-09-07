@@ -8,6 +8,7 @@ import org.me.newsky.NewSky;
 import org.me.newsky.scheduler.LevelUpdateScheduler;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.snapshot.IslandSnapshot;
+import org.me.newsky.world.WorldActivityHandler;
 
 import java.util.UUID;
 
@@ -16,11 +17,13 @@ public final class WorldUnloadListener implements Listener {
     private final NewSky plugin;
     private final LevelUpdateScheduler levelUpdateScheduler;
     private final IslandSnapshot islandSnapshot;
+    private final WorldActivityHandler worldActivityHandler;
 
-    public WorldUnloadListener(NewSky plugin, LevelUpdateScheduler levelUpdateScheduler, IslandSnapshot islandSnapshot) {
+    public WorldUnloadListener(NewSky plugin, LevelUpdateScheduler levelUpdateScheduler, IslandSnapshot islandSnapshot, WorldActivityHandler worldActivityHandler) {
         this.plugin = plugin;
         this.levelUpdateScheduler = levelUpdateScheduler;
         this.islandSnapshot = islandSnapshot;
+        this.worldActivityHandler = worldActivityHandler;
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -35,6 +38,7 @@ public final class WorldUnloadListener implements Listener {
 
         levelUpdateScheduler.unregisterIsland(islandUuid);
         islandSnapshot.unload(islandUuid);
+        worldActivityHandler.clearWorld(worldName);
 
         plugin.debug("WorldUnloadListener", "Unloaded island org.me.newsky.snapshot and unregistered level updates for island UUID: " + islandUuid);
     }

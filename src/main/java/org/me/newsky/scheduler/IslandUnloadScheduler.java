@@ -1,7 +1,5 @@
 package org.me.newsky.scheduler;
 
-import org.bukkit.Bukkit;
-import org.bukkit.World;
 import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
@@ -60,15 +58,6 @@ public class IslandUnloadScheduler {
             UUID islandUuid = IslandUtils.parseIslandUuid(worldName);
 
             if (islandUuid == null) {
-                // A malformed island-prefixed name must not abort the sweep for every other world.
-                worldActivityHandler.clearWorld(worldName);
-                return;
-            }
-
-            World bukkitWorld = Bukkit.getWorld(worldName);
-
-            if (bukkitWorld == null) {
-                plugin.debug("IslandUnloadScheduler", "World is already absent in Bukkit. Clearing stale inactive entry: " + worldName);
                 worldActivityHandler.clearWorld(worldName);
                 return;
             }

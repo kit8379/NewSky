@@ -182,7 +182,7 @@ public class NewSky extends JavaPlugin {
             info("Starting listeners");
             getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, onlinePlayerRegistry, serverID), this);
             getServer().getPluginManager().registerEvents(new WorldLoadListener(this, config, levelupdateSchedulerIsland, islandSnapshot), this);
-            getServer().getPluginManager().registerEvents(new WorldUnloadListener(this, levelupdateSchedulerIsland, islandSnapshot), this);
+            getServer().getPluginManager().registerEvents(new WorldUnloadListener(this, levelupdateSchedulerIsland, islandSnapshot, worldActivityHandler), this);
             getServer().getPluginManager().registerEvents(new WorldActivityListener(this, worldActivityHandler), this);
             getServer().getPluginManager().registerEvents(new TeleportRequestListener(this, teleportHandler), this);
             getServer().getPluginManager().registerEvents(new IslandProtectionListener(config, islandSnapshot), this);

@@ -10,6 +10,8 @@ import org.bukkit.entity.ThrownPotion;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import io.papermc.paper.event.entity.EntityKnockbackEvent;
+import io.papermc.paper.event.entity.EntityPushedByEntityAttackEvent;
 import org.bukkit.event.entity.AreaEffectCloudApplyEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PotionSplashEvent;
@@ -106,6 +108,34 @@ public class IslandPvPListener implements Listener {
         event.setCancelled(true);
         notifyAttacker(attackerUuid);
         plugin.debug("IslandPvPListener", "Cancelled PvP from " + attackerUuid + " against " + victim.getName() + " in island world: " + victim.getWorld().getName());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onExplosionKnockback(EntityKnockbackEvent event) {
+        if (event.getCause() != EntityKnockbackEvent.Cause.EXPLOSION) {
+            return;
+        }
+
+        if (!(event.getEntity() instanceof Player victim)) {
+            return;
+        }
+
+        if (!(event instanceof EntityPushedByEntityAttackEvent pushed)) {
+            return;
+        }
+
+        UUID attackerUuid = resolvePlayerUuid(pushed.getPushedBy());
+        if (attackerUuid == null || attackerUuid.equals(victim.getUniqueId())) {
+            return;
+        }
+
+        if (isPvpAllowed(victim)) {
+            return;
+        }
+
+        event.setCancelled(true);
+        notifyAttacker(attackerUuid);
+        plugin.debug("IslandPvPListener", "Cancelled explosion knockback from " + attackerUuid + " against " + victim.getName() + " in island world: " + victim.getWorld().getName());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
