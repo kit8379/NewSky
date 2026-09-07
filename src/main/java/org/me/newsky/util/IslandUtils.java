@@ -11,16 +11,6 @@ public final class IslandUtils {
     }
 
     /**
-     * Converts an island UUID to its world name.
-     *
-     * @param islandUuid the UUID of the island
-     * @return the name of the island world
-     */
-    public static String UUIDToName(UUID islandUuid) {
-        return ISLAND_WORLD_PREFIX + islandUuid;
-    }
-
-    /**
      * Whether the world name carries the island prefix. A cheap gate only - a prefixed name is
      * not necessarily a well-formed island world. Use {@link #parseIslandUuid(String)} whenever
      * the UUID itself is needed.
@@ -33,12 +23,22 @@ public final class IslandUtils {
     }
 
     /**
+     * Converts an island UUID to its world name.
+     *
+     * @param islandUuid the UUID of the island
+     * @return the name of the island world
+     */
+    public static String parseIslandName(UUID islandUuid) {
+        return ISLAND_WORLD_PREFIX + islandUuid;
+    }
+
+    /**
      * Resolves a world name to its island UUID, or null if the name is not a well-formed island
      * world. Never throws: this runs on per-block-event paths, and a foreign world that merely
      * starts with the island prefix must be treated as "not ours", not blow up the listener.
      * <p>
      * Allocation-free parse of the canonical form the plugin itself generates via
-     * {@link #UUIDToName(UUID)} - deliberately stricter than {@link UUID#fromString(String)}.
+     * {@link #parseIslandName(UUID)} - deliberately stricter than {@link UUID#fromString(String)}.
      *
      * @param worldName the name of the world
      * @return the island UUID, or null if the world is not a well-formed island world

@@ -115,6 +115,6 @@ public class WorldLoadListener implements Listener {
 
     private void registerLevelUpdate(UUID islandUuid) {
         levelUpdateScheduler.registerIsland(islandUuid);
-        plugin.debug("WorldLoadListener", "Registered level update scheduler for island " + IslandUtils.UUIDToName(islandUuid));
+        plugin.debug("WorldLoadListener", "Registered level update scheduler for island " + IslandUtils.parseIslandName(islandUuid));
     }
 }

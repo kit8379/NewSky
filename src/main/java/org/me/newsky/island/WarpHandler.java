@@ -80,7 +80,7 @@ public class WarpHandler {
             String warpLocation = Optional.ofNullable(database.getIslandWarps(islandUuid, warpPlayerUuid).get(warpName.toLowerCase(Locale.ROOT))).orElseThrow(WarpDoesNotExistException::new);
 
             return new WarpTarget(islandUuid, warpLocation);
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(target -> islandDistributor.teleportIsland(target.islandUuid(), targetPlayerUuid, IslandUtils.UUIDToName(target.islandUuid()), target.warpLocation()));
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(target -> islandDistributor.teleportIsland(target.islandUuid(), targetPlayerUuid, IslandUtils.parseIslandName(target.islandUuid()), target.warpLocation()));
     }
 
     public CompletableFuture<Set<String>> getWarpNames(UUID playerUuid) {

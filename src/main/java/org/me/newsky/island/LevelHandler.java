@@ -45,7 +45,7 @@ public class LevelHandler {
             return CompletableFuture.completedFuture(null).thenComposeAsync(v -> calIslandLevel(islandUuid), Bukkit.getScheduler().getMainThreadExecutor(plugin));
         }
 
-        String islandName = IslandUtils.UUIDToName(islandUuid);
+        String islandName = IslandUtils.parseIslandName(islandUuid);
         World world = plugin.getServer().getWorld(islandName);
 
         if (world == null) {
@@ -97,6 +97,13 @@ public class LevelHandler {
         }
 
         return CompletableFuture.allOf(chunkFutures.toArray(new CompletableFuture[0])).thenApplyAsync(v -> {
+            // The inactivity sweep can unload the world mid-scan; snapshotting chunks of a
+            // closed chunk system is undefined, so fail fast into the scheduler's retry path.
+            // Identity compare: a reloaded world is a different instance with stale chunks here.
+            if (Bukkit.getWorld(world.getName()) != world) {
+                throw new IllegalStateException("World unloaded during level scan: " + world.getName());
+            }
+
             List<ChunkSnapshot> snapshots = new ArrayList<>(chunkFutures.size());
 
             for (CompletableFuture<Chunk> f : chunkFutures) {

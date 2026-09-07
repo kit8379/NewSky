@@ -6,6 +6,7 @@ import org.me.newsky.island.LevelHandler;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public final class LevelUpdateScheduler {
@@ -13,6 +14,9 @@ public final class LevelUpdateScheduler {
     private static final long BASE_INTERVAL_MS = 5 * 60_000L;
     private static final long JITTER_MS = 60_000L;
     private static final int MAX_CONCURRENT = 2;
+    // A scan whose chunk futures are never completed (world unloaded mid-scan) would
+    // otherwise pin its concurrency slot forever; the widest realistic scan is ~10s.
+    private static final long SCAN_TIMEOUT_SECONDS = 120L;
     private static final long POLL_PERIOD_TICKS = 20L;
     private final NewSky plugin;
     private final LevelHandler levelHandler;
@@ -117,7 +121,7 @@ public final class LevelUpdateScheduler {
             return;
         }
 
-        fut.whenComplete((level, err) -> {
+        fut.orTimeout(SCAN_TIMEOUT_SECONDS, TimeUnit.SECONDS).whenComplete((level, err) -> {
             // Callback may execute on any thread; reschedule bookkeeping on main thread.
             plugin.getServer().getScheduler().runTask(plugin, () -> {
                 int after = inFlight.decrementAndGet();

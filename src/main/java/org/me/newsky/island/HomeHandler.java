@@ -69,7 +69,7 @@ public class HomeHandler {
             String homeLocation = Optional.ofNullable(database.getIslandHomes(islandUuid, playerUuid).get(homeName.toLowerCase(Locale.ROOT))).orElseThrow(HomeDoesNotExistException::new);
 
             return new HomeTarget(islandUuid, homeLocation);
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(target -> islandDistributor.teleportIsland(target.islandUuid(), targetPlayerUuid, IslandUtils.UUIDToName(target.islandUuid()), target.homeLocation()));
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(target -> islandDistributor.teleportIsland(target.islandUuid(), targetPlayerUuid, IslandUtils.parseIslandName(target.islandUuid()), target.homeLocation()));
     }
 
     public CompletableFuture<Set<String>> getHomeNames(UUID playerUuid) {

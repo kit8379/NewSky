@@ -4,51 +4,33 @@ import org.bukkit.ExplosionResult;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Enemy;
-import org.bukkit.entity.Entity;
-import org.bukkit.entity.Player;
-import org.bukkit.entity.Projectile;
+import org.bukkit.entity.*;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockBreakEvent;
-import org.bukkit.event.block.BlockFormEvent;
-import org.bukkit.event.block.BlockFromToEvent;
-import org.bukkit.event.block.BlockPistonExtendEvent;
-import org.bukkit.event.block.BlockPistonRetractEvent;
-import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.block.*;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
 import org.bukkit.event.entity.EntityPlaceEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
-import org.bukkit.event.player.PlayerBucketEmptyEvent;
-import org.bukkit.event.player.PlayerBucketFillEvent;
-import org.bukkit.event.player.PlayerFishEvent;
-import org.bukkit.event.player.PlayerInteractAtEntityEvent;
-import org.bukkit.event.player.PlayerInteractEntityEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
-import org.bukkit.event.player.PlayerTeleportEvent;
-import org.bukkit.event.player.PlayerArmorStandManipulateEvent;
+import org.bukkit.event.player.*;
 import org.bukkit.event.vehicle.VehicleDamageEvent;
 import org.bukkit.event.vehicle.VehicleDestroyEvent;
-import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.model.Island;
-import org.me.newsky.util.IslandUtils;
 import org.me.newsky.snapshot.IslandSnapshot;
+import org.me.newsky.util.IslandUtils;
 
 import java.util.UUID;
 
 public class IslandProtectionListener implements Listener {
 
-    private final NewSky plugin;
     private final ConfigHandler config;
     private final IslandSnapshot islandSnapshot;
 
-    public IslandProtectionListener(NewSky plugin, ConfigHandler config, IslandSnapshot islandSnapshot) {
-        this.plugin = plugin;
+    public IslandProtectionListener(ConfigHandler config, IslandSnapshot islandSnapshot) {
         this.config = config;
         this.islandSnapshot = islandSnapshot;
     }
@@ -104,9 +86,7 @@ public class IslandProtectionListener implements Listener {
         }
 
         UUID playerUuid = player.getUniqueId();
-        return island.getOwner().equals(playerUuid)
-                || island.getMembers().contains(playerUuid)
-                || island.getCoops().contains(playerUuid);
+        return island.getOwner().equals(playerUuid) || island.getMembers().contains(playerUuid) || island.getCoops().contains(playerUuid);
     }
 
     private boolean isAllowedByBoundary(Location location) {
@@ -133,6 +113,10 @@ public class IslandProtectionListener implements Listener {
         }
 
         if (entity instanceof Projectile projectile && projectile.getShooter() instanceof Player player) {
+            return player;
+        }
+
+        if (entity instanceof AreaEffectCloud cloud && cloud.getSource() instanceof Player player) {
             return player;
         }
 
@@ -235,13 +219,23 @@ public class IslandProtectionListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onMobTrample(EntityChangeBlockEvent event) {
+        // Player-attributed changes (projectiles shattering decorated pots / chorus
+        // flowers) are permission-gated; mob and physics changes stay boundary-only.
+        Player player = resolvePlayer(event.getEntity());
+        if (player != null) {
+            if (!canPlayerEdit(player, event.getBlock().getLocation())) {
+                event.setCancelled(true);
+                deny(player);
+            }
+            return;
+        }
+
         if (!isAllowedByBoundary(event.getBlock().getLocation())) {
             event.setCancelled(true);
         }
     }
 
-    // A player-thrown wind charge activates buttons/levers/doors/bells via an explosion
-    // with TRIGGER_BLOCK result, bypassing PlayerInteractEvent entirely.
+    @SuppressWarnings("UnstableApiUsage")
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onWindChargeTrigger(EntityExplodeEvent event) {
         if (event.getExplosionResult() != ExplosionResult.TRIGGER_BLOCK) {
@@ -259,8 +253,6 @@ public class IslandProtectionListener implements Listener {
         }
     }
 
-    // Placing a boat on water spawns an entity without a BlockPlaceEvent, and the
-    // interact event carries no clicked block, so this is the only gate.
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onEntityPlace(EntityPlaceEvent event) {
         Player player = event.getPlayer();
@@ -385,10 +377,7 @@ public class IslandProtectionListener implements Listener {
             return;
         }
 
-        boolean allowed = !island.isLock()
-                || island.getOwner().equals(playerUuid)
-                || island.getMembers().contains(playerUuid)
-                || island.getCoops().contains(playerUuid);
+        boolean allowed = !island.isLock() || island.getOwner().equals(playerUuid) || island.getMembers().contains(playerUuid) || island.getCoops().contains(playerUuid);
 
         if (!allowed) {
             event.setCancelled(true);

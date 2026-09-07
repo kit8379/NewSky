@@ -33,7 +33,7 @@ public final class BiomeHandler {
             // Players may only re-biome their own island; admins use applyChunkBiome directly.
             UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
 
-            if (!IslandUtils.UUIDToName(islandUuid).equals(worldName)) {
+            if (!IslandUtils.parseIslandName(islandUuid).equals(worldName)) {
                 throw new LocationNotInIslandException();
             }
         }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> applyChunkBiome(worldName, chunkX, chunkZ, biomeName));
