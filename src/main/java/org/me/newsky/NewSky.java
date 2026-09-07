@@ -162,7 +162,7 @@ public class NewSky extends JavaPlugin {
             info("Plugin messaging loaded");
 
             info("Starting all schedulers for the plugin");
-            heartBeatScheduler = new HeartbeatScheduler(this, config, serverRegistry, serverID);
+            heartBeatScheduler = new HeartbeatScheduler(this, config, serverRegistry, onlinePlayerRegistry, serverID);
             islandUnloadScheduler = new IslandUnloadScheduler(this, config, worldHandler, worldActivityHandler, islandRegistry);
             levelupdateSchedulerIsland = new LevelUpdateScheduler(this, levelHandler);
 

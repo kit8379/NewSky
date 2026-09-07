@@ -122,7 +122,6 @@ public final class LevelUpdateScheduler {
         }
 
         fut.orTimeout(SCAN_TIMEOUT_SECONDS, TimeUnit.SECONDS).whenComplete((level, err) -> {
-            // Callback may execute on any thread; reschedule bookkeeping on main thread.
             plugin.getServer().getScheduler().runTask(plugin, () -> {
                 int after = inFlight.decrementAndGet();
                 long now2 = System.currentTimeMillis();

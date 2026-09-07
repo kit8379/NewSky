@@ -2,6 +2,7 @@ package org.me.newsky.cluster;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.redis.RedisHandler;
+import redis.clients.jedis.Pipeline;
 import redis.clients.jedis.Transaction;
 
 import java.util.*;
@@ -50,6 +51,21 @@ public class OnlinePlayerRegistry extends ClusterState {
             transaction.hset(ClusterKeys.onlinePlayerServers(), playerUuid.toString(), serverName);
             transaction.exec();
         }, "Failed to add online player: " + playerUuid);
+    }
+
+    /**
+     * Bulk re-registration after a heartbeat gap, when a peer's reaper may have
+     * cleared this server's entries while it was silent.
+     */
+    public void addAllOnlinePlayers(Map<UUID, String> playersByUuid, String serverName) {
+        run(jedis -> {
+            Pipeline pipeline = jedis.pipelined();
+            for (Map.Entry<UUID, String> entry : playersByUuid.entrySet()) {
+                pipeline.hset(ClusterKeys.onlinePlayers(), entry.getKey().toString(), entry.getValue());
+                pipeline.hset(ClusterKeys.onlinePlayerServers(), entry.getKey().toString(), serverName);
+            }
+            pipeline.sync();
+        }, "Failed to re-register online players for server: " + serverName);
     }
 
     public void removeOnlinePlayer(UUID playerUuid, String serverName) {
