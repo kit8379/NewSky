@@ -698,12 +698,25 @@ public class DatabaseHandler {
             throw new IllegalArgumentException("Player name cannot be null or empty");
         }
 
-        executeUpdate("INSERT INTO " + prefix + "player_uuid (uuid, name, name_lower) VALUES (?, ?, ?) " + "ON DUPLICATE KEY UPDATE name = ?, name_lower = ?;", stmt -> {
-            stmt.setString(1, uuid.toString());
-            stmt.setString(2, name);
-            stmt.setString(3, name.toLowerCase(Locale.ROOT));
-            stmt.setString(4, name);
-            stmt.setString(5, name.toLowerCase(Locale.ROOT));
+        String nameLower = name.toLowerCase(Locale.ROOT);
+
+        inTransaction(connection -> {
+            // A name released by one player and taken by another must resolve to the
+            // new holder only, otherwise name lookups can pick the previous owner.
+            executeUpdate(connection, "DELETE FROM " + prefix + "player_uuid WHERE name_lower = ? AND uuid <> ?;", stmt -> {
+                stmt.setString(1, nameLower);
+                stmt.setString(2, uuid.toString());
+            });
+
+            executeUpdate(connection, "INSERT INTO " + prefix + "player_uuid (uuid, name, name_lower) VALUES (?, ?, ?) " + "ON DUPLICATE KEY UPDATE name = ?, name_lower = ?;", stmt -> {
+                stmt.setString(1, uuid.toString());
+                stmt.setString(2, name);
+                stmt.setString(3, nameLower);
+                stmt.setString(4, name);
+                stmt.setString(5, nameLower);
+            });
+
+            return null;
         });
     }
 
