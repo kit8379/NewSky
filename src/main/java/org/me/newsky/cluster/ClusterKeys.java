@@ -11,6 +11,7 @@ public final class ClusterKeys {
     private static final String ONLINE_PLAYERS = "newsky:online:players";
     private static final String ONLINE_PLAYER_SERVERS = "newsky:online:player_servers";
     private static final String ISLAND_SERVER = "newsky:island:server";
+    private static final String ISLAND_CLAIM_QUEUE_PREFIX = "newsky:island:claimqueue:";
     private static final String SERVER_MSPT = "newsky:server:mspt";
     private static final String KNOWN_SERVERS = "newsky:servers:known";
     private static final String ROUND_ROBIN_COUNTER = "newsky:server:round_robin_counter";
@@ -31,6 +32,10 @@ public final class ClusterKeys {
 
     public static String islandServer() {
         return ISLAND_SERVER;
+    }
+
+    public static String islandClaimQueue(UUID islandUuid) {
+        return ISLAND_CLAIM_QUEUE_PREFIX + islandUuid;
     }
 
     public static String serverMspt() {

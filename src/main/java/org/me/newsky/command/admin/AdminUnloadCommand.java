@@ -8,6 +8,7 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandNotLoadedException;
+import org.me.newsky.exceptions.NoActiveServerException;
 
 import java.util.Collections;
 import java.util.List;
@@ -78,6 +79,8 @@ public class AdminUnloadCommand implements SubCommand, AsyncTabComplete {
                 sender.sendMessage(config.getNoIslandMessage(targetPlayerName));
             } else if (cause instanceof IslandNotLoadedException) {
                 sender.sendMessage(config.getIslandNotLoadedMessage());
+            } else if (cause instanceof NoActiveServerException) {
+                sender.sendMessage(config.getNoActiveServerMessage());
             } else {
                 sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.severe("Error unloading island for " + targetPlayerName, ex);

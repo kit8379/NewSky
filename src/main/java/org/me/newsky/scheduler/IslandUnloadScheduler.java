@@ -3,29 +3,26 @@ package org.me.newsky.scheduler;
 import org.bukkit.scheduler.BukkitTask;
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
-import org.me.newsky.cluster.IslandRegistry;
+import org.me.newsky.network.IslandOperator;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.world.WorldActivityHandler;
-import org.me.newsky.world.WorldHandler;
 
 import java.util.UUID;
 
 public class IslandUnloadScheduler {
 
     private final NewSky plugin;
-    private final WorldHandler worldHandler;
     private final WorldActivityHandler worldActivityHandler;
-    private final IslandRegistry islandRegistry;
+    private final IslandOperator islandOperator;
 
     private final long unloadInterval;
 
     private BukkitTask task;
 
-    public IslandUnloadScheduler(NewSky plugin, ConfigHandler config, WorldHandler worldHandler, WorldActivityHandler worldActivityHandler, IslandRegistry islandRegistry) {
+    public IslandUnloadScheduler(NewSky plugin, ConfigHandler config, WorldActivityHandler worldActivityHandler, IslandOperator islandOperator) {
         this.plugin = plugin;
-        this.worldHandler = worldHandler;
         this.worldActivityHandler = worldActivityHandler;
-        this.islandRegistry = islandRegistry;
+        this.islandOperator = islandOperator;
         this.unloadInterval = config.getIslandUnloadInterval();
     }
 
@@ -62,9 +59,7 @@ public class IslandUnloadScheduler {
                 return;
             }
 
-            worldHandler.unloadWorld(worldName).thenRun(() -> {
-                worldActivityHandler.clearWorld(worldName);
-                islandRegistry.removeIslandLoadedServer(islandUuid);
+            islandOperator.unloadIsland(islandUuid).thenRun(() -> {
                 plugin.debug("IslandUnloadScheduler", "Unloaded world: " + worldName);
             }).exceptionally(ex -> {
                 plugin.severe("Failed to unload world: " + worldName, ex);
