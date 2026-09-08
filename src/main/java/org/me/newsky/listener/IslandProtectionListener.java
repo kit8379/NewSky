@@ -12,12 +12,13 @@ import org.bukkit.event.block.*;
 import org.bukkit.event.entity.EntityChangeBlockEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityExplodeEvent;
+import org.bukkit.event.entity.EntityInteractEvent;
 import org.bukkit.event.entity.EntityPlaceEvent;
 import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.event.vehicle.VehicleDamageEvent;
-import org.bukkit.event.vehicle.VehicleDestroyEvent;
+import org.bukkit.event.world.StructureGrowEvent;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.model.Island;
 import org.me.newsky.snapshot.IslandSnapshot;
@@ -63,10 +64,6 @@ public class IslandProtectionListener implements Listener {
     }
 
     private boolean canPlayerEdit(Player player, Location location) {
-        if (player == null) {
-            return true;
-        }
-
         UUID islandUuid = getIslandUuidIfIslandWorld(location);
         if (islandUuid == null) {
             return true;
@@ -157,7 +154,11 @@ public class IslandProtectionListener implements Listener {
 
         if (!canPlayerEdit(player, loc)) {
             event.setCancelled(true);
-            deny(player);
+            // Pressure plates and tripwires re-fire every tick while stood on, so
+            // physical interactions deny silently.
+            if (event.getAction() != Action.PHYSICAL) {
+                deny(player);
+            }
         }
     }
 
@@ -192,6 +193,18 @@ public class IslandProtectionListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockForm(BlockFormEvent event) {
+        // Frost walker arrives as EntityBlockFormEvent with the player attached;
+        // silent because each step forms several blocks.
+        if (event instanceof EntityBlockFormEvent formed) {
+            Player player = resolvePlayer(formed.getEntity());
+            if (player != null) {
+                if (!canPlayerEdit(player, event.getBlock().getLocation())) {
+                    event.setCancelled(true);
+                }
+                return;
+            }
+        }
+
         if (!isAllowedByBoundary(event.getBlock().getLocation())) {
             event.setCancelled(true);
         }
@@ -199,6 +212,12 @@ public class IslandProtectionListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPistonExtend(BlockPistonExtendEvent event) {
+        // The head itself extends into the space in front even when no blocks move.
+        if (!isAllowedByBoundary(event.getBlock().getRelative(event.getDirection()).getLocation())) {
+            event.setCancelled(true);
+            return;
+        }
+
         for (Block block : event.getBlocks()) {
             if (!isAllowedByBoundary(block.getRelative(event.getDirection()).getLocation())) {
                 event.setCancelled(true);
@@ -218,7 +237,7 @@ public class IslandProtectionListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onMobTrample(EntityChangeBlockEvent event) {
+    public void onEntityChangeBlock(EntityChangeBlockEvent event) {
         // Player-attributed changes (projectiles shattering decorated pots / chorus
         // flowers) are permission-gated; mob and physics changes stay boundary-only.
         Player player = resolvePlayer(event.getEntity());
@@ -233,6 +252,25 @@ public class IslandProtectionListener implements Listener {
         if (!isAllowedByBoundary(event.getBlock().getLocation())) {
             event.setCancelled(true);
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onEntityInteract(EntityInteractEvent event) {
+        // Player-attributed entities (arrows on buttons, plates, tripwires) are
+        // permission-gated; silent because plates re-fire every tick while held down.
+        Player player = resolvePlayer(event.getEntity());
+        if (player == null) {
+            return;
+        }
+
+        if (!canPlayerEdit(player, event.getBlock().getLocation())) {
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onStructureGrow(StructureGrowEvent event) {
+        event.getBlocks().removeIf(state -> !isAllowedByBoundary(state.getLocation()));
     }
 
     @SuppressWarnings("UnstableApiUsage")
@@ -299,19 +337,6 @@ public class IslandProtectionListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onVehicleDamage(VehicleDamageEvent event) {
-        Player player = resolvePlayer(event.getAttacker());
-        if (player == null) {
-            return;
-        }
-
-        if (!canPlayerEdit(player, event.getVehicle().getLocation())) {
-            event.setCancelled(true);
-            deny(player);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onVehicleDestroy(VehicleDestroyEvent event) {
         Player player = resolvePlayer(event.getAttacker());
         if (player == null) {
             return;
@@ -401,17 +426,11 @@ public class IslandProtectionListener implements Listener {
 
         if (!canPlayerEdit(player, event.getRightClicked().getLocation())) {
             event.setCancelled(true);
-            deny(player);
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onArmorStandManipulate(PlayerArmorStandManipulateEvent event) {
-        Player player = event.getPlayer();
-
-        if (!canPlayerEdit(player, event.getRightClicked().getLocation())) {
-            event.setCancelled(true);
-            deny(player);
+            // The client sends INTERACT_AT alongside INTERACT for most entities, so the
+            // INTERACT handler owns the message; armor stands only send INTERACT_AT.
+            if (event.getRightClicked() instanceof ArmorStand) {
+                deny(player);
+            }
         }
     }
 }

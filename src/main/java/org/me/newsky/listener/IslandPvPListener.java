@@ -15,6 +15,7 @@ import io.papermc.paper.event.entity.EntityPushedByEntityAttackEvent;
 import org.bukkit.event.entity.AreaEffectCloudApplyEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PotionSplashEvent;
+import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectTypeCategory;
 import org.bukkit.potion.PotionType;
@@ -136,6 +137,22 @@ public class IslandPvPListener implements Listener {
         event.setCancelled(true);
         notifyAttacker(attackerUuid);
         plugin.debug("IslandPvPListener", "Cancelled explosion knockback from " + attackerUuid + " against " + victim.getName() + " in island world: " + victim.getWorld().getName());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onFishingRodPull(PlayerFishEvent event) {
+        if (event.getState() != PlayerFishEvent.State.CAUGHT_ENTITY || !(event.getCaught() instanceof Player victim)) {
+            return;
+        }
+
+        Player attacker = event.getPlayer();
+        if (!isBlockedTarget(victim, attacker.getUniqueId())) {
+            return;
+        }
+
+        event.setCancelled(true);
+        attacker.sendMessage(config.getIslandPvpDisabledMessage());
+        plugin.debug("IslandPvPListener", "Cancelled fishing rod pull from " + attacker.getName() + " against " + victim.getName() + " in island world: " + victim.getWorld().getName());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
