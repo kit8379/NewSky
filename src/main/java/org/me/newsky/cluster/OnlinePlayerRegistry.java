@@ -55,14 +55,16 @@ public class OnlinePlayerRegistry extends ClusterState {
 
     /**
      * Bulk re-registration after a heartbeat gap, when a peer's reaper may have
-     * cleared this server's entries while it was silent.
+     * cleared this server's entries while it was silent. Write-if-absent only:
+     * an entry that survived, or was rewritten by another server after the player
+     * moved, is fresher truth than this snapshot and must not be overwritten.
      */
     public void addAllOnlinePlayers(Map<UUID, String> playersByUuid, String serverName) {
         run(jedis -> {
             Pipeline pipeline = jedis.pipelined();
             for (Map.Entry<UUID, String> entry : playersByUuid.entrySet()) {
-                pipeline.hset(ClusterKeys.onlinePlayers(), entry.getKey().toString(), entry.getValue());
-                pipeline.hset(ClusterKeys.onlinePlayerServers(), entry.getKey().toString(), serverName);
+                pipeline.hsetnx(ClusterKeys.onlinePlayers(), entry.getKey().toString(), entry.getValue());
+                pipeline.hsetnx(ClusterKeys.onlinePlayerServers(), entry.getKey().toString(), serverName);
             }
             pipeline.sync();
         }, "Failed to re-register online players for server: " + serverName);

@@ -21,7 +21,6 @@ public class HeartbeatScheduler {
     private final int heartbeatInterval;
     private final int heartbeatTtlSeconds;
 
-    private volatile long lastSuccessfulBeat;
     private BukkitTask heartbeatTask;
 
     public HeartbeatScheduler(NewSky plugin, ConfigHandler config, ServerRegistry serverRegistry, OnlinePlayerRegistry onlinePlayerRegistry, String serverID) {
@@ -46,21 +45,19 @@ public class HeartbeatScheduler {
 
         plugin.debug("HeartbeatScheduler", "Starting heartbeat task with interval: " + heartbeatInterval + " seconds, ttl: " + heartbeatTtlSeconds + " seconds.");
         heartbeatTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-            long now = System.currentTimeMillis();
-
+            boolean existed;
             try {
-                serverRegistry.updateActiveServer(serverID, config.isLobbyOnly(), heartbeatTtlSeconds);
+                existed = serverRegistry.updateActiveServer(serverID, config.isLobbyOnly(), heartbeatTtlSeconds);
             } catch (Exception e) {
                 plugin.severe("Failed to send heartbeat for server: " + serverID, e);
                 return;
             }
 
-            // A gap longer than the TTL means our heartbeat key expired, so a peer may
-            // have reaped this server's online entries; re-register the players still here.
-            if (lastSuccessfulBeat != 0L && now - lastSuccessfulBeat > heartbeatTtlSeconds * 1000L) {
+            // An absent heartbeat key means it expired since the previous beat, so a peer
+            // may have reaped this server's online entries; re-register the players still here.
+            if (!existed) {
                 reRegisterOnlinePlayers();
             }
-            lastSuccessfulBeat = now;
 
             plugin.debug("HeartbeatScheduler", "Sent heartbeat for server: " + serverID);
             plugin.debug("HeartbeatScheduler", "Active servers: " + serverRegistry.getActiveServers());

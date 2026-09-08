@@ -67,6 +67,26 @@ public class ServerRegistry extends ClusterState {
             return removed
             """;
 
+    /**
+     * Writes the heartbeat keys and reports whether the main key still existed.
+     * Absence is ground truth for "the heartbeat expired since the previous beat":
+     * only this server rewrites its own key, so an expiry leaves it absent until
+     * the next beat, and the reaper only acts while it is absent — an existing key
+     * therefore proves no peer can have reaped this server in between.
+     * Known-set membership self-heals on every beat; the reaper is the only remover.
+     */
+    private static final String HEARTBEAT_SCRIPT = """
+            local existed = redis.call('EXISTS', KEYS[1])
+            redis.call('SETEX', KEYS[1], ARGV[1], ARGV[2])
+            if ARGV[3] == '1' then
+                redis.call('DEL', KEYS[2])
+            else
+                redis.call('SETEX', KEYS[2], ARGV[1], ARGV[2])
+            end
+            redis.call('SADD', KEYS[3], ARGV[4])
+            return existed
+            """;
+
     private final IslandRegistry islandRegistry;
     private final OnlinePlayerRegistry onlinePlayerRegistry;
 
@@ -76,20 +96,13 @@ public class ServerRegistry extends ClusterState {
         this.onlinePlayerRegistry = onlinePlayerRegistry;
     }
 
-    public void updateActiveServer(String serverName, boolean lobby, int ttlSeconds) {
+    /**
+     * Returns whether the heartbeat key still existed before this beat rewrote it;
+     * false means the heartbeat expired at some point since the previous beat.
+     */
+    public boolean updateActiveServer(String serverName, boolean lobby, int ttlSeconds) {
         String timestamp = String.valueOf(System.currentTimeMillis());
-        run(jedis -> {
-            jedis.setex(ClusterKeys.serverHeartbeat(serverName), ttlSeconds, timestamp);
-
-            if (lobby) {
-                jedis.del(ClusterKeys.gameServerHeartbeat(serverName));
-            } else {
-                jedis.setex(ClusterKeys.gameServerHeartbeat(serverName), ttlSeconds, timestamp);
-            }
-
-            // Known-set membership self-heals on every beat; the reaper is the only remover.
-            jedis.sadd(ClusterKeys.knownServers(), serverName);
-        }, "Failed to update active server for: " + serverName);
+        return execute(jedis -> (Long) jedis.eval(HEARTBEAT_SCRIPT, List.of(ClusterKeys.serverHeartbeat(serverName), ClusterKeys.gameServerHeartbeat(serverName), ClusterKeys.knownServers()), List.of(String.valueOf(ttlSeconds), timestamp, lobby ? "1" : "0", serverName)) == 1L, "Failed to update active server for: " + serverName);
     }
 
     public Set<String> getKnownServers() {
