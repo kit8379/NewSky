@@ -1475,6 +1475,10 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-set-owner-success")).replace("{player}", player));
     }
 
+    public Component getWasSetOwnerOfIslandMessage(String owner) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.was-set-owner-of-island")).replace("{owner}", owner));
+    }
+
     public Component getPlayerAlreadyOwnerMessage(String player) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-already-owner")).replace("{player}", player));
     }
@@ -1489,6 +1493,10 @@ public class ConfigHandler {
 
     public Component getPlayerExpelSuccessMessage(String player) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-expel-success")).replace("{player}", player));
+    }
+
+    public Component getPlayerExpelNotInIslandMessage(String player) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-expel-not-in-island")).replace("{player}", player));
     }
 
     public Component getPlayerCannotExpelIslandPlayerMessage() {

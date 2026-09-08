@@ -80,7 +80,10 @@ public class PlayerSetOwnerCommand implements SubCommand, AsyncTabComplete {
 
             UUID targetPlayerUuid = targetUuidOpt.get();
 
-            return api.player(playerUuid).setOwner(targetPlayerUuid).thenRun(() -> player.sendMessage(config.getPlayerSetOwnerSuccessMessage(targetPlayerName)));
+            return api.player(playerUuid).setOwner(targetPlayerUuid).thenRun(() -> {
+                player.sendMessage(config.getPlayerSetOwnerSuccessMessage(targetPlayerName));
+                api.sendPlayerMessage(targetPlayerUuid, config.getWasSetOwnerOfIslandMessage(player.getName()));
+            });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
             if (cause instanceof IslandDoesNotExistException) {

@@ -182,11 +182,11 @@ public class WorldHandler {
         }
     }
 
-    public CompletableFuture<Void> removePlayerFromWorld(String worldName, UUID playerUuid) {
-        return CompletableFuture.runAsync(() -> {
+    public CompletableFuture<Boolean> removePlayerFromWorld(String worldName, UUID playerUuid) {
+        return CompletableFuture.supplyAsync(() -> {
             World world = Bukkit.getWorld(worldName);
             if (world == null) {
-                return;
+                return false;
             }
 
             Player player = Bukkit.getPlayer(playerUuid);
@@ -194,7 +194,10 @@ public class WorldHandler {
                 player.teleportAsync(Bukkit.getWorlds().getFirst().getSpawnLocation());
                 plugin.getApi().lobby(playerUuid);
                 plugin.debug("WorldHandler", "Removed player " + playerUuid + " from world: " + worldName);
+                return true;
             }
+
+            return false;
         }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
     }
 

@@ -8,6 +8,7 @@ import org.me.newsky.cluster.IslandRegistry;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.exceptions.CannotExpelIslandPlayerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.exceptions.PlayerNotInIslandException;
 import org.me.newsky.model.Actor;
 import org.me.newsky.teleport.TeleportHandler;
 import org.me.newsky.util.IslandUtils;
@@ -130,7 +131,11 @@ public class IslandOperator {
                 return CompletableFuture.failedFuture(new CannotExpelIslandPlayerException());
             }
 
-            return worldHandler.removePlayerFromWorld(IslandUtils.parseIslandName(islandUuid), playerUuid);
+            return worldHandler.removePlayerFromWorld(IslandUtils.parseIslandName(islandUuid), playerUuid).thenAccept(removed -> {
+                if (!removed) {
+                    throw new PlayerNotInIslandException();
+                }
+            });
         } catch (Throwable error) {
             return CompletableFuture.failedFuture(error);
         }
@@ -147,7 +152,8 @@ public class IslandOperator {
         return updateSnapshot(islandUuid, () -> {
             database.deleteIslandPlayer(actor, islandUuid, playerUuid);
             return null;
-        }).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.parseIslandName(islandUuid), playerUuid));
+        }).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.parseIslandName(islandUuid), playerUuid)).thenAccept(removed -> {
+        });
     }
 
     public CompletableFuture<Void> setOwner(Actor actor, UUID islandUuid, UUID newOwnerUuid) {
@@ -161,7 +167,8 @@ public class IslandOperator {
         return updateSnapshot(islandUuid, () -> {
             database.updateBanPlayer(actor, islandUuid, playerUuid);
             return null;
-        }).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.parseIslandName(islandUuid), playerUuid));
+        }).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.parseIslandName(islandUuid), playerUuid)).thenAccept(removed -> {
+        });
     }
 
     public CompletableFuture<Void> removeBan(Actor actor, UUID islandUuid, UUID playerUuid) {
@@ -182,7 +189,8 @@ public class IslandOperator {
         return updateSnapshot(islandUuid, () -> {
             database.deleteCoopPlayer(actor, islandUuid, playerUuid);
             return null;
-        }).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.parseIslandName(islandUuid), playerUuid));
+        }).thenCompose(v -> worldHandler.removePlayerFromWorld(IslandUtils.parseIslandName(islandUuid), playerUuid)).thenAccept(removed -> {
+        });
     }
 
     public CompletableFuture<Boolean> toggleIslandLock(Actor actor, UUID islandUuid) {

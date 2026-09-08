@@ -12,9 +12,11 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import io.papermc.paper.event.entity.EntityKnockbackEvent;
 import io.papermc.paper.event.entity.EntityPushedByEntityAttackEvent;
+import org.bukkit.entity.AbstractWindCharge;
 import org.bukkit.event.entity.AreaEffectCloudApplyEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PotionSplashEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.PlayerFishEvent;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectTypeCategory;
@@ -32,6 +34,11 @@ public class IslandPvPListener implements Listener {
     private final NewSky plugin;
     private final ConfigHandler config;
     private final IslandSnapshot islandSnapshot;
+
+    // Both handlers run on the main thread; the explosion follows the projectile hit
+    // within the same call stack, so a tick-scoped mark is enough.
+    private long windChargeHitTick = -1L;
+    private UUID windChargeShooterUuid;
 
     public IslandPvPListener(NewSky plugin, ConfigHandler config, IslandSnapshot islandSnapshot) {
         this.plugin = plugin;
@@ -111,9 +118,28 @@ public class IslandPvPListener implements Listener {
         plugin.debug("IslandPvPListener", "Cancelled PvP from " + attackerUuid + " against " + victim.getName() + " in island world: " + victim.getWorld().getName());
     }
 
+    /**
+     * The knockback event carries the causing player for both wind charges and
+     * player-lit TNT/crystals, so they are indistinguishable there. The projectile
+     * hit marks the tick and shooter, and only explosion knockback matching that
+     * mark is treated as wind-charge knockback — TNT and crystal knockback stays
+     * fully vanilla.
+     */
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onWindChargeHit(ProjectileHitEvent event) {
+        if (event.getEntity() instanceof AbstractWindCharge windCharge && windCharge.getShooter() instanceof Player shooter) {
+            windChargeHitTick = Bukkit.getCurrentTick();
+            windChargeShooterUuid = shooter.getUniqueId();
+        }
+    }
+
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onExplosionKnockback(EntityKnockbackEvent event) {
         if (event.getCause() != EntityKnockbackEvent.Cause.EXPLOSION) {
+            return;
+        }
+
+        if (windChargeShooterUuid == null || Bukkit.getCurrentTick() != windChargeHitTick) {
             return;
         }
 
@@ -126,7 +152,7 @@ public class IslandPvPListener implements Listener {
         }
 
         UUID attackerUuid = resolvePlayerUuid(pushed.getPushedBy());
-        if (attackerUuid == null || attackerUuid.equals(victim.getUniqueId())) {
+        if (!windChargeShooterUuid.equals(attackerUuid) || attackerUuid.equals(victim.getUniqueId())) {
             return;
         }
 
@@ -136,7 +162,7 @@ public class IslandPvPListener implements Listener {
 
         event.setCancelled(true);
         notifyAttacker(attackerUuid);
-        plugin.debug("IslandPvPListener", "Cancelled explosion knockback from " + attackerUuid + " against " + victim.getName() + " in island world: " + victim.getWorld().getName());
+        plugin.debug("IslandPvPListener", "Cancelled wind charge knockback from " + attackerUuid + " against " + victim.getName() + " in island world: " + victim.getWorld().getName());
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

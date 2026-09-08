@@ -9,6 +9,7 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.CannotExpelIslandPlayerException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
+import org.me.newsky.exceptions.PlayerNotInIslandException;
 import org.me.newsky.exceptions.PlayerNotOnlineException;
 
 import java.util.Collections;
@@ -86,6 +87,8 @@ public class PlayerExpelCommand implements SubCommand, AsyncTabComplete {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else if (cause instanceof PlayerNotOnlineException) {
                 player.sendMessage(config.getPlayerNotOnlineMessage(targetPlayerName));
+            } else if (cause instanceof PlayerNotInIslandException) {
+                player.sendMessage(config.getPlayerExpelNotInIslandMessage(targetPlayerName));
             } else if (cause instanceof CannotExpelIslandPlayerException) {
                 player.sendMessage(config.getPlayerCannotExpelIslandPlayerMessage());
             } else {

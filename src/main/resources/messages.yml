@@ -157,8 +157,10 @@ messages:
 
   player-remove-member-success: "<green>Successfully removed player <aqua>{player} <green>from your island!"
   player-expel-success: "<green>Successfully expelled <aqua>{player} <green>from your island."
+  player-expel-not-in-island: "<red>Player <aqua>{player} <red>is not on your island!"
   player-leave-success: "<green>You have left your island!"
   player-set-owner-success: "<green>You transferred island ownership to <aqua>{player}<green>!"
+  was-set-owner-of-island: "<green><aqua>{owner} <green>has transferred their island ownership to you!"
   player-invite-sent: "<green>Island invitation sent to <aqua>{player}<green>!"
   player-invite-receive: "<yellow>You have received an island invitation from <aqua>{player}</aqua>. <green><click:suggest_command:'/is accept'><hover:show_text:'Click to accept the invitation'>/is accept</hover></click></green><yellow> or <red><click:suggest_command:'/is reject'><hover:show_text:'Click to reject the invitation'>/is reject</hover></click></red><yellow>."
   player-invite-accepted-notify: "<green>{player} has accepted your island invitation!"
