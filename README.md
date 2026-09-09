@@ -135,8 +135,11 @@ mysql:
 
    # JDBC properties appended to the connection URL.
    # Format: "key1=value1&key2=value2"
-   # Example: "autoReconnect=true&useUnicode=true&characterEncoding=utf8"
-   properties: "autoReconnect=true&useUnicode=true&characterEncoding=utf8"
+   # socketTimeout bounds a query whose reply never arrives, so a black-holed socket
+   # cannot block an async thread indefinitely. Keep it ABOVE the database server's
+   # innodb_lock_wait_timeout (50s by default) so a genuine row-lock wait still ends in
+   # InnoDB's own error on a reusable connection instead of a killed socket.
+   properties: "autoReconnect=true&useUnicode=true&characterEncoding=utf8&connectTimeout=10000&socketTimeout=60000"
 
    # Table prefix for all plugin tables.
    prefix: "newsky_"

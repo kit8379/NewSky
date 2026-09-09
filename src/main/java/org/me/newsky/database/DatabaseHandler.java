@@ -699,17 +699,34 @@ public class DatabaseHandler {
         }
 
         String nameLower = name.toLowerCase(Locale.ROOT);
+        String ownUuid = uuid.toString();
 
         inTransaction(connection -> {
             // A name released by one player and taken by another must resolve to the
             // new holder only, otherwise name lookups can pick the previous owner.
-            executeUpdate(connection, "DELETE FROM " + prefix + "player_uuid WHERE name_lower = ? AND uuid <> ?;", stmt -> {
+            // The previous holder is read without locking and then deleted by primary
+            // key: deleting straight through name_lower scans a non-unique index and
+            // gap-locks the value's slot even when it matches nothing, so concurrent
+            // joins deadlock against each other's INSERT into that same slot.
+            Set<String> previousHolders = executeQuery(connection, "SELECT uuid FROM " + prefix + "player_uuid WHERE name_lower = ? AND uuid <> ?", stmt -> {
                 stmt.setString(1, nameLower);
-                stmt.setString(2, uuid.toString());
+                stmt.setString(2, ownUuid);
+            }, rs -> {
+                Set<String> result = new LinkedHashSet<>();
+
+                while (rs.next()) {
+                    result.add(rs.getString("uuid"));
+                }
+
+                return result;
             });
 
+            for (String previousHolder : previousHolders) {
+                executeUpdate(connection, "DELETE FROM " + prefix + "player_uuid WHERE uuid = ?;", stmt -> stmt.setString(1, previousHolder));
+            }
+
             executeUpdate(connection, "INSERT INTO " + prefix + "player_uuid (uuid, name, name_lower) VALUES (?, ?, ?) " + "ON DUPLICATE KEY UPDATE name = ?, name_lower = ?;", stmt -> {
-                stmt.setString(1, uuid.toString());
+                stmt.setString(1, ownUuid);
                 stmt.setString(2, name);
                 stmt.setString(3, nameLower);
                 stmt.setString(4, name);
