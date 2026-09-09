@@ -95,9 +95,9 @@ public final class CrossServerMessenger {
 
             try (Jedis jedis = redisHandler.getJedis()) {
                 // Paginate through the whole stream: entries still being processed stay
-                // undeleted, so a single read from MINIMUM_ID would keep returning only
+                // undeleted, so a single read from the stream start would keep returning only
                 // the oldest READ_COUNT entries and hide everything behind them.
-                StreamEntryID cursor = StreamEntryID.MINIMUM_ID;
+                StreamEntryID cursor = new StreamEntryID(0, 0);
                 Set<String> seenEntryIds = new HashSet<>();
 
                 while (true) {
