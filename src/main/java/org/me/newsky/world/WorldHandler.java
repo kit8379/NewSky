@@ -88,7 +88,7 @@ public class WorldHandler {
             newWorld.getPropertyMap().merge(properties);
             plugin.debug("WorldHandler", "World cloned from template and saved to slime loader: " + worldName);
             return loadWorldToBukkit(newWorld).thenRunAsync(() -> {
-                plugin.debug("WorldHandler", "World loaded into Bukkit: " + worldName);
+                plugin.debug("WorldHandler", "World successfully created: " + worldName);
             }, plugin.getBukkitAsyncExecutor());
         } catch (Exception e) {
             plugin.severe("Failed to create slime world: " + worldName, e);
@@ -102,7 +102,7 @@ public class WorldHandler {
             SlimeWorld world = asp.readWorld(slimeLoader, worldName, false, properties);
             plugin.debug("WorldHandler", "World read from slime loader: " + worldName);
             return loadWorldToBukkit(world).thenRunAsync(() -> {
-                plugin.debug("WorldHandler", "World loaded into Bukkit: " + worldName);
+                plugin.debug("WorldHandler", "World successfully loaded: " + worldName);
             }, plugin.getBukkitAsyncExecutor());
         } catch (Exception e) {
             plugin.severe("Failed to load world: " + worldName, e);

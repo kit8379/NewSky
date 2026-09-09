@@ -274,7 +274,7 @@ messages:
   # ================================================================================================================
 
   top-islands-header: "<#FFD700>Top 10 Highest Level Islands:"
-  top-islands-message: "<aqua>{rank}. <white>{owner} <#AAAAAA>({members}) - <#FFD700>{level}"
+  top-islands-message: "<aqua>{rank}. <white>{owner}<#AAAAAA>{members} - <#FFD700>{level}"
   top-islands-no-island: "<red>No islands found."
 
   # ================================================================================================================

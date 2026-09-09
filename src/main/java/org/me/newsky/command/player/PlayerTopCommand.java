@@ -120,7 +120,9 @@ public class PlayerTopCommand implements SubCommand {
             memberNames.add(name);
         }
 
-        return String.join(", ", memberNames);
+        // The brackets belong to the list, not to the line: a solo island must render no
+        // empty "()" at all, which the message template cannot express on its own.
+        return " (" + String.join(", ", memberNames) + ")";
     }
 
     private static final class PreparedTopResult {
