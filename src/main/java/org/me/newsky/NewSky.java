@@ -190,6 +190,7 @@ public class NewSky extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new TeleportRequestListener(this, teleportHandler), this);
             getServer().getPluginManager().registerEvents(new IslandProtectionListener(config, islandSnapshot), this);
             getServer().getPluginManager().registerEvents(new IslandAccessListener(this, config, islandSnapshot), this);
+            getServer().getPluginManager().registerEvents(new IslandRespawnListener(this, islandSnapshot), this);
             getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config, islandSnapshot), this);
             getServer().getPluginManager().registerEvents(new UuidUpdateListener(this, uuidHandler), this);
             getServer().getPluginManager().registerEvents(new IslandCoopListener(this, coopHandler, onlinePlayerRegistry), this);

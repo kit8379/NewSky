@@ -1,15 +1,14 @@
 package org.me.newsky.island;
 
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
 import org.me.newsky.cluster.OnlinePlayerRegistry;
 import org.me.newsky.database.DatabaseHandler;
-import org.me.newsky.exceptions.HomeDoesNotExistException;
-import org.me.newsky.exceptions.HomeNameNotLegalException;
-import org.me.newsky.exceptions.IslandDoesNotExistException;
-import org.me.newsky.exceptions.LocationNotInIslandException;
-import org.me.newsky.exceptions.PlayerNotOnlineException;
+import org.me.newsky.exceptions.*;
 import org.me.newsky.network.IslandDistributor;
 import org.me.newsky.util.IslandUtils;
+import org.me.newsky.util.LocationUtils;
 
 import java.util.Locale;
 import java.util.Optional;
@@ -32,9 +31,8 @@ public class HomeHandler {
     }
 
     public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, String worldName, double x, double y, double z, float yaw, float pitch) {
-        return CompletableFuture.runAsync(() -> {
-            // The island is derived from the world the point lives in. Membership of that island is
-            // enforced by the island_homes to island_players foreign key, so no lookup is needed here.
+        String homeLocation = x + "," + y + "," + z + "," + yaw + "," + pitch;
+        CompletableFuture<Void> saved = CompletableFuture.runAsync(() -> {
             UUID islandUuid = IslandUtils.parseIslandUuid(worldName);
             if (islandUuid == null) {
                 throw new LocationNotInIslandException();
@@ -45,10 +43,19 @@ public class HomeHandler {
                 throw new HomeNameNotLegalException();
             }
 
-            String homeLocation = x + "," + y + "," + z + "," + yaw + "," + pitch;
-
             database.updateHomePoint(islandUuid, playerUuid, normalizedHomeName, homeLocation);
         }, plugin.getBukkitAsyncExecutor());
+
+        if (!"default".equalsIgnoreCase(homeName)) {
+            return saved;
+        }
+
+        return saved.thenRunAsync(() -> {
+            Player player = Bukkit.getPlayer(playerUuid);
+            if (player != null) {
+                player.setRespawnLocation(LocationUtils.stringToLocation(worldName, homeLocation), true);
+            }
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin));
     }
 
     public CompletableFuture<Void> delHome(UUID playerUuid, String homeName) {
