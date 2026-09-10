@@ -155,4 +155,8 @@ public class LevelHandler {
     public CompletableFuture<List<IslandTop>> getTopIslandLevels(int limit) {
         return CompletableFuture.supplyAsync(() -> database.getTopIslandLevels(limit), plugin.getBukkitAsyncExecutor());
     }
+
+    public CompletableFuture<Long> getIslandRank(UUID islandUuid) {
+        return CompletableFuture.supplyAsync(() -> database.getIslandRank(islandUuid), plugin.getBukkitAsyncExecutor());
+    }
 }

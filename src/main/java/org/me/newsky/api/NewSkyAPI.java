@@ -152,6 +152,11 @@ public class NewSkyAPI {
     }
 
     @SuppressWarnings("unused")
+    public CompletableFuture<Long> getIslandRank(UUID islandUuid) {
+        return levelHandler.getIslandRank(islandUuid);
+    }
+
+    @SuppressWarnings("unused")
     public CompletableFuture<Optional<UUID>> getPlayerUuid(String name) {
         return uuidHandler.getPlayerUuid(name);
     }

@@ -19,6 +19,7 @@ import org.me.newsky.model.Actor;
 import org.me.newsky.network.IslandClaims;
 import org.me.newsky.network.IslandDistributor;
 import org.me.newsky.network.IslandOperator;
+import org.me.newsky.placeholder.NewSkyExpansion;
 import org.me.newsky.redis.RedisHandler;
 import org.me.newsky.routing.MSPTServerSelector;
 import org.me.newsky.routing.RandomServerSelector;
@@ -60,6 +61,7 @@ public class NewSky extends JavaPlugin {
     private CrossServerMessenger crossServerMessenger;
     private LevelHandler levelHandler;
     private NewSkyAPI api;
+    private NewSkyExpansion placeholderExpansion;
     private BukkitAsyncExecutor bukkitAsyncExecutor;
 
     @Override
@@ -182,6 +184,17 @@ public class NewSky extends JavaPlugin {
             api = new NewSkyAPI(this, coreHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, playerMessageHandler, uuidHandler, biomeHandler);
             info("API loaded");
 
+            if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+                placeholderExpansion = new NewSkyExpansion(this, api);
+                if (placeholderExpansion.register()) {
+                    info("PlaceholderAPI expansion registered");
+                } else {
+                    placeholderExpansion.stop();
+                    placeholderExpansion = null;
+                    warning("Could not register PlaceholderAPI expansion");
+                }
+            }
+
             info("Starting listeners");
             getServer().getPluginManager().registerEvents(new OnlinePlayersListener(this, onlinePlayerRegistry, serverID), this);
             getServer().getPluginManager().registerEvents(new WorldLoadListener(this, config, levelupdateSchedulerIsland, islandSnapshot), this);
@@ -293,6 +306,11 @@ public class NewSky extends JavaPlugin {
     }
 
     public void shutdown() {
+        if (placeholderExpansion != null) {
+            placeholderExpansion.stop();
+            placeholderExpansion = null;
+        }
+
         if (worldHandler != null) {
             worldHandler.unloadAllWorldsOnShutdown();
         }

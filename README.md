@@ -70,6 +70,66 @@ Optional:
 
 - 🔁 PlaceholderAPI
 
+### PlaceholderAPI placeholders
+
+Install PlaceholderAPI alongside NewSky and restart the server. The built-in expansion
+registers automatically and survives `/papi reload`; no eCloud download is needed.
+
+Player placeholders describe the player's own island, regardless of their current world.
+
+| Placeholder | Value |
+| --- | --- |
+| `%newsky_island_level%` | Last stored island level (does not trigger a block scan) |
+| `%newsky_island_members%` | Number of members, excluding the owner and co-op players |
+| `%newsky_island_owner%` | Owner's last known name, or their UUID if no name is stored |
+| `%newsky_island_uuid%` | Island UUID |
+| `%newsky_has_island%` | `true` if the player owns or belongs to an island, otherwise `false` |
+| `%newsky_island_role%` | `owner`, `member`, or `none` (co-op access is not membership) |
+| `%newsky_island_owner_uuid%` | Owner UUID |
+| `%newsky_island_lock%` | Island lock state: `true` / `false` |
+| `%newsky_island_pvp%` | Island PvP state: `true` / `false` |
+| `%newsky_island_players%` | Owner plus members, excluding co-op players |
+| `%newsky_island_members_list%` | Member names, excluding the owner |
+| `%newsky_island_coops%` | Number of co-op players |
+| `%newsky_island_coops_list%` | Co-op player names |
+| `%newsky_island_bans%` | Number of banned players |
+| `%newsky_island_bans_list%` | Banned player names |
+| `%newsky_island_rank%` | Island position in the level leaderboard; `0` with no island |
+
+Lists are comma-separated and sorted by name, ignoring case. Unknown player names use UUIDs.
+
+Leaderboard placeholders also work without a player, for example in lobby holograms:
+
+| Placeholder | Value |
+| --- | --- |
+| `%newsky_top_1_owner%` | Owner name at position 1, or UUID if the name is unknown |
+| `%newsky_top_1_level%` | Island level at position 1 |
+| `%newsky_top_1_uuid%` | Island UUID at position 1 |
+| `%newsky_top_1_members%` | Member count at position 1, excluding the owner |
+
+Replace `1` with any positive integer position (e.g. `%newsky_top_10_level%`).
+Positions follow `/is top`: level descending, then island UUID ascending for ties.
+Islands without a stored level count as level `0`. `%newsky_island_rank%` uses this same
+ordering, so each island has a distinct position. Missing leaderboard positions return
+an empty string for every field. Invalid placeholder names/positions are left unresolved.
+
+Only the data needed by a requested placeholder loads asynchronously. Player-to-island lookups
+and island data refresh on demand after five seconds. Island data is shared by island UUID
+within each server. Counts and lists share their underlying data, but player names are fetched
+only when displayed.
+For example, showing only island level reads the player's island UUID and the shared island
+level, without reading members or names.
+The first request returns an empty string while loading; refreshes serve the previous values.
+With no island, numbers return `0`, booleans return `false`, role returns `none`, and names,
+UUIDs and lists return an empty string. Player placeholders without a player return an empty
+string. Database failures are logged and return empty values until a successful refresh.
+Unused cache entries are cleaned up periodically. Leaderboard data is shared across requests
+and expands to the highest requested position. Leaderboard and island rank refresh on demand
+after thirty seconds; ranks are shared by island UUID. The island rank query runs only when
+its placeholder is requested.
+
+Test in game with `/papi parse me %newsky_island_level%` (repeat after the initial load).
+
 ---
 
 ### 🛠️ Installation

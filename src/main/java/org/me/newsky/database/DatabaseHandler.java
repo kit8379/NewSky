@@ -384,6 +384,24 @@ public class DatabaseHandler {
         });
     }
 
+    /** Uses the same level/UUID ordering and implicit level zero as getTopIslandLevels. */
+    public long getIslandRank(UUID islandUuid) {
+        String sql = "SELECT 1 + (SELECT COUNT(*) FROM " + prefix + "island_players p "
+                + "LEFT JOIN " + prefix + "island_levels l ON l.island_uuid = p.island_uuid "
+                + "WHERE p.role = 'owner' AND (COALESCE(l.level, 0) > COALESCE(target_level.level, 0) "
+                + "OR (COALESCE(l.level, 0) = COALESCE(target_level.level, 0) "
+                + "AND p.island_uuid < target.island_uuid))) AS island_rank "
+                + "FROM " + prefix + "island_players target "
+                + "LEFT JOIN " + prefix + "island_levels target_level ON target_level.island_uuid = target.island_uuid "
+                + "WHERE target.role = 'owner' AND target.island_uuid = ?";
+        return executeQuery(sql, stmt -> stmt.setString(1, islandUuid.toString()), rs -> {
+            if (!rs.next()) {
+                throw new IslandDoesNotExistException();
+            }
+            return rs.getLong("island_rank");
+        });
+    }
+
     public List<IslandTop> getTopIslandLevels(int limit) {
         int safeLimit = Math.max(1, limit);
 
