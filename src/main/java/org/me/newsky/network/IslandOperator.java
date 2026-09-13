@@ -281,13 +281,39 @@ public class IslandOperator {
         return updateSnapshot(islandUuid, () -> database.toggleIslandPvp(actor, islandUuid));
     }
 
+    public CompletableFuture<Void> setHome(UUID islandUuid, UUID playerUuid, String homeName, String homeLocation) {
+        return updateSnapshot(islandUuid, () -> {
+            database.updateHomePoint(islandUuid, playerUuid, homeName, homeLocation);
+            return null;
+        });
+    }
+
+    public CompletableFuture<Void> deleteHome(UUID islandUuid, UUID playerUuid, String homeName) {
+        return updateSnapshot(islandUuid, () -> {
+            database.deleteHomePoint(islandUuid, playerUuid, homeName);
+            return null;
+        });
+    }
+
+    public CompletableFuture<Void> setWarp(Actor actor, UUID islandUuid, String warpName, String warpLocation) {
+        return updateSnapshot(islandUuid, () -> {
+            database.updateWarpPoint(actor, islandUuid, warpName, warpLocation);
+            return null;
+        });
+    }
+
+    public CompletableFuture<Void> deleteWarp(Actor actor, UUID islandUuid, String warpName) {
+        return updateSnapshot(islandUuid, () -> {
+            database.deleteWarpPoint(actor, islandUuid, warpName);
+            return null;
+        });
+    }
+
     private <T> CompletableFuture<T> updateSnapshot(UUID islandUuid, Supplier<T> mutation) {
         try {
             T result = mutation.get();
             return islandSnapshot.reload(islandUuid).thenApply(v -> result);
         } catch (Throwable error) {
-            // The reload here is best-effort refresh; its own failure (already logged by
-            // IslandSnapshot) must not replace the mutation's domain exception.
             return islandSnapshot.reload(islandUuid).handle((v, reloadError) -> null).thenCompose(v -> CompletableFuture.failedFuture(error));
         }
     }

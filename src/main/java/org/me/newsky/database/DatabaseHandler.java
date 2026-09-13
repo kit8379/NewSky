@@ -926,7 +926,21 @@ public class DatabaseHandler {
                 return result;
             });
 
-            return new Island(islandUuid, lock, pvp, ownerUuid, members.isEmpty() ? Set.of() : Set.copyOf(members), coops.isEmpty() ? Set.of() : Set.copyOf(coops), bans.isEmpty() ? Set.of() : Set.copyOf(bans));
+            Map<UUID, String> defaultHomes = executeQuery(connection, "SELECT player_uuid, home_location FROM " + prefix + "island_homes WHERE island_uuid = ? AND home_name = 'default'", stmt -> {
+                stmt.setString(1, islandUuid.toString());
+            }, rs -> {
+                Map<UUID, String> result = new LinkedHashMap<>();
+                while (rs.next()) {
+                    result.put(parseRequiredUuid(rs.getString("player_uuid"), "island_homes.player_uuid"), rs.getString("home_location"));
+                }
+                return result;
+            });
+
+            String defaultWarp = executeQuery(connection, "SELECT warp_location FROM " + prefix + "island_warps WHERE island_uuid = ? AND warp_name = 'default'", stmt -> {
+                stmt.setString(1, islandUuid.toString());
+            }, rs -> rs.next() ? rs.getString("warp_location") : null);
+
+            return new Island(islandUuid, lock, pvp, ownerUuid, members.isEmpty() ? Set.of() : Set.copyOf(members), coops.isEmpty() ? Set.of() : Set.copyOf(coops), bans.isEmpty() ? Set.of() : Set.copyOf(bans), defaultHomes, defaultWarp);
         });
     }
 

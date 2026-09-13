@@ -203,6 +203,7 @@ public class NewSky extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new TeleportRequestListener(this, teleportHandler), this);
             getServer().getPluginManager().registerEvents(new IslandProtectionListener(config, islandSnapshot), this);
             getServer().getPluginManager().registerEvents(new IslandAccessListener(this, config, islandSnapshot), this);
+            getServer().getPluginManager().registerEvents(new IslandRespawnListener(this, islandSnapshot), this);
             getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config, islandSnapshot), this);
             getServer().getPluginManager().registerEvents(new UuidUpdateListener(this, uuidHandler), this);
             getServer().getPluginManager().registerEvents(new IslandCoopListener(this, coopHandler, onlinePlayerRegistry), this);
@@ -264,6 +265,10 @@ public class NewSky extends JavaPlugin {
         messenger.register(IslandDistributor.ACTION_ISLAND_LOCK_TOGGLE, payload -> asHost(islandOperator, payload, () -> islandOperator.toggleIslandLock(Actor.fromJson(payload), uuid(payload, "islandUuid"))).thenApply(locked -> new JSONObject().put("locked", locked)));
         messenger.register(IslandDistributor.ACTION_ISLAND_PVP_TOGGLE, payload -> asHost(islandOperator, payload, () -> islandOperator.toggleIslandPvp(Actor.fromJson(payload), uuid(payload, "islandUuid"))).thenApply(pvp -> new JSONObject().put("pvp", pvp)));
         messenger.register(IslandDistributor.ACTION_ISLAND_EXPEL, payload -> emptyResponse(asHost(islandOperator, payload, () -> islandOperator.expelPlayer(Actor.fromJson(payload), uuid(payload, "islandUuid"), uuid(payload, "playerUuid")))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_HOME_SET, payload -> emptyResponse(asHost(islandOperator, payload, () -> islandOperator.setHome(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"), payload.getString("homeName"), payload.getString("homeLocation")))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_HOME_DELETE, payload -> emptyResponse(asHost(islandOperator, payload, () -> islandOperator.deleteHome(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"), payload.getString("homeName")))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_WARP_SET, payload -> emptyResponse(asHost(islandOperator, payload, () -> islandOperator.setWarp(Actor.fromJson(payload), uuid(payload, "islandUuid"), payload.getString("warpName"), payload.getString("warpLocation")))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_WARP_DELETE, payload -> emptyResponse(asHost(islandOperator, payload, () -> islandOperator.deleteWarp(Actor.fromJson(payload), uuid(payload, "islandUuid"), payload.getString("warpName")))));
         messenger.register(IslandDistributor.ACTION_PLAYER_CONNECT, payload -> emptyResponse(ServerUtil.connectToServer(this, uuid(payload, "playerUuid"), payload.getString("targetServer"))));
         messenger.register(IslandClaims.ACTION_CLAIM_GRANTED, payload -> {
             islandClaims.grant(uuid(payload, "islandUuid"), payload.getString("value"));

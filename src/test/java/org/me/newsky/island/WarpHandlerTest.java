@@ -10,6 +10,8 @@ import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.exceptions.*;
 import org.me.newsky.model.Actor;
 import org.me.newsky.network.IslandDistributor;
+import org.me.newsky.network.IslandOperator;
+import org.me.newsky.snapshot.IslandSnapshot;
 import org.me.newsky.thread.BukkitAsyncExecutor;
 import org.me.newsky.util.IslandUtils;
 
@@ -37,6 +39,9 @@ class WarpHandlerTest {
     private WarpHandler handler;
     private IslandDistributor distributor;
     private OnlinePlayerRegistry players;
+    private IslandSnapshot snapshot;
+    private IslandOperator operator;
+    private HomeHandler homes;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -62,6 +67,18 @@ class WarpHandlerTest {
         when(plugin.getBukkitAsyncExecutor()).thenReturn(executor);
         distributor = mock(IslandDistributor.class);
         players = mock(OnlinePlayerRegistry.class);
+        snapshot = new IslandSnapshot(plugin, database);
+        snapshot.load(island).join();
+        operator = new IslandOperator(plugin, database, null, null, snapshot, null, "test");
+        when(distributor.setWarp(any(), any(), anyString(), anyString())).thenAnswer(call ->
+                operator.setWarp(call.getArgument(0), call.getArgument(1), call.getArgument(2), call.getArgument(3)));
+        when(distributor.deleteWarp(any(), any(), anyString())).thenAnswer(call ->
+                operator.deleteWarp(call.getArgument(0), call.getArgument(1), call.getArgument(2)));
+        when(distributor.setHome(any(), any(), anyString(), anyString())).thenAnswer(call ->
+                operator.setHome(call.getArgument(0), call.getArgument(1), call.getArgument(2), call.getArgument(3)));
+        when(distributor.deleteHome(any(), any(), anyString())).thenAnswer(call ->
+                operator.deleteHome(call.getArgument(0), call.getArgument(1), call.getArgument(2)));
+        homes = new HomeHandler(plugin, database, distributor, players);
         handler = new WarpHandler(plugin, database, distributor, players);
     }
 
@@ -79,7 +96,8 @@ class WarpHandlerTest {
         assertEquals(Set.of("shop"), handler.getWarpNames(island).join());
         handler.delWarp(new Actor.Player(owner), island, "SHOP").join();
         assertTrue(handler.getWarpNames(island).join().isEmpty());
-        verifyNoInteractions(distributor);
+        verify(distributor, times(2)).setWarp(any(), eq(island), eq("shop"), anyString());
+        verify(distributor).deleteWarp(new Actor.Player(owner), island, "shop");
     }
 
     @Test
@@ -187,6 +205,41 @@ class WarpHandlerTest {
             assertInstanceOf(IslandDoesNotExistException.class, error.getCause());
         }
         assertEquals("1.0,70.0,3.0,0.0,0.0", database.getIslandWarps(island).get("shop"));
+    }
+
+    @Test
+    void completedHomeAndWarpWritesRefreshOnlyDefaultRespawnPoints() {
+        homes.setHome(owner, "DEFAULT", IslandUtils.parseIslandName(island), 1, 70, 3, 45, 10).join();
+        homes.setHome(member, "default", IslandUtils.parseIslandName(island), 2, 70, 3, 0, 0).join();
+        homes.setHome(owner, "mine", IslandUtils.parseIslandName(island), 99, 70, 3, 0, 0).join();
+        set(owner, "default", 4);
+        set(member, "shop", 99);
+
+        assertEquals(Map.of(owner, "1.0,70.0,3.0,45.0,10.0", member, "2.0,70.0,3.0,0.0,0.0"), snapshot.get(island).getDefaultHomes());
+        assertEquals("4.0,70.0,3.0,0.0,0.0", snapshot.get(island).getDefaultWarp());
+        assertThrows(UnsupportedOperationException.class, () -> snapshot.get(island).getDefaultHomes().clear());
+
+        homes.setHome(member, "default", IslandUtils.parseIslandName(island), 5, 70, 3, 0, 0).join();
+        set(member, "default", 6);
+        assertEquals("5.0,70.0,3.0,0.0,0.0", snapshot.get(island).getDefaultHomes().get(member));
+        assertEquals("6.0,70.0,3.0,0.0,0.0", snapshot.get(island).getDefaultWarp());
+
+        handler.delWarp(new Actor.Player(member), island, "default").join();
+        assertNull(snapshot.get(island).getDefaultWarp());
+        homes.delHome(owner, "mine").join();
+        snapshot.unload(island);
+        snapshot.load(island).join();
+        assertEquals("5.0,70.0,3.0,0.0,0.0", snapshot.get(island).getDefaultHomes().get(member));
+        assertNull(snapshot.get(island).getDefaultWarp());
+    }
+
+    @Test
+    void newMembersDefaultHomeIsIncludedByMembershipSnapshotReload() {
+        homes.setHome(owner, "default", IslandUtils.parseIslandName(island), 1, 70, 3, 0, 0).join();
+        UUID newMember = UUID.randomUUID();
+        operator.addMember(island, newMember, "member").join();
+        assertEquals("1.0,70.0,3.0,0.0,0.0", snapshot.get(island).getDefaultHomes().get(newMember));
+        assertTrue(snapshot.get(island).getMembers().contains(newMember));
     }
 
     private void set(UUID player, String name, double x) {

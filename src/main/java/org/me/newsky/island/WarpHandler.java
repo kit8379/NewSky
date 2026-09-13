@@ -29,7 +29,7 @@ public class WarpHandler {
     }
 
     public CompletableFuture<Void> setWarp(Actor actor, UUID islandUuid, String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
-        return CompletableFuture.runAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             if (!islandUuid.equals(IslandUtils.parseIslandUuid(worldName))) {
                 throw new LocationNotInIslandException();
             }
@@ -41,14 +41,12 @@ public class WarpHandler {
 
             String warpLocation = x + "," + y + "," + z + "," + yaw + "," + pitch;
 
-            database.updateWarpPoint(actor, islandUuid, normalizedWarpName, warpLocation);
-        }, plugin.getBukkitAsyncExecutor());
+            return islandDistributor.setWarp(actor, islandUuid, normalizedWarpName, warpLocation);
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(future -> future);
     }
 
     public CompletableFuture<Void> delWarp(Actor actor, UUID islandUuid, String warpName) {
-        return CompletableFuture.runAsync(() -> {
-            database.deleteWarpPoint(actor, islandUuid, warpName.toLowerCase(Locale.ROOT));
-        }, plugin.getBukkitAsyncExecutor());
+        return CompletableFuture.supplyAsync(() -> islandDistributor.deleteWarp(actor, islandUuid, warpName.toLowerCase(Locale.ROOT)), plugin.getBukkitAsyncExecutor()).thenCompose(future -> future);
     }
 
     public CompletableFuture<Void> warp(UUID islandUuid, String warpName, UUID targetPlayerUuid) {

@@ -28,7 +28,7 @@ public class HomeHandler {
     }
 
     public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, String worldName, double x, double y, double z, float yaw, float pitch) {
-        return CompletableFuture.runAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             UUID islandUuid = IslandUtils.parseIslandUuid(worldName);
             if (islandUuid == null) {
                 throw new LocationNotInIslandException();
@@ -41,16 +41,16 @@ public class HomeHandler {
 
             String homeLocation = x + "," + y + "," + z + "," + yaw + "," + pitch;
 
-            database.updateHomePoint(islandUuid, playerUuid, normalizedHomeName, homeLocation);
-        }, plugin.getBukkitAsyncExecutor());
+            return islandDistributor.setHome(islandUuid, playerUuid, normalizedHomeName, homeLocation);
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(future -> future);
     }
 
     public CompletableFuture<Void> delHome(UUID playerUuid, String homeName) {
-        return CompletableFuture.runAsync(() -> {
+        return CompletableFuture.supplyAsync(() -> {
             UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
 
-            database.deleteHomePoint(islandUuid, playerUuid, homeName.toLowerCase(Locale.ROOT));
-        }, plugin.getBukkitAsyncExecutor());
+            return islandDistributor.deleteHome(islandUuid, playerUuid, homeName.toLowerCase(Locale.ROOT));
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(future -> future);
     }
 
     public CompletableFuture<Void> home(UUID playerUuid, String homeName, UUID targetPlayerUuid) {
