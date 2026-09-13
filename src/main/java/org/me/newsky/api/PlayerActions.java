@@ -179,18 +179,18 @@ public final class PlayerActions {
     }
 
     public CompletableFuture<Void> setWarp(String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
-        return warpHandler.setWarp(playerUuid, warpName, worldName, x, y, z, yaw, pitch);
+        return ownIsland().thenCompose(islandUuid -> warpHandler.setWarp(actor, islandUuid, warpName, worldName, x, y, z, yaw, pitch));
     }
 
     public CompletableFuture<Void> deleteWarp(String warpName) {
-        return warpHandler.delWarp(playerUuid, warpName);
+        return ownIsland().thenCompose(islandUuid -> warpHandler.delWarp(actor, islandUuid, warpName));
     }
 
     /**
-     * Travel to anyone's warp - warps are public to visit; only the traveler is fixed to self.
+     * Visit the specified island's shared warp as this player.
      */
-    public CompletableFuture<Void> warp(UUID warpOwnerUuid, String warpName) {
-        return warpHandler.warp(warpOwnerUuid, warpName, playerUuid);
+    public CompletableFuture<Void> warp(UUID islandUuid, String warpName) {
+        return warpHandler.warp(islandUuid, warpName, playerUuid);
     }
 
     // ---- world ------------------------------------------------------------------------------

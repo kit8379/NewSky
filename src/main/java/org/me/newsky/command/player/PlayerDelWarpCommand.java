@@ -95,6 +95,6 @@ public class PlayerDelWarpCommand implements SubCommand, AsyncTabComplete {
         String prefix = args[1].toLowerCase(Locale.ROOT);
         UUID playerUuid = player.getUniqueId();
 
-        return api.getWarpNames(playerUuid).thenApply(warpNames -> warpNames.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())).exceptionally(ex -> Collections.emptyList());
+        return api.getIslandUuid(playerUuid).thenCompose(api::getWarpNames).thenApply(warpNames -> warpNames.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList())).exceptionally(ex -> Collections.emptyList());
     }
 }

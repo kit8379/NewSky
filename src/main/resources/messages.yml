@@ -112,18 +112,18 @@ messages:
   # ================================================================================================================
 
   warp-name-not-legal: "<red>Invalid warp name. <gray>Allowed characters: <white>[a-z0-9_-]<gray>, length: <white>1-32<gray> characters."
-  warp-success: "<green>Teleported to {player}'s warp <aqua>{warp}<green>!"
-  no-warp: "<red>Player <aqua>{player} <red>does not have a warp named <aqua>{warp}<red>!"
+  warp-success: "<green>Teleported to warp <aqua>{warp}<green> on {player}'s island!"
+  no-warp: "<red>The island of <aqua>{player} <red>does not have a warp named <aqua>{warp}<red>!"
 
   player-must-in-island-set-warp: "<red>You must be on your island to set a warp!"
-  player-no-warp: "<red>You don't have a warp named <aqua>{warp}<red>!"
+  player-no-warp: "<red>Your island doesn't have a warp named <aqua>{warp}<red>!"
   player-set-warp-success: "<green>Warp <aqua>{warp}<green> set successfully!"
   player-delete-warp-success: "<green>Warp <aqua>{warp}<green> deleted successfully!"
-  player-warp-limit-reached: "<red>You have reached the warp limit of <white>{limit}<red>."
+  player-warp-limit-reached: "<red>Your island has reached the warp limit of <white>{limit}<red>."
 
   admin-must-in-island-set-warp: "<red>You must be on the island to set a warp!"
-  admin-set-warp-success: "<green>Set warp <aqua>{warp} <green>for player <aqua>{player}<green>!"
-  admin-delete-warp-success: "<green>Deleted warp <aqua>{warp} <green>of player <aqua>{player}<green>!"
+  admin-set-warp-success: "<green>Set warp <aqua>{warp} <green>on the island of <aqua>{player}<green>!"
+  admin-delete-warp-success: "<green>Deleted warp <aqua>{warp} <green>from the island of <aqua>{player}<green>!"
 
   # ================================================================================================================
   # Island - PvP

@@ -4,6 +4,7 @@ import org.me.newsky.NewSky;
 import org.me.newsky.cluster.OnlinePlayerRegistry;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.exceptions.*;
+import org.me.newsky.model.Actor;
 import org.me.newsky.network.IslandDistributor;
 import org.me.newsky.util.IslandUtils;
 
@@ -27,12 +28,9 @@ public class WarpHandler {
         this.onlinePlayerRegistry = onlinePlayerRegistry;
     }
 
-    public CompletableFuture<Void> setWarp(UUID playerUuid, String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
+    public CompletableFuture<Void> setWarp(Actor actor, UUID islandUuid, String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
         return CompletableFuture.runAsync(() -> {
-            // The island is derived from the world the point lives in. Membership of that island is
-            // enforced by the island_warps to island_players foreign key, so no lookup is needed here.
-            UUID islandUuid = IslandUtils.parseIslandUuid(worldName);
-            if (islandUuid == null) {
+            if (!islandUuid.equals(IslandUtils.parseIslandUuid(worldName))) {
                 throw new LocationNotInIslandException();
             }
 
@@ -43,54 +41,38 @@ public class WarpHandler {
 
             String warpLocation = x + "," + y + "," + z + "," + yaw + "," + pitch;
 
-            database.updateWarpPoint(islandUuid, playerUuid, normalizedWarpName, warpLocation);
+            database.updateWarpPoint(actor, islandUuid, normalizedWarpName, warpLocation);
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    public CompletableFuture<Void> delWarp(UUID playerUuid, String warpName) {
+    public CompletableFuture<Void> delWarp(Actor actor, UUID islandUuid, String warpName) {
         return CompletableFuture.runAsync(() -> {
-            UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
-
-            database.deleteWarpPoint(islandUuid, playerUuid, warpName.toLowerCase(Locale.ROOT));
+            database.deleteWarpPoint(actor, islandUuid, warpName.toLowerCase(Locale.ROOT));
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    public CompletableFuture<Void> warp(UUID warpPlayerUuid, String warpName, UUID targetPlayerUuid) {
+    public CompletableFuture<Void> warp(UUID islandUuid, String warpName, UUID targetPlayerUuid) {
         return CompletableFuture.supplyAsync(() -> {
             if (!onlinePlayerRegistry.isOnline(targetPlayerUuid)) {
                 throw new PlayerNotOnlineException();
             }
 
-            UUID islandUuid = database.getIslandUuid(warpPlayerUuid).orElseThrow(IslandDoesNotExistException::new);
-
-            // Fail-fast filters only: the same rules are re-enforced on arrival by
-            // IslandAccessListener, which is what actually keeps banned or locked-out players out.
             if (database.getIslandBans(islandUuid).contains(targetPlayerUuid)) {
                 throw new PlayerBannedException();
             }
 
             if (database.isIslandLock(islandUuid)) {
-                boolean allowed = database.getIslandPlayers(islandUuid).containsKey(targetPlayerUuid)
-                        || database.getIslandCoops(islandUuid).contains(targetPlayerUuid);
+                boolean allowed = database.getIslandPlayers(islandUuid).containsKey(targetPlayerUuid) || database.getIslandCoops(islandUuid).contains(targetPlayerUuid);
                 if (!allowed) {
                     throw new IslandLockedException();
                 }
             }
 
-            String warpLocation = Optional.ofNullable(database.getIslandWarps(islandUuid, warpPlayerUuid).get(warpName.toLowerCase(Locale.ROOT))).orElseThrow(WarpDoesNotExistException::new);
-
-            return new WarpTarget(islandUuid, warpLocation);
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(target -> islandDistributor.teleportIsland(target.islandUuid(), targetPlayerUuid, IslandUtils.parseIslandName(target.islandUuid()), target.warpLocation()));
+            return Optional.ofNullable(database.getIslandWarps(islandUuid).get(warpName.toLowerCase(Locale.ROOT))).orElseThrow(WarpDoesNotExistException::new);
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(warpLocation -> islandDistributor.teleportIsland(islandUuid, targetPlayerUuid, IslandUtils.parseIslandName(islandUuid), warpLocation));
     }
 
-    public CompletableFuture<Set<String>> getWarpNames(UUID playerUuid) {
-        return CompletableFuture.supplyAsync(() -> {
-            UUID islandUuid = database.getIslandUuid(playerUuid).orElseThrow(IslandDoesNotExistException::new);
-
-            return database.getIslandWarps(islandUuid, playerUuid).keySet();
-        }, plugin.getBukkitAsyncExecutor());
-    }
-
-    private record WarpTarget(UUID islandUuid, String warpLocation) {
+    public CompletableFuture<Set<String>> getWarpNames(UUID islandUuid) {
+        return CompletableFuture.supplyAsync(() -> database.getIslandWarps(islandUuid).keySet(), plugin.getBukkitAsyncExecutor());
     }
 }

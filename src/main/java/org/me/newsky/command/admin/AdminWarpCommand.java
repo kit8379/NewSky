@@ -84,21 +84,23 @@ public class AdminWarpCommand implements SubCommand, AsyncTabComplete {
 
             UUID warpPlayerUuid = warpPlayerUuidOpt.get();
 
-            if (teleportPlayerName == null) {
-                return api.admin(sender).warp(warpPlayerUuid, warpName, finalSenderUuid).thenRun(() -> {
-                    api.sendPlayerMessage(finalSenderUuid, config.getWarpSuccessMessage(warpPlayerName, warpName));
-                });
-            }
-
-            return api.getPlayerUuid(teleportPlayerName).thenCompose(teleportPlayerUuidOpt -> {
-                if (teleportPlayerUuidOpt.isEmpty()) {
-                    sender.sendMessage(config.getUnknownPlayerMessage(teleportPlayerName));
-                    return CompletableFuture.completedFuture(null);
+            return api.getIslandUuid(warpPlayerUuid).thenCompose(islandUuid -> {
+                if (teleportPlayerName == null) {
+                    return api.admin(sender).warp(islandUuid, warpName, finalSenderUuid).thenRun(() -> {
+                        api.sendPlayerMessage(finalSenderUuid, config.getWarpSuccessMessage(warpPlayerName, warpName));
+                    });
                 }
 
-                UUID teleportPlayerUuid = teleportPlayerUuidOpt.get();
+                return api.getPlayerUuid(teleportPlayerName).thenCompose(teleportPlayerUuidOpt -> {
+                    if (teleportPlayerUuidOpt.isEmpty()) {
+                        sender.sendMessage(config.getUnknownPlayerMessage(teleportPlayerName));
+                        return CompletableFuture.completedFuture(null);
+                    }
 
-                return api.admin(sender).warp(warpPlayerUuid, warpName, teleportPlayerUuid).thenRun(() -> api.sendPlayerMessage(teleportPlayerUuid, config.getWarpSuccessMessage(warpPlayerName, warpName)));
+                    UUID teleportPlayerUuid = teleportPlayerUuidOpt.get();
+
+                    return api.admin(sender).warp(islandUuid, warpName, teleportPlayerUuid).thenRun(() -> api.sendPlayerMessage(teleportPlayerUuid, config.getWarpSuccessMessage(warpPlayerName, warpName)));
+                });
             });
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
@@ -141,7 +143,7 @@ public class AdminWarpCommand implements SubCommand, AsyncTabComplete {
 
                 UUID ownerUuid = ownerUuidOpt.get();
 
-                return api.getWarpNames(ownerUuid).thenApply(warps -> warps.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()));
+                return api.getIslandUuid(ownerUuid).thenCompose(api::getWarpNames).thenApply(warps -> warps.stream().filter(name -> name.toLowerCase(Locale.ROOT).startsWith(prefix)).sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.toList()));
             }).exceptionally(ex -> Collections.emptyList());
         }
 

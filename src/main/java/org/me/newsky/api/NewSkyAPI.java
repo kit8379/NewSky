@@ -117,8 +117,8 @@ public class NewSkyAPI {
     }
 
     @SuppressWarnings("unused")
-    public CompletableFuture<Set<String>> getWarpNames(UUID playerUuid) {
-        return warpHandler.getWarpNames(playerUuid);
+    public CompletableFuture<Set<String>> getWarpNames(UUID islandUuid) {
+        return warpHandler.getWarpNames(islandUuid);
     }
 
     @SuppressWarnings("unused")

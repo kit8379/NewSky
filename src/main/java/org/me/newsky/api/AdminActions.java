@@ -114,16 +114,16 @@ public final class AdminActions {
         return homeHandler.home(homeOwnerUuid, homeName, teleportPlayerUuid);
     }
 
-    public CompletableFuture<Void> setWarp(UUID warpOwnerUuid, String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
-        return warpHandler.setWarp(warpOwnerUuid, warpName, worldName, x, y, z, yaw, pitch);
+    public CompletableFuture<Void> setWarp(UUID islandUuid, String warpName, String worldName, double x, double y, double z, float yaw, float pitch) {
+        return warpHandler.setWarp(actor, islandUuid, warpName, worldName, x, y, z, yaw, pitch);
     }
 
-    public CompletableFuture<Void> deleteWarp(UUID warpOwnerUuid, String warpName) {
-        return warpHandler.delWarp(warpOwnerUuid, warpName);
+    public CompletableFuture<Void> deleteWarp(UUID islandUuid, String warpName) {
+        return warpHandler.delWarp(actor, islandUuid, warpName);
     }
 
-    public CompletableFuture<Void> warp(UUID warpOwnerUuid, String warpName, UUID teleportPlayerUuid) {
-        return warpHandler.warp(warpOwnerUuid, warpName, teleportPlayerUuid);
+    public CompletableFuture<Void> warp(UUID islandUuid, String warpName, UUID teleportPlayerUuid) {
+        return warpHandler.warp(islandUuid, warpName, teleportPlayerUuid);
     }
 
     // ---- world ------------------------------------------------------------------------------

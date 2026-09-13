@@ -148,7 +148,7 @@ public class DatabaseHandler {
         executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_homes (" + "player_uuid CHAR(36) NOT NULL," + "home_name VARCHAR(32) NOT NULL," + "home_location VARCHAR(256)," + "island_uuid CHAR(36) NOT NULL," + "PRIMARY KEY (player_uuid, island_uuid, home_name)," + "KEY idx_island_homes_island (island_uuid)," + "KEY idx_island_homes_island_player (island_uuid, player_uuid)," + "CONSTRAINT fk_island_homes_island " + "FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid) " + "ON DELETE CASCADE," + "CONSTRAINT fk_island_homes_player_membership " + "FOREIGN KEY (player_uuid, island_uuid) REFERENCES " + prefix + "island_players(player_uuid, island_uuid) " + "ON DELETE CASCADE" + ") ENGINE=InnoDB;", stmt -> {
         });
 
-        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_warps (" + "player_uuid CHAR(36) NOT NULL," + "warp_name VARCHAR(32) NOT NULL," + "warp_location VARCHAR(256)," + "island_uuid CHAR(36) NOT NULL," + "PRIMARY KEY (player_uuid, island_uuid, warp_name)," + "KEY idx_island_warps_island (island_uuid)," + "KEY idx_island_warps_island_player (island_uuid, player_uuid)," + "CONSTRAINT fk_island_warps_island " + "FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid) " + "ON DELETE CASCADE," + "CONSTRAINT fk_island_warps_player_membership " + "FOREIGN KEY (player_uuid, island_uuid) REFERENCES " + prefix + "island_players(player_uuid, island_uuid) " + "ON DELETE CASCADE" + ") ENGINE=InnoDB;", stmt -> {
+        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_warps (" + "island_uuid CHAR(36) NOT NULL," + "warp_name VARCHAR(32) NOT NULL," + "warp_location VARCHAR(256)," + "PRIMARY KEY (island_uuid, warp_name)," + "CONSTRAINT fk_island_warps_island " + "FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid) " + "ON DELETE CASCADE" + ") ENGINE=InnoDB;", stmt -> {
         });
 
         executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_bans (" + "island_uuid CHAR(36) NOT NULL," + "banned_player CHAR(36) NOT NULL," + "PRIMARY KEY (island_uuid, banned_player)," + "CONSTRAINT fk_island_bans_island " + "FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid) " + "ON DELETE CASCADE" + ") ENGINE=InnoDB;", stmt -> {
@@ -229,12 +229,11 @@ public class DatabaseHandler {
         });
     }
 
-    public Map<String, String> getIslandWarps(UUID islandUuid, UUID playerUuid) {
-        String sql = "SELECT warp_name, warp_location FROM " + prefix + "island_warps WHERE island_uuid = ? AND player_uuid = ?";
+    public Map<String, String> getIslandWarps(UUID islandUuid) {
+        String sql = "SELECT warp_name, warp_location FROM " + prefix + "island_warps WHERE island_uuid = ?";
 
         return executeQuery(sql, stmt -> {
             stmt.setString(1, islandUuid.toString());
-            stmt.setString(2, playerUuid.toString());
         }, rs -> {
             Map<String, String> result = new LinkedHashMap<>();
 
@@ -571,17 +570,19 @@ public class DatabaseHandler {
         }
     }
 
-    public void updateWarpPoint(UUID islandUuid, UUID playerUuid, String warpName, String warpLocation) {
-        try {
-            executeUpdate("INSERT INTO " + prefix + "island_warps (player_uuid, island_uuid, warp_name, warp_location) VALUES (?, ?, ?, ?) " + "ON DUPLICATE KEY UPDATE island_uuid = VALUES(island_uuid), warp_location = VALUES(warp_location);", stmt -> {
-                stmt.setString(1, playerUuid.toString());
-                stmt.setString(2, islandUuid.toString());
-                stmt.setString(3, warpName);
-                stmt.setString(4, warpLocation);
+    public void updateWarpPoint(Actor actor, UUID islandUuid, String warpName, String warpLocation) {
+        inTransaction(connection -> {
+            lockIsland(connection, islandUuid);
+            requireRole(actor, connection, islandUuid, RequiredRole.MEMBER);
+
+            executeUpdate(connection, "INSERT INTO " + prefix + "island_warps (island_uuid, warp_name, warp_location) VALUES (?, ?, ?) " + "ON DUPLICATE KEY UPDATE warp_location = VALUES(warp_location);", stmt -> {
+                stmt.setString(1, islandUuid.toString());
+                stmt.setString(2, warpName);
+                stmt.setString(3, warpLocation);
             });
-        } catch (ConstraintViolationException e) {
-            throw new LocationNotInIslandException();
-        }
+
+            return null;
+        });
     }
 
     public boolean toggleIslandLock(Actor actor, UUID islandUuid) {
@@ -804,16 +805,22 @@ public class DatabaseHandler {
         }
     }
 
-    public void deleteWarpPoint(UUID islandUuid, UUID playerUuid, String warpName) {
-        int deleted = executeUpdate("DELETE FROM " + prefix + "island_warps WHERE island_uuid = ? AND player_uuid = ? AND warp_name = ?;", stmt -> {
-            stmt.setString(1, islandUuid.toString());
-            stmt.setString(2, playerUuid.toString());
-            stmt.setString(3, warpName);
-        });
+    public void deleteWarpPoint(Actor actor, UUID islandUuid, String warpName) {
+        inTransaction(connection -> {
+            lockIsland(connection, islandUuid);
+            requireRole(actor, connection, islandUuid, RequiredRole.MEMBER);
 
-        if (deleted == 0) {
-            throw new WarpDoesNotExistException();
-        }
+            int deleted = executeUpdate(connection, "DELETE FROM " + prefix + "island_warps WHERE island_uuid = ? AND warp_name = ?;", stmt -> {
+                stmt.setString(1, islandUuid.toString());
+                stmt.setString(2, warpName);
+            });
+
+            if (deleted == 0) {
+                throw new WarpDoesNotExistException();
+            }
+
+            return null;
+        });
     }
 
     public void deleteBanPlayer(Actor actor, UUID islandUuid, UUID playerUuid) {

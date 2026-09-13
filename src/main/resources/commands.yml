@@ -251,7 +251,7 @@ commands:
       aliases: []
       permission: 'newsky.island.admin.warp'
       syntax: '<player> [warp] [target]'
-      description: 'Teleport a player to another player''s warp'
+      description: 'Teleport a player to another player''s island warp'
     upgrade:
       aliases: []
       permission: 'newsky.island.admin.upgrade'
