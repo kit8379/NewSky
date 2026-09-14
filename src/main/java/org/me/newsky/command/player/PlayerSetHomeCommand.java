@@ -9,6 +9,7 @@ import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.HomeNameNotLegalException;
+import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
 
 import java.util.Collections;
@@ -79,7 +80,9 @@ public class PlayerSetHomeCommand implements SubCommand, AsyncTabComplete {
             player.sendMessage(config.getPlayerSetHomeSuccessMessage(homeName));
         }).exceptionally(ex -> {
             Throwable cause = ex.getCause();
-            if (cause instanceof LocationNotInIslandException) {
+            if (cause instanceof IslandDoesNotExistException) {
+                player.sendMessage(config.getPlayerNoIslandMessage());
+            } else if (cause instanceof LocationNotInIslandException) {
                 player.sendMessage(config.getPlayerMustInIslandSetHomeMessage());
             } else if (cause instanceof HomeNameNotLegalException) {
                 player.sendMessage(config.getHomeNameNotLegalMessage());
