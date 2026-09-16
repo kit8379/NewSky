@@ -160,6 +160,9 @@ public class DatabaseHandler {
         executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_levels (" + "island_uuid CHAR(36) NOT NULL," + "level INT NOT NULL," + "PRIMARY KEY (island_uuid)," + "CONSTRAINT fk_island_levels_island " + "FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid) " + "ON DELETE CASCADE" + ") ENGINE=InnoDB;", stmt -> {
         });
 
+        executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "island_upgrades (" + "island_uuid CHAR(36) NOT NULL," + "upgrade_id VARCHAR(32) NOT NULL," + "level INT NOT NULL," + "PRIMARY KEY (island_uuid, upgrade_id)," + "CONSTRAINT fk_island_upgrades_island " + "FOREIGN KEY (island_uuid) REFERENCES " + prefix + "islands(island_uuid) " + "ON DELETE CASCADE" + ") ENGINE=InnoDB;", stmt -> {
+        });
+
         executeUpdate("CREATE TABLE IF NOT EXISTS " + prefix + "player_uuid (" + "uuid CHAR(36) NOT NULL," + "name VARCHAR(16) NOT NULL," + "name_lower VARCHAR(16) NOT NULL," + "PRIMARY KEY (uuid)," + "KEY idx_player_uuid_name (name)," + "KEY idx_player_uuid_name_lower (name_lower)" + ") ENGINE=InnoDB;", stmt -> {
         });
     }
@@ -178,6 +181,13 @@ public class DatabaseHandler {
 
     public int getIslandLevel(UUID islandUuid) {
         return executeQuery("SELECT level FROM " + prefix + "island_levels WHERE island_uuid = ? LIMIT 1", stmt -> stmt.setString(1, islandUuid.toString()), rs -> rs.next() ? rs.getInt("level") : 0);
+    }
+
+    /**
+     * An island with no stored level for this upgrade is at the lowest configured one.
+     */
+    public int getIslandUpgradeLevel(UUID islandUuid, String upgradeId) {
+        return withConnection(connection -> getIslandUpgradeLevel(connection, islandUuid, upgradeId));
     }
 
     public Optional<UUID> getIslandOwner(UUID islandUuid) {
@@ -506,7 +516,7 @@ public class DatabaseHandler {
         }
     }
 
-    public void addIslandPlayer(UUID islandUuid, UUID playerUuid, String role) {
+    public void addIslandPlayer(Actor actor, UUID islandUuid, UUID playerUuid, String role) {
         try {
             inTransaction(connection -> {
                 lockIsland(connection, islandUuid);
@@ -517,6 +527,14 @@ public class DatabaseHandler {
                         throw new IslandPlayerAlreadyExistsException();
                     }
                     throw new IslandAlreadyExistException();
+                }
+
+                // The owner counts towards the team limit.
+                if (!(actor instanceof Actor.Bypass)) {
+                    int teamLimit = getUpgradeLimit(connection, islandUuid, "team-limit");
+                    if (count(connection, "SELECT COUNT(*) FROM " + prefix + "island_players WHERE island_uuid = ?", stmt -> stmt.setString(1, islandUuid.toString())) >= teamLimit) {
+                        throw new TeamLimitReachedException(String.valueOf(teamLimit));
+                    }
                 }
 
                 // Seeded under the island lock so it cannot race the owner moving their home.
@@ -552,13 +570,31 @@ public class DatabaseHandler {
         }
     }
 
-    public void updateHomePoint(UUID islandUuid, UUID playerUuid, String homeName, String homeLocation) {
+    public void updateHomePoint(Actor actor, UUID islandUuid, UUID playerUuid, String homeName, String homeLocation) {
         try {
-            executeUpdate("INSERT INTO " + prefix + "island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) " + "ON DUPLICATE KEY UPDATE island_uuid = VALUES(island_uuid), home_location = VALUES(home_location);", stmt -> {
-                stmt.setString(1, playerUuid.toString());
-                stmt.setString(2, islandUuid.toString());
-                stmt.setString(3, homeName);
-                stmt.setString(4, homeLocation);
+            inTransaction(connection -> {
+                lockIsland(connection, islandUuid);
+
+                // Moving an existing home adds none, so the same name is left out of the count.
+                if (!(actor instanceof Actor.Bypass)) {
+                    int homeLimit = getUpgradeLimit(connection, islandUuid, "home-limit");
+                    if (count(connection, "SELECT COUNT(*) FROM " + prefix + "island_homes WHERE island_uuid = ? AND player_uuid = ? AND home_name <> ?", stmt -> {
+                        stmt.setString(1, islandUuid.toString());
+                        stmt.setString(2, playerUuid.toString());
+                        stmt.setString(3, homeName);
+                    }) >= homeLimit) {
+                        throw new HomeLimitReachedException(String.valueOf(homeLimit));
+                    }
+                }
+
+                executeUpdate(connection, "INSERT INTO " + prefix + "island_homes (player_uuid, island_uuid, home_name, home_location) VALUES (?, ?, ?, ?) " + "ON DUPLICATE KEY UPDATE island_uuid = VALUES(island_uuid), home_location = VALUES(home_location);", stmt -> {
+                    stmt.setString(1, playerUuid.toString());
+                    stmt.setString(2, islandUuid.toString());
+                    stmt.setString(3, homeName);
+                    stmt.setString(4, homeLocation);
+                });
+
+                return null;
             });
         } catch (ConstraintViolationException e) {
             throw new IslandDoesNotExistException();
@@ -569,6 +605,17 @@ public class DatabaseHandler {
         inTransaction(connection -> {
             lockIsland(connection, islandUuid);
             requireRole(actor, connection, islandUuid, RequiredRole.MEMBER);
+
+            // Moving an existing warp adds none, so the same name is left out of the count.
+            if (!(actor instanceof Actor.Bypass)) {
+                int warpLimit = getUpgradeLimit(connection, islandUuid, "warp-limit");
+                if (count(connection, "SELECT COUNT(*) FROM " + prefix + "island_warps WHERE island_uuid = ? AND warp_name <> ?", stmt -> {
+                    stmt.setString(1, islandUuid.toString());
+                    stmt.setString(2, warpName);
+                }) >= warpLimit) {
+                    throw new WarpLimitReachedException(String.valueOf(warpLimit));
+                }
+            }
 
             executeUpdate(connection, "INSERT INTO " + prefix + "island_warps (island_uuid, warp_name, warp_location) VALUES (?, ?, ?) " + "ON DUPLICATE KEY UPDATE warp_location = VALUES(warp_location);", stmt -> {
                 stmt.setString(1, islandUuid.toString());
@@ -681,6 +728,17 @@ public class DatabaseHandler {
                 lockIsland(connection, islandUuid);
                 requireRole(actor, connection, islandUuid, RequiredRole.MEMBER);
 
+                // Re-cooping an existing co-op is reported as such below, not as the limit.
+                if (!(actor instanceof Actor.Bypass)) {
+                    int coopLimit = getUpgradeLimit(connection, islandUuid, "coop-limit");
+                    if (count(connection, "SELECT COUNT(*) FROM " + prefix + "island_coops WHERE island_uuid = ? AND cooped_player <> ?", stmt -> {
+                        stmt.setString(1, islandUuid.toString());
+                        stmt.setString(2, playerUuid.toString());
+                    }) >= coopLimit) {
+                        throw new CoopLimitReachedException(String.valueOf(coopLimit));
+                    }
+                }
+
                 int inserted = executeUpdate(connection, "INSERT INTO " + prefix + "island_coops (island_uuid, cooped_player) " + "SELECT ?, ? FROM DUAL " + "WHERE NOT EXISTS (" + "SELECT 1 FROM " + prefix + "island_players " + "WHERE island_uuid = ? AND player_uuid = ?" + ");", stmt -> {
                     stmt.setString(1, islandUuid.toString());
                     stmt.setString(2, playerUuid.toString());
@@ -704,6 +762,30 @@ public class DatabaseHandler {
             stmt.setString(1, islandUuid.toString());
             stmt.setInt(2, level);
             stmt.setInt(3, level);
+        });
+    }
+
+    /**
+     * Compare-and-set: the write only lands while the upgrade is still at the level the caller
+     * read, so two members paying for the same level cannot both succeed.
+     */
+    public void updateIslandUpgradeLevel(Actor actor, UUID islandUuid, String upgradeId, int expectedLevel, int newLevel) {
+        inTransaction(connection -> {
+            lockIsland(connection, islandUuid);
+            requireRole(actor, connection, islandUuid, RequiredRole.MEMBER);
+
+            if (getIslandUpgradeLevel(connection, islandUuid, upgradeId) != expectedLevel) {
+                throw new UpgradeLevelChangedException();
+            }
+
+            executeUpdate(connection, "INSERT INTO " + prefix + "island_upgrades (island_uuid, upgrade_id, level) VALUES (?, ?, ?) " + "ON DUPLICATE KEY UPDATE level = ?;", stmt -> {
+                stmt.setString(1, islandUuid.toString());
+                stmt.setString(2, upgradeId);
+                stmt.setInt(3, newLevel);
+                stmt.setInt(4, newLevel);
+            });
+
+            return null;
         });
     }
 
@@ -963,6 +1045,24 @@ public class DatabaseHandler {
         if (!exists) {
             throw new IslandDoesNotExistException();
         }
+    }
+
+    private int getIslandUpgradeLevel(Connection connection, UUID islandUuid, String upgradeId) throws SQLException {
+        return executeQuery(connection, "SELECT level FROM " + prefix + "island_upgrades WHERE island_uuid = ? AND upgrade_id = ? LIMIT 1", stmt -> {
+            stmt.setString(1, islandUuid.toString());
+            stmt.setString(2, upgradeId);
+        }, rs -> rs.next() ? rs.getInt("level") : config.getUpgradeLevels(upgradeId).getFirst());
+    }
+
+    private int getUpgradeLimit(Connection connection, UUID islandUuid, String upgradeId) throws SQLException {
+        return config.getUpgradeLimit(upgradeId, getIslandUpgradeLevel(connection, islandUuid, upgradeId));
+    }
+
+    private int count(Connection connection, String sql, PreparedStatementConsumer consumer) throws SQLException {
+        return executeQuery(connection, sql, consumer, rs -> {
+            rs.next();
+            return rs.getInt(1);
+        });
     }
 
     /**

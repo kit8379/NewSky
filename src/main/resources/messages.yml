@@ -236,12 +236,14 @@ messages:
   player-upgrade-maxed: "<red><white>{upgrade}<red> is already max level."
   player-upgrade-island-level-too-low: "<red>Your island level is too low to upgrade <white>{upgrade}<red>."
   player-upgrade-not-enough-money: "<red>You do not have enough money to buy this upgrade."
+  player-upgrade-level-changed: "<red>The level of <white>{upgrade}<red> changed while you were buying. Your money has been refunded."
 
   admin-upgrade-details-header: "<#FFD700>Upgrade Details: <white>{player} <gray>- <white>{upgrade}"
   admin-upgrade-details-current-level: "<gray>Current <white>{upgrade}<gray> Level: <white>{level}"
   admin-upgrade-details-current-value: "<gray>Current Value: <white>{value}"
   admin-upgrade-invalid-level: "<red>Invalid level. Please enter a valid number."
   admin-upgrade-set-success: "<#55FF55>Set <white>{upgrade}<#55FF55> to <white>Lv.{level}<#55FF55>."
+  admin-upgrade-level-changed: "<red>The level of <white>{upgrade}<red> changed while setting it; nothing was written."
 
   # ================================================================================================================
   # Biome

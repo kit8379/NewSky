@@ -6,6 +6,7 @@ import org.me.newsky.island.CoopHandler;
 import org.me.newsky.island.CoreHandler;
 import org.me.newsky.island.HomeHandler;
 import org.me.newsky.island.PlayerHandler;
+import org.me.newsky.island.UpgradeHandler;
 import org.me.newsky.island.WarpHandler;
 import org.me.newsky.model.Actor;
 
@@ -27,8 +28,9 @@ public final class AdminActions {
     private final BanHandler banHandler;
     private final CoopHandler coopHandler;
     private final BiomeHandler biomeHandler;
+    private final UpgradeHandler upgradeHandler;
 
-    AdminActions(String source, CoreHandler coreHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, BanHandler banHandler, CoopHandler coopHandler, BiomeHandler biomeHandler) {
+    AdminActions(String source, CoreHandler coreHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, BanHandler banHandler, CoopHandler coopHandler, BiomeHandler biomeHandler, UpgradeHandler upgradeHandler) {
         this.actor = new Actor.Bypass(source);
         this.coreHandler = coreHandler;
         this.playerHandler = playerHandler;
@@ -37,6 +39,7 @@ public final class AdminActions {
         this.banHandler = banHandler;
         this.coopHandler = coopHandler;
         this.biomeHandler = biomeHandler;
+        this.upgradeHandler = upgradeHandler;
     }
 
     // ---- island lifecycle -------------------------------------------------------------------
@@ -61,7 +64,7 @@ public final class AdminActions {
 
     /** Always grants the member role: ownership moves exclusively through {@link #setOwner}. */
     public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid) {
-        return playerHandler.addMember(islandUuid, playerUuid, "member");
+        return playerHandler.addMember(actor, islandUuid, playerUuid, "member");
     }
 
     public CompletableFuture<Void> removeMember(UUID islandUuid, UUID playerUuid) {
@@ -103,7 +106,7 @@ public final class AdminActions {
     // ---- homes and warps (on anyone's behalf) -------------------------------------------------
 
     public CompletableFuture<Void> setHome(UUID homeOwnerUuid, String homeName, String worldName, double x, double y, double z, float yaw, float pitch) {
-        return homeHandler.setHome(homeOwnerUuid, homeName, worldName, x, y, z, yaw, pitch);
+        return homeHandler.setHome(actor, homeOwnerUuid, homeName, worldName, x, y, z, yaw, pitch);
     }
 
     public CompletableFuture<Void> deleteHome(UUID homeOwnerUuid, String homeName) {
@@ -130,5 +133,12 @@ public final class AdminActions {
 
     public CompletableFuture<Void> applyBiome(String worldName, int chunkX, int chunkZ, String biomeName) {
         return biomeHandler.applyChunkBiome(worldName, chunkX, chunkZ, biomeName);
+    }
+
+    // ---- upgrades ---------------------------------------------------------------------------
+
+    /** Sets the level outright, no island level or price check; the level must exist in the config. */
+    public CompletableFuture<Void> setUpgradeLevel(UUID islandUuid, String upgradeId, int level) {
+        return upgradeHandler.setUpgradeLevel(actor, islandUuid, upgradeId, level);
     }
 }

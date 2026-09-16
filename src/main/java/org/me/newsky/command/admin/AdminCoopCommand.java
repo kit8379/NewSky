@@ -7,6 +7,7 @@ import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.CannotCoopIslandPlayerException;
+import org.me.newsky.exceptions.CoopLimitReachedException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerAlreadyCoopedException;
 import org.me.newsky.exceptions.PlayerNotOnlineException;
@@ -92,6 +93,8 @@ public class AdminCoopCommand implements SubCommand, AsyncTabComplete {
                 sender.sendMessage(config.getPlayerAlreadyCoopedMessage(targetName));
             } else if (cause instanceof CannotCoopIslandPlayerException) {
                 sender.sendMessage(config.getPlayerCannotCoopIslandPlayerMessage());
+            } else if (cause instanceof CoopLimitReachedException) {
+                sender.sendMessage(config.getPlayerCoopLimitReachedMessage(cause.getMessage()));
             } else if (cause instanceof PlayerNotOnlineException) {
                 sender.sendMessage(config.getPlayerNotOnlineMessage(targetName));
             } else {

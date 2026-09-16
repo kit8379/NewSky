@@ -49,6 +49,7 @@ public class IslandDistributor {
     public static final String ACTION_ISLAND_HOME_DELETE = "island.home.delete";
     public static final String ACTION_ISLAND_WARP_SET = "island.warp.set";
     public static final String ACTION_ISLAND_WARP_DELETE = "island.warp.delete";
+    public static final String ACTION_ISLAND_UPGRADE_SET = "island.upgrade.set";
     public static final String ACTION_PLAYER_CONNECT = "player.connect";
 
     private static final Function<JSONObject, Void> VOID = response -> null;
@@ -189,12 +190,11 @@ public class IslandDistributor {
     // Island mutations
     // =====================================================================================
 
-    public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role) {
-        JSONObject payload = new JSONObject();
-        payload.put("islandUuid", islandUuid.toString());
+    public CompletableFuture<Void> addMember(Actor actor, UUID islandUuid, UUID playerUuid, String role) {
+        JSONObject payload = islandActorPayload(actor, islandUuid);
         payload.put("playerUuid", playerUuid.toString());
         payload.put("role", role);
-        return onIsland(islandUuid, ACTION_ISLAND_MEMBER_ADD, payload, () -> islandOperator.addMember(islandUuid, playerUuid, role), VOID);
+        return onIsland(islandUuid, ACTION_ISLAND_MEMBER_ADD, payload, () -> islandOperator.addMember(actor, islandUuid, playerUuid, role), VOID);
     }
 
     public CompletableFuture<Void> removeMember(Actor actor, UUID islandUuid, UUID playerUuid) {
@@ -233,13 +233,12 @@ public class IslandDistributor {
         return onIsland(islandUuid, ACTION_ISLAND_COOP_REMOVE, payload, () -> islandOperator.removeCoop(actor, islandUuid, playerUuid), VOID);
     }
 
-    public CompletableFuture<Void> setHome(UUID islandUuid, UUID playerUuid, String homeName, String homeLocation) {
-        JSONObject payload = new JSONObject();
-        payload.put("islandUuid", islandUuid.toString());
+    public CompletableFuture<Void> setHome(Actor actor, UUID islandUuid, UUID playerUuid, String homeName, String homeLocation) {
+        JSONObject payload = islandActorPayload(actor, islandUuid);
         payload.put("playerUuid", playerUuid.toString());
         payload.put("homeName", homeName);
         payload.put("homeLocation", homeLocation);
-        return onIsland(islandUuid, ACTION_ISLAND_HOME_SET, payload, () -> islandOperator.setHome(islandUuid, playerUuid, homeName, homeLocation), VOID);
+        return onIsland(islandUuid, ACTION_ISLAND_HOME_SET, payload, () -> islandOperator.setHome(actor, islandUuid, playerUuid, homeName, homeLocation), VOID);
     }
 
     public CompletableFuture<Void> deleteHome(UUID islandUuid, UUID playerUuid, String homeName) {
@@ -261,6 +260,14 @@ public class IslandDistributor {
         JSONObject payload = islandActorPayload(actor, islandUuid);
         payload.put("warpName", warpName);
         return onIsland(islandUuid, ACTION_ISLAND_WARP_DELETE, payload, () -> islandOperator.deleteWarp(actor, islandUuid, warpName), VOID);
+    }
+
+    public CompletableFuture<Void> setUpgradeLevel(Actor actor, UUID islandUuid, String upgradeId, int expectedLevel, int newLevel) {
+        JSONObject payload = islandActorPayload(actor, islandUuid);
+        payload.put("upgradeId", upgradeId);
+        payload.put("expectedLevel", expectedLevel);
+        payload.put("newLevel", newLevel);
+        return onIsland(islandUuid, ACTION_ISLAND_UPGRADE_SET, payload, () -> islandOperator.setUpgradeLevel(actor, islandUuid, upgradeId, expectedLevel, newLevel), VOID);
     }
 
     public CompletableFuture<Boolean> toggleIslandLock(Actor actor, UUID islandUuid) {

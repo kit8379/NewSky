@@ -11,6 +11,7 @@ import org.me.newsky.command.IslandAdminCommand;
 import org.me.newsky.command.IslandPlayerCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
+import org.me.newsky.economy.EconomyHandler;
 import org.me.newsky.island.*;
 import org.me.newsky.listener.*;
 import org.me.newsky.messaging.CrossServerMessenger;
@@ -157,6 +158,8 @@ public class NewSky extends JavaPlugin {
             BanHandler banHandler = new BanHandler(this, databaseHandler, islandDistributor);
             CoopHandler coopHandler = new CoopHandler(this, databaseHandler, islandDistributor, onlinePlayerRegistry);
             BiomeHandler biomeHandler = new BiomeHandler(this, databaseHandler);
+            EconomyHandler economyHandler = new EconomyHandler(this);
+            UpgradeHandler upgradeHandler = new UpgradeHandler(this, config, databaseHandler, islandDistributor, economyHandler);
             LobbyHandler lobbyHandler = new LobbyHandler(this, config, islandDistributor);
             UuidHandler uuidHandler = new UuidHandler(this, databaseHandler);
             WorldActivityHandler worldActivityHandler = new WorldActivityHandler(this);
@@ -181,7 +184,7 @@ public class NewSky extends JavaPlugin {
             info("All schedulers loaded");
 
             info("Starting API");
-            api = new NewSkyAPI(this, coreHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, playerMessageHandler, uuidHandler, biomeHandler);
+            api = new NewSkyAPI(this, coreHandler, playerHandler, homeHandler, warpHandler, levelHandler, banHandler, coopHandler, lobbyHandler, playerMessageHandler, uuidHandler, biomeHandler, upgradeHandler);
             info("API loaded");
 
             if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
@@ -255,7 +258,7 @@ public class NewSky extends JavaPlugin {
         messenger.register(IslandDistributor.ACTION_ISLAND_UNLOAD, payload -> emptyResponse(islandOperator.unloadIsland(uuid(payload, "islandUuid"))));
         messenger.register(IslandDistributor.ACTION_ISLAND_DELETE, payload -> emptyResponse(asHost(islandOperator, payload, () -> islandOperator.deleteIsland(Actor.fromJson(payload), uuid(payload, "islandUuid")))));
         messenger.register(IslandDistributor.ACTION_ISLAND_TELEPORT_PREPARE, payload -> islandOperator.prepareTeleport(uuid(payload, "playerUuid"), payload.getString("teleportWorld"), payload.getString("teleportLocation")).thenApply(teleported -> new JSONObject().put("teleported", teleported)));
-        messenger.register(IslandDistributor.ACTION_ISLAND_MEMBER_ADD, payload -> emptyResponse(asHost(islandOperator, payload, () -> islandOperator.addMember(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"), payload.getString("role")))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_MEMBER_ADD, payload -> emptyResponse(asHost(islandOperator, payload, () -> islandOperator.addMember(Actor.fromJson(payload), uuid(payload, "islandUuid"), uuid(payload, "playerUuid"), payload.getString("role")))));
         messenger.register(IslandDistributor.ACTION_ISLAND_MEMBER_REMOVE, payload -> emptyResponse(asHost(islandOperator, payload, () -> islandOperator.removeMember(Actor.fromJson(payload), uuid(payload, "islandUuid"), uuid(payload, "playerUuid")))));
         messenger.register(IslandDistributor.ACTION_ISLAND_OWNER_SET, payload -> emptyResponse(asHost(islandOperator, payload, () -> islandOperator.setOwner(Actor.fromJson(payload), uuid(payload, "islandUuid"), uuid(payload, "newOwnerUuid")))));
         messenger.register(IslandDistributor.ACTION_ISLAND_BAN_ADD, payload -> emptyResponse(asHost(islandOperator, payload, () -> islandOperator.addBan(Actor.fromJson(payload), uuid(payload, "islandUuid"), uuid(payload, "playerUuid")))));
@@ -265,10 +268,11 @@ public class NewSky extends JavaPlugin {
         messenger.register(IslandDistributor.ACTION_ISLAND_LOCK_TOGGLE, payload -> asHost(islandOperator, payload, () -> islandOperator.toggleIslandLock(Actor.fromJson(payload), uuid(payload, "islandUuid"))).thenApply(locked -> new JSONObject().put("locked", locked)));
         messenger.register(IslandDistributor.ACTION_ISLAND_PVP_TOGGLE, payload -> asHost(islandOperator, payload, () -> islandOperator.toggleIslandPvp(Actor.fromJson(payload), uuid(payload, "islandUuid"))).thenApply(pvp -> new JSONObject().put("pvp", pvp)));
         messenger.register(IslandDistributor.ACTION_ISLAND_EXPEL, payload -> emptyResponse(asHost(islandOperator, payload, () -> islandOperator.expelPlayer(Actor.fromJson(payload), uuid(payload, "islandUuid"), uuid(payload, "playerUuid")))));
-        messenger.register(IslandDistributor.ACTION_ISLAND_HOME_SET, payload -> emptyResponse(asHost(islandOperator, payload, () -> islandOperator.setHome(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"), payload.getString("homeName"), payload.getString("homeLocation")))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_HOME_SET, payload -> emptyResponse(asHost(islandOperator, payload, () -> islandOperator.setHome(Actor.fromJson(payload), uuid(payload, "islandUuid"), uuid(payload, "playerUuid"), payload.getString("homeName"), payload.getString("homeLocation")))));
         messenger.register(IslandDistributor.ACTION_ISLAND_HOME_DELETE, payload -> emptyResponse(asHost(islandOperator, payload, () -> islandOperator.deleteHome(uuid(payload, "islandUuid"), uuid(payload, "playerUuid"), payload.getString("homeName")))));
         messenger.register(IslandDistributor.ACTION_ISLAND_WARP_SET, payload -> emptyResponse(asHost(islandOperator, payload, () -> islandOperator.setWarp(Actor.fromJson(payload), uuid(payload, "islandUuid"), payload.getString("warpName"), payload.getString("warpLocation")))));
         messenger.register(IslandDistributor.ACTION_ISLAND_WARP_DELETE, payload -> emptyResponse(asHost(islandOperator, payload, () -> islandOperator.deleteWarp(Actor.fromJson(payload), uuid(payload, "islandUuid"), payload.getString("warpName")))));
+        messenger.register(IslandDistributor.ACTION_ISLAND_UPGRADE_SET, payload -> emptyResponse(asHost(islandOperator, payload, () -> islandOperator.setUpgradeLevel(Actor.fromJson(payload), uuid(payload, "islandUuid"), payload.getString("upgradeId"), payload.getInt("expectedLevel"), payload.getInt("newLevel")))));
         messenger.register(IslandDistributor.ACTION_PLAYER_CONNECT, payload -> emptyResponse(ServerUtil.connectToServer(this, uuid(payload, "playerUuid"), payload.getString("targetServer"))));
         messenger.register(IslandClaims.ACTION_CLAIM_GRANTED, payload -> {
             islandClaims.grant(uuid(payload, "islandUuid"), payload.getString("value"));

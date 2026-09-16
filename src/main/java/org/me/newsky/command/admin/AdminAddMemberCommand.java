@@ -9,6 +9,7 @@ import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
+import org.me.newsky.exceptions.TeamLimitReachedException;
 
 import java.util.Collections;
 import java.util.List;
@@ -95,6 +96,8 @@ public class AdminAddMemberCommand implements SubCommand, AsyncTabComplete {
                 sender.sendMessage(config.getAlreadyHasIslandMessage(targetMemberName));
             } else if (cause instanceof IslandPlayerAlreadyExistsException) {
                 sender.sendMessage(config.getIslandMemberExistsMessage(targetMemberName));
+            } else if (cause instanceof TeamLimitReachedException) {
+                sender.sendMessage(config.getPlayerTeamLimitReachedMessage(cause.getMessage()));
             } else {
                 sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.severe("Error adding member " + targetMemberName + " to island of " + islandOwnerName, ex);

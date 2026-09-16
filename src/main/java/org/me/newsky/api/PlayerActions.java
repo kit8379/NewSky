@@ -30,8 +30,9 @@ public final class PlayerActions {
     private final BanHandler banHandler;
     private final CoopHandler coopHandler;
     private final BiomeHandler biomeHandler;
+    private final UpgradeHandler upgradeHandler;
 
-    PlayerActions(UUID playerUuid, CoreHandler coreHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, BanHandler banHandler, CoopHandler coopHandler, BiomeHandler biomeHandler) {
+    PlayerActions(UUID playerUuid, CoreHandler coreHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, BanHandler banHandler, CoopHandler coopHandler, BiomeHandler biomeHandler, UpgradeHandler upgradeHandler) {
         this.playerUuid = playerUuid;
         this.actor = new Actor.Player(playerUuid);
         this.coreHandler = coreHandler;
@@ -41,6 +42,7 @@ public final class PlayerActions {
         this.banHandler = banHandler;
         this.coopHandler = coopHandler;
         this.biomeHandler = biomeHandler;
+        this.upgradeHandler = upgradeHandler;
     }
 
     /**
@@ -93,7 +95,7 @@ public final class PlayerActions {
             }
 
             Invitation pending = invite.get();
-            return playerHandler.removePendingInvite(playerUuid).thenCompose(v -> playerHandler.addMember(pending.getIslandUuid(), playerUuid, "member")).thenApply(v -> Optional.of(pending));
+            return playerHandler.removePendingInvite(playerUuid).thenCompose(v -> playerHandler.addMember(actor, pending.getIslandUuid(), playerUuid, "member")).thenApply(v -> Optional.of(pending));
         });
     }
 
@@ -167,7 +169,7 @@ public final class PlayerActions {
     // ---- homes and warps --------------------------------------------------------------------
 
     public CompletableFuture<Void> setHome(String homeName, String worldName, double x, double y, double z, float yaw, float pitch) {
-        return homeHandler.setHome(playerUuid, homeName, worldName, x, y, z, yaw, pitch);
+        return homeHandler.setHome(actor, playerUuid, homeName, worldName, x, y, z, yaw, pitch);
     }
 
     public CompletableFuture<Void> deleteHome(String homeName) {
@@ -200,5 +202,15 @@ public final class PlayerActions {
      */
     public CompletableFuture<Void> applyBiome(String worldName, int chunkX, int chunkZ, String biomeName) {
         return biomeHandler.applyPlayerChunkBiome(playerUuid, worldName, chunkX, chunkZ, biomeName);
+    }
+
+    // ---- upgrades ---------------------------------------------------------------------------
+
+    /**
+     * MEMBER, enforced in the level write. Paid from this player's own balance; completes with
+     * the level bought.
+     */
+    public CompletableFuture<Integer> buyUpgrade(String upgradeId) {
+        return ownIsland().thenCompose(islandUuid -> upgradeHandler.buyUpgrade(actor, islandUuid, playerUuid, upgradeId));
     }
 }

@@ -8,6 +8,7 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.HomeLimitReachedException;
 import org.me.newsky.exceptions.HomeNameNotLegalException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
@@ -86,6 +87,8 @@ public class PlayerSetHomeCommand implements SubCommand, AsyncTabComplete {
                 player.sendMessage(config.getPlayerMustInIslandSetHomeMessage());
             } else if (cause instanceof HomeNameNotLegalException) {
                 player.sendMessage(config.getHomeNameNotLegalMessage());
+            } else if (cause instanceof HomeLimitReachedException) {
+                player.sendMessage(config.getPlayerHomeLimitReachedMessage(cause.getMessage()));
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.severe("Error setting home for player " + player.getName(), ex);

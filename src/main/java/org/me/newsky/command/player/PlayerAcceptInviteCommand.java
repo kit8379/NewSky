@@ -10,6 +10,7 @@ import org.me.newsky.exceptions.IslandAlreadyExistException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.IslandPlayerAlreadyExistsException;
 import org.me.newsky.exceptions.NoActiveServerException;
+import org.me.newsky.exceptions.TeamLimitReachedException;
 import org.me.newsky.model.Invitation;
 
 import java.util.UUID;
@@ -94,6 +95,8 @@ public class PlayerAcceptInviteCommand implements SubCommand {
                 player.sendMessage(config.getIslandMemberExistsMessage(player.getName()));
             } else if (cause instanceof IslandDoesNotExistException) {
                 player.sendMessage(config.getPlayerNoPendingInviteMessage());
+            } else if (cause instanceof TeamLimitReachedException) {
+                player.sendMessage(config.getPlayerTeamLimitReachedMessage(cause.getMessage()));
             } else if (cause instanceof NoActiveServerException) {
                 player.sendMessage(config.getNoActiveServerMessage());
             } else {

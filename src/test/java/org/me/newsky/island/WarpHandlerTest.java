@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.me.newsky.NewSky;
 import org.me.newsky.cluster.OnlinePlayerRegistry;
+import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.exceptions.*;
 import org.me.newsky.model.Actor;
@@ -20,6 +21,7 @@ import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -54,6 +56,11 @@ class WarpHandlerTest {
         field("dataSource", dataSource);
         field("prefix", "test_");
         field("plugin", plugin);
+        // Upgrade limits are covered by DatabaseHandlerUpgradeTest; here they stay out of the way.
+        ConfigHandler config = mock(ConfigHandler.class);
+        when(config.getUpgradeLevels(anyString())).thenReturn(List.of(1));
+        when(config.getUpgradeLimit(anyString(), anyInt())).thenReturn(Integer.MAX_VALUE);
+        field("config", config);
         // Use the production schema so membership and island cascade behavior is exercised.
         Method createTables = DatabaseHandler.class.getDeclaredMethod("createTables");
         createTables.setAccessible(true);
@@ -74,8 +81,8 @@ class WarpHandlerTest {
                 operator.setWarp(call.getArgument(0), call.getArgument(1), call.getArgument(2), call.getArgument(3)));
         when(distributor.deleteWarp(any(), any(), anyString())).thenAnswer(call ->
                 operator.deleteWarp(call.getArgument(0), call.getArgument(1), call.getArgument(2)));
-        when(distributor.setHome(any(), any(), anyString(), anyString())).thenAnswer(call ->
-                operator.setHome(call.getArgument(0), call.getArgument(1), call.getArgument(2), call.getArgument(3)));
+        when(distributor.setHome(any(), any(), any(), anyString(), anyString())).thenAnswer(call ->
+                operator.setHome(call.getArgument(0), call.getArgument(1), call.getArgument(2), call.getArgument(3), call.getArgument(4)));
         when(distributor.deleteHome(any(), any(), anyString())).thenAnswer(call ->
                 operator.deleteHome(call.getArgument(0), call.getArgument(1), call.getArgument(2)));
         homes = new HomeHandler(plugin, database, distributor, players);
@@ -209,9 +216,9 @@ class WarpHandlerTest {
 
     @Test
     void completedHomeAndWarpWritesRefreshOnlyDefaultRespawnPoints() {
-        homes.setHome(owner, "DEFAULT", IslandUtils.parseIslandName(island), 1, 70, 3, 45, 10).join();
-        homes.setHome(member, "default", IslandUtils.parseIslandName(island), 2, 70, 3, 0, 0).join();
-        homes.setHome(owner, "mine", IslandUtils.parseIslandName(island), 99, 70, 3, 0, 0).join();
+        homes.setHome(new Actor.Player(owner), owner, "DEFAULT", IslandUtils.parseIslandName(island), 1, 70, 3, 45, 10).join();
+        homes.setHome(new Actor.Player(member), member, "default", IslandUtils.parseIslandName(island), 2, 70, 3, 0, 0).join();
+        homes.setHome(new Actor.Player(owner), owner, "mine", IslandUtils.parseIslandName(island), 99, 70, 3, 0, 0).join();
         set(owner, "default", 4);
         set(member, "shop", 99);
 
@@ -219,7 +226,7 @@ class WarpHandlerTest {
         assertEquals("4.0,70.0,3.0,0.0,0.0", snapshot.get(island).getDefaultWarp());
         assertThrows(UnsupportedOperationException.class, () -> snapshot.get(island).getDefaultHomes().clear());
 
-        homes.setHome(member, "default", IslandUtils.parseIslandName(island), 5, 70, 3, 0, 0).join();
+        homes.setHome(new Actor.Player(member), member, "default", IslandUtils.parseIslandName(island), 5, 70, 3, 0, 0).join();
         set(member, "default", 6);
         assertEquals("5.0,70.0,3.0,0.0,0.0", snapshot.get(island).getDefaultHomes().get(member));
         assertEquals("6.0,70.0,3.0,0.0,0.0", snapshot.get(island).getDefaultWarp());
@@ -235,9 +242,9 @@ class WarpHandlerTest {
 
     @Test
     void newMembersDefaultHomeIsIncludedByMembershipSnapshotReload() {
-        homes.setHome(owner, "default", IslandUtils.parseIslandName(island), 1, 70, 3, 0, 0).join();
+        homes.setHome(new Actor.Player(owner), owner, "default", IslandUtils.parseIslandName(island), 1, 70, 3, 0, 0).join();
         UUID newMember = UUID.randomUUID();
-        operator.addMember(island, newMember, "member").join();
+        operator.addMember(new Actor.Player(newMember), island, newMember, "member").join();
         assertEquals("1.0,70.0,3.0,0.0,0.0", snapshot.get(island).getDefaultHomes().get(newMember));
         assertTrue(snapshot.get(island).getMembers().contains(newMember));
     }

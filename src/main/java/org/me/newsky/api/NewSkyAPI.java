@@ -7,6 +7,7 @@ import org.me.newsky.island.*;
 import org.me.newsky.message.PlayerMessageHandler;
 import org.me.newsky.model.Invitation;
 import org.me.newsky.model.IslandTop;
+import org.me.newsky.model.Upgrade;
 import org.me.newsky.uuid.UuidHandler;
 
 import java.util.*;
@@ -40,8 +41,9 @@ public class NewSkyAPI {
     private final PlayerMessageHandler playerMessageHandler;
     private final BiomeHandler biomeHandler;
     private final UuidHandler uuidHandler;
+    private final UpgradeHandler upgradeHandler;
 
-    public NewSkyAPI(NewSky plugin, CoreHandler coreHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, PlayerMessageHandler playerMessageHandler, UuidHandler uuidHandler, BiomeHandler biomeHandler) {
+    public NewSkyAPI(NewSky plugin, CoreHandler coreHandler, PlayerHandler playerHandler, HomeHandler homeHandler, WarpHandler warpHandler, LevelHandler levelHandler, BanHandler banHandler, CoopHandler coopHandler, LobbyHandler lobbyHandler, PlayerMessageHandler playerMessageHandler, UuidHandler uuidHandler, BiomeHandler biomeHandler, UpgradeHandler upgradeHandler) {
         this.plugin = plugin;
         this.coreHandler = coreHandler;
         this.playerHandler = playerHandler;
@@ -54,6 +56,7 @@ public class NewSkyAPI {
         this.playerMessageHandler = playerMessageHandler;
         this.uuidHandler = uuidHandler;
         this.biomeHandler = biomeHandler;
+        this.upgradeHandler = upgradeHandler;
     }
 
     // ================================================================================================================
@@ -63,13 +66,13 @@ public class NewSkyAPI {
     /** Act as this player: own identity, own island, player rules apply. */
     @SuppressWarnings("unused")
     public PlayerActions player(UUID playerUuid) {
-        return new PlayerActions(playerUuid, coreHandler, playerHandler, homeHandler, warpHandler, banHandler, coopHandler, biomeHandler);
+        return new PlayerActions(playerUuid, coreHandler, playerHandler, homeHandler, warpHandler, banHandler, coopHandler, biomeHandler, upgradeHandler);
     }
 
     /** Act as an operator: arbitrary targets, no player rules, the sender's name goes to logs. */
     @SuppressWarnings("unused")
     public AdminActions admin(CommandSender sender) {
-        return new AdminActions(sender.getName(), coreHandler, playerHandler, homeHandler, warpHandler, banHandler, coopHandler, biomeHandler);
+        return new AdminActions(sender.getName(), coreHandler, playerHandler, homeHandler, warpHandler, banHandler, coopHandler, biomeHandler, upgradeHandler);
     }
 
     // ================================================================================================================
@@ -154,6 +157,17 @@ public class NewSkyAPI {
     @SuppressWarnings("unused")
     public CompletableFuture<Long> getIslandRank(UUID islandUuid) {
         return levelHandler.getIslandRank(islandUuid);
+    }
+
+    @SuppressWarnings("unused")
+    public CompletableFuture<Integer> getUpgradeLevel(UUID islandUuid, String upgradeId) {
+        return upgradeHandler.getUpgradeLevel(islandUuid, upgradeId);
+    }
+
+    /** The upgrade's state on that island next to the requirements as they apply to this player. */
+    @SuppressWarnings("unused")
+    public CompletableFuture<Upgrade> getUpgradeDetails(UUID islandUuid, UUID playerUuid, String upgradeId) {
+        return upgradeHandler.getUpgradeDetails(islandUuid, playerUuid, upgradeId);
     }
 
     @SuppressWarnings("unused")

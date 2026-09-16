@@ -23,7 +23,7 @@ class WarpActionsTest {
         when(warps.setWarp(any(), any(), anyString(), anyString(), anyDouble(), anyDouble(), anyDouble(), anyFloat(), anyFloat()))
                 .thenReturn(CompletableFuture.completedFuture(null));
         when(warps.delWarp(any(), any(), anyString())).thenReturn(CompletableFuture.completedFuture(null));
-        PlayerActions actions = new PlayerActions(player, core, null, null, warps, null, null, null);
+        PlayerActions actions = new PlayerActions(player, core, null, null, warps, null, null, null, null);
 
         actions.setWarp("shop", world, 1, 2, 3, 0, 0).join();
         actions.deleteWarp("shop").join();
@@ -39,7 +39,7 @@ class WarpActionsTest {
         CoreHandler core = mock(CoreHandler.class);
         WarpHandler warps = mock(WarpHandler.class);
         when(warps.warp(island, "shop", player)).thenReturn(CompletableFuture.completedFuture(null));
-        PlayerActions actions = new PlayerActions(player, core, null, null, warps, null, null, null);
+        PlayerActions actions = new PlayerActions(player, core, null, null, warps, null, null, null, null);
 
         actions.warp(island, "shop").join();
 
@@ -58,7 +58,7 @@ class WarpActionsTest {
                 .thenReturn(CompletableFuture.completedFuture(null));
         when(warps.delWarp(any(), any(), anyString())).thenReturn(CompletableFuture.completedFuture(null));
         when(warps.warp(any(), anyString(), any())).thenReturn(CompletableFuture.completedFuture(null));
-        AdminActions actions = new AdminActions("test", core, null, null, warps, null, null, null);
+        AdminActions actions = new AdminActions("test", core, null, null, warps, null, null, null, null);
 
         actions.setWarp(island, "shop", world, 1, 2, 3, 0, 0).join();
         actions.deleteWarp(island, "shop").join();

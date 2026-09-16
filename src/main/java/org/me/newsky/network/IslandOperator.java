@@ -210,9 +210,9 @@ public class IslandOperator {
         }
     }
 
-    public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role) {
+    public CompletableFuture<Void> addMember(Actor actor, UUID islandUuid, UUID playerUuid, String role) {
         return updateSnapshot(islandUuid, () -> {
-            database.addIslandPlayer(islandUuid, playerUuid, role);
+            database.addIslandPlayer(actor, islandUuid, playerUuid, role);
             return null;
         });
     }
@@ -281,9 +281,9 @@ public class IslandOperator {
         return updateSnapshot(islandUuid, () -> database.toggleIslandPvp(actor, islandUuid));
     }
 
-    public CompletableFuture<Void> setHome(UUID islandUuid, UUID playerUuid, String homeName, String homeLocation) {
+    public CompletableFuture<Void> setHome(Actor actor, UUID islandUuid, UUID playerUuid, String homeName, String homeLocation) {
         return updateSnapshot(islandUuid, () -> {
-            database.updateHomePoint(islandUuid, playerUuid, homeName, homeLocation);
+            database.updateHomePoint(actor, islandUuid, playerUuid, homeName, homeLocation);
             return null;
         });
     }
@@ -307,6 +307,16 @@ public class IslandOperator {
             database.deleteWarpPoint(actor, islandUuid, warpName);
             return null;
         });
+    }
+
+    public CompletableFuture<Void> setUpgradeLevel(Actor actor, UUID islandUuid, String upgradeId, int expectedLevel, int newLevel) {
+        // The snapshot carries no upgrade state, so there is nothing to reload here.
+        try {
+            database.updateIslandUpgradeLevel(actor, islandUuid, upgradeId, expectedLevel, newLevel);
+            return CompletableFuture.completedFuture(null);
+        } catch (Throwable error) {
+            return CompletableFuture.failedFuture(error);
+        }
     }
 
     private <T> CompletableFuture<T> updateSnapshot(UUID islandUuid, Supplier<T> mutation) {

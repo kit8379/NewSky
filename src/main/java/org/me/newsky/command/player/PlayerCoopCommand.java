@@ -8,6 +8,7 @@ import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.CannotCoopIslandPlayerException;
+import org.me.newsky.exceptions.CoopLimitReachedException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.PlayerAlreadyCoopedException;
 import org.me.newsky.exceptions.PlayerNotOnlineException;
@@ -94,6 +95,8 @@ public class PlayerCoopCommand implements SubCommand, AsyncTabComplete {
                 player.sendMessage(config.getPlayerAlreadyCoopedMessage(targetPlayerName));
             } else if (cause instanceof CannotCoopIslandPlayerException) {
                 player.sendMessage(config.getPlayerCannotCoopIslandPlayerMessage());
+            } else if (cause instanceof CoopLimitReachedException) {
+                player.sendMessage(config.getPlayerCoopLimitReachedMessage(cause.getMessage()));
             } else {
                 player.sendMessage(config.getUnknownExceptionMessage());
                 plugin.severe("Error cooping player " + targetPlayerName + " for " + player.getName(), ex);

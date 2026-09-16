@@ -10,6 +10,7 @@ import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
+import org.me.newsky.exceptions.WarpLimitReachedException;
 import org.me.newsky.exceptions.WarpNameNotLegalException;
 
 import java.util.Collections;
@@ -97,6 +98,8 @@ public class AdminSetWarpCommand implements SubCommand, AsyncTabComplete {
                 sender.sendMessage(config.getAdminMustInIslandSetWarpMessage(warpPlayerName));
             } else if (cause instanceof WarpNameNotLegalException) {
                 sender.sendMessage(config.getWarpNameNotLegalMessage());
+            } else if (cause instanceof WarpLimitReachedException) {
+                sender.sendMessage(config.getPlayerWarpLimitReachedMessage(cause.getMessage()));
             } else {
                 sender.sendMessage(config.getUnknownExceptionMessage());
                 plugin.severe("Error setting warp " + warpName + " for " + warpPlayerName, ex);

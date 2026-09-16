@@ -39,6 +39,7 @@ public class IslandPlayerCommand implements CommandExecutor, AsyncCommandTabRout
         subCommands.add(new PlayerSetOwnerCommand(plugin, api, config));
         subCommands.add(new PlayerLeaveCommand(plugin, api, config));
         subCommands.add(new PlayerLevelCommand(plugin, api, config));
+        subCommands.add(new PlayerUpgradeCommand(plugin, api, config));
         subCommands.add(new PlayerValueCommand(config));
         subCommands.add(new PlayerLockCommand(plugin, api, config));
         subCommands.add(new PlayerPvpCommand(plugin, api, config));

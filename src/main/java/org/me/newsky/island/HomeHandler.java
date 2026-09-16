@@ -5,6 +5,7 @@ import org.me.newsky.cluster.OnlinePlayerRegistry;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.exceptions.*;
 import org.me.newsky.network.IslandDistributor;
+import org.me.newsky.model.Actor;
 import org.me.newsky.util.IslandUtils;
 
 import java.util.Locale;
@@ -27,7 +28,7 @@ public class HomeHandler {
         this.onlinePlayerRegistry = onlinePlayerRegistry;
     }
 
-    public CompletableFuture<Void> setHome(UUID playerUuid, String homeName, String worldName, double x, double y, double z, float yaw, float pitch) {
+    public CompletableFuture<Void> setHome(Actor actor, UUID playerUuid, String homeName, String worldName, double x, double y, double z, float yaw, float pitch) {
         return CompletableFuture.supplyAsync(() -> {
             UUID islandUuid = IslandUtils.parseIslandUuid(worldName);
             if (islandUuid == null) {
@@ -41,7 +42,7 @@ public class HomeHandler {
 
             String homeLocation = x + "," + y + "," + z + "," + yaw + "," + pitch;
 
-            return islandDistributor.setHome(islandUuid, playerUuid, normalizedHomeName, homeLocation);
+            return islandDistributor.setHome(actor, islandUuid, playerUuid, normalizedHomeName, homeLocation);
         }, plugin.getBukkitAsyncExecutor()).thenCompose(future -> future);
     }
 

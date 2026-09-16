@@ -32,8 +32,8 @@ public class PlayerHandler {
         this.onlinePlayerRegistry = onlinePlayerRegistry;
     }
 
-    public CompletableFuture<Void> addMember(UUID islandUuid, UUID playerUuid, String role) {
-        return CompletableFuture.completedFuture(null).thenComposeAsync(v -> islandDistributor.addMember(islandUuid, playerUuid, role), plugin.getBukkitAsyncExecutor());
+    public CompletableFuture<Void> addMember(Actor actor, UUID islandUuid, UUID playerUuid, String role) {
+        return CompletableFuture.completedFuture(null).thenComposeAsync(v -> islandDistributor.addMember(actor, islandUuid, playerUuid, role), plugin.getBukkitAsyncExecutor());
     }
 
     public CompletableFuture<Void> removeMember(Actor actor, UUID islandUuid, UUID playerUuid) {
