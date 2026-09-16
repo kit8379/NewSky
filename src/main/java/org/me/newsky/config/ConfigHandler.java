@@ -208,10 +208,6 @@ public class ConfigHandler {
         return config.getString("island.template");
     }
 
-    public int getIslandSize() {
-        return config.getInt("island.size");
-    }
-
     public int getIslandSpawnX() {
         return config.getInt("island.spawn.x");
     }
@@ -257,7 +253,8 @@ public class ConfigHandler {
     }
 
     public int getUpgradeLimit(String upgradeId, int level) {
-        return config.getInt("upgrades." + upgradeId + "." + level + ".limit");
+        String valueKey = upgradeId.equals("island-size") ? "size" : "limit";
+        return config.getInt("upgrades." + upgradeId + "." + level + "." + valueKey);
     }
 
     public int getUpgradeRequireLevel(String upgradeId, int level) {
@@ -1752,7 +1749,10 @@ public class ConfigHandler {
     }
 
     // Upgrades
-    /** Raw (uncolorized) so it can stand in for a value inside another message. */
+
+    /**
+     * Raw (uncolorized) so it can stand in for a value inside another message.
+     */
     public String getUpgradeUnknownValue() {
         return Objects.requireNonNull(messages.getString("messages.upgrade-unknown-value"));
     }

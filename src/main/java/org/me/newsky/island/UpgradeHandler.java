@@ -17,8 +17,8 @@ import java.util.concurrent.CompletableFuture;
 
 /**
  * Island upgrades: one level per island for each upgrade id in the config, bought with Vault
- * money and gated by island level. What a level allows is enforced inside the database write
- * transactions, so nothing here sits on a hot path.
+ * money and gated by island level. Limits are enforced inside database write transactions;
+ * island size is applied by the host to its snapshot and world border.
  */
 public class UpgradeHandler {
 
@@ -57,10 +57,7 @@ public class UpgradeHandler {
             }
 
             return new Purchase(current, next, config.getUpgradePrice(upgradeId, next));
-        }, plugin.getBukkitAsyncExecutor()).thenCompose(purchase -> economy.withdraw(payerUuid, purchase.price()).thenApply(v -> purchase))
-                .thenComposeAsync(purchase -> islandDistributor.setUpgradeLevel(actor, islandUuid, upgradeId, purchase.current(), purchase.next())
-                        .thenApply(v -> purchase.next())
-                        .exceptionallyCompose(error -> refund(payerUuid, purchase.price(), upgradeId).thenCompose(v -> CompletableFuture.failedFuture(error))), plugin.getBukkitAsyncExecutor());
+        }, plugin.getBukkitAsyncExecutor()).thenCompose(purchase -> economy.withdraw(payerUuid, purchase.price()).thenApply(v -> purchase)).thenComposeAsync(purchase -> islandDistributor.setUpgradeLevel(actor, islandUuid, upgradeId, purchase.current(), purchase.next()).thenApply(v -> purchase.next()).exceptionallyCompose(error -> refund(payerUuid, purchase.price(), upgradeId).thenCompose(v -> CompletableFuture.failedFuture(error))), plugin.getBukkitAsyncExecutor());
     }
 
     /**
@@ -107,8 +104,7 @@ public class UpgradeHandler {
             int requireLevel = config.getUpgradeRequireLevel(upgradeId, next);
             double price = config.getUpgradePrice(upgradeId, next);
             boolean available = progress.islandLevel() >= requireLevel && balance >= price;
-            return economy.format(price).thenCombine(economy.format(balance), (formattedPrice, formattedBalance) ->
-                    new Upgrade(current, currentLimit, false, next, config.getUpgradeLimit(upgradeId, next), requireLevel, formattedPrice, available, progress.islandLevel(), formattedBalance));
+            return economy.format(price).thenCombine(economy.format(balance), (formattedPrice, formattedBalance) -> new Upgrade(current, currentLimit, false, next, config.getUpgradeLimit(upgradeId, next), requireLevel, formattedPrice, available, progress.islandLevel(), formattedBalance));
         }));
     }
 

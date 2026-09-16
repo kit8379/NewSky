@@ -54,13 +54,14 @@ public class IslandProtectionListener implements Listener {
             return false;
         }
 
-        int islandSize = config.getIslandSize();
+        int islandSize = island.getSize();
 
         int x = location.getBlockX();
         int z = location.getBlockZ();
         int half = islandSize / 2;
 
-        return x >= -half && x <= (half - 1) && z >= -half && z <= (half - 1);
+        int max = islandSize - half - 1;
+        return x >= -half && x <= max && z >= -half && z <= max;
     }
 
     private boolean canPlayerEdit(Player player, Location location) {

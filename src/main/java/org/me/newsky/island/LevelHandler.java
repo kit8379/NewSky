@@ -55,12 +55,14 @@ public class LevelHandler {
             });
         }
 
-        int halfSize = config.getIslandSize() / 2;
+        int size = (int) world.getWorldBorder().getSize();
+        int minBlock = -(size / 2);
+        int maxBlock = minBlock + size - 1;
 
-        int minChunkX = Math.floorDiv(-halfSize, 16);
-        int minChunkZ = Math.floorDiv(-halfSize, 16);
-        int maxChunkX = Math.floorDiv(halfSize, 16);
-        int maxChunkZ = Math.floorDiv(halfSize, 16);
+        int minChunkX = Math.floorDiv(minBlock, 16);
+        int minChunkZ = Math.floorDiv(minBlock, 16);
+        int maxChunkX = Math.floorDiv(maxBlock, 16);
+        int maxChunkZ = Math.floorDiv(maxBlock, 16);
 
         int minY = world.getMinHeight();
         int maxY = world.getMaxHeight();
@@ -77,7 +79,7 @@ public class LevelHandler {
         CompletableFuture<Long> totalPoints = CompletableFuture.completedFuture(0L);
         for (int start = 0; start < chunkCoords.size(); start += SCAN_BATCH_SIZE) {
             List<int[]> batch = chunkCoords.subList(start, Math.min(start + SCAN_BATCH_SIZE, chunkCoords.size()));
-            totalPoints = totalPoints.thenCompose(acc -> scanBatch(world, batch, minY, maxY).thenApply(points -> acc + points));
+            totalPoints = totalPoints.thenCompose(acc -> scanBatch(world, batch, minY, maxY, minBlock, maxBlock).thenApply(points -> acc + points));
         }
 
         return totalPoints.thenApplyAsync(total -> {
@@ -88,7 +90,7 @@ public class LevelHandler {
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    private CompletableFuture<Long> scanBatch(World world, List<int[]> batch, int minY, int maxY) {
+    private CompletableFuture<Long> scanBatch(World world, List<int[]> batch, int minY, int maxY, int minBlock, int maxBlock) {
         List<CompletableFuture<Chunk>> chunkFutures = new ArrayList<>(batch.size());
         for (int[] coord : batch) {
             // gen=false: a never-generated chunk holds nothing and scores zero, so skip it
@@ -121,20 +123,24 @@ public class LevelHandler {
 
             long points = 0;
             for (ChunkSnapshot snapshot : snapshots) {
-                points += calculateSnapshotPoints(snapshot, minY, maxY, table);
+                points += calculateSnapshotPoints(snapshot, minY, maxY, minBlock, maxBlock, table);
             }
 
             return points;
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    private static long calculateSnapshotPoints(ChunkSnapshot snapshot, int minY, int maxY, int[] table) {
+    private static long calculateSnapshotPoints(ChunkSnapshot snapshot, int minY, int maxY, int minBlock, int maxBlock, int[] table) {
 
+        int minX = Math.max(0, minBlock - snapshot.getX() * 16);
+        int maxX = Math.min(15, maxBlock - snapshot.getX() * 16);
+        int minZ = Math.max(0, minBlock - snapshot.getZ() * 16);
+        int maxZ = Math.min(15, maxBlock - snapshot.getZ() * 16);
         long points = 0;
 
         for (int y = minY; y < maxY; y++) {
-            for (int z = 0; z < 16; z++) {
-                for (int x = 0; x < 16; x++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                for (int x = minX; x <= maxX; x++) {
 
                     Material mat = snapshot.getBlockType(x, y, z);
                     points += table[mat.ordinal()];

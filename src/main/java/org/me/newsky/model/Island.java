@@ -15,8 +15,9 @@ public final class Island {
     private final Set<UUID> bans;
     private final Map<UUID, String> defaultHomes;
     private final String defaultWarp;
+    private final int size;
 
-    public Island(UUID islandUuid, boolean lock, boolean pvp, UUID owner, Set<UUID> members, Set<UUID> coops, Set<UUID> bans, Map<UUID, String> defaultHomes, String defaultWarp) {
+    public Island(UUID islandUuid, boolean lock, boolean pvp, UUID owner, Set<UUID> members, Set<UUID> coops, Set<UUID> bans, Map<UUID, String> defaultHomes, String defaultWarp, int size) {
         this.islandUuid = islandUuid;
         this.lock = lock;
         this.pvp = pvp;
@@ -26,6 +27,7 @@ public final class Island {
         this.bans = Set.copyOf(bans);
         this.defaultHomes = Map.copyOf(defaultHomes);
         this.defaultWarp = defaultWarp;
+        this.size = size;
     }
 
     public UUID getIslandUuid() {
@@ -62,5 +64,9 @@ public final class Island {
 
     public String getDefaultWarp() {
         return defaultWarp;
+    }
+
+    public int getSize() {
+        return size;
     }
 }

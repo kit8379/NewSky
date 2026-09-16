@@ -38,6 +38,8 @@ class DatabaseHandlerUpgradeTest {
         when(config.getUpgradeLevels(anyString())).thenReturn(List.of(1, 2));
         when(config.getUpgradeLimit(anyString(), eq(1))).thenReturn(1);
         when(config.getUpgradeLimit(anyString(), eq(2))).thenReturn(2);
+        when(config.getUpgradeLimit("island-size", 1)).thenReturn(75);
+        when(config.getUpgradeLimit("island-size", 2)).thenReturn(100);
         database = mock(DatabaseHandler.class, CALLS_REAL_METHODS);
         field("dataSource", dataSource);
         field("prefix", "test_");
@@ -53,6 +55,15 @@ class DatabaseHandlerUpgradeTest {
     @AfterEach
     void tearDown() throws Exception {
         connection.close();
+    }
+
+    @Test
+    void snapshotReadsTheSavedIslandSizeAndDefaultsToTheFirstLevel() {
+        assertEquals(75, database.getIslandSnapshot(island).getSize());
+        database.updateIslandUpgradeLevel(admin, island, "island-size", 1, 2);
+        assertEquals(100, database.getIslandSnapshot(island).getSize());
+        database.updateIslandUpgradeLevel(admin, island, "island-size", 2, 1);
+        assertEquals(75, database.getIslandSnapshot(island).getSize());
     }
 
     @Test

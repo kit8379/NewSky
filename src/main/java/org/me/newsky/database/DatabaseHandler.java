@@ -1017,7 +1017,9 @@ public class DatabaseHandler {
                 stmt.setString(1, islandUuid.toString());
             }, rs -> rs.next() ? rs.getString("warp_location") : null);
 
-            return new Island(islandUuid, lock, pvp, ownerUuid, members.isEmpty() ? Set.of() : Set.copyOf(members), coops.isEmpty() ? Set.of() : Set.copyOf(coops), bans.isEmpty() ? Set.of() : Set.copyOf(bans), defaultHomes, defaultWarp);
+            int size = getUpgradeLimit(connection, islandUuid, "island-size");
+
+            return new Island(islandUuid, lock, pvp, ownerUuid, members.isEmpty() ? Set.of() : Set.copyOf(members), coops.isEmpty() ? Set.of() : Set.copyOf(coops), bans.isEmpty() ? Set.of() : Set.copyOf(bans), defaultHomes, defaultWarp, size);
         });
     }
 

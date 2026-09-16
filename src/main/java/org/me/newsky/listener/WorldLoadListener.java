@@ -8,8 +8,8 @@ import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.model.Island;
 import org.me.newsky.scheduler.LevelUpdateScheduler;
-import org.me.newsky.util.IslandUtils;
 import org.me.newsky.snapshot.IslandSnapshot;
+import org.me.newsky.util.IslandUtils;
 
 import java.util.Map;
 import java.util.UUID;
@@ -101,7 +101,7 @@ public class WorldLoadListener implements Listener {
             return;
         }
 
-        int size = config.getIslandSize();
+        int size = island.getSize();
 
         WorldBorder border = world.getWorldBorder();
         border.setCenter(0.0, 0.0);

@@ -103,9 +103,6 @@ island:
   # Template world folder name under the plugin template directory.
   template: "default"
 
-  # Island size (100 means 100x100).
-  size: 100
-
   # Default island spawn position.
   spawn:
     x: 0
@@ -131,6 +128,27 @@ island:
 # island level needed to buy that level and `price` is charged through Vault
 # from the buying member's balance; the lowest level needs neither.
 upgrades:
+  # Island width in blocks (75 means 75x75).
+  island-size:
+    '1':
+      size: 75
+    '2':
+      require-level: 200
+      price: 60000
+      size: 100
+    '3':
+      require-level: 450
+      price: 180000
+      size: 125
+    '4':
+      require-level: 850
+      price: 450000
+      size: 150
+    '5':
+      require-level: 1400
+      price: 1000000
+      size: 175
+
   # Maximum co-op members of an island.
   coop-limit:
     '1':
