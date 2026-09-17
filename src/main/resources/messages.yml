@@ -287,6 +287,7 @@ messages:
   block-value: "<green>Block Value: <white>{value}"
   no-item-in-hand: "<red>You must be holding an item!"
   block-limit-reached: "<red>Your island has reached the limit of <white>{limit}<red> for <white>{block}<red>."
+  block-limit-calculating: "<red>Island limits are still being calculated, please try again in a moment."
 
   # ================================================================================================================
   # Help

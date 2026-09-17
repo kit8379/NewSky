@@ -1,0 +1,22 @@
+# ===================================================================
+# Island Limits
+# ===================================================================
+# Per-island caps. Keys are Bukkit Material / EntityType names; an
+# unknown name or a negative value fails startup. A value of 0 forbids
+# that block or entity outright; anything not listed is unlimited.
+limit:
+  # Maximum blocks of each type inside the island border. Counted by the
+  # periodic level scan and adjusted live on place, break and burn.
+  blocks:
+    HOPPER: 50
+    DISPENSER: 100
+    DROPPER: 100
+    OBSERVER: 100
+    PISTON: 500
+
+  # Maximum entities of each type in the island world, checked when a
+  # creature spawns or a player places a vehicle, armor stand or hanging.
+  entities:
+    MINECART: 20
+    ITEM_FRAME: 100
+    ARMOR_STAND: 50

@@ -26,15 +26,7 @@ public final class NewSkyExpansion extends PlaceholderExpansion {
     private static final long RANK_REFRESH_NANOS = TimeUnit.SECONDS.toNanos(30);
     private static final long EXPIRE_NANOS = TimeUnit.MINUTES.toNanos(1);
     private static final Pattern TOP = Pattern.compile("top_([1-9][0-9]*)_(owner|level|uuid|members)");
-    private static final Map<String, String> NO_ISLAND = Map.ofEntries(
-            Map.entry("island_level", "0"), Map.entry("island_members", "0"),
-            Map.entry("island_owner", ""), Map.entry("island_uuid", ""),
-            Map.entry("has_island", "false"), Map.entry("island_role", "none"),
-            Map.entry("island_owner_uuid", ""), Map.entry("island_lock", "false"),
-            Map.entry("island_pvp", "false"), Map.entry("island_players", "0"),
-            Map.entry("island_members_list", ""), Map.entry("island_coops", "0"),
-            Map.entry("island_coops_list", ""), Map.entry("island_bans", "0"),
-            Map.entry("island_bans_list", ""), Map.entry("island_rank", "0"));
+    private static final Map<String, String> NO_ISLAND = Map.ofEntries(Map.entry("island_level", "0"), Map.entry("island_members", "0"), Map.entry("island_owner", ""), Map.entry("island_uuid", ""), Map.entry("has_island", "false"), Map.entry("island_role", "none"), Map.entry("island_owner_uuid", ""), Map.entry("island_lock", "false"), Map.entry("island_pvp", "false"), Map.entry("island_players", "0"), Map.entry("island_members_list", ""), Map.entry("island_coops", "0"), Map.entry("island_coops_list", ""), Map.entry("island_bans", "0"), Map.entry("island_bans_list", ""), Map.entry("island_rank", "0"));
 
     private final NewSky plugin;
     private final NewSkyAPI api;
@@ -60,8 +52,7 @@ public final class NewSkyExpansion extends PlaceholderExpansion {
         this.clock = clock;
         cleanupTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
             long now = clock.getAsLong();
-            caches.forEach(cache -> cache.entries.entrySet().removeIf(entry -> entry.getValue().data().isDone()
-                    && now - entry.getValue().requestedAt() >= EXPIRE_NANOS));
+            caches.forEach(cache -> cache.entries.entrySet().removeIf(entry -> entry.getValue().data().isDone() && now - entry.getValue().requestedAt() >= EXPIRE_NANOS));
         }, 1200L, 1200L);
     }
 
@@ -107,42 +98,35 @@ public final class NewSkyExpansion extends PlaceholderExpansion {
 
         UUID playerUuid = player.getUniqueId();
         // Chain only the requested data. An unfinished first load returns immediately via getNow.
-        return playerIslands.get(playerUuid, () -> api.getIslandUuid(playerUuid))
-                .thenCompose(islandUuid -> islandValue(islandUuid, playerUuid, key))
-                .exceptionally(error -> cause(error) instanceof IslandDoesNotExistException ? NO_ISLAND.get(key) : "")
-                .getNow("");
+        return playerIslands.get(playerUuid, () -> api.getIslandUuid(playerUuid)).thenCompose(islandUuid -> islandValue(islandUuid, playerUuid, key)).exceptionally(error -> cause(error) instanceof IslandDoesNotExistException ? NO_ISLAND.get(key) : "").getNow("");
     }
 
     private CompletableFuture<String> islandValue(UUID islandUuid, UUID playerUuid, String key) {
         return switch (key) {
             case "has_island" -> CompletableFuture.completedFuture("true");
             case "island_uuid" -> CompletableFuture.completedFuture(islandUuid.toString());
-            case "island_level" -> values.get("level:" + islandUuid,
-                    () -> api.getIslandLevel(islandUuid).thenApply(String::valueOf));
-            case "island_lock" -> values.get("lock:" + islandUuid,
-                    () -> api.isIslandLock(islandUuid).thenApply(String::valueOf));
-            case "island_pvp" -> values.get("pvp:" + islandUuid,
-                    () -> api.isIslandPvp(islandUuid).thenApply(String::valueOf));
-            case "island_rank" -> values.get("rank:" + islandUuid, RANK_REFRESH_NANOS,
-                    () -> api.getIslandRank(islandUuid).thenApply(String::valueOf));
+            case "island_level" ->
+                    values.get("level:" + islandUuid, () -> api.getIslandLevel(islandUuid).thenApply(String::valueOf));
+            case "island_lock" ->
+                    values.get("lock:" + islandUuid, () -> api.isIslandLock(islandUuid).thenApply(String::valueOf));
+            case "island_pvp" ->
+                    values.get("pvp:" + islandUuid, () -> api.isIslandPvp(islandUuid).thenApply(String::valueOf));
+            case "island_rank" ->
+                    values.get("rank:" + islandUuid, RANK_REFRESH_NANOS, () -> api.getIslandRank(islandUuid).thenApply(String::valueOf));
             case "island_owner_uuid", "island_role", "island_owner" ->
                     owners.get(islandUuid, () -> api.getIslandOwner(islandUuid)).thenCompose(owner -> switch (key) {
                         case "island_owner_uuid" -> CompletableFuture.completedFuture(owner.toString());
-                        case "island_role" -> CompletableFuture.completedFuture(owner.equals(playerUuid) ? "owner" : "member");
-                        default -> playerNames(Set.of(owner)).thenApply(resolved -> resolved.getOrDefault(owner, owner.toString()));
+                        case "island_role" ->
+                                CompletableFuture.completedFuture(owner.equals(playerUuid) ? "owner" : "member");
+                        default ->
+                                playerNames(Set.of(owner)).thenApply(resolved -> resolved.getOrDefault(owner, owner.toString()));
                     });
             case "island_members", "island_players", "island_members_list" ->
-                    playerSets.get("members:" + islandUuid, () -> api.getIslandMembers(islandUuid))
-                            .thenCompose(members -> key.equals("island_members_list") ? playerList(members)
-                                    : CompletableFuture.completedFuture(Integer.toString(members.size() + (key.equals("island_players") ? 1 : 0))));
+                    playerSets.get("members:" + islandUuid, () -> api.getIslandMembers(islandUuid)).thenCompose(members -> key.equals("island_members_list") ? playerList(members) : CompletableFuture.completedFuture(Integer.toString(members.size() + (key.equals("island_players") ? 1 : 0))));
             case "island_coops", "island_coops_list" ->
-                    playerSets.get("coops:" + islandUuid, () -> api.getIslandCoops(islandUuid))
-                            .thenCompose(coops -> key.endsWith("_list") ? playerList(coops)
-                                    : CompletableFuture.completedFuture(Integer.toString(coops.size())));
+                    playerSets.get("coops:" + islandUuid, () -> api.getIslandCoops(islandUuid)).thenCompose(coops -> key.endsWith("_list") ? playerList(coops) : CompletableFuture.completedFuture(Integer.toString(coops.size())));
             case "island_bans", "island_bans_list" ->
-                    playerSets.get("bans:" + islandUuid, () -> api.getIslandBans(islandUuid))
-                            .thenCompose(bans -> key.endsWith("_list") ? playerList(bans)
-                                    : CompletableFuture.completedFuture(Integer.toString(bans.size())));
+                    playerSets.get("bans:" + islandUuid, () -> api.getIslandBans(islandUuid)).thenCompose(bans -> key.endsWith("_list") ? playerList(bans) : CompletableFuture.completedFuture(Integer.toString(bans.size())));
             default -> throw new IllegalArgumentException("Unknown placeholder: " + key);
         };
     }
@@ -166,8 +150,7 @@ public final class NewSkyExpansion extends PlaceholderExpansion {
     private synchronized String topValue(int position, String key) {
         requestedTopLimit = Math.max(requestedTopLimit, position);
         long now = clock.getAsLong();
-        if (topCache == null || (topCache.data().isDone()
-                && (loadedTopLimit < requestedTopLimit || now - topCache.requestedAt() >= RANK_REFRESH_NANOS))) {
+        if (topCache == null || (topCache.data().isDone() && (loadedTopLimit < requestedTopLimit || now - topCache.requestedAt() >= RANK_REFRESH_NANOS))) {
             Map<String, String> previous = topCache == null ? Map.of() : topCache.data().getNow(Map.of());
             loadedTopLimit = requestedTopLimit;
             topCache = new Cached<>(loadTop(loadedTopLimit), previous, now);
@@ -200,8 +183,7 @@ public final class NewSkyExpansion extends PlaceholderExpansion {
     }
 
     private CompletableFuture<String> playerList(Set<UUID> players) {
-        return playerNames(players).thenApply(resolved ->
-                sortedList(players.stream().map(uuid -> resolved.getOrDefault(uuid, uuid.toString())).toList()));
+        return playerNames(players).thenApply(resolved -> sortedList(players.stream().map(uuid -> resolved.getOrDefault(uuid, uuid.toString())).toList()));
     }
 
     private static String sortedList(Collection<String> values) {
@@ -236,8 +218,7 @@ public final class NewSkyExpansion extends PlaceholderExpansion {
                 return new Cached<>(data, previous, now);
             });
             // Keep serving the previous successful value during refresh, without blocking callers.
-            return !cached.data().isDone() && cached.previous() != null
-                    ? CompletableFuture.completedFuture(cached.previous()) : cached.data();
+            return !cached.data().isDone() && cached.previous() != null ? CompletableFuture.completedFuture(cached.previous()) : cached.data();
         }
     }
 

@@ -19,13 +19,15 @@ public class LevelHandler {
     private final NewSky plugin;
     private final ConfigHandler config;
     private final DatabaseHandler database;
+    private final LimitHandler limitHandler;
 
     private volatile int[] pointsByMaterialOrdinal;
 
-    public LevelHandler(NewSky plugin, ConfigHandler config, DatabaseHandler database) {
+    public LevelHandler(NewSky plugin, ConfigHandler config, DatabaseHandler database, LimitHandler limitHandler) {
         this.plugin = plugin;
         this.config = config;
         this.database = database;
+        this.limitHandler = limitHandler;
         startup();
     }
 
@@ -76,13 +78,26 @@ public class LevelHandler {
 
         // Scan in small sequential batches so the snapshot work never hits the main thread
         // as one full-island burst, and only a batch worth of chunks is loaded at a time.
-        CompletableFuture<Long> totalPoints = CompletableFuture.completedFuture(0L);
+        // Every batch adds to one material histogram, which yields both the level and the
+        // block counts the limit handler starts from.
+        int[] counts = new int[Material.values().length];
+        CompletableFuture<Void> scanned = CompletableFuture.completedFuture(null);
         for (int start = 0; start < chunkCoords.size(); start += SCAN_BATCH_SIZE) {
             List<int[]> batch = chunkCoords.subList(start, Math.min(start + SCAN_BATCH_SIZE, chunkCoords.size()));
-            totalPoints = totalPoints.thenCompose(acc -> scanBatch(world, batch, minY, maxY, minBlock, maxBlock).thenApply(points -> acc + points));
+            scanned = scanned.thenCompose(v -> scanBatch(world, batch, minY, maxY, minBlock, maxBlock, counts));
         }
 
-        return totalPoints.thenApplyAsync(total -> {
+        return scanned.thenApplyAsync(v -> {
+            int[] table = this.pointsByMaterialOrdinal;
+            long total = 0;
+            for (int i = 0; i < counts.length; i++) {
+                total += (long) counts[i] * table[i];
+            }
+
+            // Hand the counts over before the database write, so a failed write still leaves
+            // the island with fresh limit counts; the main thread adjusts them from here on.
+            limitHandler.reset(islandUuid, counts);
+
             int totalLevel = (int) Math.round((double) total / 100.0);
             database.updateIslandLevel(islandUuid, totalLevel);
             plugin.debug("LevelHandler", "Calculated level for island " + islandUuid + ": " + totalLevel);
@@ -90,7 +105,7 @@ public class LevelHandler {
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    private CompletableFuture<Long> scanBatch(World world, List<int[]> batch, int minY, int maxY, int minBlock, int maxBlock) {
+    private CompletableFuture<Void> scanBatch(World world, List<int[]> batch, int minY, int maxY, int minBlock, int maxBlock, int[] counts) {
         List<CompletableFuture<Chunk>> chunkFutures = new ArrayList<>(batch.size());
         for (int[] coord : batch) {
             // gen=false: a never-generated chunk holds nothing and scores zero, so skip it
@@ -118,38 +133,29 @@ public class LevelHandler {
             }
 
             return snapshots;
-        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenApplyAsync(snapshots -> {
-            int[] table = this.pointsByMaterialOrdinal;
-
-            long points = 0;
+        }, Bukkit.getScheduler().getMainThreadExecutor(plugin)).thenAcceptAsync(snapshots -> {
             for (ChunkSnapshot snapshot : snapshots) {
-                points += calculateSnapshotPoints(snapshot, minY, maxY, minBlock, maxBlock, table);
+                countSnapshot(snapshot, minY, maxY, minBlock, maxBlock, counts);
             }
-
-            return points;
         }, plugin.getBukkitAsyncExecutor());
     }
 
-    private static long calculateSnapshotPoints(ChunkSnapshot snapshot, int minY, int maxY, int minBlock, int maxBlock, int[] table) {
+    private static void countSnapshot(ChunkSnapshot snapshot, int minY, int maxY, int minBlock, int maxBlock, int[] counts) {
 
         int minX = Math.max(0, minBlock - snapshot.getX() * 16);
         int maxX = Math.min(15, maxBlock - snapshot.getX() * 16);
         int minZ = Math.max(0, minBlock - snapshot.getZ() * 16);
         int maxZ = Math.min(15, maxBlock - snapshot.getZ() * 16);
-        long points = 0;
 
         for (int y = minY; y < maxY; y++) {
             for (int z = minZ; z <= maxZ; z++) {
                 for (int x = minX; x <= maxX; x++) {
 
-                    Material mat = snapshot.getBlockType(x, y, z);
-                    points += table[mat.ordinal()];
+                    counts[snapshot.getBlockType(x, y, z).ordinal()]++;
 
                 }
             }
         }
-
-        return points;
     }
 
     public CompletableFuture<Integer> getIslandLevel(UUID islandUuid) {

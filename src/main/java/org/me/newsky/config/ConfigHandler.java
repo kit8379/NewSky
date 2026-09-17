@@ -25,6 +25,7 @@ public class ConfigHandler {
     private volatile FileConfiguration commands;
     private volatile FileConfiguration levels;
     private volatile FileConfiguration upgrades;
+    private volatile FileConfiguration limits;
 
     public ConfigHandler(NewSky plugin) {
         this.plugin = plugin;
@@ -37,6 +38,7 @@ public class ConfigHandler {
         this.commands = load("commands.yml");
         this.levels = load("levels.yml");
         this.upgrades = load("upgrades.yml");
+        this.limits = load("limits.yml");
     }
 
     private FileConfiguration load(String fileName) {
@@ -331,6 +333,31 @@ public class ConfigHandler {
 
     public int getBlockLevel(String material) {
         return levels.getInt("blocks." + material, 0);
+    }
+
+    // ================================================================================================================
+    // Limits Section
+    // ================================================================================================================
+
+    /** Block caps by material name, in config order; 0 leaves that block unlimited. */
+    public Map<String, Integer> getBlockLimits() {
+        return getLimits("limit.blocks");
+    }
+
+    /** Entity caps by entity type name, in config order; 0 leaves that entity unlimited. */
+    public Map<String, Integer> getEntityLimits() {
+        return getLimits("limit.entities");
+    }
+
+    private Map<String, Integer> getLimits(String path) {
+        ConfigurationSection section = Objects.requireNonNull(limits.getConfigurationSection(path), path);
+
+        Map<String, Integer> result = new LinkedHashMap<>();
+        for (String key : section.getKeys(false)) {
+            result.put(key, section.getInt(key));
+        }
+
+        return result;
     }
 
 // ================================================================================================================
@@ -1662,6 +1689,14 @@ public class ConfigHandler {
 
     public Component getPlayerNoItemInHandMessage() {
         return ColorUtils.colorize(messages.getString("messages.no-item-in-hand"));
+    }
+
+    public Component getBlockLimitReachedMessage(String block, int limit) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.block-limit-reached")).replace("{block}", block).replace("{limit}", String.valueOf(limit)));
+    }
+
+    public Component getBlockLimitCalculatingMessage() {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.block-limit-calculating")));
     }
 
     public Component getPlayerNotOnlineMessage(String player) {

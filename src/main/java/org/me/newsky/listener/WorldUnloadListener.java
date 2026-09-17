@@ -5,6 +5,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.WorldUnloadEvent;
 import org.me.newsky.NewSky;
+import org.me.newsky.island.LimitHandler;
 import org.me.newsky.scheduler.LevelUpdateScheduler;
 import org.me.newsky.util.IslandUtils;
 import org.me.newsky.snapshot.IslandSnapshot;
@@ -17,12 +18,14 @@ public final class WorldUnloadListener implements Listener {
     private final NewSky plugin;
     private final LevelUpdateScheduler levelUpdateScheduler;
     private final IslandSnapshot islandSnapshot;
+    private final LimitHandler limitHandler;
     private final WorldActivityHandler worldActivityHandler;
 
-    public WorldUnloadListener(NewSky plugin, LevelUpdateScheduler levelUpdateScheduler, IslandSnapshot islandSnapshot, WorldActivityHandler worldActivityHandler) {
+    public WorldUnloadListener(NewSky plugin, LevelUpdateScheduler levelUpdateScheduler, IslandSnapshot islandSnapshot, LimitHandler limitHandler, WorldActivityHandler worldActivityHandler) {
         this.plugin = plugin;
         this.levelUpdateScheduler = levelUpdateScheduler;
         this.islandSnapshot = islandSnapshot;
+        this.limitHandler = limitHandler;
         this.worldActivityHandler = worldActivityHandler;
     }
 
@@ -38,6 +41,7 @@ public final class WorldUnloadListener implements Listener {
 
         levelUpdateScheduler.unregisterIsland(islandUuid);
         islandSnapshot.unload(islandUuid);
+        limitHandler.unload(islandUuid);
         worldActivityHandler.clearWorld(worldName);
 
         plugin.debug("WorldUnloadListener", "Unloaded island org.me.newsky.snapshot and unregistered level updates for island UUID: " + islandUuid);

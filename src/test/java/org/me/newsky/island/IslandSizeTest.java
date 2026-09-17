@@ -24,6 +24,7 @@ import org.me.newsky.scheduler.LevelUpdateScheduler;
 import org.me.newsky.snapshot.IslandSnapshot;
 import org.me.newsky.thread.BukkitAsyncExecutor;
 import org.me.newsky.util.IslandUtils;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import java.io.InputStreamReader;
@@ -201,8 +202,12 @@ class IslandSizeTest {
             bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
             bukkit.when(Bukkit::getScheduler).thenReturn(scheduler);
             bukkit.when(() -> Bukkit.getWorld(world.getName())).thenReturn(world);
-            assertEquals(size * size, new LevelHandler(plugin, config, database).calIslandLevel(islandId).join());
+            LimitHandler limits = mock(LimitHandler.class);
+            assertEquals(size * size, new LevelHandler(plugin, config, database, limits).calIslandLevel(islandId).join());
             verify(database).updateIslandLevel(islandId, size * size);
+            ArgumentCaptor<int[]> counts = ArgumentCaptor.forClass(int[].class);
+            verify(limits).reset(eq(islandId), counts.capture());
+            assertEquals(size * size, counts.getValue()[Material.STONE.ordinal()]);
         }
     }
 

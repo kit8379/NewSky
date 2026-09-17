@@ -13,7 +13,7 @@ public final class LevelUpdateScheduler {
 
     private static final long BASE_INTERVAL_MS = 5 * 60_000L;
     private static final long JITTER_MS = 60_000L;
-    private static final int MAX_CONCURRENT = 2;
+    private static final int MAX_CONCURRENT = 5;
     // A scan whose chunk futures are never completed (world unloaded mid-scan) would
     // otherwise pin its concurrency slot forever; the widest realistic scan is ~10s.
     private static final long SCAN_TIMEOUT_SECONDS = 120L;
@@ -57,7 +57,9 @@ public final class LevelUpdateScheduler {
 
         long now = System.currentTimeMillis();
 
-        long firstDelay = 1_000L + nextJitterMs();
+        // Due at the next poll: block limits fail closed until this first scan has counted the
+        // island, so it must not sit behind the jitter. MAX_CONCURRENT still bounds a load burst.
+        long firstDelay = 0L;
 
         Entry e = new Entry(islandUuid, now + firstDelay);
         entries.put(islandUuid, e);
