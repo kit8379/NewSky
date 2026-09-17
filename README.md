@@ -140,7 +140,7 @@ Test in game with `/papi parse me %newsky_island_level%` (repeat after the initi
 3. Place **NewSky.jar** and the downloaded **AdvancedSlimePaper plugin JAR** into your server’s `plugins/` folder.
 4. Make sure your **Redis** and **MySQL** servers are running and accessible from all Minecraft servers in your network.
 5. Start the server once. The plugin will auto-generate configuration files like `config.yml`, `commands.yml`, and
-   `messages.yml`.
+   `messages.yml`, `levels.yml` and `upgrades.yml`.
 6. Configure the generated `config.yml` to match your cluster's Redis/MySQL settings and server role (lobby/non-lobby),
    no need to configure AdvancedSlimePaper Plugin.
 7. Copy the configured plugin folder to **all servers** that are part of your Skyblock cluster group.
@@ -157,6 +157,7 @@ The plugin uses YAML configuration files for easy customization. Key files inclu
 - `commands.yml`: Command definitions and permissions
 - `messages.yml`: Customizable messages for commands and events
 - `levels.yml`: Block levels configuration
+- `upgrades.yml`: Island upgrades (levels, prices, limits and allowed biomes)
 
 config.yml:
 ```yaml

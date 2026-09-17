@@ -9,6 +9,7 @@ import org.me.newsky.api.NewSkyAPI;
 import org.me.newsky.command.AsyncTabComplete;
 import org.me.newsky.command.SubCommand;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.exceptions.BiomeNotUnlockedException;
 import org.me.newsky.exceptions.InvalidBiomeException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
@@ -81,6 +82,9 @@ public class PlayerBiomeCommand implements SubCommand, AsyncTabComplete {
                 player.sendMessage(config.getPlayerNoIslandMessage());
             } else if (cause instanceof LocationNotInIslandException) {
                 player.sendMessage(config.getPlayerBiomeMustInOwnIslandMessage());
+            } else if (cause instanceof BiomeNotUnlockedException) {
+                player.sendMessage(config.getPlayerBiomeNotUnlockedMessage(biomeName));
+                player.sendMessage(config.getPlayerBiomeAllowedListMessage(cause.getMessage()));
             } else if (cause instanceof InvalidBiomeException) {
                 player.sendMessage(config.getPlayerBiomeInvalidMessage(biomeName));
             } else {
@@ -96,7 +100,7 @@ public class PlayerBiomeCommand implements SubCommand, AsyncTabComplete {
 
     @Override
     public CompletableFuture<List<String>> tabCompleteAsync(CommandSender sender, String label, String[] args) {
-        if (!(sender instanceof Player player)) {
+        if (!(sender instanceof Player)) {
             return CompletableFuture.completedFuture(Collections.emptyList());
         }
 

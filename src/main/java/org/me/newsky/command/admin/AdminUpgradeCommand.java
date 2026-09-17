@@ -104,7 +104,7 @@ public class AdminUpgradeCommand implements SubCommand, AsyncTabComplete {
             return api.getIslandUuid(ownerUuidOpt.get()).thenCompose(islandUuid -> api.getUpgradeLevel(islandUuid, upgradeId)).thenAccept(level -> {
                 sender.sendMessage(config.getAdminUpgradeDetailsHeaderMessage(ownerName, upgradeId));
                 sender.sendMessage(config.getAdminUpgradeDetailsCurrentLevelMessage(upgradeId, level));
-                sender.sendMessage(config.getAdminUpgradeDetailsCurrentValueMessage(config.getUpgradeLimit(upgradeId, level)));
+                sender.sendMessage(config.getAdminUpgradeDetailsCurrentValueMessage(config.getUpgradeValue(upgradeId, level)));
             });
         }).exceptionally(ex -> {
             handleFailure(sender, ownerName, upgradeId, ex);

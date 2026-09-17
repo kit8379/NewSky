@@ -157,7 +157,7 @@ public class NewSky extends JavaPlugin {
             levelHandler = new LevelHandler(this, config, databaseHandler);
             BanHandler banHandler = new BanHandler(this, databaseHandler, islandDistributor);
             CoopHandler coopHandler = new CoopHandler(this, databaseHandler, islandDistributor, onlinePlayerRegistry);
-            BiomeHandler biomeHandler = new BiomeHandler(this, databaseHandler);
+            BiomeHandler biomeHandler = new BiomeHandler(this, config, databaseHandler);
             EconomyHandler economyHandler = new EconomyHandler(this);
             UpgradeHandler upgradeHandler = new UpgradeHandler(this, config, databaseHandler, islandDistributor, economyHandler);
             LobbyHandler lobbyHandler = new LobbyHandler(this, config, islandDistributor);

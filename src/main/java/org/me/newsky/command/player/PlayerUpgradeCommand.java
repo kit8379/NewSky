@@ -105,7 +105,7 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
 
         player.sendMessage(config.getPlayerUpgradeDetailsHeaderMessage(upgradeId));
         player.sendMessage(config.getPlayerUpgradeDetailsCurrentLevelMessage(details.currentLevel()));
-        player.sendMessage(config.getPlayerUpgradeDetailsCurrentValueMessage(details.currentLimit()));
+        player.sendMessage(config.getPlayerUpgradeDetailsCurrentValueMessage(details.currentValue()));
 
         if (details.maxed()) {
             player.sendMessage(config.getPlayerUpgradeDetailsNextLevelMessage(unknown));
@@ -119,7 +119,7 @@ public class PlayerUpgradeCommand implements SubCommand, AsyncTabComplete {
         }
 
         player.sendMessage(config.getPlayerUpgradeDetailsNextLevelMessage(String.valueOf(details.nextLevel())));
-        player.sendMessage(config.getPlayerUpgradeDetailsNextValueMessage(String.valueOf(details.nextLimit())));
+        player.sendMessage(config.getPlayerUpgradeDetailsNextValueMessage(details.nextValue()));
         player.sendMessage(config.getPlayerUpgradeDetailsRequireIslandLevelMessage(String.valueOf(details.nextRequireLevel())));
         player.sendMessage(config.getPlayerUpgradeDetailsYourIslandLevelMessage(details.islandLevel()));
         player.sendMessage(config.getPlayerUpgradeDetailsPriceMessage(details.nextPrice()));

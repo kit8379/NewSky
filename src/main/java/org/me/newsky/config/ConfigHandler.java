@@ -22,6 +22,7 @@ public class ConfigHandler {
     private volatile FileConfiguration messages;
     private volatile FileConfiguration commands;
     private volatile FileConfiguration levels;
+    private volatile FileConfiguration upgrades;
 
     public ConfigHandler(NewSky plugin) {
         this.plugin = plugin;
@@ -33,6 +34,7 @@ public class ConfigHandler {
         this.messages = load("messages.yml");
         this.commands = load("commands.yml");
         this.levels = load("levels.yml");
+        this.upgrades = load("upgrades.yml");
     }
 
     private FileConfiguration load(String fileName) {
@@ -237,7 +239,7 @@ public class ConfigHandler {
     }
 
     public List<String> getUpgradeIds() {
-        return Objects.requireNonNull(config.getConfigurationSection("upgrades")).getKeys(false).stream().toList();
+        return Objects.requireNonNull(upgrades.getConfigurationSection("upgrades")).getKeys(false).stream().toList();
     }
 
     public boolean isUpgrade(String upgradeId) {
@@ -249,20 +251,40 @@ public class ConfigHandler {
      * level every island starts at and the last is the maximum.
      */
     public List<Integer> getUpgradeLevels(String upgradeId) {
-        return Objects.requireNonNull(config.getConfigurationSection("upgrades." + upgradeId)).getKeys(false).stream().map(Integer::parseInt).sorted().toList();
+        return Objects.requireNonNull(upgrades.getConfigurationSection("upgrades." + upgradeId)).getKeys(false).stream().map(Integer::parseInt).sorted().toList();
     }
 
     public int getUpgradeLimit(String upgradeId, int level) {
         String valueKey = upgradeId.equals("island-size") ? "size" : "limit";
-        return config.getInt("upgrades." + upgradeId + "." + level + "." + valueKey);
+        return upgrades.getInt("upgrades." + upgradeId + "." + level + "." + valueKey);
+    }
+
+    /**
+     * Biome keys a member may set at that level of the {@code biomes} upgrade, lowercased.
+     * Spell them as the biome command does ({@code PLAINS} or {@code plains}, not
+     * {@code minecraft:plains}).
+     */
+    public List<String> getUpgradeAllowedBiomes(int level) {
+        return upgrades.getStringList("upgrades.biomes." + level + ".allowed").stream().map(biome -> biome.toLowerCase(Locale.ROOT)).toList();
+    }
+
+    /**
+     * The level's value as players see it: the numeric limit or size, or the allowed biome list.
+     */
+    public String getUpgradeValue(String upgradeId, int level) {
+        if (upgradeId.equals("biomes")) {
+            return String.join(", ", getUpgradeAllowedBiomes(level));
+        }
+
+        return String.valueOf(getUpgradeLimit(upgradeId, level));
     }
 
     public int getUpgradeRequireLevel(String upgradeId, int level) {
-        return config.getInt("upgrades." + upgradeId + "." + level + ".require-level");
+        return upgrades.getInt("upgrades." + upgradeId + "." + level + ".require-level");
     }
 
     public double getUpgradePrice(String upgradeId, int level) {
-        return config.getDouble("upgrades." + upgradeId + "." + level + ".price");
+        return upgrades.getDouble("upgrades." + upgradeId + "." + level + ".price");
     }
 
     public String getBaseCommandMode() {
@@ -1690,6 +1712,14 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-biome-invalid")).replace("{biome}", biome));
     }
 
+    public Component getPlayerBiomeNotUnlockedMessage(String biome) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-biome-not-unlocked")).replace("{biome}", biome));
+    }
+
+    public Component getPlayerBiomeAllowedListMessage(String biomes) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-biome-allowed-list")).replace("{biomes}", biomes));
+    }
+
     public Component getPlayerBiomeChangeSuccessMessage(String biome) {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-biome-change-success")).replace("{biome}", biome));
     }
@@ -1769,8 +1799,8 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-current-level")).replace("{level}", String.valueOf(level)));
     }
 
-    public Component getPlayerUpgradeDetailsCurrentValueMessage(int value) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-current-value")).replace("{value}", String.valueOf(value)));
+    public Component getPlayerUpgradeDetailsCurrentValueMessage(String value) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.player-upgrade-details-current-value")).replace("{value}", value));
     }
 
     public Component getPlayerUpgradeDetailsNextLevelMessage(String level) {
@@ -1833,8 +1863,8 @@ public class ConfigHandler {
         return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-upgrade-details-current-level")).replace("{upgrade}", upgrade).replace("{level}", String.valueOf(level)));
     }
 
-    public Component getAdminUpgradeDetailsCurrentValueMessage(int value) {
-        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-upgrade-details-current-value")).replace("{value}", String.valueOf(value)));
+    public Component getAdminUpgradeDetailsCurrentValueMessage(String value) {
+        return ColorUtils.colorize(Objects.requireNonNull(messages.getString("messages.admin-upgrade-details-current-value")).replace("{value}", value));
     }
 
     public Component getAdminUpgradeInvalidLevelMessage() {

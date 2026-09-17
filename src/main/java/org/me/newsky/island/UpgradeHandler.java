@@ -95,16 +95,16 @@ public class UpgradeHandler {
             return new Progress(database.getIslandUpgradeLevel(islandUuid, upgradeId), database.getIslandLevel(islandUuid));
         }, plugin.getBukkitAsyncExecutor()).thenCompose(progress -> economy.getBalance(playerUuid).thenCompose(balance -> {
             int current = progress.currentLevel();
-            int currentLimit = config.getUpgradeLimit(upgradeId, current);
+            String currentValue = config.getUpgradeValue(upgradeId, current);
             if (current >= config.getUpgradeLevels(upgradeId).getLast()) {
-                return economy.format(balance).thenApply(formattedBalance -> new Upgrade(current, currentLimit, true, 0, 0, 0, null, false, progress.islandLevel(), formattedBalance));
+                return economy.format(balance).thenApply(formattedBalance -> new Upgrade(current, currentValue, true, 0, null, 0, null, false, progress.islandLevel(), formattedBalance));
             }
 
             int next = current + 1;
             int requireLevel = config.getUpgradeRequireLevel(upgradeId, next);
             double price = config.getUpgradePrice(upgradeId, next);
             boolean available = progress.islandLevel() >= requireLevel && balance >= price;
-            return economy.format(price).thenCombine(economy.format(balance), (formattedPrice, formattedBalance) -> new Upgrade(current, currentLimit, false, next, config.getUpgradeLimit(upgradeId, next), requireLevel, formattedPrice, available, progress.islandLevel(), formattedBalance));
+            return economy.format(price).thenCombine(economy.format(balance), (formattedPrice, formattedBalance) -> new Upgrade(current, currentValue, false, next, config.getUpgradeValue(upgradeId, next), requireLevel, formattedPrice, available, progress.islandLevel(), formattedBalance));
         }));
     }
 

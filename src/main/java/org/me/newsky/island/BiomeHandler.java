@@ -8,23 +8,29 @@ import org.bukkit.Registry;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.me.newsky.NewSky;
+import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
+import org.me.newsky.exceptions.BiomeNotUnlockedException;
 import org.me.newsky.exceptions.InvalidBiomeException;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.exceptions.LocationNotInIslandException;
 import org.me.newsky.exceptions.WorldNotFoundException;
 import org.me.newsky.util.IslandUtils;
 
+import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 public final class BiomeHandler {
 
     private final NewSky plugin;
+    private final ConfigHandler config;
     private final DatabaseHandler database;
 
-    public BiomeHandler(NewSky plugin, DatabaseHandler database) {
+    public BiomeHandler(NewSky plugin, ConfigHandler config, DatabaseHandler database) {
         this.plugin = plugin;
+        this.config = config;
         this.database = database;
     }
 
@@ -35,6 +41,17 @@ public final class BiomeHandler {
 
             if (!IslandUtils.parseIslandName(islandUuid).equals(worldName)) {
                 throw new LocationNotInIslandException();
+            }
+
+            // The island's biomes upgrade level decides which biomes its members may set.
+            List<String> allowed = config.getUpgradeAllowedBiomes(database.getIslandUpgradeLevel(islandUuid, "biomes"));
+            String key = biomeName.toLowerCase(Locale.ROOT);
+            if (key.startsWith("minecraft:")) {
+                key = key.substring("minecraft:".length());
+            }
+
+            if (!allowed.contains(key)) {
+                throw new BiomeNotUnlockedException(String.join(", ", allowed));
             }
         }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> applyChunkBiome(worldName, chunkX, chunkZ, biomeName));
     }

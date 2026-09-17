@@ -63,9 +63,9 @@ class IslandSizeTest {
     @Test
     void defaultConfigExposesAllFiveSizesAndRequirements() throws Exception {
         ConfigHandler realConfig = mock(ConfigHandler.class, CALLS_REAL_METHODS);
-        try (var stream = getClass().getResourceAsStream("/config.yml")) {
+        try (var stream = getClass().getResourceAsStream("/upgrades.yml")) {
             assertNotNull(stream);
-            Field field = ConfigHandler.class.getDeclaredField("config");
+            Field field = ConfigHandler.class.getDeclaredField("upgrades");
             field.setAccessible(true);
             field.set(realConfig, YamlConfiguration.loadConfiguration(new InputStreamReader(stream, StandardCharsets.UTF_8)));
         }
@@ -82,6 +82,7 @@ class IslandSizeTest {
         assertEquals(5, realConfig.getUpgradeLimit("team-limit", 1));
     }
 
+    @SuppressWarnings("UnstableApiUsage")
     @ParameterizedTest
     @ValueSource(ints = {75, 100, 125, 150, 175})
     void loadedBorderStaysAtOriginAndProtectionUsesConfiguredWidth(int size) {

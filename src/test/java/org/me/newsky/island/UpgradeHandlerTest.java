@@ -61,8 +61,8 @@ class UpgradeHandlerTest {
 
         when(config.isUpgrade("coop-limit")).thenReturn(true);
         when(config.getUpgradeLevels("coop-limit")).thenReturn(List.of(1, 2, 3));
-        when(config.getUpgradeLimit("coop-limit", 1)).thenReturn(1);
-        when(config.getUpgradeLimit("coop-limit", 2)).thenReturn(2);
+        when(config.getUpgradeValue("coop-limit", 1)).thenReturn("1");
+        when(config.getUpgradeValue("coop-limit", 2)).thenReturn("2");
         when(config.getUpgradeRequireLevel("coop-limit", 2)).thenReturn(100);
         when(config.getUpgradePrice("coop-limit", 2)).thenReturn(25000.0);
         when(database.getIslandUpgradeLevel(island, "coop-limit")).thenReturn(1);
@@ -149,13 +149,13 @@ class UpgradeHandlerTest {
     void detailsCombineIslandStateWithTheViewersBalance() {
         when(economy.getBalance(payer)).thenReturn(30000.0);
         Upgrade details = handler.getUpgradeDetails(island, buyer, "coop-limit").join();
-        assertEquals(new Upgrade(1, 1, false, 2, 2, 100, "$25000.0", true, 150, "$30000.0"), details);
+        assertEquals(new Upgrade(1, "1", false, 2, "2", 100, "$25000.0", true, 150, "$30000.0"), details);
 
         when(economy.getBalance(payer)).thenReturn(10.0);
         assertFalse(handler.getUpgradeDetails(island, buyer, "coop-limit").join().available());
 
         when(database.getIslandUpgradeLevel(island, "coop-limit")).thenReturn(3);
-        when(config.getUpgradeLimit("coop-limit", 3)).thenReturn(3);
+        when(config.getUpgradeValue("coop-limit", 3)).thenReturn("3");
         assertTrue(handler.getUpgradeDetails(island, buyer, "coop-limit").join().maxed());
         verifyNoInteractions(distributor);
     }
