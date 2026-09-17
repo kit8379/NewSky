@@ -187,4 +187,11 @@ class DatabaseHandlerUpgradeTest {
         field.setAccessible(true);
         field.set(database, value);
     }
+
+    @Test
+    void snapshotCarriesTheGeneratorRatesLevel() {
+        assertEquals(1, database.getIslandSnapshot(island).getGeneratorLevel());
+        database.updateIslandUpgradeLevel(admin, island, "generator-rates", 1, 2);
+        assertEquals(2, database.getIslandSnapshot(island).getGeneratorLevel());
+    }
 }

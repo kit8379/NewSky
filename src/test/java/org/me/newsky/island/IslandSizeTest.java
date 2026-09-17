@@ -202,6 +202,6 @@ class IslandSizeTest {
     }
 
     private Island island(int size) {
-        return new Island(islandId, false, false, owner, Set.of(), Set.of(), Set.of(), Map.of(), null, size);
+        return new Island(islandId, false, false, owner, Set.of(), Set.of(), Set.of(), Map.of(), null, size, 1);
     }
 }

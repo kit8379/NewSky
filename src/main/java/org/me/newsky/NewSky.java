@@ -61,6 +61,7 @@ public class NewSky extends JavaPlugin {
     private MSPTUpdateScheduler msptUpdateScheduler;
     private CrossServerMessenger crossServerMessenger;
     private LevelHandler levelHandler;
+    private CobblestoneGeneratorHandler cobblestoneGeneratorHandler;
     private NewSkyAPI api;
     private NewSkyExpansion placeholderExpansion;
     private BukkitAsyncExecutor bukkitAsyncExecutor;
@@ -155,6 +156,7 @@ public class NewSky extends JavaPlugin {
             HomeHandler homeHandler = new HomeHandler(this, databaseHandler, islandDistributor, onlinePlayerRegistry);
             WarpHandler warpHandler = new WarpHandler(this, databaseHandler, islandDistributor, onlinePlayerRegistry);
             levelHandler = new LevelHandler(this, config, databaseHandler);
+            cobblestoneGeneratorHandler = new CobblestoneGeneratorHandler(this, config);
             BanHandler banHandler = new BanHandler(this, databaseHandler, islandDistributor);
             CoopHandler coopHandler = new CoopHandler(this, databaseHandler, islandDistributor, onlinePlayerRegistry);
             BiomeHandler biomeHandler = new BiomeHandler(this, config, databaseHandler);
@@ -208,6 +210,7 @@ public class NewSky extends JavaPlugin {
             getServer().getPluginManager().registerEvents(new IslandAccessListener(this, config, islandSnapshot), this);
             getServer().getPluginManager().registerEvents(new IslandRespawnListener(this, islandSnapshot), this);
             getServer().getPluginManager().registerEvents(new IslandPvPListener(this, config, islandSnapshot), this);
+            getServer().getPluginManager().registerEvents(new CobblestoneGeneratorListener(islandSnapshot, cobblestoneGeneratorHandler), this);
             getServer().getPluginManager().registerEvents(new UuidUpdateListener(this, uuidHandler), this);
             getServer().getPluginManager().registerEvents(new IslandCoopListener(this, coopHandler, onlinePlayerRegistry), this);
             info("All listeners loaded");
@@ -357,6 +360,7 @@ public class NewSky extends JavaPlugin {
         info("Plugin configs reloading...");
         config.reload();
         levelHandler.startup();
+        cobblestoneGeneratorHandler.startup();
         info("Plugin configs reloaded!");
     }
 

@@ -40,7 +40,7 @@ class IslandOperatorLockTest {
 
     @Test
     void lockingEvictsByTheReloadedSnapshotWithoutReadingTheDatabase() {
-        when(snapshots.get(island)).thenReturn(new Island(island, true, false, owner, Set.of(member), Set.of(coop), Set.of(), Map.of(), null, 100));
+        when(snapshots.get(island)).thenReturn(new Island(island, true, false, owner, Set.of(member), Set.of(coop), Set.of(), Map.of(), null, 100, 1));
 
         assertTrue(operator.toggleIslandLock(actor, island).join());
 

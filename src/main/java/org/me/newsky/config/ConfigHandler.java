@@ -12,6 +12,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
@@ -269,11 +271,39 @@ public class ConfigHandler {
     }
 
     /**
-     * The level's value as players see it: the numeric limit or size, or the allowed biome list.
+     * Block material weights of the {@code generator-rates} upgrade at that level, in config
+     * order. Weights are relative to each other; they are shown to players as percentages.
+     */
+    public Map<String, Double> getUpgradeGeneratorRates(int level) {
+        String path = "upgrades.generator-rates." + level + ".rates";
+        ConfigurationSection rates = Objects.requireNonNull(upgrades.getConfigurationSection(path), path);
+
+        Map<String, Double> result = new LinkedHashMap<>();
+        for (String material : rates.getKeys(false)) {
+            result.put(material, rates.getDouble(material));
+        }
+
+        return result;
+    }
+
+    /**
+     * The level's value as players see it: the numeric limit or size, the allowed biome list,
+     * or the generator rates as percentages.
      */
     public String getUpgradeValue(String upgradeId, int level) {
         if (upgradeId.equals("biomes")) {
             return String.join(", ", getUpgradeAllowedBiomes(level));
+        }
+
+        if (upgradeId.equals("generator-rates")) {
+            Map<String, Double> rates = getUpgradeGeneratorRates(level);
+            double total = rates.values().stream().mapToDouble(Double::doubleValue).sum();
+            StringJoiner value = new StringJoiner(", ");
+            for (Map.Entry<String, Double> rate : rates.entrySet()) {
+                String percent = BigDecimal.valueOf(rate.getValue() / total * 100).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString();
+                value.add(rate.getKey() + " " + percent + "%");
+            }
+            return value.toString();
         }
 
         return String.valueOf(getUpgradeLimit(upgradeId, level));

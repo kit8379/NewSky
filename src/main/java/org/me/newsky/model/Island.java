@@ -16,8 +16,9 @@ public final class Island {
     private final Map<UUID, String> defaultHomes;
     private final String defaultWarp;
     private final int size;
+    private final int generatorLevel;
 
-    public Island(UUID islandUuid, boolean lock, boolean pvp, UUID owner, Set<UUID> members, Set<UUID> coops, Set<UUID> bans, Map<UUID, String> defaultHomes, String defaultWarp, int size) {
+    public Island(UUID islandUuid, boolean lock, boolean pvp, UUID owner, Set<UUID> members, Set<UUID> coops, Set<UUID> bans, Map<UUID, String> defaultHomes, String defaultWarp, int size, int generatorLevel) {
         this.islandUuid = islandUuid;
         this.lock = lock;
         this.pvp = pvp;
@@ -28,6 +29,7 @@ public final class Island {
         this.defaultHomes = Map.copyOf(defaultHomes);
         this.defaultWarp = defaultWarp;
         this.size = size;
+        this.generatorLevel = generatorLevel;
     }
 
     public UUID getIslandUuid() {
@@ -68,5 +70,10 @@ public final class Island {
 
     public int getSize() {
         return size;
+    }
+
+    /** Level of the generator-rates upgrade: which weighted table a cobblestone generator rolls from. */
+    public int getGeneratorLevel() {
+        return generatorLevel;
     }
 }
