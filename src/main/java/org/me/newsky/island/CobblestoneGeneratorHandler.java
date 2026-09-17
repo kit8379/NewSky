@@ -17,7 +17,6 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public class CobblestoneGeneratorHandler {
 
-    private static final String UPGRADE_ID = "generator-rates";
 
     private final NewSky plugin;
     private final ConfigHandler config;
@@ -32,7 +31,7 @@ public class CobblestoneGeneratorHandler {
 
     public void startup() {
         Map<Integer, WeightedTable> built = new HashMap<>();
-        for (int level : config.getUpgradeLevels(UPGRADE_ID)) {
+        for (int level : config.getUpgradeLevels("generator-rates")) {
             built.put(level, WeightedTable.of(level, config.getUpgradeGeneratorRates(level)));
         }
 
@@ -97,7 +96,6 @@ public class CobblestoneGeneratorHandler {
                 }
             }
 
-            // Only floating-point rounding at the very top of the range lands here.
             return materials[materials.length - 1];
         }
     }

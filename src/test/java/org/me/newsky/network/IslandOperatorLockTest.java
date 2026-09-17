@@ -30,7 +30,7 @@ class IslandOperatorLockTest {
     private final DatabaseHandler database = mock(DatabaseHandler.class);
     private final IslandSnapshot snapshots = mock(IslandSnapshot.class);
     private final WorldHandler worlds = mock(WorldHandler.class);
-    private final IslandOperator operator = new IslandOperator(plugin, database, worlds, null, snapshots, null, "local");
+    private final IslandOperator operator = new IslandOperator(plugin, null, database, worlds, null, snapshots, null, "local");
 
     IslandOperatorLockTest() {
         when(database.toggleIslandLock(actor, island)).thenReturn(true);
@@ -40,7 +40,7 @@ class IslandOperatorLockTest {
 
     @Test
     void lockingEvictsByTheReloadedSnapshotWithoutReadingTheDatabase() {
-        when(snapshots.get(island)).thenReturn(new Island(island, true, false, owner, Set.of(member), Set.of(coop), Set.of(), Map.of(), null, 100, 1));
+        when(snapshots.get(island)).thenReturn(new Island(island, true, false, owner, Set.of(member), Set.of(coop), Set.of(), Map.of(), null, 1, 1));
 
         assertTrue(operator.toggleIslandLock(actor, island).join());
 

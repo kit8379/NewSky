@@ -54,7 +54,7 @@ public class IslandProtectionListener implements Listener {
             return false;
         }
 
-        int islandSize = island.getSize();
+        int islandSize = config.getUpgradeLimit("island-size", island.getSizeLevel());
 
         int x = location.getBlockX();
         int z = location.getBlockZ();

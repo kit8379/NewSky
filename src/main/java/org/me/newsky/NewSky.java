@@ -141,7 +141,7 @@ public class NewSky extends JavaPlugin {
             info("Starting handlers for island remote requests");
             crossServerMessenger = new CrossServerMessenger(this, redisHandler, serverID);
             IslandClaims islandClaims = new IslandClaims(this, islandRegistry, crossServerMessenger, serverID);
-            IslandOperator islandOperator = new IslandOperator(this, databaseHandler, worldHandler, teleportHandler, islandSnapshot, islandClaims, serverID);
+            IslandOperator islandOperator = new IslandOperator(this, config, databaseHandler, worldHandler, teleportHandler, islandSnapshot, islandClaims, serverID);
             IslandDistributor islandDistributor = new IslandDistributor(this, islandOperator, serverSelector, serverRegistry, islandRegistry, islandClaims, onlinePlayerRegistry, crossServerMessenger, serverID);
             registerCrossServerHandlers(crossServerMessenger, islandOperator, islandClaims);
             info("All handlers for remote requests loaded");

@@ -76,7 +76,7 @@ class WarpHandlerTest {
         players = mock(OnlinePlayerRegistry.class);
         snapshot = new IslandSnapshot(plugin, database);
         snapshot.load(island).join();
-        operator = new IslandOperator(plugin, database, null, null, snapshot, null, "test");
+        operator = new IslandOperator(plugin, config, database, null, null, snapshot, null, "test");
         when(distributor.setWarp(any(), any(), anyString(), anyString())).thenAnswer(call ->
                 operator.setWarp(call.getArgument(0), call.getArgument(1), call.getArgument(2), call.getArgument(3)));
         when(distributor.deleteWarp(any(), any(), anyString())).thenAnswer(call ->

@@ -6,6 +6,7 @@ import org.bukkit.World;
 import org.bukkit.WorldBorder;
 import org.bukkit.entity.Player;
 import org.me.newsky.NewSky;
+import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.database.DatabaseHandler;
 import org.me.newsky.exceptions.*;
 import org.me.newsky.model.Actor;
@@ -33,6 +34,7 @@ import java.util.function.Supplier;
 public class IslandOperator {
 
     private final NewSky plugin;
+    private final ConfigHandler config;
     private final DatabaseHandler database;
     private final WorldHandler worldHandler;
     private final TeleportHandler teleportHandler;
@@ -43,8 +45,9 @@ public class IslandOperator {
     private final Map<UUID, CompletableFuture<Void>> chains = new ConcurrentHashMap<>();
     private final Set<UUID> hosted = ConcurrentHashMap.newKeySet();
 
-    public IslandOperator(NewSky plugin, DatabaseHandler database, WorldHandler worldHandler, TeleportHandler teleportHandler, IslandSnapshot islandSnapshot, IslandClaims islandClaims, String serverID) {
+    public IslandOperator(NewSky plugin, ConfigHandler config, DatabaseHandler database, WorldHandler worldHandler, TeleportHandler teleportHandler, IslandSnapshot islandSnapshot, IslandClaims islandClaims, String serverID) {
         this.plugin = plugin;
+        this.config = config;
         this.database = database;
         this.worldHandler = worldHandler;
         this.teleportHandler = teleportHandler;
@@ -349,7 +352,7 @@ public class IslandOperator {
                 }
                 World world = Bukkit.getWorld(IslandUtils.parseIslandName(islandUuid));
                 if (world != null) {
-                    int size = island.getSize();
+                    int size = config.getUpgradeLimit("island-size", island.getSizeLevel());
                     WorldBorder border = world.getWorldBorder();
                     border.setCenter(0.0, 0.0);
                     border.setSize(size);

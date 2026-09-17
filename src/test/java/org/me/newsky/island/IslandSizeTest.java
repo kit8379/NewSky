@@ -40,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class IslandSizeTest {
+    private static final int[] SIZES = {75, 100, 125, 150, 175};
     private final UUID islandId = UUID.randomUUID();
     private final UUID owner = UUID.randomUUID();
     private final NewSky plugin = mock(NewSky.class);
@@ -58,6 +59,9 @@ class IslandSizeTest {
         BukkitAsyncExecutor async = mock(BukkitAsyncExecutor.class);
         doAnswer(call -> { call.<Runnable>getArgument(0).run(); return null; }).when(async).execute(any());
         when(plugin.getBukkitAsyncExecutor()).thenReturn(async);
+        for (int level = 1; level <= SIZES.length; level++) {
+            when(config.getUpgradeLimit("island-size", level)).thenReturn(SIZES[level - 1]);
+        }
     }
 
     @Test
@@ -84,9 +88,10 @@ class IslandSizeTest {
 
     @SuppressWarnings("UnstableApiUsage")
     @ParameterizedTest
-    @ValueSource(ints = {75, 100, 125, 150, 175})
-    void loadedBorderStaysAtOriginAndProtectionUsesConfiguredWidth(int size) {
-        when(snapshots.get(islandId)).thenReturn(island(size));
+    @ValueSource(ints = {1, 2, 3, 4, 5})
+    void loadedBorderStaysAtOriginAndProtectionUsesConfiguredWidth(int level) {
+        int size = SIZES[level - 1];
+        when(snapshots.get(islandId)).thenReturn(island(level));
         new WorldLoadListener(plugin, config, mock(LevelUpdateScheduler.class), snapshots).onWorldLoad(new WorldLoadEvent(world));
         verify(border).setSize(size);
         verify(border).setCenter(0.0, 0.0);
@@ -109,9 +114,9 @@ class IslandSizeTest {
 
     @Test
     void hostRefreshesSizeAfterPurchaseAndAdminDowngrade() {
-        IslandOperator operator = new IslandOperator(plugin, database, null, null, snapshots, null, "local");
+        IslandOperator operator = new IslandOperator(plugin, config, database, null, null, snapshots, null, "local");
         when(snapshots.reload(islandId)).thenReturn(CompletableFuture.completedFuture(null));
-        when(snapshots.get(islandId)).thenReturn(island(100), island(75));
+        when(snapshots.get(islandId)).thenReturn(island(2), island(1));
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getScheduler).thenReturn(scheduler);
             bukkit.when(() -> Bukkit.getWorld(world.getName())).thenReturn(world);
@@ -128,7 +133,7 @@ class IslandSizeTest {
 
     @Test
     void rejectedWriteDoesNotChangeTheLoadedBorder() {
-        IslandOperator operator = new IslandOperator(plugin, database, null, null, snapshots, null, "local");
+        IslandOperator operator = new IslandOperator(plugin, config, database, null, null, snapshots, null, "local");
         Actor actor = new Actor.Player(owner);
         when(snapshots.reload(islandId)).thenReturn(CompletableFuture.completedFuture(null));
         doThrow(new UpgradeLevelChangedException()).when(database).updateIslandUpgradeLevel(actor, islandId, "island-size", 1, 2);
@@ -140,7 +145,7 @@ class IslandSizeTest {
 
     @Test
     void committedUpgradeIsNotRefundedIfSnapshotRefreshFails() {
-        IslandOperator operator = new IslandOperator(plugin, database, null, null, snapshots, null, "local");
+        IslandOperator operator = new IslandOperator(plugin, config, database, null, null, snapshots, null, "local");
         when(snapshots.reload(islandId)).thenReturn(CompletableFuture.failedFuture(new IllegalStateException("database unavailable")));
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getScheduler).thenReturn(scheduler);
@@ -152,9 +157,9 @@ class IslandSizeTest {
 
     @Test
     void committedUpgradeIsNotRefundedIfBorderRefreshFails() {
-        IslandOperator operator = new IslandOperator(plugin, database, null, null, snapshots, null, "local");
+        IslandOperator operator = new IslandOperator(plugin, config, database, null, null, snapshots, null, "local");
         when(snapshots.reload(islandId)).thenReturn(CompletableFuture.completedFuture(null));
-        when(snapshots.get(islandId)).thenReturn(island(100));
+        when(snapshots.get(islandId)).thenReturn(island(2));
         doThrow(new IllegalStateException("border unavailable")).when(border).setSize(100);
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getScheduler).thenReturn(scheduler);
@@ -166,7 +171,7 @@ class IslandSizeTest {
 
     @Test
     void otherUpgradesRefreshTheSnapshotWithoutChangingTheBorder() {
-        IslandOperator operator = new IslandOperator(plugin, database, null, null, snapshots, null, "local");
+        IslandOperator operator = new IslandOperator(plugin, config, database, null, null, snapshots, null, "local");
         when(snapshots.reload(islandId)).thenReturn(CompletableFuture.completedFuture(null));
         operator.setUpgradeLevel(new Actor.Player(owner), islandId, "coop-limit", 1, 2).join();
         verify(snapshots).reload(islandId);
@@ -201,7 +206,7 @@ class IslandSizeTest {
         }
     }
 
-    private Island island(int size) {
-        return new Island(islandId, false, false, owner, Set.of(), Set.of(), Set.of(), Map.of(), null, size, 1);
+    private Island island(int sizeLevel) {
+        return new Island(islandId, false, false, owner, Set.of(), Set.of(), Set.of(), Map.of(), null, sizeLevel, 1);
     }
 }

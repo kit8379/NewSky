@@ -87,7 +87,7 @@ class CobblestoneGeneratorTest {
     void formedCobblestoneBecomesTheRolledBlockOnlyOnIslands() {
         UUID islandUuid = UUID.randomUUID();
         IslandSnapshot snapshots = mock(IslandSnapshot.class);
-        when(snapshots.get(islandUuid)).thenReturn(new Island(islandUuid, false, false, UUID.randomUUID(), Set.of(), Set.of(), Set.of(), Map.of(), null, 75, 3));
+        when(snapshots.get(islandUuid)).thenReturn(new Island(islandUuid, false, false, UUID.randomUUID(), Set.of(), Set.of(), Set.of(), Map.of(), null, 1, 3));
         CobblestoneGeneratorHandler generator = mock(CobblestoneGeneratorHandler.class);
         when(generator.roll(3)).thenReturn(Material.IRON_ORE);
         CobblestoneGeneratorListener listener = new CobblestoneGeneratorListener(snapshots, generator);

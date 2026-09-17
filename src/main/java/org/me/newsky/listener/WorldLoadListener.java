@@ -101,7 +101,7 @@ public class WorldLoadListener implements Listener {
             return;
         }
 
-        int size = island.getSize();
+        int size = config.getUpgradeLimit("island-size", island.getSizeLevel());
 
         WorldBorder border = world.getWorldBorder();
         border.setCenter(0.0, 0.0);
