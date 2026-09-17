@@ -32,7 +32,6 @@ public final class CrossServerMessenger {
     private final String serverID;
     private final Map<String, CrossServerMessageHandler> handlers = new ConcurrentHashMap<>();
     private final Map<String, CompletableFuture<JSONObject>> pendingRequests = new ConcurrentHashMap<>();
-    private final Set<String> processingEntries = ConcurrentHashMap.newKeySet();
 
     private volatile boolean running;
 
@@ -89,107 +88,70 @@ public final class CrossServerMessenger {
     }
 
     private void consumeLoop() {
+        // Stream ids only grow, so reading onward from the last id seen never repeats an
+        // entry and never misses one within this run; start() dropped everything older.
+        StreamEntryID cursor = new StreamEntryID(0, 0);
+
         while (running && plugin.isEnabled()) {
-            boolean sawEntries = false;
-            boolean processedAny = false;
-
             try (Jedis jedis = redisHandler.getJedis()) {
-                // Paginate through the whole stream: entries still being processed stay
-                // undeleted, so a single read from the stream start would keep returning only
-                // the oldest READ_COUNT entries and hide everything behind them.
-                StreamEntryID cursor = new StreamEntryID(0, 0);
-                Set<String> seenEntryIds = new HashSet<>();
-
-                while (true) {
-                    List<Map.Entry<String, List<StreamEntry>>> streams = jedis.xread(XReadParams.xReadParams().block(READ_BLOCK_MILLIS).count(READ_COUNT), Collections.singletonMap(inboxKey(serverID), cursor));
-
-                    if (streams == null || streams.isEmpty()) {
-                        break;
-                    }
-
-                    int batchSize = 0;
-                    for (Map.Entry<String, List<StreamEntry>> stream : streams) {
-                        for (StreamEntry entry : stream.getValue()) {
-                            sawEntries = true;
-                            batchSize++;
-                            cursor = entry.getID();
-                            seenEntryIds.add(entry.getID().toString());
-
-                            if (processEntry(entry)) {
-                                processedAny = true;
-                            }
-                        }
-                    }
-
-                    if (batchSize < READ_COUNT) {
-                        break;
-                    }
+                List<Map.Entry<String, List<StreamEntry>>> streams = jedis.xread(XReadParams.xReadParams().block(READ_BLOCK_MILLIS).count(READ_COUNT), Collections.singletonMap(inboxKey(serverID), cursor));
+                if (streams == null) {
+                    continue;
                 }
 
-                // Only the consumer prunes the dedupe set, and only after a FULL sweep:
-                // an id absent from a complete stream pass has been XDELed and can never
-                // be read again. A completion thread must never remove ids itself - the
-                // consumer may still hold that entry in an already-fetched batch, and the
-                // removal would let it re-execute the handler.
-                processingEntries.retainAll(seenEntryIds);
+                for (Map.Entry<String, List<StreamEntry>> stream : streams) {
+                    for (StreamEntry entry : stream.getValue()) {
+                        cursor = entry.getID();
+                        processEntry(entry);
+                    }
+                }
             } catch (Exception e) {
                 if (running) {
                     plugin.severe("CrossServerMessenger failed while reading Redis Stream", e);
                     sleepQuietly(1000L);
                 }
             }
-
-            if (sawEntries && !processedAny) {
-                sleepQuietly(50L);
-            }
         }
     }
 
-    private boolean processEntry(StreamEntry entry) {
-        String entryId = entry.getID().toString();
-        if (!processingEntries.add(entryId)) {
-            return false;
-        }
-
+    private void processEntry(StreamEntry entry) {
         try {
             String raw = entry.getFields().get(FIELD_MESSAGE);
             if (raw == null || raw.isEmpty()) {
                 deleteEntry(entry.getID());
-                return true;
+                return;
             }
 
             CrossServerMessage message = CrossServerMessage.fromJson(raw);
             if (!serverID.equals(message.getTarget())) {
                 plugin.warning("Dropping cross-server message targeted to " + message.getTarget() + " from inbox " + serverID);
                 deleteEntry(entry.getID());
-                return true;
+                return;
             }
 
             long age = System.currentTimeMillis() - message.getTimestamp();
             if (age > MAX_MESSAGE_AGE_MILLIS) {
                 plugin.warning("Dropping stale cross-server " + message.getType() + " " + message.getAction() + " aged " + age + "ms from " + message.getSource());
                 deleteEntry(entry.getID());
-                return true;
+                return;
             }
 
             if (CrossServerMessage.TYPE_RESPONSE.equals(message.getType())) {
                 handleResponse(message);
                 deleteEntry(entry.getID());
-                return true;
+                return;
             }
 
             if (CrossServerMessage.TYPE_REQUEST.equals(message.getType())) {
                 handleRequest(entry.getID(), message);
-                return true;
+                return;
             }
 
             plugin.warning("Dropping unknown cross-server message type: " + message.getType());
             deleteEntry(entry.getID());
-            return true;
         } catch (Exception e) {
-            plugin.severe("Failed to process cross-server stream entry " + entryId, e);
+            plugin.severe("Failed to process cross-server stream entry " + entry.getID(), e);
             deleteEntry(entry.getID());
-            return true;
         }
     }
 
@@ -300,9 +262,8 @@ public final class CrossServerMessenger {
     }
 
     private void deleteEntry(StreamEntryID entryId) {
-        // Deletes from the stream only. The dedupe entry is pruned exclusively by the
-        // consumer once a full sweep no longer sees this id; removing it here would
-        // race the consumer's in-memory batch snapshot.
+        // Hygiene only: the consumer never rereads an entry, so one left behind merely sits
+        // in the inbox until MAXLEN trims it.
         try (Jedis jedis = redisHandler.getJedis()) {
             jedis.xdel(inboxKey(serverID), entryId);
         } catch (Exception e) {
