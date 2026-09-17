@@ -24,7 +24,7 @@ class AdminLimitRoutingTest {
         IslandRegistry registry = mock(IslandRegistry.class);
         when(registry.resolveHost(island)).thenReturn(new IslandRegistry.Host("remote", true));
         CrossServerMessenger messenger = mock(CrossServerMessenger.class);
-        IslandDistributor distributor = new IslandDistributor(plugin, null, null, null, registry, null, null, messenger, "local");
+        IslandDistributor distributor = new IslandDistributor(plugin, mock(IslandOperator.class), null, null, registry, null, null, messenger, "local");
 
         for (Actor actor : new Actor[]{new Actor.Bypass("console"), new Actor.Player(player)}) {
             when(messenger.request(eq("remote"), anyString(), any())).thenAnswer(call -> {

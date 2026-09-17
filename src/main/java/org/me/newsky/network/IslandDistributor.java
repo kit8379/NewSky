@@ -282,7 +282,7 @@ public class IslandDistributor {
         JSONObject payload = islandActorPayload(actor, islandUuid);
         payload.put("playerUuid", playerUuid.toString());
         return retryingStaleRouting(() -> {
-            String host = resolveHost(islandUuid);
+            String host = islandOperator.isHosted(islandUuid) ? serverID : resolveHost(islandUuid);
             // Nobody stands on an unloaded island, so expelling takes no claim.
             if (host == null) {
                 return CompletableFuture.failedFuture(new PlayerNotInIslandException());
@@ -297,6 +297,10 @@ public class IslandDistributor {
     // =====================================================================================
 
     private CompletableFuture<String> ensureIslandLoaded(UUID islandUuid) {
+        if (islandOperator.isHosted(islandUuid)) {
+            return CompletableFuture.completedFuture(serverID);
+        }
+
         String host = resolveHost(islandUuid);
         if (host != null) {
             return CompletableFuture.completedFuture(host);
@@ -326,9 +330,16 @@ public class IslandDistributor {
 
     /**
      * Runs on the host when the island is loaded, otherwise locally under a transient claim.
+     * An island hosted here needs no registry read: {@link IslandOperator#isHosted} is true
+     * only while this server holds the host claim, and {@code asHost} re-checks it inside
+     * the island's chain.
      */
     private <T> CompletableFuture<T> onIsland(UUID islandUuid, String action, JSONObject payload, Supplier<CompletableFuture<T>> operation, Function<JSONObject, T> reader) {
         return retryingStaleRouting(() -> {
+            if (islandOperator.isHosted(islandUuid)) {
+                return islandOperator.asHost(islandUuid, operation);
+            }
+
             String host = resolveHost(islandUuid);
             if (host != null) {
                 return onHost(host, islandUuid, action, payload, operation, reader);

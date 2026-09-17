@@ -20,6 +20,12 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
+/**
+ * Slime world IO and the Bukkit load/unload hops. The futures returned here complete on
+ * whichever thread ran the last step: the main thread after a Bukkit load or unload, the
+ * async executor after loader IO. Nothing is normalised, so a caller that blocks next hops
+ * itself.
+ */
 public class WorldHandler {
 
     private static final String TEMPLATE_WORLD_NAME = "newsky-template";
@@ -87,9 +93,7 @@ public class WorldHandler {
             SlimeWorld newWorld = templateWorld.clone(worldName, slimeLoader);
             newWorld.getPropertyMap().merge(properties);
             plugin.debug("WorldHandler", "World cloned from template and saved to slime loader: " + worldName);
-            return loadWorldToBukkit(newWorld).thenRunAsync(() -> {
-                plugin.debug("WorldHandler", "World successfully created: " + worldName);
-            }, plugin.getBukkitAsyncExecutor());
+            return loadWorldToBukkit(newWorld);
         } catch (Exception e) {
             plugin.severe("Failed to create slime world: " + worldName, e);
             return CompletableFuture.failedFuture(e);
@@ -101,9 +105,7 @@ public class WorldHandler {
         try {
             SlimeWorld world = asp.readWorld(slimeLoader, worldName, false, properties);
             plugin.debug("WorldHandler", "World read from slime loader: " + worldName);
-            return loadWorldToBukkit(world).thenRunAsync(() -> {
-                plugin.debug("WorldHandler", "World successfully loaded: " + worldName);
-            }, plugin.getBukkitAsyncExecutor());
+            return loadWorldToBukkit(world);
         } catch (Exception e) {
             plugin.severe("Failed to load world: " + worldName, e);
             return CompletableFuture.failedFuture(e);
@@ -123,9 +125,7 @@ public class WorldHandler {
                 plugin.debug("WorldHandler", "ASP loaded world not found for unload, skipping save: " + worldName);
             }
 
-            return unloadWorldFromBukkit(worldName).thenRunAsync(() -> {
-                plugin.debug("WorldHandler", "World successfully unloaded: " + worldName);
-            }, plugin.getBukkitAsyncExecutor());
+            return unloadWorldFromBukkit(worldName);
         } catch (Exception e) {
             plugin.severe("Failed to unload slime world: " + worldName, e);
             return CompletableFuture.failedFuture(e);

@@ -70,6 +70,10 @@ public class IslandProtectionListener implements Listener {
             return true;
         }
 
+        if (player.isOp()) {
+            return true;
+        }
+
         Island island = islandSnapshot.get(islandUuid);
         if (island == null) {
             return false;
@@ -77,10 +81,6 @@ public class IslandProtectionListener implements Listener {
 
         if (!isInsideIslandBoundary(island, location)) {
             return false;
-        }
-
-        if (player.isOp()) {
-            return true;
         }
 
         UUID playerUuid = player.getUniqueId();

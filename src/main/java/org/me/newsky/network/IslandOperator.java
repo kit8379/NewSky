@@ -68,6 +68,14 @@ public class IslandOperator {
         });
     }
 
+    /**
+     * Whether this server hosts the island. Added only after the host claim is taken and
+     * cleared before it is released, so a true answer means the claim is held right now.
+     */
+    public boolean isHosted(UUID islandUuid) {
+        return hosted.contains(islandUuid);
+    }
+
     public CompletableFuture<Void> createIsland(UUID islandUuid, UUID ownerUuid) {
         String islandName = IslandUtils.parseIslandName(islandUuid);
 
@@ -88,9 +96,9 @@ public class IslandOperator {
 
                 return islandSnapshot.load(islandUuid).thenCompose(v -> {
                     return worldHandler.createWorld(islandName);
-                }).thenRun(() -> {
+                }).thenRunAsync(() -> {
                     plugin.debug("IslandOperator", "Created island " + islandUuid + " on server: " + serverID);
-                }).exceptionallyComposeAsync(e -> {
+                }, plugin.getBukkitAsyncExecutor()).exceptionallyComposeAsync(e -> {
                     return cleanupFailedCreate(islandUuid, islandName).thenCompose(v -> {
                         return CompletableFuture.failedFuture(e);
                     });
@@ -108,10 +116,10 @@ public class IslandOperator {
             }
 
             hosted.add(islandUuid);
-            return islandSnapshot.load(islandUuid).thenCompose(v -> worldHandler.loadWorld(islandName)).thenApply(v -> {
+            return islandSnapshot.load(islandUuid).thenCompose(v -> worldHandler.loadWorld(islandName)).thenApplyAsync(v -> {
                 plugin.debug("IslandOperator", "Loaded island " + islandUuid + " on server: " + serverID);
                 return serverID;
-            }).exceptionallyComposeAsync(e -> {
+            }, plugin.getBukkitAsyncExecutor()).exceptionallyComposeAsync(e -> {
                 hosted.remove(islandUuid);
                 islandSnapshot.unload(islandUuid);
                 islandClaims.release(islandUuid, islandClaims.hostValue());
@@ -127,15 +135,17 @@ public class IslandOperator {
             if (!hosted.contains(islandUuid)) {
                 return worldHandler.unloadWorld(islandName).thenRunAsync(() -> {
                     islandClaims.release(islandUuid, islandClaims.hostValue());
-                }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> CompletableFuture.failedFuture(new IslandNotLoadedException()));
+                }, plugin.getBukkitAsyncExecutor()).thenCompose(v -> {
+                    return CompletableFuture.failedFuture(new IslandNotLoadedException());
+                });
             }
 
-            return worldHandler.unloadWorld(islandName).thenRun(() -> {
+            return worldHandler.unloadWorld(islandName).thenRunAsync(() -> {
                 hosted.remove(islandUuid);
                 islandSnapshot.unload(islandUuid);
                 islandClaims.release(islandUuid, islandClaims.hostValue());
                 plugin.debug("IslandOperator", "Unloaded island " + islandUuid + " and released its claim.");
-            });
+            }, plugin.getBukkitAsyncExecutor());
         });
     }
 
@@ -224,8 +234,7 @@ public class IslandOperator {
             return null;
         }).thenCompose(v -> {
             return worldHandler.removePlayerFromWorld(IslandUtils.parseIslandName(islandUuid), playerUuid);
-        }).thenAccept(removed -> {
-        });
+        }).thenApply(removed -> null);
     }
 
     public CompletableFuture<Void> setOwner(Actor actor, UUID islandUuid, UUID newOwnerUuid) {
@@ -241,8 +250,7 @@ public class IslandOperator {
             return null;
         }).thenCompose(v -> {
             return worldHandler.removePlayerFromWorld(IslandUtils.parseIslandName(islandUuid), playerUuid);
-        }).thenAccept(removed -> {
-        });
+        }).thenApply(removed -> null);
     }
 
     public CompletableFuture<Void> removeBan(Actor actor, UUID islandUuid, UUID playerUuid) {
@@ -265,8 +273,7 @@ public class IslandOperator {
             return null;
         }).thenCompose(v -> {
             return worldHandler.removePlayerFromWorld(IslandUtils.parseIslandName(islandUuid), playerUuid);
-        }).thenAccept(removed -> {
-        });
+        }).thenApply(removed -> null);
     }
 
     public CompletableFuture<Boolean> toggleIslandLock(Actor actor, UUID islandUuid) {
@@ -277,14 +284,18 @@ public class IslandOperator {
                 return CompletableFuture.completedFuture(false);
             }
 
-            String islandName = IslandUtils.parseIslandName(islandUuid);
-            return plugin.getApi().getIslandPlayers(islandUuid).thenCombine(plugin.getApi().getIslandCoops(islandUuid), (islandPlayers, coops) -> {
-                Set<UUID> allowed = new HashSet<>(islandPlayers);
-                allowed.addAll(coops);
-                return allowed;
-            }).thenCompose(allowed -> {
-                return worldHandler.removePlayersFromWorld(islandName, player -> !allowed.contains(player.getUniqueId()));
-            }).thenApply(v -> true);
+            Set<UUID> allowed = new HashSet<>();
+            Island island = islandSnapshot.get(islandUuid);
+            if (island != null) {
+                allowed.add(island.getOwner());
+                allowed.addAll(island.getMembers());
+                allowed.addAll(island.getCoops());
+            } else {
+                allowed.addAll(database.getIslandPlayers(islandUuid).keySet());
+                allowed.addAll(database.getIslandCoops(islandUuid));
+            }
+
+            return worldHandler.removePlayersFromWorld(IslandUtils.parseIslandName(islandUuid), player -> !allowed.contains(player.getUniqueId())).thenApply(v -> true);
         });
     }
 
@@ -353,7 +364,12 @@ public class IslandOperator {
     private <T> CompletableFuture<T> updateSnapshot(UUID islandUuid, Supplier<T> mutation) {
         try {
             T result = mutation.get();
-            return islandSnapshot.reload(islandUuid).thenApply(v -> result);
+            return islandSnapshot.reload(islandUuid).handle((v, reloadError) -> {
+                if (reloadError != null) {
+                    plugin.severe("Island data saved but could not refresh the snapshot: " + islandUuid, reloadError);
+                }
+                return result;
+            });
         } catch (Throwable error) {
             return islandSnapshot.reload(islandUuid).handle((v, reloadError) -> null).thenCompose(v -> CompletableFuture.failedFuture(error));
         }
