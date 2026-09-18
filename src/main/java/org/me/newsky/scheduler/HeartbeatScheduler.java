@@ -82,7 +82,7 @@ public class HeartbeatScheduler {
                 return;
             }
 
-            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            plugin.getBukkitAsyncExecutor().execute(() -> {
                 onlinePlayerRegistry.addAllOnlinePlayers(players, serverID);
                 plugin.warning("Re-registered " + players.size() + " online players after a heartbeat gap.");
             });

@@ -3,9 +3,8 @@ package org.me.newsky.cluster;
 import org.me.newsky.NewSky;
 import org.me.newsky.redis.RedisHandler;
 import redis.clients.jedis.Pipeline;
-import redis.clients.jedis.params.ScanParams;
-import redis.clients.jedis.resps.ScanResult;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -130,29 +129,26 @@ public class ServerRegistry extends ClusterState {
         return getActiveServersByPrefix(ClusterKeys.gameServerHeartbeatPrefix(), "Failed to get active game servers");
     }
 
+    /**
+     * Every live server re-adds itself to the known set on each beat, and only the reaper
+     * removes one, only once its heartbeat is gone, so the live servers are always a subset
+     * of the known set. Two round trips whatever the keyspace holds, where a SCAN walks the
+     * whole database.
+     */
     private Map<String, String> getActiveServersByPrefix(String prefix, String errorMessage) {
         return execute(jedis -> {
+            List<String> known = new ArrayList<>(jedis.smembers(ClusterKeys.knownServers()));
             Map<String, String> result = new LinkedHashMap<>();
+            if (known.isEmpty()) {
+                return result;
+            }
 
-            String cursor = ScanParams.SCAN_POINTER_START;
-            ScanParams params = new ScanParams().match(prefix + "*").count(200);
-
-            do {
-                ScanResult<String> scan = jedis.scan(cursor, params);
-
-                for (String key : scan.getResult()) {
-                    String value = jedis.get(key);
-                    if (value == null) {
-                        continue;
-                    }
-
-                    String serverName = key.substring(prefix.length());
-                    result.put(serverName, value);
+            List<String> values = jedis.mget(known.stream().map(serverName -> prefix + serverName).toArray(String[]::new));
+            for (int i = 0; i < known.size(); i++) {
+                if (values.get(i) != null) {
+                    result.put(known.get(i), values.get(i));
                 }
-
-                cursor = scan.getCursor();
-
-            } while (!ScanParams.SCAN_POINTER_START.equals(cursor));
+            }
 
             return result;
         }, errorMessage);

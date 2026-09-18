@@ -119,7 +119,7 @@ public final class LevelUpdateScheduler {
         } catch (Throwable t) {
             plugin.severe("LevelUpdateScheduler: Failed to start calculate for " + e.islandUuid, t);
             inFlight.decrementAndGet();
-            rescheduleFailure(e.islandUuid, now);
+            rescheduleFailure(e, now);
             return;
         }
 
@@ -130,37 +130,40 @@ public final class LevelUpdateScheduler {
 
                 if (err != null) {
                     plugin.severe("LevelUpdateScheduler: Calculate failed for " + e.islandUuid, err);
-                    rescheduleFailure(e.islandUuid, now2);
+                    rescheduleFailure(e, now2);
                 } else {
-                    rescheduleSuccess(e.islandUuid, now2);
+                    rescheduleSuccess(e, now2);
                     plugin.debug("LevelUpdateScheduler", "Calculate done for " + e.islandUuid + " level=" + level + " (inFlight=" + after + ")");
                 }
             });
         });
     }
 
-    private void rescheduleSuccess(UUID islandUuid, long now) {
-        Entry cur = entries.get(islandUuid);
-        if (cur == null) return;
+    /**
+     * Only the entry that started the scan may reschedule. A scan that outlived an unload
+     * finds the island gone, or re-registered with a fresh entry due for its own first scan,
+     * and must not push that one out.
+     */
+    private void rescheduleSuccess(Entry finished, long now) {
+        if (entries.get(finished.islandUuid) != finished) return;
 
         long next = now + BASE_INTERVAL_MS + nextJitterMs();
 
-        cur.cancelled = true;
-        Entry ne = new Entry(islandUuid, next);
-        entries.put(islandUuid, ne);
+        finished.cancelled = true;
+        Entry ne = new Entry(finished.islandUuid, next);
+        entries.put(finished.islandUuid, ne);
         pq.add(ne);
     }
 
-    private void rescheduleFailure(UUID islandUuid, long now) {
-        Entry cur = entries.get(islandUuid);
-        if (cur == null) return;
+    private void rescheduleFailure(Entry finished, long now) {
+        if (entries.get(finished.islandUuid) != finished) return;
 
         long retryBase = Math.max(5_000L, BASE_INTERVAL_MS / 10);
         long next = now + retryBase + nextJitterMs();
 
-        cur.cancelled = true;
-        Entry ne = new Entry(islandUuid, next);
-        entries.put(islandUuid, ne);
+        finished.cancelled = true;
+        Entry ne = new Entry(finished.islandUuid, next);
+        entries.put(finished.islandUuid, ne);
         pq.add(ne);
     }
 

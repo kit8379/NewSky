@@ -27,7 +27,7 @@ public class OnlinePlayersListener implements Listener {
         UUID playerUuid = event.getPlayer().getUniqueId();
         String playerName = event.getPlayer().getName();
 
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+        plugin.getBukkitAsyncExecutor().execute(() -> {
             onlinePlayerRegistry.addOnlinePlayer(playerUuid, playerName, serverID);
             plugin.debug("OnlinePlayersListener", "Player " + playerName + " joined on server " + serverID);
         });
@@ -38,7 +38,7 @@ public class OnlinePlayersListener implements Listener {
         UUID playerUuid = event.getPlayer().getUniqueId();
         String playerName = event.getPlayer().getName();
 
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+        plugin.getBukkitAsyncExecutor().execute(() -> {
             onlinePlayerRegistry.removeOnlinePlayer(playerUuid, serverID);
             plugin.debug("OnlinePlayersListener", "Player " + playerName + " quit from server " + serverID);
         });
