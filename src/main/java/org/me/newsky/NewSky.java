@@ -192,7 +192,7 @@ public class NewSky extends JavaPlugin {
             info("API loaded");
 
             if (getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
-                placeholderExpansion = new NewSkyExpansion(this, api);
+                placeholderExpansion = new NewSkyExpansion(this, config, api);
                 if (placeholderExpansion.register()) {
                     info("PlaceholderAPI expansion registered");
                 } else {

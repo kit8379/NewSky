@@ -6,9 +6,11 @@ import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.model.IslandTop;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -26,9 +28,11 @@ public final class NewSkyExpansion extends PlaceholderExpansion {
     private static final long RANK_REFRESH_NANOS = TimeUnit.SECONDS.toNanos(30);
     private static final long EXPIRE_NANOS = TimeUnit.MINUTES.toNanos(1);
     private static final Pattern TOP = Pattern.compile("top_([1-9][0-9]*)_(owner|level|uuid|members)");
-    private static final Map<String, String> NO_ISLAND = Map.ofEntries(Map.entry("island_level", "0"), Map.entry("island_members", "0"), Map.entry("island_owner", ""), Map.entry("island_uuid", ""), Map.entry("has_island", "false"), Map.entry("island_role", "none"), Map.entry("island_owner_uuid", ""), Map.entry("island_lock", "false"), Map.entry("island_pvp", "false"), Map.entry("island_players", "0"), Map.entry("island_members_list", ""), Map.entry("island_coops", "0"), Map.entry("island_coops_list", ""), Map.entry("island_bans", "0"), Map.entry("island_bans_list", ""), Map.entry("island_rank", "0"));
+    private static final Pattern UPGRADE = Pattern.compile("upgrade_([a-z0-9-]+)_(level|value|max|maxed|next_price|next_require_level|next_value)");
+    private static final Map<String, String> NO_ISLAND = Map.ofEntries(Map.entry("island_level", "0"), Map.entry("island_members", "0"), Map.entry("island_owner", ""), Map.entry("island_uuid", ""), Map.entry("island_role", "none"), Map.entry("island_owner_uuid", ""), Map.entry("island_lock", "false"), Map.entry("island_pvp", "false"), Map.entry("island_players", "0"), Map.entry("island_coops", "0"), Map.entry("island_bans", "0"), Map.entry("island_rank", "0"));
 
     private final NewSky plugin;
+    private final ConfigHandler config;
     private final NewSkyAPI api;
     private final LongSupplier clock;
     private final Cache<UUID, UUID> playerIslands = new Cache<>();
@@ -36,18 +40,20 @@ public final class NewSkyExpansion extends PlaceholderExpansion {
     private final Cache<String, Set<UUID>> playerSets = new Cache<>();
     private final Cache<String, String> values = new Cache<>();
     private final Cache<Set<UUID>, Map<UUID, String>> names = new Cache<>();
-    private final List<Cache<?, ?>> caches = List.of(playerIslands, owners, playerSets, values, names);
+    private final Cache<String, Integer> upgradeLevels = new Cache<>();
+    private final List<Cache<?, ?>> caches = List.of(playerIslands, owners, playerSets, values, names, upgradeLevels);
     private final BukkitTask cleanupTask;
     private Cached<Map<String, String>> topCache;
     private int requestedTopLimit;
     private int loadedTopLimit;
 
-    public NewSkyExpansion(NewSky plugin, NewSkyAPI api) {
-        this(plugin, api, System::nanoTime);
+    public NewSkyExpansion(NewSky plugin, ConfigHandler config, NewSkyAPI api) {
+        this(plugin, config, api, System::nanoTime);
     }
 
-    NewSkyExpansion(NewSky plugin, NewSkyAPI api, LongSupplier clock) {
+    NewSkyExpansion(NewSky plugin, ConfigHandler config, NewSkyAPI api, LongSupplier clock) {
         this.plugin = plugin;
+        this.config = config;
         this.api = api;
         this.clock = clock;
         cleanupTask = plugin.getServer().getScheduler().runTaskTimerAsynchronously(plugin, () -> {
@@ -89,6 +95,10 @@ public final class NewSkyExpansion extends PlaceholderExpansion {
             }
             return topValue(position, key);
         }
+        Matcher upgrade = UPGRADE.matcher(key);
+        if (upgrade.matches()) {
+            return upgradeValue(player, upgrade.group(1), upgrade.group(2));
+        }
         if (!NO_ISLAND.containsKey(key)) {
             return null;
         }
@@ -103,7 +113,6 @@ public final class NewSkyExpansion extends PlaceholderExpansion {
 
     private CompletableFuture<String> islandValue(UUID islandUuid, UUID playerUuid, String key) {
         return switch (key) {
-            case "has_island" -> CompletableFuture.completedFuture("true");
             case "island_uuid" -> CompletableFuture.completedFuture(islandUuid.toString());
             case "island_level" ->
                     values.get("level:" + islandUuid, () -> api.getIslandLevel(islandUuid).thenApply(String::valueOf));
@@ -121,13 +130,46 @@ public final class NewSkyExpansion extends PlaceholderExpansion {
                         default ->
                                 playerNames(Set.of(owner)).thenApply(resolved -> resolved.getOrDefault(owner, owner.toString()));
                     });
-            case "island_members", "island_players", "island_members_list" ->
-                    playerSets.get("members:" + islandUuid, () -> api.getIslandMembers(islandUuid)).thenCompose(members -> key.equals("island_members_list") ? playerList(members) : CompletableFuture.completedFuture(Integer.toString(members.size() + (key.equals("island_players") ? 1 : 0))));
-            case "island_coops", "island_coops_list" ->
-                    playerSets.get("coops:" + islandUuid, () -> api.getIslandCoops(islandUuid)).thenCompose(coops -> key.endsWith("_list") ? playerList(coops) : CompletableFuture.completedFuture(Integer.toString(coops.size())));
-            case "island_bans", "island_bans_list" ->
-                    playerSets.get("bans:" + islandUuid, () -> api.getIslandBans(islandUuid)).thenCompose(bans -> key.endsWith("_list") ? playerList(bans) : CompletableFuture.completedFuture(Integer.toString(bans.size())));
+            case "island_members", "island_players" ->
+                    playerSets.get("members:" + islandUuid, () -> api.getIslandMembers(islandUuid)).thenApply(members -> Integer.toString(members.size() + (key.equals("island_players") ? 1 : 0)));
+            case "island_coops" ->
+                    playerSets.get("coops:" + islandUuid, () -> api.getIslandCoops(islandUuid)).thenApply(coops -> Integer.toString(coops.size()));
+            case "island_bans" ->
+                    playerSets.get("bans:" + islandUuid, () -> api.getIslandBans(islandUuid)).thenApply(bans -> Integer.toString(bans.size()));
             default -> throw new IllegalArgumentException("Unknown placeholder: " + key);
+        };
+    }
+
+    /**
+     * Upgrade fields derive from one cached level per island and upgrade; the rest is config.
+     * The maximum level needs no island, every other field is empty without one.
+     */
+    private String upgradeValue(OfflinePlayer player, String upgradeId, String field) {
+        if (!config.isUpgrade(upgradeId)) {
+            return null;
+        }
+        int max = config.getUpgradeLevels(upgradeId).getLast();
+        if (field.equals("max")) {
+            return Integer.toString(max);
+        }
+        if (player == null) {
+            return "";
+        }
+
+        UUID playerUuid = player.getUniqueId();
+        return playerIslands.get(playerUuid, () -> api.getIslandUuid(playerUuid)).thenCompose(islandUuid -> upgradeLevels.get(upgradeId + ":" + islandUuid, () -> api.getUpgradeLevel(islandUuid, upgradeId))).thenApply(level -> upgradeField(upgradeId, level, max, field)).exceptionally(error -> "").getNow("");
+    }
+
+    private String upgradeField(String upgradeId, int level, int max, String field) {
+        boolean maxed = level >= max;
+        return switch (field) {
+            case "level" -> Integer.toString(level);
+            case "value" -> config.getUpgradeValue(upgradeId, level);
+            case "maxed" -> Boolean.toString(maxed);
+            case "next_price" -> maxed ? "" : BigDecimal.valueOf(config.getUpgradePrice(upgradeId, level + 1)).stripTrailingZeros().toPlainString();
+            case "next_require_level" -> maxed ? "" : Integer.toString(config.getUpgradeRequireLevel(upgradeId, level + 1));
+            case "next_value" -> maxed ? "" : config.getUpgradeValue(upgradeId, level + 1);
+            default -> throw new IllegalArgumentException("Unknown upgrade placeholder field: " + field);
         };
     }
 
@@ -180,14 +222,6 @@ public final class NewSkyExpansion extends PlaceholderExpansion {
             plugin.severe("Failed to load leaderboard placeholders", error);
             return Map.of();
         });
-    }
-
-    private CompletableFuture<String> playerList(Set<UUID> players) {
-        return playerNames(players).thenApply(resolved -> sortedList(players.stream().map(uuid -> resolved.getOrDefault(uuid, uuid.toString())).toList()));
-    }
-
-    private static String sortedList(Collection<String> values) {
-        return values.stream().sorted(String.CASE_INSENSITIVE_ORDER).collect(Collectors.joining(", "));
     }
 
     public void stop() {

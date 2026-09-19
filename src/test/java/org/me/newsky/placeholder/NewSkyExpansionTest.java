@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.me.newsky.NewSky;
 import org.me.newsky.api.NewSkyAPI;
+import org.me.newsky.config.ConfigHandler;
 import org.me.newsky.exceptions.IslandDoesNotExistException;
 import org.me.newsky.model.IslandTop;
 
@@ -21,6 +22,7 @@ import static org.mockito.Mockito.*;
 
 class NewSkyExpansionTest {
     private NewSky plugin;
+    private ConfigHandler config;
     private NewSkyAPI api;
     private NewSkyExpansion expansion;
     private OfflinePlayer player;
@@ -34,6 +36,7 @@ class NewSkyExpansionTest {
     @BeforeEach
     void setUp() {
         plugin = mock(NewSky.class);
+        config = mock(ConfigHandler.class);
         api = mock(NewSkyAPI.class);
         Server server = mock(Server.class);
         BukkitScheduler scheduler = mock(BukkitScheduler.class);
@@ -41,7 +44,7 @@ class NewSkyExpansionTest {
         when(server.getScheduler()).thenReturn(scheduler);
         when(scheduler.runTaskTimerAsynchronously(eq(plugin), any(Runnable.class), eq(1200L), eq(1200L)))
                 .thenReturn(mock(BukkitTask.class));
-        expansion = new NewSkyExpansion(plugin, api, clock::get);
+        expansion = new NewSkyExpansion(plugin, config, api, clock::get);
         player = player(playerId);
         when(api.getIslandUuid(playerId)).thenReturn(CompletableFuture.completedFuture(islandId));
         when(api.getIslandOwner(islandId)).thenReturn(CompletableFuture.completedFuture(ownerId));
@@ -60,18 +63,15 @@ class NewSkyExpansionTest {
         Map<String, String> expected = Map.ofEntries(
                 Map.entry("island_level", "42"), Map.entry("island_members", "1"),
                 Map.entry("island_uuid", islandId.toString()), Map.entry("island_owner", "Owner"),
-                Map.entry("has_island", "true"), Map.entry("island_role", "member"),
+                Map.entry("island_role", "member"),
                 Map.entry("island_owner_uuid", ownerId.toString()), Map.entry("island_lock", "true"),
                 Map.entry("island_pvp", "false"), Map.entry("island_players", "2"),
-                Map.entry("island_members_list", "Member"), Map.entry("island_coops", "1"),
-                Map.entry("island_coops_list", "Coop"), Map.entry("island_bans", "1"),
-                Map.entry("island_bans_list", bannedId.toString()));
+                Map.entry("island_coops", "1"), Map.entry("island_bans", "1"));
         expected.forEach((key, value) -> assertEquals(value, expansion.onRequest(player, key), key));
         assertEquals("42", expansion.onRequest(player, "ISLAND_LEVEL"));
         verify(api, times(1)).getIslandUuid(playerId);
-        for (UUID uuid : List.of(ownerId, playerId, coopId, bannedId)) {
-            verify(api).getPlayerNames(Set.of(uuid));
-        }
+        verify(api).getPlayerNames(Set.of(ownerId));
+        verify(api, times(1)).getPlayerNames(anyCollection());
         verify(api, never()).getIslandRank(any());
         verify(api, never()).getTopIslandLevels(anyInt());
     }
@@ -83,7 +83,6 @@ class NewSkyExpansionTest {
         assertEquals("owner", expansion.onRequest(player, "island_role"));
         assertEquals("0", expansion.onRequest(player, "island_members"));
         assertEquals("1", expansion.onRequest(player, "island_players"));
-        assertEquals("", expansion.onRequest(player, "island_members_list"));
     }
 
     @Test
@@ -93,12 +92,11 @@ class NewSkyExpansionTest {
                 "island_bans", "island_rank")) {
             assertEquals("0", expansion.onRequest(player, key), key);
         }
-        for (String key : List.of("has_island", "island_lock", "island_pvp")) {
+        for (String key : List.of("island_lock", "island_pvp")) {
             assertEquals("false", expansion.onRequest(player, key), key);
         }
         assertEquals("none", expansion.onRequest(player, "island_role"));
-        for (String key : List.of("island_owner", "island_owner_uuid", "island_uuid", "island_members_list",
-                "island_coops_list", "island_bans_list")) {
+        for (String key : List.of("island_owner", "island_owner_uuid", "island_uuid")) {
             assertEquals("", expansion.onRequest(player, key), key);
         }
         verify(plugin, never()).severe(anyString(), any(Throwable.class));
@@ -108,7 +106,8 @@ class NewSkyExpansionTest {
     void invalidNamesAndNullPlayersDoNotQueryPlayerData() {
         for (String key : List.of("unknown", "top_0_owner", "top_-1_level", "top_01_owner",
                 "top_2147483648_owner", "top_1_invalid", "top_1_level_extra", "island_online",
-                "player_homes", "player_homes_list", "player_warps", "player_warps_list")) {
+                "player_homes", "player_homes_list", "player_warps", "player_warps_list",
+                "has_island", "island_members_list", "island_coops_list", "island_bans_list")) {
             assertNull(expansion.onRequest(player, key), key);
         }
         assertEquals("", expansion.onRequest(null, "island_level"));
@@ -123,12 +122,12 @@ class NewSkyExpansionTest {
         List<CompletableFuture<Void>> requests = new ArrayList<>();
         for (int i = 0; i < 20; i++) {
             requests.add(CompletableFuture.runAsync(() ->
-                    assertEquals("", expansion.onRequest(player, "island_members_list"))));
+                    assertEquals("", expansion.onRequest(player, "island_members"))));
         }
         CompletableFuture.allOf(requests.toArray(CompletableFuture[]::new)).get(3, TimeUnit.SECONDS);
         verify(api, times(1)).getIslandUuid(playerId);
         loading.complete(islandId);
-        assertEquals("Member", expansion.onRequest(player, "island_members_list"));
+        assertEquals("1", expansion.onRequest(player, "island_members"));
     }
 
     @Test
@@ -177,7 +176,7 @@ class NewSkyExpansionTest {
     void databaseFailuresAreLoggedAndDoNotPretendThePlayerHasNoIsland() {
         RuntimeException failure = new RuntimeException("database unavailable");
         when(api.getIslandUuid(playerId)).thenReturn(CompletableFuture.failedFuture(failure));
-        assertEquals("", expansion.onRequest(player, "has_island"));
+        assertEquals("", expansion.onRequest(player, "island_level"));
         verify(plugin).severe("Failed to load placeholder data for " + playerId, failure);
         when(api.getTopIslandLevels(1)).thenReturn(CompletableFuture.failedFuture(failure));
         assertEquals("", expansion.onRequest(null, "top_1_level"));
@@ -201,7 +200,7 @@ class NewSkyExpansionTest {
         refresh.completeExceptionally(new IslandDoesNotExistException());
         topRefresh.complete(List.of());
         assertEquals("0", expansion.onRequest(player, "island_level"));
-        assertEquals("false", expansion.onRequest(player, "has_island"));
+        assertEquals("false", expansion.onRequest(player, "island_lock"));
         assertEquals("", expansion.onRequest(null, "top_1_level"));
     }
 
@@ -247,14 +246,11 @@ class NewSkyExpansionTest {
     }
 
     @Test
-    void countsShareSourcesAndNamesOnlyLoadWhenAListIsRequested() {
+    void countsShareTheMembershipSourceWithoutResolvingNames() {
         assertEquals("1", expansion.onRequest(player, "island_members"));
         assertEquals("2", expansion.onRequest(player, "island_players"));
         verify(api).getIslandUuid(playerId);
         verify(api).getIslandMembers(islandId);
-        verifyNoMoreInteractions(api);
-        assertEquals("Member", expansion.onRequest(player, "island_members_list"));
-        verify(api).getPlayerNames(Set.of(playerId));
         verifyNoMoreInteractions(api);
     }
 
@@ -318,6 +314,48 @@ class NewSkyExpansionTest {
         verify(api, times(1)).getIslandLevel(islandId);
         loading.complete(42);
         assertEquals("42", expansion.onRequest(player, "island_level"));
+    }
+
+    @Test
+    void upgradeFieldsDeriveFromOneCachedLevelAndTheConfig() {
+        stubIslandSizeUpgrade();
+        when(api.getUpgradeLevel(islandId, "island-size")).thenReturn(CompletableFuture.completedFuture(2));
+        Map<String, String> expected = Map.of("upgrade_island-size_level", "2", "upgrade_island-size_value", "100",
+                "upgrade_island-size_max", "5", "upgrade_island-size_maxed", "false", "upgrade_island-size_next_price", "180000",
+                "upgrade_island-size_next_require_level", "450", "upgrade_island-size_next_value", "125");
+        expected.forEach((key, value) -> assertEquals(value, expansion.onRequest(player, key), key));
+        verify(api, times(1)).getUpgradeLevel(islandId, "island-size");
+    }
+
+    @Test
+    void maxedUpgradeHasNoNextFields() {
+        stubIslandSizeUpgrade();
+        when(api.getUpgradeLevel(islandId, "island-size")).thenReturn(CompletableFuture.completedFuture(5));
+        assertEquals("true", expansion.onRequest(player, "upgrade_island-size_maxed"));
+        for (String field : List.of("next_price", "next_require_level", "next_value")) {
+            assertEquals("", expansion.onRequest(player, "upgrade_island-size_" + field), field);
+        }
+    }
+
+    @Test
+    void upgradeMaxNeedsNoIslandAndUnknownUpgradesAreNotPlaceholders() {
+        stubIslandSizeUpgrade();
+        assertEquals("5", expansion.onRequest(null, "upgrade_island-size_max"));
+        assertEquals("", expansion.onRequest(null, "upgrade_island-size_level"));
+        when(api.getIslandUuid(playerId)).thenReturn(CompletableFuture.failedFuture(new IslandDoesNotExistException()));
+        assertEquals("", expansion.onRequest(player, "upgrade_island-size_level"));
+        assertNull(expansion.onRequest(player, "upgrade_jetpack_level"));
+        assertNull(expansion.onRequest(player, "upgrade_island-size_price"));
+        verify(api, never()).getUpgradeLevel(any(), anyString());
+    }
+
+    private void stubIslandSizeUpgrade() {
+        when(config.isUpgrade("island-size")).thenReturn(true);
+        when(config.getUpgradeLevels("island-size")).thenReturn(List.of(1, 2, 3, 4, 5));
+        when(config.getUpgradeValue("island-size", 2)).thenReturn("100");
+        when(config.getUpgradeValue("island-size", 3)).thenReturn("125");
+        when(config.getUpgradePrice("island-size", 3)).thenReturn(180000.0);
+        when(config.getUpgradeRequireLevel("island-size", 3)).thenReturn(450);
     }
 
     private OfflinePlayer player(UUID uuid) {
