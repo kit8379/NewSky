@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
 
 public final class NewSkyExpansion extends PlaceholderExpansion {
 
-    private static final long REFRESH_NANOS = TimeUnit.SECONDS.toNanos(5);
+    private static final long REFRESH_NANOS = TimeUnit.SECONDS.toNanos(30);
     private static final long RANK_REFRESH_NANOS = TimeUnit.SECONDS.toNanos(30);
     private static final long EXPIRE_NANOS = TimeUnit.MINUTES.toNanos(1);
     private static final Pattern TOP = Pattern.compile("top_([1-9][0-9]*)_(owner|level|uuid|members)");

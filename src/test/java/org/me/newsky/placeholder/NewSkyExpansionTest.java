@@ -232,7 +232,7 @@ class NewSkyExpansionTest {
         }
         when(api.getIslandUuid(any())).thenAnswer(call -> CompletableFuture.completedFuture(memberships.get(call.getArgument(0))));
         when(api.getIslandLevel(any())).thenReturn(CompletableFuture.completedFuture(42));
-        for (int second = 0; second < 5; second++) {
+        for (int second = 0; second < 30; second++) {
             players.forEach(online -> assertEquals("42", expansion.onRequest(online, "island_level")));
             clock.addAndGet(TimeUnit.SECONDS.toNanos(1));
         }
@@ -258,7 +258,7 @@ class NewSkyExpansionTest {
     void movingToAnotherIslandDoesNotReuseOldIslandData() {
         UUID nextIsland = UUID.randomUUID();
         assertEquals("42", expansion.onRequest(player, "island_level"));
-        clock.addAndGet(TimeUnit.SECONDS.toNanos(5));
+        clock.addAndGet(TimeUnit.SECONDS.toNanos(30));
         when(api.getIslandUuid(playerId)).thenReturn(CompletableFuture.completedFuture(nextIsland));
         when(api.getIslandLevel(nextIsland)).thenReturn(CompletableFuture.completedFuture(7));
         assertEquals("7", expansion.onRequest(player, "island_level"));
@@ -280,7 +280,7 @@ class NewSkyExpansionTest {
         when(api.getIslandLevel(islandId)).thenReturn(CompletableFuture.completedFuture(43));
         when(api.getIslandRank(islandId)).thenReturn(CompletableFuture.completedFuture(2L));
         when(api.getTopIslandLevels(1)).thenReturn(CompletableFuture.completedFuture(List.of()));
-        assertEquals("43", expansion.onRequest(player, "island_level"));
+        assertEquals("42", expansion.onRequest(player, "island_level"));
         assertEquals("1", expansion.onRequest(player, "island_rank"));
         assertEquals("42", expansion.onRequest(null, "top_1_level"));
         clock.addAndGet(TimeUnit.SECONDS.toNanos(24));
@@ -290,6 +290,7 @@ class NewSkyExpansionTest {
         verify(api, times(1)).getTopIslandLevels(1);
 
         clock.addAndGet(TimeUnit.SECONDS.toNanos(1));
+        assertEquals("43", expansion.onRequest(player, "island_level"));
         assertEquals("2", expansion.onRequest(other, "island_rank"));
         assertEquals("", expansion.onRequest(null, "top_1_level"));
         verify(api, times(2)).getIslandRank(islandId);

@@ -642,7 +642,7 @@ string.
 <summary><b>Loading and caching behaviour</b></summary>
 
 Only the data a requested placeholder needs is loaded, asynchronously. Player-to-island
-lookups and island data refresh on demand after five seconds; island data is shared by island
+lookups and island data refresh on demand after thirty seconds; island data is shared by island
 UUID within each server. Counts and lists share their underlying data, and player names are
 fetched only when displayed — showing only the island level reads the player's island UUID and
 the shared level, nothing else.
