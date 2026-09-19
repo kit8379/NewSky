@@ -2,12 +2,14 @@ package org.me.newsky.redis;
 
 import org.me.newsky.NewSky;
 import org.me.newsky.config.ConfigHandler;
+import org.me.newsky.cluster.ClusterKeys;
 import redis.clients.jedis.*;
 
 public class RedisHandler {
 
     private final NewSky plugin;
     private final ConnectionPool pool;
+    private final ClusterKeys keys;
 
     public RedisHandler(NewSky plugin, ConfigHandler config) {
         this.plugin = plugin;
@@ -15,11 +17,11 @@ public class RedisHandler {
         String host = config.getRedisHost();
         int port = config.getRedisPort();
         String password = config.getRedisPassword();
-        int database = config.getRedisDatabase();
+        this.keys = new ClusterKeys(config.getClusterId());
 
         ConnectionPoolConfig poolConfig = new ConnectionPoolConfig();
 
-        DefaultJedisClientConfig.Builder clientConfigBuilder = DefaultJedisClientConfig.builder().database(database).connectionTimeoutMillis(2000).socketTimeoutMillis(2000);
+        DefaultJedisClientConfig.Builder clientConfigBuilder = DefaultJedisClientConfig.builder().connectionTimeoutMillis(2000).socketTimeoutMillis(2000);
 
         if (password != null && !password.isEmpty()) {
             clientConfigBuilder.password(password);
@@ -32,6 +34,10 @@ public class RedisHandler {
 
         // Correct constructor
         this.pool = new ConnectionPool(new HostAndPort(host, port), clientConfig, poolConfig);
+    }
+
+    public ClusterKeys getKeys() {
+        return keys;
     }
 
     public Jedis getJedis() {

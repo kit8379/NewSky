@@ -17,10 +17,12 @@ public abstract class ClusterState {
 
     protected final NewSky plugin;
     protected final RedisHandler redisHandler;
+    protected final ClusterKeys keys;
 
     protected ClusterState(NewSky plugin, RedisHandler redisHandler) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
         this.redisHandler = Objects.requireNonNull(redisHandler, "redisHandler");
+        this.keys = redisHandler.getKeys();
     }
 
     protected <T> T execute(Function<Jedis, T> operation, String errorMessage) {

@@ -24,16 +24,16 @@ public class InvitationStore extends ClusterState {
      */
     public boolean addIslandInvite(UUID inviteeUuid, UUID islandUuid, UUID inviterUuid, int ttlSeconds) {
         String value = islandUuid + ":" + inviterUuid;
-        return execute(jedis -> jedis.set(ClusterKeys.invitation(inviteeUuid), value, SetParams.setParams().nx().ex(ttlSeconds)) != null, "Failed to add island invite for: " + inviteeUuid);
+        return execute(jedis -> jedis.set(keys.invitation(inviteeUuid), value, SetParams.setParams().nx().ex(ttlSeconds)) != null, "Failed to add island invite for: " + inviteeUuid);
     }
 
     public void removeIslandInvite(UUID inviteeUuid) {
-        run(jedis -> jedis.del(ClusterKeys.invitation(inviteeUuid)), "Failed to remove island invite for: " + inviteeUuid);
+        run(jedis -> jedis.del(keys.invitation(inviteeUuid)), "Failed to remove island invite for: " + inviteeUuid);
     }
 
     public Optional<Invitation> getIslandInvite(UUID inviteeUuid) {
         return execute(jedis -> {
-            String value = jedis.get(ClusterKeys.invitation(inviteeUuid));
+            String value = jedis.get(keys.invitation(inviteeUuid));
             if (value == null || value.isEmpty()) {
                 return Optional.empty();
             }

@@ -47,8 +47,8 @@ public class OnlinePlayerRegistry extends ClusterState {
     public void addOnlinePlayer(UUID playerUuid, String playerName, String serverName) {
         run(jedis -> {
             Transaction transaction = jedis.multi();
-            transaction.hset(ClusterKeys.onlinePlayers(), playerUuid.toString(), playerName);
-            transaction.hset(ClusterKeys.onlinePlayerServers(), playerUuid.toString(), serverName);
+            transaction.hset(keys.onlinePlayers(), playerUuid.toString(), playerName);
+            transaction.hset(keys.onlinePlayerServers(), playerUuid.toString(), serverName);
             transaction.exec();
         }, "Failed to add online player: " + playerUuid);
     }
@@ -63,32 +63,32 @@ public class OnlinePlayerRegistry extends ClusterState {
         run(jedis -> {
             Pipeline pipeline = jedis.pipelined();
             for (Map.Entry<UUID, String> entry : playersByUuid.entrySet()) {
-                pipeline.hsetnx(ClusterKeys.onlinePlayers(), entry.getKey().toString(), entry.getValue());
-                pipeline.hsetnx(ClusterKeys.onlinePlayerServers(), entry.getKey().toString(), serverName);
+                pipeline.hsetnx(keys.onlinePlayers(), entry.getKey().toString(), entry.getValue());
+                pipeline.hsetnx(keys.onlinePlayerServers(), entry.getKey().toString(), serverName);
             }
             pipeline.sync();
         }, "Failed to re-register online players for server: " + serverName);
     }
 
     public void removeOnlinePlayer(UUID playerUuid, String serverName) {
-        run(jedis -> jedis.eval(REMOVE_IF_ON_SERVER_SCRIPT, List.of(ClusterKeys.onlinePlayers(), ClusterKeys.onlinePlayerServers()), List.of(playerUuid.toString(), serverName)), "Failed to remove online player: " + playerUuid);
+        run(jedis -> jedis.eval(REMOVE_IF_ON_SERVER_SCRIPT, List.of(keys.onlinePlayers(), keys.onlinePlayerServers()), List.of(playerUuid.toString(), serverName)), "Failed to remove online player: " + playerUuid);
     }
 
     public void removeAllOnServer(String serverName) {
-        run(jedis -> jedis.eval(REMOVE_ALL_ON_SERVER_SCRIPT, List.of(ClusterKeys.onlinePlayers(), ClusterKeys.onlinePlayerServers()), List.of(serverName)), "Failed to remove online players on server: " + serverName);
+        run(jedis -> jedis.eval(REMOVE_ALL_ON_SERVER_SCRIPT, List.of(keys.onlinePlayers(), keys.onlinePlayerServers()), List.of(serverName)), "Failed to remove online players on server: " + serverName);
     }
 
     public boolean isOnline(UUID playerUuid) {
-        return execute(jedis -> jedis.hexists(ClusterKeys.onlinePlayers(), playerUuid.toString()), "Failed to check online player: " + playerUuid);
+        return execute(jedis -> jedis.hexists(keys.onlinePlayers(), playerUuid.toString()), "Failed to check online player: " + playerUuid);
     }
 
     public String getOnlinePlayerServer(UUID playerUuid) {
-        return execute(jedis -> jedis.hget(ClusterKeys.onlinePlayerServers(), playerUuid.toString()), "Failed to get online player server: " + playerUuid);
+        return execute(jedis -> jedis.hget(keys.onlinePlayerServers(), playerUuid.toString()), "Failed to get online player server: " + playerUuid);
     }
 
     public Set<UUID> getOnlinePlayerUuids() {
         return execute(jedis -> {
-            Set<String> keys = jedis.hkeys(ClusterKeys.onlinePlayers());
+            Set<String> keys = jedis.hkeys(this.keys.onlinePlayers());
             if (keys == null || keys.isEmpty()) {
                 return Set.of();
             }
@@ -104,7 +104,7 @@ public class OnlinePlayerRegistry extends ClusterState {
 
     public Set<String> getOnlinePlayerNames() {
         return execute(jedis -> {
-            List<String> values = jedis.hvals(ClusterKeys.onlinePlayers());
+            List<String> values = jedis.hvals(keys.onlinePlayers());
             return values == null || values.isEmpty() ? Set.of() : Set.copyOf(values);
         }, "Failed to get online player names");
     }

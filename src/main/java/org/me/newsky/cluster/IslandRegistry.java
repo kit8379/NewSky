@@ -191,7 +191,7 @@ public class IslandRegistry extends ClusterState {
     }
 
     public Claim acquire(UUID islandUuid, String value, boolean queue) {
-        List<String> reply = execute(jedis -> reply(jedis.eval(ACQUIRE_SCRIPT, keys(islandUuid), List.of(islandUuid.toString(), value, String.valueOf(QUEUE_STALE_MILLIS), queue ? "queue" : "noqueue", String.valueOf(QUEUE_TTL_SECONDS), ClusterKeys.serverHeartbeatPrefix()))), "Failed to acquire island claim for: " + islandUuid);
+        List<String> reply = execute(jedis -> reply(jedis.eval(ACQUIRE_SCRIPT, keys(islandUuid), List.of(islandUuid.toString(), value, String.valueOf(QUEUE_STALE_MILLIS), queue ? "queue" : "noqueue", String.valueOf(QUEUE_TTL_SECONDS), keys.serverHeartbeatPrefix()))), "Failed to acquire island claim for: " + islandUuid);
 
         Status status = Status.valueOf(reply.getFirst());
         return switch (status) {
@@ -229,7 +229,7 @@ public class IslandRegistry extends ClusterState {
      * hosted anywhere (absent or only transiently claimed).
      */
     public Host resolveHost(UUID islandUuid) {
-        List<String> reply = execute(jedis -> reply(jedis.eval(RESOLVE_HOST_SCRIPT, List.of(ClusterKeys.islandServer()), List.of(islandUuid.toString(), ClusterKeys.serverHeartbeatPrefix()))), "Failed to resolve island host for: " + islandUuid);
+        List<String> reply = execute(jedis -> reply(jedis.eval(RESOLVE_HOST_SCRIPT, List.of(keys.islandServer()), List.of(islandUuid.toString(), keys.serverHeartbeatPrefix()))), "Failed to resolve island host for: " + islandUuid);
 
         if ("NONE".equals(reply.getFirst())) {
             return null;
@@ -239,11 +239,11 @@ public class IslandRegistry extends ClusterState {
     }
 
     public void removeServerMappings(String serverName) {
-        run(jedis -> jedis.eval(REMOVE_SERVER_MAPPINGS_SCRIPT, List.of(ClusterKeys.islandServer()), List.of(serverName, serverName + TRANSIENT_MARKER)), "Failed to remove island server mappings for: " + serverName);
+        run(jedis -> jedis.eval(REMOVE_SERVER_MAPPINGS_SCRIPT, List.of(keys.islandServer()), List.of(serverName, serverName + TRANSIENT_MARKER)), "Failed to remove island server mappings for: " + serverName);
     }
 
-    private static List<String> keys(UUID islandUuid) {
-        return List.of(ClusterKeys.islandServer(), ClusterKeys.islandClaimQueue(islandUuid));
+    private List<String> keys(UUID islandUuid) {
+        return List.of(keys.islandServer(), keys.islandClaimQueue(islandUuid));
     }
 
     private static List<String> reply(Object raw) {

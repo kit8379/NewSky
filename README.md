@@ -414,7 +414,8 @@ redis:
   host: "localhost"
   port: 6379
   password: ""
-  database: 0          # separate independent NewSky networks by database number
+
+cluster-id: default    # same on all nodes in this NewSky network
 ```
 
 `socketTimeout` bounds a query whose reply never arrives. Keep it **above** the database
@@ -718,18 +719,22 @@ ASP writes the slime world blobs into the same database.
 
 | Key | Purpose |
 | --- | --- |
-| `newsky:island:server` | the claim hash — which node holds which island |
-| `newsky:island:claimqueue:<island>` | FIFO waiters for one island |
-| `newsky:messaging:inbox:<server>` | per-server request stream |
-| `newsky:heartbeat:server:<name>` | liveness, TTL based |
-| `newsky:heartbeat:game_server:<name>` | liveness for island-hosting nodes only |
-| `newsky:servers:known` | known server names |
-| `newsky:server:mspt` | reported MSPT per node |
-| `newsky:server:round_robin_counter` | round-robin cursor |
-| `newsky:online:players` / `newsky:online:player_servers` | cluster-wide presence |
-| `newsky:invitation:island:<player>` | pending invitations, TTL based |
+| `newsky-<cluster-id>:island:server` | the claim hash — which node holds which island |
+| `newsky-<cluster-id>:island:claimqueue:<island>` | FIFO waiters for one island |
+| `newsky-<cluster-id>:messaging:inbox:<server>` | per-server request stream |
+| `newsky-<cluster-id>:heartbeat:server:<name>` | liveness, TTL based |
+| `newsky-<cluster-id>:heartbeat:game_server:<name>` | liveness for island-hosting nodes only |
+| `newsky-<cluster-id>:servers:known` | known server names |
+| `newsky-<cluster-id>:server:mspt` | reported MSPT per node |
+| `newsky-<cluster-id>:server:round_robin_counter` | round-robin cursor |
+| `newsky-<cluster-id>:online:players` / `newsky-<cluster-id>:online:player_servers` | cluster-wide presence |
+| `newsky-<cluster-id>:invitation:island:<player>` | pending invitations, TTL based |
 
-Separate independent NewSky networks with `redis.database`.
+Separate independent NewSky networks with the top-level `cluster-id` (default: `default`).
+All nodes in one network must use the same value. Redis uses its default database;
+all state keys and messaging streams use the `newsky-<cluster-id>:` namespace.
+Restart all nodes when changing `cluster-id`. This isolates Redis state only; independent
+networks also need separate MySQL data.
 
 ---
 

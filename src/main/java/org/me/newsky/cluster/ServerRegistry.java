@@ -96,23 +96,23 @@ public class ServerRegistry extends ClusterState {
      */
     public boolean updateActiveServer(String serverName, boolean lobby, int ttlSeconds) {
         String timestamp = String.valueOf(System.currentTimeMillis());
-        return execute(jedis -> (Long) jedis.eval(HEARTBEAT_SCRIPT, List.of(ClusterKeys.serverHeartbeat(serverName), ClusterKeys.gameServerHeartbeat(serverName), ClusterKeys.knownServers()), List.of(String.valueOf(ttlSeconds), timestamp, lobby ? "1" : "0", serverName)) == 1L, "Failed to update active server for: " + serverName);
+        return execute(jedis -> (Long) jedis.eval(HEARTBEAT_SCRIPT, List.of(keys.serverHeartbeat(serverName), keys.gameServerHeartbeat(serverName), keys.knownServers()), List.of(String.valueOf(ttlSeconds), timestamp, lobby ? "1" : "0", serverName)) == 1L, "Failed to update active server for: " + serverName);
     }
 
     public Set<String> getKnownServers() {
-        return execute(jedis -> jedis.smembers(ClusterKeys.knownServers()), "Failed to get known servers");
+        return execute(jedis -> jedis.smembers(keys.knownServers()), "Failed to get known servers");
     }
 
     public long reapDeadServer(String serverName) {
-        return execute(jedis -> (Long) jedis.eval(REAP_DEAD_SERVER_SCRIPT, List.of(ClusterKeys.serverHeartbeat(serverName), ClusterKeys.onlinePlayerServers(), ClusterKeys.onlinePlayers(), ClusterKeys.serverMspt(), ClusterKeys.knownServers()), List.of(serverName)), "Failed to reap dead server: " + serverName);
+        return execute(jedis -> (Long) jedis.eval(REAP_DEAD_SERVER_SCRIPT, List.of(keys.serverHeartbeat(serverName), keys.onlinePlayerServers(), keys.onlinePlayers(), keys.serverMspt(), keys.knownServers()), List.of(serverName)), "Failed to reap dead server: " + serverName);
     }
 
     public void removeActiveServer(String serverName) {
         run(jedis -> {
             Pipeline pipeline = jedis.pipelined();
-            pipeline.del(ClusterKeys.serverHeartbeat(serverName));
-            pipeline.del(ClusterKeys.gameServerHeartbeat(serverName));
-            pipeline.hdel(ClusterKeys.serverMspt(), serverName);
+            pipeline.del(keys.serverHeartbeat(serverName));
+            pipeline.del(keys.gameServerHeartbeat(serverName));
+            pipeline.hdel(keys.serverMspt(), serverName);
             pipeline.sync();
         }, "Failed to remove active server: " + serverName);
 
@@ -122,11 +122,11 @@ public class ServerRegistry extends ClusterState {
     }
 
     public Map<String, String> getActiveServers() {
-        return getActiveServersByPrefix(ClusterKeys.serverHeartbeatPrefix(), "Failed to get active servers");
+        return getActiveServersByPrefix(keys.serverHeartbeatPrefix(), "Failed to get active servers");
     }
 
     public Map<String, String> getActiveGameServers() {
-        return getActiveServersByPrefix(ClusterKeys.gameServerHeartbeatPrefix(), "Failed to get active game servers");
+        return getActiveServersByPrefix(keys.gameServerHeartbeatPrefix(), "Failed to get active game servers");
     }
 
     /**
@@ -137,7 +137,7 @@ public class ServerRegistry extends ClusterState {
      */
     private Map<String, String> getActiveServersByPrefix(String prefix, String errorMessage) {
         return execute(jedis -> {
-            List<String> known = new ArrayList<>(jedis.smembers(ClusterKeys.knownServers()));
+            List<String> known = new ArrayList<>(jedis.smembers(keys.knownServers()));
             Map<String, String> result = new LinkedHashMap<>();
             if (known.isEmpty()) {
                 return result;
@@ -155,17 +155,17 @@ public class ServerRegistry extends ClusterState {
     }
 
     public void updateServerMSPT(String serverName, double mspt) {
-        run(jedis -> jedis.hset(ClusterKeys.serverMspt(), serverName, String.format(Locale.ROOT, "%.2f", mspt)), "Failed to update MSPT for server: " + serverName);
+        run(jedis -> jedis.hset(keys.serverMspt(), serverName, String.format(Locale.ROOT, "%.2f", mspt)), "Failed to update MSPT for server: " + serverName);
     }
 
     public double getServerMSPT(String serverName) {
         return execute(jedis -> {
-            String value = jedis.hget(ClusterKeys.serverMspt(), serverName);
+            String value = jedis.hget(keys.serverMspt(), serverName);
             return value != null && !value.isEmpty() ? Double.parseDouble(value) : -1;
         }, "Failed to get MSPT for server: " + serverName);
     }
 
     public long getRoundRobinCounter() {
-        return execute(jedis -> (Long) jedis.eval(ROUND_ROBIN_INCR_SCRIPT, List.of(ClusterKeys.roundRobinCounter()), List.of()), "Failed to increment round-robin counter");
+        return execute(jedis -> (Long) jedis.eval(ROUND_ROBIN_INCR_SCRIPT, List.of(keys.roundRobinCounter()), List.of()), "Failed to increment round-robin counter");
     }
 }

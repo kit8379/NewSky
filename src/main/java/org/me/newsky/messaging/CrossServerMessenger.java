@@ -19,7 +19,6 @@ import java.util.concurrent.TimeUnit;
 
 public final class CrossServerMessenger {
 
-    private static final String STREAM_PREFIX = "newsky:messaging:inbox:";
     private static final String FIELD_MESSAGE = "message";
     private static final long REQUEST_TIMEOUT_SECONDS = 30L;
     private static final long MAX_MESSAGE_AGE_MILLIS = REQUEST_TIMEOUT_SECONDS * 1000L;
@@ -272,7 +271,7 @@ public final class CrossServerMessenger {
     }
 
     private String inboxKey(String serverName) {
-        return STREAM_PREFIX + serverName;
+        return redisHandler.getKeys().messagingInbox(serverName);
     }
 
     private void sleepQuietly(long millis) {

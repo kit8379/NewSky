@@ -51,10 +51,12 @@ redis:
   port: 6379
   password: ""
 
-  # Use these to separate multiple independent NewSky networks sharing the same Redis (should be identical on all servers in the same network).
-  database: 0
-
   # Cross-server messaging uses Redis Streams with per-server inbox keys.
+
+# Servers in the same NewSky network must share this cluster id.
+# Use a different id for each independent network sharing Redis.
+# Read at startup; changing it requires restarting all nodes in the network.
+cluster-id: default
 
 
 # ===================================================================
