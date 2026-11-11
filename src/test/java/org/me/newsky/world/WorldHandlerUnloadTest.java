@@ -1,6 +1,8 @@
 package org.me.newsky.world;
 
 import com.infernalsuite.asp.api.AdvancedSlimePaperAPI;
+import com.infernalsuite.asp.api.loaders.SlimeLoader;
+import com.infernalsuite.asp.api.loaders.SlimeSerializationAdapter;
 import com.infernalsuite.asp.api.world.SlimeWorld;
 import com.infernalsuite.asp.api.world.SlimeWorldInstance;
 import com.infernalsuite.asp.loaders.mysql.MysqlLoader;
@@ -32,6 +34,8 @@ class WorldHandlerUnloadTest {
     private final World world = mock(World.class);
     private final SlimeWorldInstance instance = mock(SlimeWorldInstance.class);
     private final SlimeWorld finalState = mock(SlimeWorld.class);
+    private final SlimeLoader database = mock(SlimeLoader.class);
+    private final byte[] serialized = {1, 2, 3};
     private final Queue<Runnable> mainTasks = new ArrayDeque<>();
     private final Queue<Runnable> asyncTasks = new ArrayDeque<>();
     private final AtomicBoolean unloaded = new AtomicBoolean();
@@ -59,6 +63,10 @@ class WorldHandlerUnloadTest {
             return unloadAccepted;
         });
         when(asp.getLoadedWorld(NAME)).thenReturn(instance);
+        when(finalState.getLoader()).thenReturn(new IslandWorldLoader(database));
+        SlimeSerializationAdapter serializer = mock(SlimeSerializationAdapter.class);
+        when(serializer.serializeWorld(finalState)).thenReturn(serialized);
+        when(asp.getSerializer()).thenReturn(serializer);
         when(instance.getSerializableCopy()).thenAnswer(call -> {
             assertFalse(unloaded.get(), "final state must be captured before the world is unloaded");
             return finalState;
@@ -82,12 +90,12 @@ class WorldHandlerUnloadTest {
         mainTasks.remove().run();
         assertTrue(unloaded.get());
         assertTrue(mainTasks.isEmpty());
-        verify(asp, never()).saveWorld(any());
+        verify(database, never()).saveWorld(any(), any());
         assertFalse(unload.isDone());
 
         runAll(asyncTasks);
-        verify(asp).saveWorld(finalState);
-        verify(asp, never()).saveWorld(instance);
+        verify(database).saveWorld(NAME, serialized);
+        verify(asp, never()).saveWorld(any());
         assertNull(unload.join());
     }
 
@@ -101,13 +109,13 @@ class WorldHandlerUnloadTest {
 
         CompletionException error = assertThrows(CompletionException.class, unload::join);
         assertInstanceOf(IllegalStateException.class, error.getCause());
-        verify(asp, never()).saveWorld(any());
+        verify(database, never()).saveWorld(any(), any());
     }
 
     @Test
     void failedSaveFailsTheUnload() throws IOException {
         IOException failure = new IOException("database down");
-        doThrow(failure).when(asp).saveWorld(finalState);
+        doThrow(failure).when(database).saveWorld(NAME, serialized);
 
         CompletableFuture<Void> unload = handler.unloadWorld(NAME);
         mainTasks.remove().run();

@@ -90,7 +90,7 @@ public class WorldHandler {
                 throw new IllegalStateException("Lobby-only server has no template world to create islands from");
             }
 
-            SlimeWorld newWorld = templateWorld.clone(worldName, slimeLoader);
+            SlimeWorld newWorld = templateWorld.clone(worldName, new IslandWorldLoader(slimeLoader));
             newWorld.getPropertyMap().merge(properties);
             plugin.debug("WorldHandler", "World cloned from template and saved to slime loader: " + worldName);
             return loadWorldToBukkit(newWorld);
@@ -103,7 +103,7 @@ public class WorldHandler {
     public CompletableFuture<Void> loadWorld(String worldName) {
         plugin.debug("WorldHandler", "Loading world: " + worldName);
         try {
-            SlimeWorld world = asp.readWorld(slimeLoader, worldName, false, properties);
+            SlimeWorld world = asp.readWorld(new IslandWorldLoader(slimeLoader), worldName, false, properties);
             plugin.debug("WorldHandler", "World read from slime loader: " + worldName);
             return loadWorldToBukkit(world);
         } catch (Exception e) {
@@ -121,7 +121,7 @@ public class WorldHandler {
             }
 
             try {
-                asp.saveWorld(finalState);
+                ((IslandWorldLoader) finalState.getLoader()).saveFinal(worldName, asp.getSerializer().serializeWorld(finalState));
                 plugin.debug("WorldHandler", "World saved after unload: " + worldName);
                 return CompletableFuture.completedFuture(null);
             } catch (Exception e) {
